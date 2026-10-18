@@ -1,0 +1,106 @@
+// COMPILE: -opt level=2,intrinsics,space -inline auto,deferred -enum min -align 8 -Cpp_exceptions off
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
+// COMPILE-WHY: libjpeg 6b's one line and compiler, as every libjpeg TU (Research/notes/jpeg.md)
+// LINK: after jidctflt; data EVNOVA 0x00587fc8
+/* jfdctflt.c -- IJG libjpeg 6b jfdctflt.c, Copyright (C) 1991-1998, Thomas G. Lane; IJG licence in jpeglib.h; not linked: dead-stripped in the exe; kept for the TU's data; altered: comments and the #if branches this build does not take removed. Notes: Research/notes/jpeg.md */
+
+#define JPEG_INTERNALS
+#include "jinclude.h"
+#include "jpeglib.h"
+#include "jdct.h"
+
+GLOBAL(void)
+jpeg_fdct_float (FAST_FLOAT * data)
+{
+  FAST_FLOAT tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
+  FAST_FLOAT tmp10, tmp11, tmp12, tmp13;
+  FAST_FLOAT z1, z2, z3, z4, z5, z11, z13;
+  FAST_FLOAT *dataptr;
+  int ctr;
+
+  dataptr = data;
+  for (ctr = DCTSIZE-1; ctr >= 0; ctr--) {
+    tmp0 = dataptr[0] + dataptr[7];
+    tmp7 = dataptr[0] - dataptr[7];
+    tmp1 = dataptr[1] + dataptr[6];
+    tmp6 = dataptr[1] - dataptr[6];
+    tmp2 = dataptr[2] + dataptr[5];
+    tmp5 = dataptr[2] - dataptr[5];
+    tmp3 = dataptr[3] + dataptr[4];
+    tmp4 = dataptr[3] - dataptr[4];
+
+    tmp10 = tmp0 + tmp3;
+    tmp13 = tmp0 - tmp3;
+    tmp11 = tmp1 + tmp2;
+    tmp12 = tmp1 - tmp2;
+
+    dataptr[0] = tmp10 + tmp11;
+    dataptr[4] = tmp10 - tmp11;
+
+    z1 = (tmp12 + tmp13) * ((FAST_FLOAT) 0.707106781);
+    dataptr[2] = tmp13 + z1;
+    dataptr[6] = tmp13 - z1;
+
+    tmp10 = tmp4 + tmp5;
+    tmp11 = tmp5 + tmp6;
+    tmp12 = tmp6 + tmp7;
+
+    z5 = (tmp10 - tmp12) * ((FAST_FLOAT) 0.382683433);
+    z2 = ((FAST_FLOAT) 0.541196100) * tmp10 + z5;
+    z4 = ((FAST_FLOAT) 1.306562965) * tmp12 + z5;
+    z3 = tmp11 * ((FAST_FLOAT) 0.707106781);
+
+    z11 = tmp7 + z3;
+    z13 = tmp7 - z3;
+
+    dataptr[5] = z13 + z2;
+    dataptr[3] = z13 - z2;
+    dataptr[1] = z11 + z4;
+    dataptr[7] = z11 - z4;
+
+    dataptr += DCTSIZE;
+  }
+
+  dataptr = data;
+  for (ctr = DCTSIZE-1; ctr >= 0; ctr--) {
+    tmp0 = dataptr[DCTSIZE*0] + dataptr[DCTSIZE*7];
+    tmp7 = dataptr[DCTSIZE*0] - dataptr[DCTSIZE*7];
+    tmp1 = dataptr[DCTSIZE*1] + dataptr[DCTSIZE*6];
+    tmp6 = dataptr[DCTSIZE*1] - dataptr[DCTSIZE*6];
+    tmp2 = dataptr[DCTSIZE*2] + dataptr[DCTSIZE*5];
+    tmp5 = dataptr[DCTSIZE*2] - dataptr[DCTSIZE*5];
+    tmp3 = dataptr[DCTSIZE*3] + dataptr[DCTSIZE*4];
+    tmp4 = dataptr[DCTSIZE*3] - dataptr[DCTSIZE*4];
+
+    tmp10 = tmp0 + tmp3;
+    tmp13 = tmp0 - tmp3;
+    tmp11 = tmp1 + tmp2;
+    tmp12 = tmp1 - tmp2;
+
+    dataptr[DCTSIZE*0] = tmp10 + tmp11;
+    dataptr[DCTSIZE*4] = tmp10 - tmp11;
+
+    z1 = (tmp12 + tmp13) * ((FAST_FLOAT) 0.707106781);
+    dataptr[DCTSIZE*2] = tmp13 + z1;
+    dataptr[DCTSIZE*6] = tmp13 - z1;
+
+    tmp10 = tmp4 + tmp5;
+    tmp11 = tmp5 + tmp6;
+    tmp12 = tmp6 + tmp7;
+
+    z5 = (tmp10 - tmp12) * ((FAST_FLOAT) 0.382683433);
+    z2 = ((FAST_FLOAT) 0.541196100) * tmp10 + z5;
+    z4 = ((FAST_FLOAT) 1.306562965) * tmp12 + z5;
+    z3 = tmp11 * ((FAST_FLOAT) 0.707106781);
+
+    z11 = tmp7 + z3;
+    z13 = tmp7 - z3;
+
+    dataptr[DCTSIZE*5] = z13 + z2;
+    dataptr[DCTSIZE*3] = z13 - z2;
+    dataptr[DCTSIZE*1] = z11 + z4;
+    dataptr[DCTSIZE*7] = z11 - z4;
+
+    dataptr++;
+  }
+}

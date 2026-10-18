@@ -1,0 +1,52 @@
+// evnova.rc -- EV Nova for Windows 1.0.10: the exe's resource script. The icon, its group and the
+// CHNK registration UI are the publisher's assets: tools/genrsrc.py reads them out of the user's
+// exe into build/rsrc/ and defines EVNOVA_ASSETS. Notes: Research/the-link-step.md
+
+1 VERSIONINFO
+ FILEVERSION 1,0,10,0
+ PRODUCTVERSION 1,0,10,0
+ FILEFLAGSMASK 0x3fL
+ FILEFLAGS 0x0L
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "Ambrosia Software"
+            VALUE "FileDescription", "EV Nova"
+            VALUE "FileVersion", "1, 0, 10, 0"
+            VALUE "PrivateBuild", "release"
+            VALUE "InternalName", "EV Nova"
+            VALUE "LegalCopyright", "Copyright 2002-2006"
+            VALUE "OriginalFilename", "EV Nova.EXE"
+            VALUE "ProductName", "EV Nova"
+            VALUE "ProductVersion", "1, 0, 10, 0"
+            VALUE "OLESelfRegister", ""
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+#ifdef EVNOVA_ASSETS
+1 3 "rsrc/ICON_1.bin"
+202 14 "rsrc/GROUP_ICON_202.bin"
+950 CHNK "rsrc/CHNK_950.bin"
+#endif
+
+STRINGTABLE
+BEGIN
+    100 "EVNova"
+END
+
+STRINGTABLE
+BEGIN
+    950 "NOT REGISTERED"
+    951 "N/A"
+    952 "N/A"
+END

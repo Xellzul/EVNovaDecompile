@@ -1,0 +1,91 @@
+/* inflate.h -- zlib 1.2.1 inflate internal state, Copyright (C) 1995-2003 Mark Adler; zlib
+   licence in zlib.h. Altered: comments removed, include guard added; inflate_fast's
+   prototype (inffast.h) folded in. */
+
+#ifndef INFLATE_H
+#define INFLATE_H
+
+#include "inftrees.h"
+
+#ifndef NO_GZIP
+#  define GUNZIP
+#endif
+
+typedef enum {
+    HEAD,
+#ifdef GUNZIP
+    FLAGS,
+    TIME,
+    OS,
+    EXLEN,
+    EXTRA,
+    NAME,
+    COMMENT,
+    HCRC,
+#endif
+    DICTID,
+    DICT,
+        TYPE,
+        TYPEDO,
+        STORED,
+        COPY,
+        TABLE,
+        LENLENS,
+        CODELENS,
+            LEN,
+            LENEXT,
+            DIST,
+            DISTEXT,
+            MATCH,
+            LIT,
+    CHECK,
+#ifdef GUNZIP
+    LENGTH,
+#endif
+    DONE,
+    BAD,
+    MEM,
+    SYNC
+} inflate_mode;
+
+struct inflate_state {
+    inflate_mode mode;
+    int last;
+    int wrap;
+    int havedict;
+    int flags;
+    unsigned long check;
+    unsigned long total;
+
+    unsigned wbits;
+    unsigned wsize;
+    unsigned whave;
+    unsigned write;
+    unsigned char FAR *window;
+
+    unsigned long hold;
+    unsigned bits;
+
+    unsigned length;
+    unsigned offset;
+
+    unsigned extra;
+
+    code const FAR *lencode;
+    code const FAR *distcode;
+    unsigned lenbits;
+    unsigned distbits;
+
+    unsigned ncode;
+    unsigned nlen;
+    unsigned ndist;
+    unsigned have;
+    code FAR *next;
+    unsigned short lens[320];
+    unsigned short work[288];
+    code codes[ENOUGH];
+};
+
+void inflate_fast OF((z_streamp strm, unsigned start));
+
+#endif
