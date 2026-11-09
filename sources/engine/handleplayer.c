@@ -26,49 +26,141 @@
 #include "spriteworld.h"
 #include "burger.h"
 #include "crashlog.h"
+#include "cefix.h"
 
-char warpSoundDone;
-char playerTurnedThisFrame;
-char dontMovePlayerAfterLanding;
-char abOn;
+#ifdef MACBUILD
+#ifdef MAC1010
+#define RT3_HELPERS_IN_UNIT
+#endif
+#include "../mac/include/rt3_ev_nova.h"
+#ifdef MAC1010
+/* -inline auto expands the call; this copy ranks `table` ahead of the unit's globals, and the linker strips it */
+static void RegScramB2(unsigned char x)
+{
+    static unsigned char table[256];
+
+    table[x]++;
+}
+#endif
+
+extern void SetRetainedWindow(WindowRef window, Boolean retained);
+extern void AIShipBoardedByPlayer(ShipObj *ship);
+extern void FadeWhiteOut(void);
+extern void FadeWhiteIn(void);
+extern Boolean QuickKeyCheckPlusEscorts(short code);
+#else
+/* the port keeps no retained-window state */
+#define SetRetainedWindow(window, retained) ((void)(window))
+#endif
+
+/* keys HandlePlayer reads by code: win scan codes, mac virtual key codes */
+#ifdef MACBUILD
+#define kScanKey1           MacKey(0x12)
+#define kScanKey2           MacKey(0x13)
+#define kScanKey3           MacKey(0x14)
+#define kScanKey4           MacKey(0x15)
+#define kScanKey5           MacKey(0x17)
+#define kScanF5             MacKey(0x60)
+#define kScanShift          MacKey(0x38)
+#define kScanCommand        MacKey(0x37)
+#define kScanExploreCheat   MacKey(0x51)
+#define kScanAttackCheat    MacKey(0x4b)
+#define kScanWarpCheat      MacKey(0x41)
+#define kScanSpawnCheat     MacKey(0x61)
+#define kScanFleetCheat     kScanCommand
+#define kScanKillCheat      MacKey(0x62)
+#ifdef MAC1010
+#define kScanKillCheat2     MacKey(0x47)
+#else
+#define kScanKillCheat2     MacKey(0x33)
+#endif
+#define kScanArmorCheat     MacKey(0x64)
+#define kScanDamageCheat    MacKey(0x65)
+#define kScanCheatsOff      MacKey(0x69)
+#define kScanInfoCheat      MacKey(0x6d)
+#define kScanMinus          MacKey(0x1b)
+#define kScanPadMinus       MacKey(0x4e)
+#define kScanEquals         MacKey(0x18)
+#define kScanPadPlus        MacKey(0x45)
+#define AltKeyQuick()       QuickKeyCheck(kScanOption)
+#define CmdKeyQuick()       QuickKeyCheck(kScanCommand)
+#define ShiftKeyQuick()     QuickKeyCheck(kScanShift)
+#define CtrlKeyQuick()      QuickKeyCheck(kScanControl)
+#else
+#define kScanKey1           0x02
+#define kScanKey2           0x03
+#define kScanKey3           0x04
+#define kScanKey4           0x05
+#define kScanKey5           0x06
+#define kScanF5             0x3f
+#define kScanExploreCheat   0x72
+#define kScanAttackCheat    0x6c
+#define kScanWarpCheat      0x53
+#define kScanSpawnCheat     0x40
+#define kScanFleetCheat     0x30
+#define kScanKillCheat      0x41
+#define kScanKillCheat2     0x45
+#define kScanArmorCheat     0x42
+#define kScanDamageCheat    0x43
+#define kScanCheatsOff      0x6d
+#define kScanMinus          0x0c
+#define kScanPadMinus       0x4a
+#define kScanEquals         0x0d
+#define kScanPadPlus        0x4e
+#define AltKeyQuick()       (QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt))
+#define CmdKeyQuick()       (QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt))
+#define ShiftKeyQuick()     (QuickKeyCheck(kScanLShift) || QuickKeyCheck(kScanRShift))
+#define CtrlKeyQuick()      (QuickKeyCheck(kScanLCtrl) || QuickKeyCheck(kScanRCtrl))
+#endif
+
+Boolean warpSoundDone;
+Boolean playerTurnedThisFrame;
+Boolean dontMovePlayerAfterLanding;
+Boolean abOn;
 short newbieFlag;
 float sabotageCounter;
+#ifndef MACBUILD
 unsigned char DAT_007cab24[4];
-char autoDockFlag;
-char dockTryFlag;
-char boardTryFlag;
-char DAT_007cab2b;
+#endif
+Boolean dockLand;
+Boolean dockTryFlag;
+Boolean boardTryFlag;
+#ifndef MACBUILD
+Boolean DAT_007cab2b;
+#endif
 FloatPoint wrapDelta;
-char lastJumpDistOk;
-char ackCommFlag;
-char navModeSelectFlag;
-char navTargetSelectFlag;
-char navDefaultSelectFlag;
-char helpKeyFlag;
-char cloakFlag;
-char fighterCommandFlag;
-char weapModeSelectFlag;
-char weapTargetSelectFlag;
-char weapDefaultSelectFlag;
-char playerInfoFlag;
-char mapTryFlag;
-char jumpTryFlag;
-char weapSelectFlag;
-char spawnShipFlag;
-char weapCloseTargFlag;
-char missionInfoFlag;
-char commTryFlag;
-char mapZoomFlag;
-char framerateFlag;
-char escortMenuFlag;
-char escortGroupFlag[5];
-char escortCommandFlag[4];
-char pauseKeyFlag;
-short gSelectedQuickKey;
+Boolean lastJumpDistOk;
+Boolean ackCommFlag;
+Boolean navModeSelectFlag;
+Boolean navTargetSelectFlag;
+Boolean navDefaultSelectFlag;
+Boolean helpKeyFlag;
+Boolean cloakFlag;
+Boolean fighterCommandFlag;
+Boolean weapModeSelectFlag;
+Boolean weapTargetSelectFlag;
+Boolean weapDefaultSelectFlag;
+Boolean playerInfoFlag;
+Boolean mapTryFlag;
+Boolean jumpTryFlag;
+Boolean weapSelectFlag;
+Boolean spawnShipFlag;
+Boolean weapCloseTargFlag;
+Boolean missionInfoFlag;
+Boolean commTryFlag;
+Boolean mapZoomFlag;
+Boolean framerateFlag;
+Boolean escortMenuFlag;
+Boolean escortGroupFlag[5];
+Boolean escortCommandFlag[4];
+Boolean pauseKeyFlag;
+short selEscortGroup;
 short lastEscortCount;
+#ifndef MACBUILD
 unsigned char DAT_007cab58[16];
+#endif
 
-extern "C" {
+EXTERN_C_BEGIN
 
 /* the sprite record the engine hangs off ShipObj.unk0 and stellarSprite[];
    gameloop.c's CursorSpriteRec is the same object -- only the three fields
@@ -81,19 +173,6 @@ extern "C" {
 
 #define kOutfModType47      0x2f
 #define kOutfModType50      0x32
-#define kShipFlagUntargetable 0x0004
-#define kWeapFlagAmmo       0x0800
-#define kSpobNoJumpMask     0x3000
-#define kMisnHidden         0x0400
-#define kJunkGrows          0x0001
-#define kJunkPerishes       0x0002
-
-static __inline void CopyFloatPoint(FloatPoint *d, const FloatPoint *s)
-{
-    d->x = s->x;
-    d->y = s->y;
-}
-
 
                                                             /* 0x004b8ca0 */
                                                             /* 0x0046aad0 */
@@ -108,18 +187,82 @@ static __inline void CopyFloatPoint(FloatPoint *d, const FloatPoint *s)
                                                             /* 0x00475830 */
                                                             /* 0x00470220 */
 
-/* HandlePlayer (mac _HandlePlayer). STATE: MATCH 100%, exe 9548 / obj 9548, frame 0x29c,
-   byte-identical yes (relocregcheck 0). OPEN: none. */
+#ifdef MACBUILD
+#define mapLink i
+#else
+#define mapLink j
+#endif
+
+/* HandlePlayer (mac _HandlePlayer). STATE: win MATCH 100%, exe 9548 / obj 9548, frame 0x29c,
+   byte-identical yes (relocregcheck 0). mac MATCH on both slices.
+   OPEN: none; the V111 `ammo` in the third ammo loop is a spelling with no witness (notes). */
 // FUNCTION: EVNOVA 0x0044aa70
+// MAC: _HandlePlayer i386 0x00068390 ppc 0x00070b28
 void HandlePlayer(ShipObj *player)
 {
-    char jumping;
-    char turned;
+#ifdef MACBUILD
+    Boolean jumping;
     Str255 msg;
     short i;
     short j;
     short n;
     short count;
+    short days;
+    short fuelCap;
+    short turnStep;
+    float turnLim;
+    float dist;
+    float heading;
+    float angle;
+    Point pt;
+    float step;
+    Str255 name;
+    float dmg;
+    Boolean ok;
+    Boolean linked[16];
+#ifdef MAC1010 /* 1.0.10 spelling */
+    Rect box;
+    Rect hit;
+    FloatPoint pos;
+    FloatPoint dest;
+    FloatPoint origin;
+    short groupCount[4];
+#else
+    FloatPoint origin;
+    short groupCount[4];
+    FloatPoint pos;
+    Rect box;
+    FloatPoint dest;
+    Rect hit;
+#endif
+    Rect *portRect;
+    Boolean canJump;
+    short lost;
+    short dir;
+    short k;
+    Boolean found;
+    Boolean escortHit;
+    Boolean turned;
+    Boolean targetUncloaked;
+    Boolean targetCloaked;
+    Boolean disabled;
+    Boolean dying;
+    Boolean routeDone;
+    Boolean flag;
+    Boolean destructing;
+    short sys;
+    short waiting;
+    short rank;
+    double span;
+#else
+    Boolean jumping;
+    Boolean turned;
+    Str255 msg;
+    short i;
+    short j;
+    short n;
+    short count;
+    short days;
     short fuelCap;
     short turnStep;
     float turnLim;
@@ -129,48 +272,61 @@ void HandlePlayer(ShipObj *player)
     Str255 name;
     float dist;
     float dmg;
-    char dying;
-    char disabled;
-    char ok;
-    long aligned;
-    char targetUncloaked;
-    char targetCloaked;
-    char linked[16];
+    Boolean dying;
+    Boolean disabled;
+    Boolean ok;
+    Boolean targetUncloaked;
+    Boolean targetCloaked;
+    Boolean linked[16];
     Point pt;
     Rect box;
     Rect hit;
-    Rect *r;
     Rect *portRect;
     FloatPoint stelPos;
     FloatPoint pos;
+    short groupCount[4];
     FloatPoint dest;
     FloatPoint origin;
-    char canJump;
-    char routeDone;
+    Boolean canJump;
+    Boolean routeDone;
     short lost;
     short dir;
-    double factor;
-    double rollStep;
     short k;
-    char found;
-    char escortHit;
-    short groupCount[4];
-    char flag;
-    char destructing;
+    Boolean found;
+    Boolean escortHit;
+    Boolean flag;
+    Boolean destructing;
     short rank;
     double span;
+    short waiting;
+#endif
 
-    keyComboBlocked = 0;
-    if (windowedPref == 0 && noHyperGammaPref == 0 && ignoreKeys == 0) {
+    quickKeyCheckResult = 0;
+    if (settings.windowed == 0 && settings.noHyperGamma == 0 && ignoreKeys == 0) {
         if (player->jumpTimer > 0.0f) {
             if (hyperGamma < 0.0)
                 hyperGamma = 0;
             if (hyperGamma > 100.0)
                 hyperGamma = 100.0f;
+#if defined(MACBUILD) && V111
+            if (!screenFaded && hyperGamma > 0.0)
+                FadeWhiteIn();
+#else
             OnTheFlyWhiteFade(hyperGamma);
+#endif
         } else if (hyperGamma >= 0.0) {
             hyperGamma = -1.0f;
+#ifdef MAC1010
+#if TARGET_API_MAC_CARBON
+            SetGamma(gScreenRef, &gOrigGamma);
+#else
+            GammaFadeTo(1, 100, 0);
+#endif
+#elif defined(MACBUILD)
+            FadeWhiteOut();
+#else
             FadeGammaTo(100, 0);
+#endif
         }
     }
     if (cheatsActive == 0)
@@ -193,14 +349,14 @@ void HandlePlayer(ShipObj *player)
             pos.x = shipData[player->tractorShip].vel.x;
             pos.y = shipData[player->tractorShip].vel.y;
         }
-        if (pos.x + step < player->vel.x)
-            player->vel.x = player->vel.x - step;
-        if (pos.x - step > player->vel.x)
-            player->vel.x = player->vel.x + step;
-        if (pos.y + step < player->vel.y)
-            player->vel.y = player->vel.y - step;
-        if (pos.y - step > player->vel.y)
-            player->vel.y = player->vel.y + step;
+        if (player->vel.x > pos.x + step)
+            player->vel.x -= step;
+        if (player->vel.x < pos.x - step)
+            player->vel.x += step;
+        if (player->vel.y > pos.y + step)
+            player->vel.y -= step;
+        if (player->vel.y < pos.y - step)
+            player->vel.y += step;
         if (FloatAbs(player->vel.x - pos.x) < step)
             player->vel.x = pos.x;
         if (FloatAbs(player->vel.y - pos.y) < step)
@@ -213,7 +369,7 @@ void HandlePlayer(ShipObj *player)
     playerTurnedThisFrame = 0;
     if (player->jumpTimer <= 0.0f)
         WrapPlayerPosition();
-    if (*(short *)player->unk6e == 1 && player->targetShip != -1) {
+    if (player->unk6e == 1 && player->targetShip != -1) {
         if (!shipData[player->targetShip].active
                 || IsDying(&shipData[player->targetShip])
                 || AIShipIsEmergingFromHypergate(&shipData[player->targetShip])
@@ -235,14 +391,16 @@ void HandlePlayer(ShipObj *player)
                 for (i = 0; i < kMaxOutfits; i++) {
                     if (shipSystems[i] > 0) {
                         for (j = 0; j < kOutfMods; j++) {
-                            if (gOutfits[i].modType[j] == kOutfModType47
-                                    && gOutfits[i].modVal[j] > 0) {
+                            if (outfitSystem[i].modType[j] == kOutfModType47
+                                    && outfitSystem[i].modVal[j] > 0) {
+                                SetRetainedWindow(gWind, false);
                                 HideCursorSprite();
                                 RefreshSAT();
                                 ShowTheCursor();
-                                LoadDescription(gTextShowString,
-                                                gOutfits[i].modVal[j]);
+                                LoadDescription(textShowString,
+                                                outfitSystem[i].modVal[j]);
                                 ShowTextDialog(0, 0, 1);
+                                SetRetainedWindow(gWind, true);
                                 SetAllKeyCmdFlags();
                                 break;
                             }
@@ -265,12 +423,12 @@ void HandlePlayer(ShipObj *player)
     disabled = IsDisabled(player);
     if (disabled && player->jumpTimer > 0.0f) {
         span = (ReadTick() - player->jumpTick)
-               * gShipTypes[player->type].mobilityFactor / (WarpSoundDuration() * 0.01);
+               * shipClass[player->type].mobilityFactor / (WarpSoundDuration() * 0.01);
         step = span;
-        if (gShipTypes[player->type].mobilityFactor != 0)
-            step = step - 35.0 / gShipTypes[player->type].mobilityFactor;
+        if (shipClass[player->type].mobilityFactor != 0)
+            step = step - 35.0 / shipClass[player->type].mobilityFactor;
         if (step > 0.0) {
-            if (ShipMaxSpeed(player) < step)
+            if (step > ShipMaxSpeed(player))
                 step = ShipMaxSpeed(player);
             player->vel.x = 0;
             player->vel.y = 0;
@@ -292,15 +450,15 @@ void HandlePlayer(ShipObj *player)
 
     dying = IsDying(player);
     if (disabled) {
-        player->vel.x = player->vel.x * 0.995;
-        player->vel.y = player->vel.y * 0.995;
+        player->vel.x *= 0.995;
+        player->vel.y *= 0.995;
     } else {
         player->boarded = 0;
     }
     if (playerRepairInhibit >= 0.0)
-        playerRepairInhibit = playerRepairInhibit - gTimeScale;
+        playerRepairInhibit = playerRepairInhibit - gSpeedMult;
     if (disabled && playerRepairInhibit < 0.0 && ShipCanSelfRepair(player)) {
-        if (gShipTypes[player->type].flags & kShipFlagHalfArmor)
+        if (shipClass[player->type].flags & kShipArmorDisableTenth)
             player->armor = ShipArmorCapacity(player) * 0.1 + 1.0;
         else
             player->armor = ShipArmorCapacity(player) * 0.3333 + 1.0;
@@ -318,17 +476,17 @@ void HandlePlayer(ShipObj *player)
         if (playerThreatened && !oldPlayerThreatened
                 && player->escapePods <= 0) {
             PlaySound(redAlertSnd, 5, gSoundVolume, gSoundVolume);
-            if (volumePref <= 1)
+            if (settings.volume <= 1)
                 alertSpritePending = 0x1e;
         }
     }
 
     if (player->escapePods > 0) {
         AdjustedAccel(player->heading,
-                      ShipAccelRate(player) * gTimeScale,
+                      ShipAccelRate(player) * gSpeedMult,
                       &player->vel, ShipMaxSpeed(player));
-        player->pos.x = player->vel.x * gTimeScale + player->pos.x;
-        player->pos.y = player->vel.y * gTimeScale + player->pos.y;
+        player->pos.x += player->vel.x * gSpeedMult;
+        player->pos.y += player->vel.y * gSpeedMult;
         player->escapePods -= 1;
         if (player->escapePods == 0) {
             FadeScreenOut();
@@ -336,18 +494,20 @@ void HandlePlayer(ShipObj *player)
             ClearParticles(0);
             SWHideAllSprites(gSpriteWorld);
             SWSetPortToWindow(gSpriteWorld);
-            RGBForeColor(blackColor);
+            ForeColor(blackColor);
             PaintRect(GetCWindowPortRect(gWind));
             FadeScreenIn();
             ShowTheCursor();
+            SetRetainedWindow(gWind, false);
             SWSetPortToWindow(gSpriteWorld);
-            RGBForeColor(blackColor);
+            ForeColor(blackColor);
             PaintRect(GetCWindowPortRect(gWind));
             ShowTheCursor();
-            LoadDescription(gTextShowString, 0x36af);
+            LoadDescription(textShowString, 0x36af);
             ShowTextDialog(0, 0, 1);
+            SetRetainedWindow(gWind, true);
             SWSetPortToWindow(gSpriteWorld);
-            RGBForeColor(blackColor);
+            ForeColor(blackColor);
             PaintRect(GetCWindowPortRect(gWind));
             FadeScreenOut();
             for (i = 0; i < kMaxActiveMissions; i++) {
@@ -358,29 +518,31 @@ void HandlePlayer(ShipObj *player)
             }
             n = player->curSystem;
             ResetPlayer(0);
-            EvalMissionBitSetString(gShipTypes[shipData->type].onPurchase);
+            EvalMissionBitSetString(shipClass[shipData->type].onPurchase);
             DeleteAllComputerShips(1, 1);
             j = EscapeStellarSearch(n);
-            if (j != -1)
-                player->curSystem = stellarData[j].system;
-            else
+            if (j == -1)
                 player->curSystem = 0;
-            mapScroll.x = gSystems[player->curSystem].xPos;
-            mapScroll.y = gSystems[player->curSystem].yPos;
-            player->weap[0].count = 0;
-            player->weap[0].ammo = 0;
+            else
+                player->curSystem = stellarData[j].system;
+            mapScroll.h = systemData[player->curSystem].pos.h;
+            mapScroll.v = systemData[player->curSystem].pos.v;
             for (i = 0; i < kMaxWeapTypes; i++) {
-                if (gShipTypes[player->type].weapAmmo[i] > 0) {
-                    if (gWeapons[i].ammoType >= 0
-                            && gWeapons[i].ammoType < kMaxWeapTypes
-                            && gWeapons[i].guidance != kGuidanceBay)
-                        player->weap[gWeapons[i].ammoType].ammo =
-                            gShipTypes[player->type].weapAmmo[i];
+                player->weap[0].count = 0;  /* BUG: clears weap[0] every pass, not weap[i] */
+                player->weap[0].ammo = 0;
+            }
+            for (i = 0; i < kMaxWeapTypes; i++) {
+                if (shipClass[player->type].weapAmmo[i] > 0) {
+                    if (weaponStats[i].ammoType >= 0
+                            && weaponStats[i].ammoType < kMaxWeapTypes
+                            && weaponStats[i].guidance != kGuidanceBay)
+                        player->weap[weaponStats[i].ammoType].ammo =
+                            shipClass[player->type].weapAmmo[i];
                     else
                         player->weap[i].ammo =
-                            gShipTypes[player->type].weapAmmo[i];
+                            shipClass[player->type].weapAmmo[i];
                 }
-                player->weap[i].count = gShipTypes[player->type].weapCount[i];
+                player->weap[i].count = shipClass[player->type].weapCount[i];
                 player->weap[i].reloadTimer = 0;
                 player->weap[i].burstCount = 0;
             }
@@ -394,7 +556,7 @@ void HandlePlayer(ShipObj *player)
             for (i = 0; i < n; i++)
                 IncrementGameTime();
             HandleStellarSystemVisibility();
-            pstrcpy(shipName, gShipTypes->name);
+            pstrcpy(shipName, shipClass->name);
             PtoCstr(shipName);
             strcat((char *)shipName, " ");
             for (i = 0; i <= 3; i++) {
@@ -403,34 +565,34 @@ void HandlePlayer(ShipObj *player)
                 strcat((char *)shipName, (char *)msg);
             }
             CtoPstr((char *)shipName);
-            RGBForeColor(blackColor);
+            ForeColor(blackColor);
             PaintRect(GetCWindowPortRect(gWind));
             SetSystemBackgroundColor();
             PaintRect(&SWWindowFrame(gSpriteWorld)->frameRect);
-            RGBForeColor(blackColor);
+            ForeColor(blackColor);
             RefreshSAT();
             RedrawStatus(1);
             RedrawComm(0);
             statusRedraw[6] = statusRedraw[0] = statusRedraw[3] =
                 statusRedraw[4] = statusRedraw[1] = 1;
             for (i = 0; i < kMaxSystems; i++) {
-                if (gSystems[i].govt >= 0)
-                    playerLegalStatus[i] =
-                        govtData[gSystems[i].govt].initialRec;
+                if (systemData[i].govt >= 0)
+                    playerRecord[i] =
+                        govtData[systemData[i].govt].initialRec;
                 else
-                    playerLegalStatus[i] = 0;
+                    playerRecord[i] = 0;
             }
             if (strictPlay) {
-                found = 0;
-                for (j = 0; j < kNavSlots; j++) {
-                    if (gSystems[player->curSystem].navDefault[j] != -1) {
+                ok = 0;
+                for (i = 0; i < kNavSlots; i++) {
+                    if (systemData[player->curSystem].navDefault[i] != -1) {
                         SavePilotFile(
-                            gSystems[player->curSystem].navDefault[j]);
-                        found = 1;
+                            systemData[player->curSystem].navDefault[i]);
+                        ok = 1;
                         break;
                     }
                 }
-                if (!found)
+                if (!ok)
                     SavePilotFile(0);
             }
             FadeScreenIn();
@@ -442,7 +604,7 @@ void HandlePlayer(ShipObj *player)
         if (sabotageCounter < 0.0f) {
             sabotageCounter = Rand(100);
         } else if (!dying) {
-            sabotageCounter = sabotageCounter + gTimeScale;
+            sabotageCounter = sabotageCounter + gSpeedMult;
             if (sabotageCounter > 300.0f) {
                 PlaySound(explodSnd[0], 0x64, gSoundVolume, gSoundVolume);
                 if (playerSabotaged == 1) {
@@ -453,28 +615,28 @@ void HandlePlayer(ShipObj *player)
                     for (i = 0; i < kMaxOutfits; i++) {
                         if (shipSystems[i] > 0) {
                             for (j = 0; j < kOutfMods; j++) {
-                                if (gOutfits[i].modType[j] == kOutfModType47) {
+                                if (outfitSystem[i].modType[j] == kOutfModType47) {
                                     if (shipSystems[i] > 1
                                             && lcPluralOutfitName[i][0]) {
                                         strcpy((char *)msg, "");
-                                        AppendIndString((char *)msg, kGameStrList, 0x27);
+                                        StrcatIndCString((char *)msg, kGameStrList, 0x27);
                                         strcat((char *)msg, " ");
                                         pstrcpy(name, lcPluralOutfitName[i]);
                                         PtoCstr(name);
                                         strcat((char *)msg, (char *)name);
                                         strcat((char *)msg, " ");
-                                        AppendIndString((char *)msg, kGameStrList, 0x29);
+                                        StrcatIndCString((char *)msg, kGameStrList, 0x29);
                                         CtoPstr((char *)msg);
                                     } else if (shipSystems[i] == 1
                                             && lcOutfitName[i][0]) {
                                         strcpy((char *)msg, "");
-                                        AppendIndString((char *)msg, kGameStrList, 0x27);
+                                        StrcatIndCString((char *)msg, kGameStrList, 0x27);
                                         strcat((char *)msg, " ");
                                         pstrcpy(name, lcOutfitName[i]);
                                         PtoCstr(name);
                                         strcat((char *)msg, (char *)name);
                                         strcat((char *)msg, " ");
-                                        AppendIndString((char *)msg, kGameStrList, 0x28);
+                                        StrcatIndCString((char *)msg, kGameStrList, 0x28);
                                         CtoPstr((char *)msg);
                                     }
                                     break;
@@ -501,40 +663,48 @@ void HandlePlayer(ShipObj *player)
                     DisplayComm(msg, 0x168, 0, 0xc, &rgbWhite, 0, 0);
                 } else {
                     for (i = 0; i < kMaxOutfits; i++) {
+#ifdef MACBUILD
+                        if (shipSystems[i] > 0) {
+                            for (j = 0; j < kOutfMods; j++) {
+                                if (outfitSystem[i].modType[j] == kOutfModType50) {
+                                    if (shipSystems[i] > 1) {
+#else
                         count = shipSystems[i];
                         if (count > 0) {
                             for (j = 0; j < kOutfMods; j++) {
-                                if (gOutfits[i].modType[j] == kOutfModType50) {
+                                if (outfitSystem[i].modType[j] == kOutfModType50) {
                                     if (count > 1) {
+#endif
                                         strcpy((char *)msg, "");
-                                        AppendIndString((char *)msg, kGameStrList, 0x27);
+                                        StrcatIndCString((char *)msg, kGameStrList, 0x27);
                                         strcat((char *)msg, " ");
                                         pstrcpy(name, lcPluralOutfitName[i]);
                                         PtoCstr(name);
                                         strcat((char *)msg, (char *)name);
                                         strcat((char *)msg, " ");
-                                        AppendIndString((char *)msg, kGameStrList, 0x29);
+                                        StrcatIndCString((char *)msg, kGameStrList, 0x29);
                                         CtoPstr((char *)msg);
                                     } else {
                                         strcpy((char *)msg, "");
-                                        AppendIndString((char *)msg, kGameStrList, 0x27);
+                                        StrcatIndCString((char *)msg, kGameStrList, 0x27);
                                         strcat((char *)msg, " ");
                                         pstrcpy(name, lcOutfitName[i]);
                                         PtoCstr(name);
                                         strcat((char *)msg, (char *)name);
                                         strcat((char *)msg, " ");
-                                        AppendIndString((char *)msg, kGameStrList, 0x28);
+                                        StrcatIndCString((char *)msg, kGameStrList, 0x28);
                                         CtoPstr((char *)msg);
                                     }
                                     DisplayComm(msg, 0x190, 0, 0xc, &rgbWhite, 0, 0);
-                                    if (gOutfits[i].modVal[j] >= 0x80 && gOutfits[i].modVal[j] < 0xc0)
+                                    if (outfitSystem[i].modVal[j] >= 0x80 && outfitSystem[i].modVal[j] < 0xc0)
                                         CreateExplosion(
                                             player->pos,
-                                            gOutfits[i].modVal[j] - 0x80, 0, 1);
+                                            outfitSystem[i].modVal[j] - 0x80, 0, 1);
                                     shipSystems[i] = 0;
-                                    dmg = Rand((ShipArmorCapacity(player) * 0.5 + 1.0))
-                                          + ShipArmorCapacity(player);
-                                    DamageShip(player, &player->pos, 0, dmg, 0, -1, 0, 0, 1, 1, 1, 0);
+                                    DamageShip(player, &player->pos, 0,
+                                               Rand((ShipArmorCapacity(player) * 0.5 + 1.0))
+                                               + ShipArmorCapacity(player),
+                                               0, -1, 0, 0, 1, 1, 1, 0);
                                     break;
                                 }
                             }
@@ -549,7 +719,11 @@ void HandlePlayer(ShipObj *player)
         sabotageCounter = 0;
     }
 
+#ifdef MACBUILD
+    if (QuickKeyCheck(keyPrefs.clearTarget) && KeyCheck(kScanOption)) {
+#else
     if (QuickKeyCheck(keyPrefs.clearTarget) && (KeyCheck(0x38) || KeyCheck(0x6f))) {
+#endif
         keyPressedThisFrame = 1;
         if (!navModeSelectFlag) {
             navModeSelectFlag = 1;
@@ -560,33 +734,34 @@ void HandlePlayer(ShipObj *player)
             }
         }
     }
-    if ((QuickKeyCheck(keyPrefs.clearTarget) && !KeyCheck(0x38) && !KeyCheck(0x6f))
-            || QuickKeyCheck(keyPrefs.hyperspace)) {
-        if (player->jumpTimer <= 0.0f) {
-            keyPressedThisFrame = 1;
-            if (!navModeSelectFlag) {
-                navModeSelectFlag = 1;
-                PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
+#ifdef MACBUILD
+    if (((QuickKeyCheck(keyPrefs.clearTarget) && !KeyCheck(kScanOption))
+#else
+    if (((QuickKeyCheck(keyPrefs.clearTarget) && !KeyCheck(0x38) && !KeyCheck(0x6f))
+#endif
+            || QuickKeyCheck(keyPrefs.hyperspace))
+        && player->jumpTimer <= 0.0f) {
+        keyPressedThisFrame = 1;
+        if (!navModeSelectFlag) {
+            navModeSelectFlag = 1;
+            PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
+            statusRedraw[0] = 1;
+            dockTarget = -1;
+            dockPermission = -1;
+            if (QuickKeyCheck(keyPrefs.clearTarget)) {
+                player->navTargetKind = -1;
+                player->targetStellar = -1;
                 statusRedraw[0] = 1;
-                dockTarget = -1;
-                dockPermission = -1;
-                if (QuickKeyCheck(keyPrefs.clearTarget)) {
-                    player->navTargetKind = -1;
-                    player->targetStellar = -1;
-                    statusRedraw[0] = 1;
-                }
-                if (QuickKeyCheck(keyPrefs.hyperspace)
-                        && player->navTargetKind != kDepartureRoutePicked) {
-                    player->navTargetKind = kDepartureRoutePicked;
-                    player->targetStellar = -1;
-                    SelectHyperLinkToSelection();
-                }
             }
-            if (QuickKeyCheck(keyPrefs.hyperspace))
-                StartHyperJump();
-        } else {
-            navModeSelectFlag = 0;
+            if (QuickKeyCheck(keyPrefs.hyperspace)
+                    && player->navTargetKind != kDepartureRoutePicked) {
+                player->navTargetKind = kDepartureRoutePicked;
+                player->targetStellar = -1;
+                CueNextHyperRouteDest();
+            }
         }
+        if (QuickKeyCheck(keyPrefs.hyperspace))
+            ShowFloatingMap();
     } else {
         navModeSelectFlag = 0;
     }
@@ -599,11 +774,11 @@ void HandlePlayer(ShipObj *player)
             n = 0;
             for (i = 0; i < kNavSlots; i++) {
                 linked[i] = 0;
-                if (gSystems[player->curSystem].links[i] != -1
+                if (systemData[player->curSystem].links[i] != -1
                         && FindActiveCoLocatedSystem(
-                               gSystems[player->curSystem].links[i]) != -1) {
-                    n++;
+                               systemData[player->curSystem].links[i]) != -1) {
                     linked[i] = 1;
+                    n++;
                 }
             }
             if (n > 0) {
@@ -623,42 +798,43 @@ void HandlePlayer(ShipObj *player)
             }
         }
         if (player->navTargetKind == kDepartureRoutePicked)
-            StartHyperJump();
+            ShowFloatingMap();
     } else {
         navTargetSelectFlag = 0;
     }
 
-    gShipTypes[gameIsRegisteredIndex].registered =
-        (*(long *)((char *)shipData + kLicenseCopies) != 0) ? (unsigned char)1 : (unsigned char)0;
+    LICENSE_STEP_BEGIN
+    shipClass[gameIsRegisteredIndex].registered =
+        (shipData[36].licenseCopies != 0) ? (unsigned char)1 : (unsigned char)0;
+    LICENSE_STEP_END
 
     if (player->jumpTimer <= 0.0f) {
         j = -1;
-        if (QuickKeyCheck(2))
+        if (QuickKeyCheck(kScanKey1))
             j = 0;
-        if (QuickKeyCheck(3))
+        if (QuickKeyCheck(kScanKey2))
             j = 1;
-        if (QuickKeyCheck(4))
+        if (QuickKeyCheck(kScanKey3))
             j = 2;
-        if (QuickKeyCheck(5))
+        if (QuickKeyCheck(kScanKey4))
             j = 3;
         for (i = 0; i <= 3; i++) {
             if (QuickKeyCheck(keyPrefs.navPreset[i]))
                 j = i;
         }
-        if (QuickKeyCheck(0x3f)
-                || ((QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt))
-                    && QuickKeyCheck(6)))
+        if (QuickKeyCheck(kScanF5)
+                || (CmdKeyQuick() && QuickKeyCheck(kScanKey5)))
             j = 0x10;
         if (j != -1) {
             keyPressedThisFrame = 1;
             if (!navDefaultSelectFlag) {
                 navDefaultSelectFlag = 1;
-                if (j == 0x10)
-                    n = FindNearestStellar(shipData);
+                if (j != 0x10)
+                    n = systemData[player->curSystem].navDefault[j];
                 else
-                    n = gSystems[player->curSystem].navDefault[j];
+                    n = FindNearestStellar(shipData);
                 if (n != -1
-                        && player->curSystem == stellarData[n].system) {
+                        && stellarData[n].system == player->curSystem) {
                     PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
                     if (player->navTargetKind != 2 || player->targetStellar != n) {
                         navTargetExpand = 256.0f;
@@ -680,21 +856,21 @@ void HandlePlayer(ShipObj *player)
         if (!weapTargetSelectFlag) {
             weapTargetSelectFlag = 1;
             statusRedraw[6] = 1;
-            if (*(short *)player->unk6e == 1) {
+            if (player->unk6e == 1) {
                 PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
-                if (QuickKeyCheck(kScanLShift) || QuickKeyCheck(kScanRShift))
-                    n = FindPrevTarget(player->targetShip, player->curSystem);
+                if (ShiftKeyQuick())
+                    n = FindPrevShipInSystem(player->targetShip, player->curSystem);
                 else
-                    n = FindNextTarget(player->targetShip, player->curSystem);
-                if (n == player->targetShip || n == player->index) {
-                    player->targetShip = -1;
-                } else {
+                    n = FindNextShipInSystem(player->targetShip, player->curSystem);
+                if (n != player->targetShip && n != player->index) {
                     player->targetShip = n;
-                    if (SWIsSpriteInRect((SpritePtr)shipData[n].sprite,
+                    if (SWIsSpriteInRect(shipData[n].sprite,
                                          SWWindowRect(gSpriteWorld)))
                         weapTargetExpand = 256.0f;
                     else
                         weapTargetExpand = 0;
+                } else {
+                    player->targetShip = -1;
                 }
             }
         }
@@ -703,70 +879,73 @@ void HandlePlayer(ShipObj *player)
             weapTargetSelectFlag = 1;
             n = player->targetShip;
             SWSetPortToWindow(gSpriteWorld);
+#ifdef MACBUILD
+            GetMouse(&pt);
+#else
             GetGlobalMouse(&pt);
+#endif
             portRect = GetCWindowPortRect(gWind);
-            box.top = portRect->top;
-            box.left = portRect->left;
-            box.bottom = portRect->bottom;
-            box.right = portRect->right;
+            box = *portRect;
+#ifdef CEFIX /* F14.02 */
+            box.right -= ceStatusBarWidth;
+#else
             box.right -= 0xc2;
+#endif
             if (escortMenuOnscreen > 0
-                    && PtInRect(pt.h, pt.v, &escortMenuRect)) {
+                    && PtInRectPoint(pt, &escortMenuRect)) {
                 for (i = 0; i < 5; i++) {
                     hit.left = escortMenuRect.left + 4;
                     hit.right = escortMenuRect.right - 4;
                     hit.top = escortMenuRect.top + 0x1e + i * 0x12;
                     hit.bottom = escortMenuRect.top + 0x2b + i * 0x12;
-                    if (PtInRect(pt.h, pt.v, &hit)) {
-                        if (gSelectedQuickKey != i - 1) {
-                            gSelectedQuickKey = i - 1;
-                            ResetMapZoom();
+                    if (PtInRectPoint(pt, &hit)) {
+                        if (selEscortGroup != i - 1) {
+                            selEscortGroup = i - 1;
+                            ShowEscortMenu();
                             lastEscortMenuTime = ReadTick();
                         }
                         break;
                     }
                 }
             } else if (showFloatingMap > 0 && player->jumpTimer <= 0.0f
-                    && PtInRect(pt.h, pt.v, &floatingMapRect)) {
+                    && PtInRectPoint(pt, &floatingMapRect)) {
                 hit.left = hit.right =
                     (floatingMapRect.left + floatingMapRect.right) / 2;
                 hit.top = hit.bottom =
                     (floatingMapRect.top + floatingMapRect.bottom) / 2;
                 InsetRect(&hit, -8, -8);
-                if (PtInRect(pt.h, pt.v, &hit)) {
+                if (PtInRectPoint(pt, &hit)) {
                     player->navTargetKind = kDepartureRoutePicked;
                     player->targetStellar = -1;
                     statusRedraw[0] = 1;
-                    StartHyperJump();
+                    ShowFloatingMap();
                     PlaySound(beepSnd[2], 1, gSoundVolume,
                               gSoundVolume);
                 } else {
-                    for (j = 0; j < kNavSlots; j++) {
-                        if (gSystems[player->curSystem].links[j] != -1
+                    for (mapLink = 0; mapLink < kNavSlots; mapLink++) {
+                        if (systemData[player->curSystem].links[mapLink] != -1
                                 && FindActiveCoLocatedSystem(
-                                       gSystems[player->curSystem].links[j])
+                                       systemData[player->curSystem].links[mapLink])
                                    != -1) {
-                            hit.left = hit.right = 
-                                ((gSystems[gSystems[player->curSystem].links[j]].xPos
-                                  - gSystems[player->curSystem].xPos)
-                                 / floatingMapZoom
-                                 + (floatingMapRect.left
-                                    + floatingMapRect.right) / 2);
-                            hit.top = hit.bottom = 
-                                ((gSystems[gSystems[player->curSystem].links[j]].yPos
-                                  - gSystems[player->curSystem].yPos)
-                                 / floatingMapZoom
-                                 + (floatingMapRect.top
-                                    + floatingMapRect.bottom) / 2);
+                            hit.left = hit.right =
+                                (floatingMapRect.left + floatingMapRect.right) / 2
+                                + (systemData[systemData[player->curSystem].links[mapLink]].pos.h
+                                   - systemData[player->curSystem].pos.h)
+                                  / floatingMapZoom;
+                            hit.top = hit.bottom =
+                                (floatingMapRect.top + floatingMapRect.bottom) / 2
+                                + (systemData[systemData[player->curSystem].links[mapLink]].pos.v
+                                   - systemData[player->curSystem].pos.v)
+                                  / floatingMapZoom;
                             if (floatingMapZoom <= 0.5)
                                 InsetRect(&hit, -12, -12);
                             else
                                 InsetRect(&hit, -8, -8);
-                            if (PtInRect(pt.h, pt.v, &hit)) {
-                                player->targetStellar = j;
+                            if (PtInRectPoint(pt, &hit)) {
+                                player->targetStellar = mapLink;
                                 player->navTargetKind = kDepartureRoutePicked;
                                 statusRedraw[0] = 1;
-                                StartHyperJump();
+                                ShowFloatingMap();
                                 PlaySound(beepSnd[2], 1, gSoundVolume,
                                           gSoundVolume);
                                 break;
@@ -774,18 +953,14 @@ void HandlePlayer(ShipObj *player)
                         }
                     }
                 }
-            } else if (PtInRect(pt.h, pt.v, &box)) {
+            } else if (PtInRectPoint(pt, &box)) {
                 targetUncloaked = ShipCanTargetUntargetableShips(shipData);
                 targetCloaked = ShipCanTargetCloakedShips(shipData);
                 if (player->active && player->sprite != NULL) {
-                    r = &((SpriteRec *)player->sprite)->destFrameRect;
-                    box.top = r->top;
-                    box.left = r->left;
-                    box.bottom = r->bottom;
-                    box.right = r->right;
+                    box = ((SpriteRec *)player->sprite)->destFrameRect;
                     if (box.right - box.left < 0x30)
                         InsetRect(&box, -0x10, -0x10);
-                    if (PtInRect(pt.h, pt.v, &box))
+                    if (PtInRectPoint(pt, &box))
                         player->targetShip = -1;
                 }
                 for (i = 1; i < kMaxShips; i++) {
@@ -793,33 +968,29 @@ void HandlePlayer(ShipObj *player)
                             && !IsDying(&shipData[i])
                             && (!ShipIsCloaked(&shipData[i]) || targetCloaked
                                 || shipData[i].parentShip == 0)
-                            && player->curSystem == shipData[i].curSystem
+                            && shipData[i].curSystem == player->curSystem
                             && (targetUncloaked
-                                || !(gShipTypes[shipData[i].type].flags2
-                                     & kShipFlagUntargetable))
+                                || !(shipClass[shipData[i].type].flags2
+                                     & kShipUntargetable))
                             && shipData[i].sprite != NULL) {
-                        r = &((SpriteRec *)shipData[i].sprite)->destFrameRect;
-                        box.top = r->top;
-                        box.left = r->left;
-                        box.bottom = r->bottom;
-                        box.right = r->right;
+                        box = ((SpriteRec *)shipData[i].sprite)->destFrameRect;
                         if (box.right - box.left < 0x30)
                             InsetRect(&box, -0x10, -0x10);
-                        if (PtInRect(pt.h, pt.v, &box)) {
+                        if (PtInRectPoint(pt, &box)) {
                             player->targetShip = i;
                             break;
                         }
                     }
                 }
                 if (player->targetShip != n) {
-                    if (*(short *)player->unk6e == 1) {
+                    if (player->unk6e == 1) {
                         statusRedraw[6] = 1;
                         if (player->targetShip != -1)
                             PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
                         else
                             PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
                         if (player->targetShip != -1) {
-                            if (SWIsSpriteInRect((SpritePtr)shipData[player->targetShip].sprite,
+                            if (SWIsSpriteInRect(shipData[player->targetShip].sprite,
                                     SWWindowRect(gSpriteWorld)))
                                 weapTargetExpand = 256.0f;
                             else
@@ -831,14 +1002,10 @@ void HandlePlayer(ShipObj *player)
                         if (stellarSprite[i] != NULL && stellarSprite[i]->isVisible) {
                             j = stellarSprite[i]->userData;
                             if (stellarData[j].loaded) {
-                                r = &stellarSprite[i]->destFrameRect;
-                                box.top = r->top;
-                                box.left = r->left;
-                                box.bottom = r->bottom;
-                                box.right = r->right;
+                                box = stellarSprite[i]->destFrameRect;
                                 if (box.right - box.left < 0x30)
                                     InsetRect(&box, -0x10, -0x10);
-                                if (PtInRect(pt.h, pt.v, &box)) {
+                                if (PtInRectPoint(pt, &box)) {
                                     if (player->targetStellar != j
                                             || player->navTargetKind != 2) {
                                         PlaySound(beepSnd[0], 1, gSoundVolume,
@@ -868,12 +1035,14 @@ void HandlePlayer(ShipObj *player)
                 && fadePending[0] == 0 && fadePending[1] == 0
                 && frameCounter >= 0) {
             PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
+            SetRetainedWindow(gWind, false);
             HideCursorSprite();
             RefreshSAT();
             ShowTheCursor();
             hypergateMapMode = 0;
             DoSystemMap();
             PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
+            SetRetainedWindow(gWind, true);
             SWSetPortToWindow(gSpriteWorld);
             RedrawStatus(1);
             RedrawComm(0);
@@ -918,18 +1087,18 @@ void HandlePlayer(ShipObj *player)
     if (QuickKeyCheck(keyPrefs.targetNearest)) {
         keyPressedThisFrame = 1;
         if (!weapCloseTargFlag) {
-            if (QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt))
+            if (AltKeyQuick())
                 n = FindNearestShipToPlayer();
             else
                 n = FindNearestThreatToPlayer();
             weapCloseTargFlag = 1;
-            if (n != -1 && *(short *)player->unk6e == 1
+            if (n != -1 && player->unk6e == 1
                     && n != player->targetShip) {
                 PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
                 statusRedraw[6] = 1;
-                *(short *)player->unk6e = 1;
+                player->unk6e = 1;
                 player->targetShip = n;
-                if (SWIsSpriteInRect((SpritePtr)shipData[n].sprite,
+                if (SWIsSpriteInRect(shipData[n].sprite,
                                      SWWindowRect(gSpriteWorld)))
                     weapTargetExpand = 256.0f;
                 else
@@ -947,7 +1116,7 @@ void HandlePlayer(ShipObj *player)
         keyPressedThisFrame = 1;
         for (i = 0; i < kMaxWeapTypes; i++) {
             if (player->weap[i].count > 0
-                    && !(gWeapons[i].flags & kWeapFlagTurret))
+                    && !(weaponStats[i].flags & kWeapSecondary))
                 FirePlayerWeapon(i);
         }
     }
@@ -957,7 +1126,7 @@ void HandlePlayer(ShipObj *player)
         FirePlayerWeapon(player->selectedWeapon);
     }
     if (player->selectedWeapon != -1
-            && (gWeapons[player->selectedWeapon].flags & kWeapFlagAmmo)
+            && (weaponStats[player->selectedWeapon].flags & kWeapPersistentSmoke) /* BUG: Flags, not Flags2 */
             && !WeaponHasAmmo(player, player->selectedWeapon)) {
         player->selectedWeapon = -1;
         statusRedraw[3] = 1;
@@ -970,10 +1139,10 @@ void HandlePlayer(ShipObj *player)
             n = 0;
             for (i = 0; i < kMaxWeapTypes; i++) {
                 if (player->weap[i].count > 0
-                        && (gWeapons[i].flags & kWeapFlagTurret)
-                        && (gWeapons[i].guidance < kGuidancePointDef
-                            || gWeapons[i].guidance == kGuidanceBay)) {
-                    if (gWeapons[i].flags2 & kWeapFlagAmmo) {
+                        && (weaponStats[i].flags & kWeapSecondary)
+                        && (weaponStats[i].guidance < kGuidancePointDef
+                            || weaponStats[i].guidance == kGuidanceBay)) {
+                    if (weaponStats[i].flags2 & kWeapHideIfNoAmmo) {
                         if (WeaponHasAmmo(player, i))
                             n++;
                     } else {
@@ -984,12 +1153,12 @@ void HandlePlayer(ShipObj *player)
             if (n > 0) {
                 statusRedraw[3] = 1;
                 PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
-                if (QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt))
+                if (AltKeyQuick())
                     j = -1;
                 else
                     j = 1;
                 ok = 0;
-                do {
+                while (!ok) {
                     player->selectedWeapon += j;
                     while (player->selectedWeapon >= kMaxWeapTypes)
                         player->selectedWeapon -= kMaxWeapTypes;
@@ -997,20 +1166,21 @@ void HandlePlayer(ShipObj *player)
                         player->selectedWeapon += kMaxWeapTypes;
                     if (player->selectedWeapon >= 0 && player->selectedWeapon < kMaxWeapTypes) {
                         if (player->weap[player->selectedWeapon].count > 0
-                                && (gWeapons[player->selectedWeapon].flags
-                                    & kWeapFlagTurret)
-                                && (gWeapons[player->selectedWeapon].guidance < kGuidancePointDef
-                                    || gWeapons[player->selectedWeapon].guidance
+                                && (weaponStats[player->selectedWeapon].flags
+                                    & kWeapSecondary)
+                                && (weaponStats[player->selectedWeapon].guidance < kGuidancePointDef
+                                    || weaponStats[player->selectedWeapon].guidance
                                        == kGuidanceBay)) {
-                            if (!(gWeapons[player->selectedWeapon].flags2 & kWeapFlagAmmo))
-                                ok = 1;
-                            else if (WeaponHasAmmo(player, player->selectedWeapon))
+                            if (weaponStats[player->selectedWeapon].flags2 & kWeapHideIfNoAmmo) {
+                                if (WeaponHasAmmo(player, player->selectedWeapon))
+                                    ok = 1;
+                            } else
                                 ok = 1;
                         }
                     } else {
                         ok = 0;
                     }
-                } while (!ok);
+                }
             } else {
                 PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
             }
@@ -1029,10 +1199,10 @@ void HandlePlayer(ShipObj *player)
     for (i = 0; i < kMaxWeapTypes; i++) {
         if (player->weap[i].count > 0) {
             if (player->weap[i].reloadTimer > 0.0f)
-                player->weap[i].reloadTimer -= gTimeScale;
+                player->weap[i].reloadTimer -= gSpeedMult;
             else
                 player->weap[i].reloadTimer = 0;
-            if ((gWeapons[i].seeker & kWeapSeekNoFireIonized)
+            if ((weaponStats[i].seeker & kWeapSeekNoFireIonized)
                     && ShipIonizationFactor(player) > 0.0f)
                 player->weap[i].reloadTimer = 1.0f;
         }
@@ -1045,11 +1215,9 @@ void HandlePlayer(ShipObj *player)
                 player->desiredHeading =
                     CalcInterceptAngle(&player->pos,
                         &shipData[player->targetShip].pos);
-            } else if (QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt)) {
-                stelPos = XYShortToFloat(
+            } else if (AltKeyQuick()) {
+                origin = XYShortToFloat(
                     stellarData[player->targetStellar].pos);
-                origin.x = stelPos.x;
-                origin.y = stelPos.y;
                 player->desiredHeading =
                     CalcInterceptAngle(&player->pos, &origin);
             } else {
@@ -1059,10 +1227,8 @@ void HandlePlayer(ShipObj *player)
             }
             turned = 1;
         } else if (player->targetStellar != -1) {
-            stelPos = XYShortToFloat(
+            origin = XYShortToFloat(
                 stellarData[player->targetStellar].pos);
-            origin.x = stelPos.x;
-            origin.y = stelPos.y;
             player->desiredHeading = CalcInterceptAngle(&player->pos, &origin);
             turned = 1;
         }
@@ -1074,11 +1240,11 @@ void HandlePlayer(ShipObj *player)
                 && (ShipCanExpiditeJumps(player)
                     || (abs((short)player->vel.x) < 2
                         && abs((short)player->vel.y) < 2))) {
-            pos.x = gSystems[player->curSystem].xPos;
-            pos.y = gSystems[player->curSystem].yPos;
-            j = gSystems[player->curSystem].links[player->targetStellar];
-            dest.x = gSystems[j].xPos;
-            dest.y = gSystems[j].yPos;
+            pos.x = systemData[player->curSystem].pos.h;
+            pos.y = systemData[player->curSystem].pos.v;
+            j = systemData[player->curSystem].links[player->targetStellar];
+            dest.x = systemData[j].pos.h;
+            dest.y = systemData[j].pos.v;
             player->desiredHeading = CalcInterceptAngle(&pos, &dest);
             turned = 1;
         }
@@ -1094,11 +1260,10 @@ void HandlePlayer(ShipObj *player)
                 && player->fuel >= 100.0f) {
             canJump = 1;
             for (i = 0; i < kNavSlots; i++) {
-                if (gSystems[player->curSystem].navDefault[i] != -1
-                        && !(stellarData[gSystems[player->curSystem].navDefault[i]].flags2
-                             & kSpobNoJumpMask)) {
-                    origin.y = 0;
-                    origin.x = origin.y;
+                if (systemData[player->curSystem].navDefault[i] != -1
+                        && !(stellarData[systemData[player->curSystem].navDefault[i]].flags2
+                             & kSpobGateOrWormhole)) {
+                    origin.x = origin.y = 0;
                     turnLim = ShipHyperSafeDist(player);
                     if (FloatAbs(XYFloatSquaredDist(&origin,
                                 &player->pos)) <= turnLim)
@@ -1123,28 +1288,28 @@ void HandlePlayer(ShipObj *player)
                         DisplayComm("\p", 1, 0, 0xc, &rgbWhite, 0, 0);
                 }
                 if (canJump && player->jumpTimer <= 0.0f) {
-                    count = 0;
+                    waiting = 0;
                     n = -1;
                     for (i = 1; i < kMaxShips; i++) {
                         if (shipData[i].active
                                 && shipData[i].parentShip == 0
                                 && shipData[i].aiType == 5
                                 && !AIShipHasFuelForJump(&shipData[i])
-                                && !(gShipTypes[shipData[i].type].flags2
-                                     & kShipFlagNoVoice)) {
-                            count = count + 1;
+                                && !(shipClass[shipData[i].type].flags2
+                                     & kShipNoFighterVoice)) {
+                            waiting = waiting + 1;
                             n = shipData[i].type;
                         }
                     }
-                    if (count > 0) {
-                        pstrcpy(msg, gShipTypes[n].name);
+                    if (waiting > 0) {
+                        pstrcpy(msg, shipClass[n].name);
                         PtoCstr(msg);
                         strcat((char *)msg, ":  ");
-                        if (count == 1)
-                            AppendIndString((char *)msg, kGameStrList,
+                        if (waiting == 1)
+                            StrcatIndCString((char *)msg, kGameStrList,
                                             Rand(2) + 0xa0);
                         else
-                            AppendIndString((char *)msg, kGameStrList,
+                            StrcatIndCString((char *)msg, kGameStrList,
                                             Rand(2) + 0xa2);
                         CtoPstr((char *)msg);
                         DisplayComm(msg, 0xfa, 0, 0xc, &rgbWhite, 0, 0);
@@ -1155,8 +1320,8 @@ void HandlePlayer(ShipObj *player)
                         || (abs((short)player->vel.x) < 2
                             && abs((short)player->vel.y) < 2)) {
                     jumping = 1;
-                    if ((gShipTypes[player->type].shanFlags & kShipRecBanks)
-                            && !(gShipTypes[player->type].shanFlags & 0x80)
+                    if ((shipClass[player->type].shanFlags & kShanFoldingParts)
+                            && !(shipClass[player->type].shanFlags & kShanUnfoldsWhenFiring)
                             && player->foldSet > 0)
                         player->foldDir = -1;
                     if (player->jumpTimer <= 1.0f) {
@@ -1167,15 +1332,15 @@ void HandlePlayer(ShipObj *player)
                         if (doubleTime) {
                             if (!ST_IsSoundPlaying(warpUpSnd[1])) {
                                 warpUpSoundSpec.handle = (void **)warpUpSnd[1];
-                                SetSoundRate(
-                                    gShipTypes[player->type].mobilityFactor);
+                                AdjustWarpSoundSpeed(
+                                    shipClass[player->type].mobilityFactor);
                                 ST_PlaySoundParam(&warpUpSoundSpec);
                                 warpSoundDone = 0;
                             }
                         } else if (!ST_IsSoundPlaying(warpUpSnd[0])) {
                             warpUpSoundSpec.handle = (void **)warpUpSnd[0];
-                            SetSoundRate(
-                                gShipTypes[player->type].mobilityFactor);
+                            AdjustWarpSoundSpeed(
+                                shipClass[player->type].mobilityFactor);
                             ST_PlaySoundParam(&warpUpSoundSpec);
                             warpSoundDone = 0;
                         }
@@ -1185,36 +1350,32 @@ void HandlePlayer(ShipObj *player)
                     player->jumpTimer = 1.0f;
                     if (ShipIsInertialess(player)) {
                         player->accelMag = player->accelMag
-                            - ShipAccelRate(player) * gTimeScale;
+                            - ShipAccelRate(player) * gSpeedMult;
                         if (player->accelMag < 0.0f)
                             player->accelMag = 0;
                     } else {
-                        pos.y = 0;
-                        pos.x = pos.y;
+                        pos.x = pos.y = 0;
                         dest.x = player->vel.x * 100.0;
                         dest.y = player->vel.y * 100.0;
                         player->desiredHeading =
                             CalcInterceptAngle(&dest, &pos);
                         turned = 1;
-                        aligned = abs(AngularDifference(
+                        if (abs(AngularDifference(
                                  player->desiredHeading,
                                  player->heading))
                                   < (ShipTurnRate(player) + 1.0f > 20.0f
-                                     ? ShipTurnRate(player) + 1.0f : 20.0f);
-                        if (aligned) {
+                                     ? ShipTurnRate(player) + 1.0f : 20.0f)) {
                             Accel(player->heading, ShipAccelRate(player),
                                   &player->vel);
                             if (player->engineGlow < 0x18)
                                 player->engineGlow += 3;
                         }
-                        player->vel.x = player->vel.x * 0.992;
-                        player->vel.y = player->vel.y * 0.992;
+                        player->vel.x *= 0.992;
+                        player->vel.y *= 0.992;
                     }
                 }
             } else {
-                if (jumpTryFlag) {
-                    player->jumpTimer = 0;
-                } else {
+                if (!jumpTryFlag) {
                     PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
                     if (player->tractorShip != -1
                             && player->tractorShip != player->index)
@@ -1222,6 +1383,8 @@ void HandlePlayer(ShipObj *player)
                     else
                         GetIndString(msg, kGameStrList, 0x2a);
                     DisplayComm(msg, 0x168, 0, 0xc, &rgbWhite, 0, 0);
+                } else {
+                    player->jumpTimer = 0;
                 }
             }
         } else if (!jumpTryFlag) {
@@ -1246,10 +1409,10 @@ void HandlePlayer(ShipObj *player)
 
     if ((jumping || player->jumpTimer > 1.0f) && !disabled) {
         MakeEscortsHyperWithParent(player);
-        player->jumpTimer = player->jumpTimer + gTimeScale;
+        player->jumpTimer = player->jumpTimer + gSpeedMult;
         if (!ShipCanExpiditeJumps(player)) {
-            player->vel.x = player->vel.x * 0.98;
-            player->vel.y = player->vel.y * 0.98;
+            player->vel.x *= 0.98;
+            player->vel.y *= 0.98;
         }
         if (player->jumpTimer > 30.0f) {
             if (!ST_IsSoundPlaying(warpUpSnd[0])
@@ -1260,62 +1423,113 @@ void HandlePlayer(ShipObj *player)
             warpSoundDone = 0;
             if (!ST_IsSoundPlaying(warpOutSnd))
                 PlaySound(warpOutSnd, 0x32, gSoundVolume, gSoundVolume);
-            player->pos.y = 0;
-            player->pos.x = player->pos.y;
-            pos.x = gSystems[gSystems[player->curSystem]
-                         .links[player->targetStellar]].xPos;
-            pos.y = gSystems[gSystems[player->curSystem]
-                         .links[player->targetStellar]].yPos;
-            dest.x = gSystems[player->curSystem].xPos;
-            dest.y = gSystems[player->curSystem].yPos;
+            player->pos.x = player->pos.y = 0;
+            pos.x = systemData[systemData[player->curSystem]
+                         .links[player->targetStellar]].pos.h;
+            pos.y = systemData[systemData[player->curSystem]
+                         .links[player->targetStellar]].pos.v;
+            dest.x = systemData[player->curSystem].pos.h;
+            dest.y = systemData[player->curSystem].pos.v;
             Accel(((CalcInterceptAngle(&dest, &pos) + 180) % 360),
                   1350.0f, &player->pos);
-            player->vel.y = 0;
-            player->vel.x = player->vel.y;
-            if (!ShipIsInertialess(player))
+            player->vel.x = player->vel.y = 0;
+            if (ShipIsInertialess(player))
+                player->accelMag = ShipMaxSpeed(player);
+            else
                 Accel(player->heading, ShipMaxSpeed(player),
                       &player->vel);
-            else
-                player->accelMag = ShipMaxSpeed(player);
-            n = gSystems[player->curSystem].links[player->targetStellar];
+#ifdef MACBUILD
+            sys = systemData[player->curSystem].links[player->targetStellar];
+            player->prevSystem = player->curSystem;
+            routeDone = 0;
+            if (hyperRoute[1] != -1
+                    && FindActiveCoLocatedSystem(sys)
+                       == FindActiveCoLocatedSystem(hyperRoute[1])
+                    && (k = ShipJumpsPerJump(player)) > 1) {
+                for (i = 1; i < k; i++) {
+                    sys = FindActiveCoLocatedSystem(hyperRoute[1]);
+                    if (sys == -1)
+                        break;
+                    player->curSystem = sys;
+                    ExploreNebulaeFromSystem(sys);
+                    SpoolNextHyperRouteDest();
+                    if (hyperRoute[1] == -1)
+                        break;
+                }
+                routeDone = 1;
+            }
+            player->curSystem = sys;
+#else
+            n = systemData[player->curSystem].links[player->targetStellar];
             player->prevSystem = player->curSystem;
             routeDone = 0;
             if (hyperRoute[1] != -1
                     && FindActiveCoLocatedSystem(n)
                        == FindActiveCoLocatedSystem(hyperRoute[1])
-                    && (count = ShipJumpsPerJump(player)) > 1) {
+                    && (count = k = ShipJumpsPerJump(player)) > 1) {
                 for (i = 1; i < count; i++) {
                     n = FindActiveCoLocatedSystem(hyperRoute[1]);
                     if (n == -1)
                         break;
                     player->curSystem = n;
                     ExploreNebulaeFromSystem(n);
-                    CheckJumpRouteArrival();
+                    SpoolNextHyperRouteDest();
                     if (hyperRoute[1] == -1)
                         break;
                 }
                 routeDone = 1;
             }
             player->curSystem = n;
+#endif
             ExploreNebulaeFromSystem(player->curSystem);
             player->navTargetKind = -1;
             player->targetStellar = -1;
             player->targetShip = -1;
             player->fuel = player->fuel - 100.0f;
-            SWSetPortToWindow(gSpriteWorld);
-            RGBForeColor(whiteColor);
+#if V111
+            SWSetPortToWorkArea(gSpriteWorld);
+            ForeColor(whiteColor);
             PaintRect(&gSpriteWorld->workFrameP->frameRect);
-            RGBForeColor(blackColor);
+            ForeColor(blackColor);
+            if (useLegacyRenderingPipeline) {
+                BlitPixieRectDrawProc(gSpriteWorld->workFrameP, SWWindowFrame(gSpriteWorld),
+                             &gSpriteWorld->workFrameP->frameRect,
+                             &SWWindowFrame(gSpriteWorld)->frameRect);
+            } else {
+                SWSetPortToWindow(gSpriteWorld);
+                CopyBits((PixMapPtr)GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
+                         GetPortPixMapBits(SWWindowFrame(gSpriteWorld)->framePort),
+                         &gSpriteWorld->workFrameP->frameRect,
+                         &SWWindowFrame(gSpriteWorld)->frameRect, 0, NULL);
+                QDFlushPortBuffer(SWWindowFrame(gSpriteWorld)->framePort, NULL);
+            }
+#else
+#ifdef MAC1010
+            SWSetPortToWorkArea(gSpriteWorld);
+            ForeColor(whiteColor);
+            PaintRect(&gSpriteWorld->workFrameP->frameRect);
+            ForeColor(blackColor);
+#else
+            SWSetPortToWindow(gSpriteWorld);
+#ifdef CEFIX /* F22.01 */
+            CE_SetFlashColor(whiteColor);
+#else
+            ForeColor(whiteColor);
+#endif
+            PaintRect(&gSpriteWorld->workFrameP->frameRect);
+            ForeColor(blackColor);
             ScreenEndScene();
             SWSetPortToWorkArea(gSpriteWorld);
+#endif
             BlitPixieRectDrawProc(gSpriteWorld->workFrameP, SWWindowFrame(gSpriteWorld),
                          &gSpriteWorld->workFrameP->frameRect,
                          &SWWindowFrame(gSpriteWorld)->frameRect);
+#endif
             PropagateMissionBitEffects();
-            if (gSystems[shipData->curSystem].murk >= 0)
-                RandomizeStars();
-            else
+            if (systemData[shipData->curSystem].murk < 0)
                 ClearStarfield();
+            else
+                RandomizeStars();
             ScrollStarfield(0.0f, 0.0f);
             EraseParticlesOffscreen(gSpriteWorld);
             ClearParticles(1);
@@ -1337,9 +1551,9 @@ void HandlePlayer(ShipObj *player)
             alertSpritePending = 0;
             for (i = 0; i < 1000; i++)
                 missionRandom[i] = Rand(100) + 1;
-            mapScroll.x = gSystems[player->curSystem].xPos;
-            mapScroll.y = gSystems[player->curSystem].yPos;
-            count = ShipHyperTransitTime(player);
+            mapScroll.h = systemData[player->curSystem].pos.h;
+            mapScroll.v = systemData[player->curSystem].pos.v;
+            days = ShipHyperTransitTime(player);
             lost = 0;
             for (i = 1; i < kMaxShips; i++) {
                 if (shipData[i].active && shipData[i].parentShip == 0
@@ -1351,21 +1565,21 @@ void HandlePlayer(ShipObj *player)
                     }
                     if (shipData[i].active) {
                         rank = ShipHyperTransitTime(&shipData[i]);
-                        if (rank > count)
-                            count = rank;
+                        if (rank > days)
+                            days = rank;
                     }
                 }
             }
-            for (i = 0; i < count; i++)
+            for (i = 0; i < days; i++)
                 IncrementGameTime();
             HandleGlobalPriceFlux();
             HandleLocalPriceFlux();
             MissionHandlePlayerEnteredNewSystem();
             j = FindFirstCoLocatedSystem(player->curSystem);
-            if (gSystems[j].exploreLevel < 1)
-                gSystems[j].exploreLevel = 1;
-            if (gSystems[player->curSystem].exploreLevel < 1)
-                gSystems[player->curSystem].exploreLevel = 1;
+            if (systemData[j].exploreLevel < 1)
+                systemData[j].exploreLevel = 1;
+            if (systemData[player->curSystem].exploreLevel < 1)
+                systemData[player->curSystem].exploreLevel = 1;
             AutoSetExploration(player->curSystem, 0, 1);
             player->jumpTimer = -999.0f;
             SetupShipsInSystem(player->curSystem, 0);
@@ -1375,41 +1589,41 @@ void HandlePlayer(ShipObj *player)
             crashlog_print("entering system ");
             crashlog_print_num(j + 128);
             crashlog_print(" (");
-            crashlog_print_pstr(gSystems[j].name);
+            crashlog_print_pstr(systemData[j].name);
             crashlog_print(")\n");
-            if (gSystems[j].message != -1) {
-                DisplayMessage(gSystems[j].message);
+            if (systemData[j].message != -1) {
+                DisplayMessage(systemData[j].message);
             } else {
                 n = Rand(3);
                 strcpy((char *)msg, "");
-                AppendIndString((char *)msg, kGameStrList, n + 0x2b);
+                StrcatIndCString((char *)msg, kGameStrList, n + 0x2b);
                 strcat((char *)msg, " ");
-                pstrcpy(name, gSystems[j].name);
+                pstrcpy(name, systemData[j].name);
                 PtoCstr(name);
                 strcat((char *)msg, (char *)name);
                 strcat((char *)msg, " ");
-                AppendIndString((char *)msg, kGameStrList, 0x30);
+                StrcatIndCString((char *)msg, kGameStrList, 0x30);
                 strcat((char *)msg, " ");
                 DateToLongString(gameTime, (char *)name);
                 strcat((char *)msg, (char *)name);
                 strcat((char *)msg, ".");
                 n = 0;
                 for (i = 0; i < kNavSlots; i++) {
-                    if (gSystems[player->curSystem].navDefault[i] != -1)
+                    if (systemData[player->curSystem].navDefault[i] != -1)
                         n++;
                 }
                 if (n == 0) {
                     strcat((char *)msg, " ");
-                    AppendIndString((char *)msg, kGameStrList, 0x31);
+                    StrcatIndCString((char *)msg, kGameStrList, 0x31);
                 }
                 if (lost > 0) {
                     strcat((char *)msg, "  (");
                     StrcatOrdinalNumber(lost, (char *)msg, 1);
                     strcat((char *)msg, " ");
                     if (lost == 1)
-                        AppendIndString((char *)msg, kGameStrList, 0xa4);
+                        StrcatIndCString((char *)msg, kGameStrList, 0xa4);
                     else
-                        AppendIndString((char *)msg, kGameStrList, 0xa5);
+                        StrcatIndCString((char *)msg, kGameStrList, 0xa5);
                     strcat((char *)msg, ")");
                 }
                 CtoPstr((char *)msg);
@@ -1422,8 +1636,8 @@ void HandlePlayer(ShipObj *player)
                         hyperRoute[i] = -1;
                 }
             }
-            CheckJumpRouteArrival();
-            SelectHyperLinkToSelection();
+            SpoolNextHyperRouteDest();
+            CueNextHyperRouteDest();
             DrawMapInFloatingFrame();
             killShots = 1;
             killBoxes = 1;
@@ -1432,11 +1646,15 @@ void HandlePlayer(ShipObj *player)
             killAsteroids = 1;
             missionSoundID = -1;
             escortMenuOnscreen = 0;
+#ifdef MACBUILD
+            CreateAsteroids(0);
+#else
             CreateAsteroids();
+#endif
             ResetPlayerPrecalcedValues();
-            if (gShipTypes[player->type].shanFlags & 0x80) {
+            if (shipClass[player->type].shanFlags & kShanUnfoldsWhenFiring) {
                 player->foldSet =
-                    gShipTypes[player->type].baseSets - 1;
+                    shipClass[player->type].baseSets - 1;
                 player->foldDir = 0;
             } else {
                 player->foldSet = 0;
@@ -1448,7 +1666,14 @@ void HandlePlayer(ShipObj *player)
             SWHideAllSprites(gSpriteWorld);
             HandleStellarSystemVisibility();
             PrepareAllSprites();
+#if V111
+            if (useLegacyRenderingPipeline)
+                SWSetPortToWorkArea(gSpriteWorld);
+            else
+                SWSetPortToBackground(gSpriteWorld);
+#else
             SWSetPortToWorkArea(gSpriteWorld);
+#endif
             SetSystemBackgroundColor();
             PaintRect(&gSpriteWorld->backFrameP->frameRect);
             SWSetPortToWorkArea(gSpriteWorld);
@@ -1457,13 +1682,12 @@ void HandlePlayer(ShipObj *player)
             SWSetPortToWindow(gSpriteWorld);
             RefreshSAT();
             RedrawComm(1);
-            DoEscortPayment(count);
+            DoEscortPayment(days);
             return;
-        }
-        if (player->jumpTimer > 30.0f) {
+        } else if (player->jumpTimer > 30.0f) {
             if ((ReadTick() - player->jumpTick)
                     > WarpSoundDuration()
-                      / gShipTypes[player->type].mobilityFactor) {
+                      / shipClass[player->type].mobilityFactor) {
                 if (ST_IsSoundPlaying(warpUpSnd[0]))
                     ST_HaltSound(warpUpSnd[0]);
                 if (ST_IsSoundPlaying(warpUpSnd[1]))
@@ -1482,12 +1706,11 @@ void HandlePlayer(ShipObj *player)
         keyPressedThisFrame = 1;
         if (ShipIsInertialess(player)) {
             player->accelMag = player->accelMag
-                               - ShipAccelRate(player) * gTimeScale;
+                               - ShipAccelRate(player) * gSpeedMult;
             if (player->accelMag < 0.0)
                 player->accelMag = 0;
         } else if (FloatAbs(player->vel.x) >= 0.05 || FloatAbs(player->vel.y) >= 0.05) {
-            pos.y = 0;
-            pos.x = pos.y;
+            pos.x = pos.y = 0;
             dest.x = player->vel.x * 100.0;
             dest.y = player->vel.y * 100.0;
             player->desiredHeading =
@@ -1498,29 +1721,29 @@ void HandlePlayer(ShipObj *player)
 
     turnStep = ShipTurnRate(player);
     dir = 0;
-    if (turned && abs(AngularDifference(player->desiredHeading, player->heading)) > turnStep * gTimeScale
+    if (turned && abs(AngularDifference(player->desiredHeading, player->heading)) > turnStep * gSpeedMult
             && !disabled) {
         angle = player->desiredHeading - player->heading;
         while (angle >= 360.0f)
             angle = angle - 360.0f;
         while (angle < 0.0f)
-            angle = angle + 360.0f;
+            angle += 360.0f;
         if (angle > 180.0f) {
-            player->heading -= turnStep * gTimeScale;
+            player->heading -= (float)turnStep * gSpeedMult;
             dir = -1;
         } else {
-            player->heading += turnStep * gTimeScale;
+            player->heading += (float)turnStep * gSpeedMult;
             dir = 1;
         }
     } else if (player->jumpTimer <= 0.0f && !disabled && !turned
             && (QuickKeyCheck(keyPrefs.turnLeft) || QuickKeyCheck(keyPrefs.turnRight))) {
         keyPressedThisFrame = 1;
         if (QuickKeyCheck(keyPrefs.turnLeft) && !QuickKeyCheck(keyPrefs.turnRight)) {
-            player->heading = player->heading - turnStep * gTimeScale;
+            player->heading = player->heading - (float)turnStep * gSpeedMult;
             dir = -1;
         } else if (QuickKeyCheck(keyPrefs.turnRight)
                 && !QuickKeyCheck(keyPrefs.turnLeft)) {
-            player->heading = player->heading + turnStep * gTimeScale;
+            player->heading = player->heading + (float)turnStep * gSpeedMult;
             dir = 1;
         }
     }
@@ -1534,7 +1757,7 @@ void HandlePlayer(ShipObj *player)
         keyPressedThisFrame = 1;
         if (HasAfterburner(player) && player->jumpTimer <= 0.0f
                 && player->fuel > 0.0f && player->aiTimer <= 0.0f
-                && ShipAfterburnerFuelUsage(player) <= player->fuel)
+                && player->fuel >= ShipAfterburnerFuelUsage(player))
             abOn = 1;
     }
 
@@ -1542,18 +1765,17 @@ void HandlePlayer(ShipObj *player)
             && player->jumpTimer <= 0.0f && !disabled) {
         keyPressedThisFrame = 1;
         if (ShipIsInertialess(player)) {
-            player->accelMag = ShipAccelRate(player) * gTimeScale
-                               + player->accelMag;
-            if (ShipMaxSpeed(player) < player->accelMag)
+            player->accelMag = player->accelMag + ShipAccelRate(player) * gSpeedMult;
+            if (player->accelMag > ShipMaxSpeed(player))
                 player->accelMag = ShipMaxSpeed(player);
         } else if (abOn && !gravitySourcesPresent) {
             AdjustedAccel(player->heading,
-                          ShipAccelRate(player) * gTimeScale,
+                          ShipAccelRate(player) * gSpeedMult,
                           &player->vel,
                           ShipMaxSpeed(player) * 1.8);
         } else {
             AdjustedAccel(player->heading,
-                          ShipAccelRate(player) * gTimeScale,
+                          ShipAccelRate(player) * gSpeedMult,
                           &player->vel, ShipMaxSpeed(player));
         }
         if (player->engineGlow < 0x18)
@@ -1563,18 +1785,17 @@ void HandlePlayer(ShipObj *player)
     }
 
     player->bankDir = 0;
-    if (gShipTypes[player->type].shanFlags & kShipRecRollable) {
+    if (shipClass[player->type].shanFlags & kShanBanks) {
         if (dir != 0) {
             if (dir > 0 && player->frameTimer < 16.0f)
-                player->frameTimer += gTimeScale;
+                player->frameTimer += gSpeedMult;
             if (dir < 0 && player->frameTimer > -16.0f)
-                player->frameTimer -= gTimeScale;
+                player->frameTimer -= gSpeedMult;
         } else {
-            rollStep = gTimeScale * 2.0;
-            if (player->frameTimer >= rollStep)
-                player->frameTimer -= rollStep;
-            else if (-gTimeScale * 2.0 >= player->frameTimer)
-                player->frameTimer += rollStep;
+            if (player->frameTimer >= gSpeedMult * 2.0)
+                player->frameTimer -= gSpeedMult * 2.0;
+            else if (player->frameTimer <= -gSpeedMult * 2.0)
+                player->frameTimer += gSpeedMult * 2.0;
             else
                 player->frameTimer = 0;
         }
@@ -1585,53 +1806,61 @@ void HandlePlayer(ShipObj *player)
         else
             player->bankDir = 0;
         if (player->bankDir != 0
-                && (gShipTypes[player->type].shanFlags & kShipRecBanks)
+                && (shipClass[player->type].shanFlags & kShanFoldingParts)
                 && player->engineGlow < 0x18)
             player->engineGlow += 2;
     }
 
     if (player->aiTimer > 0.0f || player->jumpTimer > 0.0f) {
-        if ((gShipTypes[player->type].shanFlags & kShipRecRollable)
+        if ((shipClass[player->type].shanFlags & kShanBanks)
                 && player->jumpTimer > 30.0f)
             player->frameTimer = 0;
         if (player->engineGlow > 0)
             player->engineGlow -= 1;
     }
 
-    if (ShipShieldCapacity(player) > player->shield && !dying && !disabled) {
-        player->shield = ShipShieldRechargeRate(player) * gTimeScale + player->shield;
+    if (player->shield < ShipShieldCapacity(player) && !dying && !disabled) {
+        player->shield = player->shield + ShipShieldRechargeRate(player) * gSpeedMult;
         statusRedraw[1] = 1;
     }
-    if (ShipArmorCapacity(player) > player->armor && !dying
+    if (player->armor < ShipArmorCapacity(player) && !dying
             && !IsDisabled(player) && playerRepairInhibit < 0.0) {
-        player->armor = ShipArmorRechargeRate(player) * gTimeScale + player->armor;
+        player->armor = player->armor + ShipArmorRechargeRate(player) * gSpeedMult;
         statusRedraw[1] = 1;
     }
 
     if (player->jumpTimer > 1.0f && !disabled) {
-        pos.x = gSystems[player->curSystem].xPos;
-        pos.y = gSystems[player->curSystem].yPos;
-        n = gSystems[player->curSystem].links[player->targetStellar];
-        dest.x = gSystems[n].xPos;
-        dest.y = gSystems[n].yPos;
+        pos.x = systemData[player->curSystem].pos.h;
+        pos.y = systemData[player->curSystem].pos.v;
+        n = systemData[player->curSystem].links[player->targetStellar];
+        dest.x = systemData[n].pos.h;
+        dest.y = systemData[n].pos.v;
         n = CalcInterceptAngle(&pos, &dest);
-        aligned = abs(AngularDifference(player->heading, n))
-                  <= (ShipTurnRate(player) > 30.0f ? ShipTurnRate(player) : 30.0f);
-        if (aligned) {
+        if (abs(AngularDifference(player->heading, n))
+                  <= (ShipTurnRate(player) > 30.0f ? ShipTurnRate(player) : 30.0f)) {
             span = (ReadTick() - player->jumpTick)
-                   * gShipTypes[player->type].mobilityFactor / (WarpSoundDuration() * 0.01);
+                   * shipClass[player->type].mobilityFactor / (WarpSoundDuration() * 0.01);
             step = span;
-            if (gShipTypes[player->type].mobilityFactor != 0) {
-                factor = doubleTime ? 1.5 : 1.0;
-                step = step - factor * 35.0
-                       / gShipTypes[player->type].mobilityFactor;
+            if (shipClass[player->type].mobilityFactor != 0) {
+                step = step - (doubleTime ? 1.5 : 1.0) * 35.0
+                       / shipClass[player->type].mobilityFactor;
             }
             if (step > 0.0) {
-                if (noHyperGammaPref == 0)
+                if (settings.noHyperGamma == 0)
+#if V111
+                    hyperGamma = (step - 55.0f) * 5.0f;
+#elif defined(MAC1010)
+#if TARGET_API_MAC_CARBON
+                    hyperGamma = 5.0f * (step - 55.0f);
+#else
                     hyperGamma = step * 0.3 - 15.0;
+#endif
+#else
+                    hyperGamma = step * 0.3 - 15.0;
+#endif
                 if (step > 50.0f)
                     step = 50.0f;
-                Accel(player->heading, step * gTimeScale,
+                Accel(player->heading, step * gSpeedMult,
                       &player->pos);
                 if (player->engineGlow < 0x20) {
                     player->engineGlow += 4;
@@ -1646,7 +1875,7 @@ void HandlePlayer(ShipObj *player)
         if (player->accelMag > playerMaxVel.x)
             player->accelMag = playerMaxVel.x;
         if (disabled) {
-            player->accelMag = player->accelMag * 0.985;
+            player->accelMag *= 0.985;
             if (player->engineGlow > 0)
                 player->engineGlow -= 1;
         } else {
@@ -1670,18 +1899,17 @@ void HandlePlayer(ShipObj *player)
         player->vel.y = playerMaxVel.y;
     if (player->vel.y < -playerMaxVel.y)
         player->vel.y = -playerMaxVel.y;
-    player->pos.x = player->vel.x * gTimeScale + player->pos.x;
-    player->pos.y = player->vel.y * gTimeScale + player->pos.y;
+    player->pos.x += player->vel.x * gSpeedMult;
+    player->pos.y += player->vel.y * gSpeedMult;
 
     if (player->navTargetKind == kDepartureRoutePicked
             && player->targetStellar != -1) {
         canJump = 1;
         for (i = 0; i < kNavSlots; i++) {
-            if (gSystems[player->curSystem].navDefault[i] != -1
-                    && !(stellarData[gSystems[player->curSystem].navDefault[i]].flags2
-                         & kSpobNoJumpMask)) {
-                origin.y = 0;
-                origin.x = origin.y;
+            if (systemData[player->curSystem].navDefault[i] != -1
+                    && !(stellarData[systemData[player->curSystem].navDefault[i]].flags2
+                         & kSpobGateOrWormhole)) {
+                origin.x = origin.y = 0;
                 turnLim = ShipHyperSafeDist(player);
                 if (FloatAbs(XYFloatSquaredDist(&origin,
                             &player->pos)) <= turnLim)
@@ -1720,73 +1948,81 @@ void HandlePlayer(ShipObj *player)
         player->deathTimer = player->deathTimer - 1.0f;
 
     if (player->ionization > 0.0f) {
-        player->ionization = player->ionization - ShipDeionizationRate(player) * gTimeScale;
+        player->ionization = player->ionization - ShipDeionizationRate(player) * gSpeedMult;
         step = ShipIonizationFactor(player);
         if (step > 0.7)
             step = 0.7f;
         step = ShipMaxSpeed(player) * (1.0f - step);
         if (player->vel.x > step)
-            player->vel.x -= gTimeScale * 0.025;
-        if (-step > player->vel.x)
-            player->vel.x += gTimeScale * 0.025;
+            player->vel.x -= gSpeedMult * 0.025;
+        if (player->vel.x < -step)
+            player->vel.x += gSpeedMult * 0.025;
         if (player->vel.y > step)
-            player->vel.y -= gTimeScale * 0.025;
-        if (-step > player->vel.y)
-            player->vel.y += gTimeScale * 0.025;
+            player->vel.y -= gSpeedMult * 0.025;
+        if (player->vel.y < -step)
+            player->vel.y += gSpeedMult * 0.025;
     } else {
         player->ionization = 0;
     }
 
     if (ShipFuelGenRate(player, &step)) {
         n = player->fuel;
-        player->fuel += step * gTimeScale;
+        player->fuel += step * gSpeedMult;
         if ((short)player->fuel != n)
             statusRedraw[4] = 1;
     }
     fuelCap = ShipFuelCapacity(player);
-    if (fuelCap < player->fuel)
+    if (player->fuel > fuelCap)
         player->fuel = fuelCap;
     if (player->fuel < 0.0f)
         player->fuel = 0;
 
-    if (QuickKeyCheck(0x72) && cheatsActive) {
+#ifdef CEFIX /* F21.01-02 */
+    if (CE_CheckDebugKeys(kCEScanF10) && cheatsActive) {
+#else
+    if (QuickKeyCheck(kScanExploreCheat) && cheatsActive) {
+#endif
         PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
-        if (QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt)) {
+        if (AltKeyQuick()) {
             for (i = 0; i < kMaxSystems; i++)
-                gSystems[i].exploreLevel = 0;
+                systemData[i].exploreLevel = 0;
             for (i = 0; i < kMaxNebulae; i++)
                 nebulaData[i].explored = 0;
         } else {
             for (i = 0; i < kMaxSystems; i++)
-                gSystems[i].exploreLevel = 2;
+                systemData[i].exploreLevel = 2;
             for (i = 0; i < kMaxNebulae; i++)
                 nebulaData[i].explored = 1;
         }
         HandleStellarSystemVisibility();
-        while (KeyCheck(0x72))
+        while (KeyCheck(kScanExploreCheat))
             BusyIdle();
     }
 
     if (QuickKeyCheck(keyPrefs.cheatAmmo) && cheatsActive) {
         PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
         for (i = 0; i < kMaxWeapTypes; i++) {
-            if (gShipTypes[player->type].weapAmmo[i] > 0) {
-                if (gWeapons[i].ammoType >= 0
-                        && gWeapons[i].ammoType < kMaxWeapTypes
-                        && gWeapons[i].guidance != kGuidanceBay)
-                    player->weap[gWeapons[i].ammoType].ammo =
-                        gShipTypes[player->type].weapAmmo[i];
+            if (shipClass[player->type].weapAmmo[i] > 0) {
+                if (weaponStats[i].ammoType >= 0
+                        && weaponStats[i].ammoType < kMaxWeapTypes
+                        && weaponStats[i].guidance != kGuidanceBay)
+                    player->weap[weaponStats[i].ammoType].ammo =
+                        shipClass[player->type].weapAmmo[i];
                 else
                     player->weap[i].ammo =
-                        gShipTypes[player->type].weapAmmo[i];
+                        shipClass[player->type].weapAmmo[i];
             }
         }
-        if (QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt))
+        if (AltKeyQuick())
             player->fuel = 0;
         else
             player->fuel = ShipFuelCapacity(player);
         player->shield = ShipShieldCapacity(player);
+#ifdef CEFIX /* F21.04 */
+        player->armor = ShipArmorCapacity(player);
+#else
         player->armor = ShipShieldCapacity(player);
+#endif
         player->ionization = 0;
         player->ionColor = 0;
         player->deathTimer = -1.0f;
@@ -1803,9 +2039,14 @@ void HandlePlayer(ShipObj *player)
         ResetPlayerPrecalcedValues();
     }
 
-    if (cheatsActive && QuickKeyCheck(0x6c) && player->targetShip != -1
+#ifdef CEFIX /* F21.03 */
+    if (cheatsActive && QuickKeyCheck(kCEScanF7) && player->targetShip != -1
             && shipData[player->targetShip].active) {
-        if (QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt))
+#else
+    if (cheatsActive && QuickKeyCheck(kScanAttackCheat) && player->targetShip != -1
+            && shipData[player->targetShip].active) {
+#endif
+        if (AltKeyQuick())
             AIMakeShipLeave(&shipData[player->targetShip]);
         else
             AIMakeShipAttackPlayer(&shipData[player->targetShip]);
@@ -1842,11 +2083,11 @@ void HandlePlayer(ShipObj *player)
                 }
                 if (flag) {
                     PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
-                    gSelectedQuickKey = -1;
+                    selEscortGroup = -1;
                     GetIndString(msg, kGameStrList, 0x33);
                     if (pstrcmp(msg, (unsigned char *)commMsg) == 0)
                         DisplayComm("\p", 1, 0, 0xc, &rgbWhite, 0, 0);
-                    ResetMapZoom();
+                    ShowEscortMenu();
                     lastEscortMenuTime = ReadTick();
                 } else {
                     GetIndString(msg, kGameStrList, 0x33);
@@ -1870,7 +2111,7 @@ void HandlePlayer(ShipObj *player)
             lastEscortCount = count;
             if (count == 0) {
                 lastEscortMenuTime = 0;
-                gSelectedQuickKey = -1;
+                selEscortGroup = -1;
             }
             DrawEscortMenuInFrame();
         }
@@ -1885,24 +2126,28 @@ void HandlePlayer(ShipObj *player)
                 PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
         } else {
             for (k = 0; k < 5; k++) {
+#ifdef MACBUILD
+                if (QuickKeyCheckPlusEscorts(keyPrefs.quickKey[k])) {
+#else
                 if (RawKeyCheck(keyPrefs.quickKey[k])) {
+#endif
                     if (!escortGroupFlag[k]) {
                         escortGroupFlag[k] = 1;
                         if (k > 0) {
-                            found = 0;
+                            ok = 0;
                             for (j = 1; j < kMaxShips; j++) {
                                 if (shipData[j].active
                                         && shipData[j].parentShip == 0
-                                        && gShipTypes[shipData[j].type].escortType
+                                        && shipClass[shipData[j].type].escortType
                                            == k - 1)
-                                    found = 1;
+                                    ok = 1;
                             }
                         } else {
-                            found = 1;
+                            ok = 1;
                         }
-                        if (found) {
-                            gSelectedQuickKey = k - 1;
-                            ResetMapZoom();
+                        if (ok) {
+                            selEscortGroup = k - 1;
+                            ShowEscortMenu();
                             lastEscortMenuTime = ReadTick();
                             PlaySound(beepSnd[2], 1, gSoundVolume,
                                       gSoundVolume);
@@ -1929,22 +2174,20 @@ void HandlePlayer(ShipObj *player)
                 } else if (i == 2) {
                     n = kOrderHold;
                 } else if (i == 3) {
-                    if (QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt))
+                    if (AltKeyQuick())
                         n = kOrderRegroup;
                     else
                         n = kOrderFormation;
                 }
-                if (gSelectedQuickKey != -1 && escortMenuOnscreen > 0) {
-                    playerEscortOrders[gSelectedQuickKey] = n;
+                if (selEscortGroup == -1 || escortMenuOnscreen <= 0) {
+                    for (j = 0; j < 4; j++)
+                        playerEscortOrders[j] = n;
                 } else {
-                    playerEscortOrders[0] = n;
-                    playerEscortOrders[1] = n;
-                    playerEscortOrders[2] = n;
-                    playerEscortOrders[3] = n;
+                    playerEscortOrders[selEscortGroup] = n;
                 }
                 if (escortMenuOnscreen > 0) {
-                    if (IssueNewEscortCommand(gSelectedQuickKey, n, 0)) {
-                        ResetMapZoom();
+                    if (IssueNewEscortCommand(selEscortGroup, n, 0)) {
+                        ShowEscortMenu();
                         lastEscortMenuTime = ReadTick();
                     }
                 } else {
@@ -1961,7 +2204,7 @@ void HandlePlayer(ShipObj *player)
             found = 0;
             for (j = 1; j < kMaxShips; j++) {
                 if (shipData[j].active && shipData[j].parentShip == 0
-                        && gShipTypes[shipData[j].type].escortType == i
+                        && shipClass[shipData[j].type].escortType == i
                         && shipData[j].aiType == 5
                         && shipData[j].escortMayAttack) {
                     found = 1;
@@ -1971,27 +2214,26 @@ void HandlePlayer(ShipObj *player)
             if (!found) {
                 playerEscortOrders[i] = kOrderFormation;
                 if (escortMenuOnscreen > 0)
-                    ResetMapZoom();
+                    ShowEscortMenu();
             }
         }
     }
 
-    groupCount[0] = 0;
-    groupCount[1] = 0;
-    groupCount[2] = 0;
-    groupCount[3] = 0;
+    for (i = 0; i < 4; i++)
+        groupCount[i] = 0;
     for (i = 1; i < kMaxShips; i++) {
         if (shipData[i].active && shipData[i].parentShip == 0
-                && shipData[i].escortMayAttack
-                && gShipTypes[shipData[i].type].escortType >= 0
-                && gShipTypes[shipData[i].type].escortType < 4)
-            groupCount[gShipTypes[shipData[i].type].escortType] += 1;
+                && shipData[i].escortMayAttack) {
+            if (shipClass[shipData[i].type].escortType >= 0
+                    && shipClass[shipData[i].type].escortType < 4)
+                groupCount[shipClass[shipData[i].type].escortType] += 1;
+        }
     }
     for (i = 0; i < 4; i++) {
         if (groupCount[i] == 0 && (long)playerEscortOrders[i] != kOrderFormation) {
             playerEscortOrders[i] = kOrderFormation;
             if (escortMenuOnscreen > 0)
-                ResetMapZoom();
+                ShowEscortMenu();
         }
     }
 
@@ -2012,7 +2254,11 @@ void HandlePlayer(ShipObj *player)
     }
 
     if (cheatsActive) {
-        if (QuickKeyCheck(0x53)) {
+#ifdef CEFIX /* F21.05 */
+        if (QuickKeyCheck(kCEScanBackspace)) {
+#else
+        if (QuickKeyCheck(kScanWarpCheat)) {
+#endif
             if (ST_IsSoundPlaying(warpUpSnd[0])) {
                 ST_HaltSound(warpUpSnd[0]);
                 WarpUpCallback(1, 0, 0);
@@ -2022,20 +2268,56 @@ void HandlePlayer(ShipObj *player)
             }
         }
 
-        if (QuickKeyCheck(keyPrefs.cheatSpawn) || QuickKeyCheck(0x40)) {
+#ifdef MACBUILD
+        if (QuickKeyCheck(keyPrefs.cheatSpare) || QuickKeyCheck(kScanInfoCheat)) {
+            static long stealQty;
+            static long memFree;
+            static Size grow;
+
+            memFree = MaxMem(&grow);
+            NumToString(memFree, msg);
+            PtoCstr(msg);
+            strcat((char *)msg, " bytes free, gSpeedMult = ");
+            NumToString(gSpeedMult * 100.0, name);
+            PtoCstr(name);
+            strcat((char *)msg, (char *)name);
+            strcat((char *)msg, "%, ");
+            strcat((char *)msg, "X:");
+            NumToString(shipData->pos.x, name);
+            PtoCstr(name);
+            strcat((char *)msg, (char *)name);
+            strcat((char *)msg, ", Y:");
+            NumToString(shipData->pos.y, name);
+            PtoCstr(name);
+            strcat((char *)msg, (char *)name);
+            CtoPstr((char *)msg);
+            DisplayComm(msg, 0x3c, 0, 0xc, &rgbWhite, 0, 0);
+        }
+
+#endif
+#ifdef CEFIX /* F21.07 */
+        if (QuickKeyCheck(keyPrefs.cheatSpawn) || QuickKeyCheck(kCEScanNumEnter)) {
+#else
+        if (QuickKeyCheck(keyPrefs.cheatSpawn) || QuickKeyCheck(kScanSpawnCheat)) {
+#endif
             if (!spawnShipFlag) {
                 spawnShipFlag = 1;
-                if (!QuickKeyCheck(kScanLAlt) && !QuickKeyCheck(kScanRAlt)) {
-                    if (QuickKeyCheck(kScanLCtrl) || QuickKeyCheck(kScanRCtrl))
-                        player->targetShip = SpawnPerson(player->curSystem, 1, 0x201);
-                    else
-                        player->targetShip = HyperShipSpawn(player->curSystem);
-                } else if (QuickKeyCheck(kScanLCtrl) || QuickKeyCheck(kScanRCtrl)) {
-                    HyperSpawnFleet(player->curSystem, 6, -1, 1);
-                } else if (QuickKeyCheck(0x30)) {
-                    HyperSpawnFleet(player->curSystem, 0x15, -1, 1);
+                if (AltKeyQuick()) {
+                    if (CtrlKeyQuick()) {
+                        HyperSpawnFleet(player->curSystem, 6, -1, 1);
+#ifdef CEFIX /* F21.06 */
+                    } else if (QuickKeyCheck(kScanLShift)) {
+#else
+                    } else if (QuickKeyCheck(kScanFleetCheat)) {
+#endif
+                        HyperSpawnFleet(player->curSystem, 0x15, -1, 1);
+                    } else {
+                        HyperSpawnFleet(player->curSystem, 1, -1, 1);
+                    }
+                } else if (CtrlKeyQuick()) {
+                    player->targetShip = SpawnPerson(player->curSystem, 1, 0x201);
                 } else {
-                    HyperSpawnFleet(player->curSystem, 1, -1, 1);
+                    player->targetShip = HyperShipSpawn(player->curSystem);
                 }
                 statusRedraw[6] = 1;
                 PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
@@ -2044,19 +2326,23 @@ void HandlePlayer(ShipObj *player)
             spawnShipFlag = 0;
         }
 
-        if ((QuickKeyCheck(keyPrefs.cheatKill) || QuickKeyCheck(0x41)
-                || QuickKeyCheck(0x45)) && player->targetShip != -1) {
+#ifdef CEFIX /* F21.08-09 */
+        if (QuickKeyCheck(keyPrefs.cheatKill) && player->targetShip != -1) {
+#else
+        if ((QuickKeyCheck(keyPrefs.cheatKill) || QuickKeyCheck(kScanKillCheat)
+                || QuickKeyCheck(kScanKillCheat2)) && player->targetShip != -1) {
+#endif
             shipData[player->targetShip].active = 0;
             statusRedraw[6] = 1;
             PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
         }
 
-        if (QuickKeyCheck(keyPrefs.cheatArmor) || QuickKeyCheck(0x42)) {
+        if (QuickKeyCheck(keyPrefs.cheatArmor) || QuickKeyCheck(kScanArmorCheat)) {
             if (player->targetShip != -1) {
-                if (QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt)) {
+                if (AltKeyQuick()) {
                     if (IsDisabled(&shipData[player->targetShip])) {
                         shipData[player->targetShip].armor =
-                            gShipTypes[shipData[player->targetShip].type].armor;
+                            shipClass[shipData[player->targetShip].type].armor;
                         shipData[player->targetShip].shield = 0;
                     }
                     shipData[player->targetShip].aiState = kAIStateHiJack;
@@ -2069,7 +2355,7 @@ void HandlePlayer(ShipObj *player)
                     shipData[player->targetShip].sellOnLanding = 0;
                     shipData[player->targetShip].upgradeOnLanding = 0;
                     shipData[player->targetShip].fuelRegenState = -1;
-                    if (QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt))
+                    if (CmdKeyQuick())
                         shipData[player->targetShip].hired = 1;
                     else
                         shipData[player->targetShip].hired = 0;
@@ -2080,7 +2366,7 @@ void HandlePlayer(ShipObj *player)
                 } else {
                     if (shipData[player->targetShip].parentShip == 0) {
                         if (shipData[player->targetShip].aiType == 6
-                                && gShipTypes[shipData[player->targetShip].type]
+                                && shipClass[shipData[player->targetShip].type]
                                    .inherentAI <= 2) {
                             DestroyPartialFleetCargo(player->targetShip);
                             statusRedraw[2] = 1;
@@ -2108,22 +2394,22 @@ void HandlePlayer(ShipObj *player)
             PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
         }
 
-        if (QuickKeyCheck(keyPrefs.cheatDamage) || QuickKeyCheck(0x43)) {
-            if (QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt)) {
+        if (QuickKeyCheck(keyPrefs.cheatDamage) || QuickKeyCheck(kScanDamageCheat)) {
+            if (AltKeyQuick()) {
                 player->armor = 1.0f;
                 statusRedraw[1] = 1;
             } else if (player->targetShip != -1
                     && shipData[player->targetShip].armor > 0.0f) {
-                if ((QuickKeyCheck(kScanLShift) || QuickKeyCheck(kScanRShift))
+                if (ShiftKeyQuick()
                         && !ShipIsDerelict(&shipData[player->targetShip])) {
                     SlapWithPenalty(shipData->curSystem,
                                     shipData[player->targetShip].govt, 3,
                                     shipData[player->targetShip].specialMission);
                     AddToPlayerKills(
-                        gShipTypes[shipData[player->targetShip].type].strength);
+                        shipClass[shipData[player->targetShip].type].strength);
                 }
                 if (shipData[player->targetShip].aiType == 6
-                        && gShipTypes[shipData[player->targetShip].type]
+                        && shipClass[shipData[player->targetShip].type]
                            .inherentAI <= 2) {
                     DestroyPartialFleetCargo(player->targetShip);
                     statusRedraw[2] = 1;
@@ -2141,22 +2427,22 @@ void HandlePlayer(ShipObj *player)
                     player->type += 1;
                     if (player->type >= kShipTypeSpecial)
                         player->type = 0;
-                } while (gShipTypes[player->type].mass < 0);
+                } while (shipClass[player->type].mass < 0);
             } else {
                 do {
                     player->type -= 1;
                     if (player->type < 0)
                         player->type = kShipTypeSpecial - 1;
-                } while (gShipTypes[player->type].mass < 0);
+                } while (shipClass[player->type].mass < 0);
             }
             while (KeyCheck(keyPrefs.cheatShipNext) || KeyCheck(keyPrefs.cheatShipPrev))
                 ;
             PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
             player->shield = ShipShieldCapacity(player);
             player->armor = ShipArmorCapacity(player);
-            player->fuel = gShipTypes[player->type].fuel;
+            player->fuel = shipClass[player->type].fuel;
             player->foldSet =
-                gShipTypes[player->type].baseSets - 1;
+                shipClass[player->type].baseSets - 1;
             player->foldDir = 0;
             player->frameTimer = 0;
             statusRedraw[4] = statusRedraw[1] = statusRedraw[3] =
@@ -2168,24 +2454,25 @@ void HandlePlayer(ShipObj *player)
                 player->weap[i].ammo = 0;
             }
             for (i = 0; i < kMaxWeapTypes; i++) {
-                if (gShipTypes[player->type].weapCount[i] > 0)
+                if (shipClass[player->type].weapCount[i] > 0)
                     player->weap[i].count =
-                        gShipTypes[player->type].weapCount[i];
-                if (gShipTypes[player->type].weapAmmo[i] > 0) {
-                    if (gWeapons[i].ammoType >= 0
-                            && gWeapons[i].ammoType < kMaxWeapTypes
-                            && gWeapons[i].guidance != kGuidanceBay)
-                        player->weap[gWeapons[i].ammoType].ammo =
-                            gShipTypes[player->type].weapAmmo[i];
-                    else
-                        player->weap[i].ammo =
-                            gShipTypes[player->type].weapAmmo[i];
+                        shipClass[player->type].weapCount[i];
+                if (shipClass[player->type].weapAmmo[i] > 0) {
+                    if (weaponStats[i].ammoType >= 0
+                            && weaponStats[i].ammoType < kMaxWeapTypes
+                            && weaponStats[i].guidance != kGuidanceBay)
+                        player->weap[weaponStats[i].ammoType].ammo =
+                            shipClass[player->type].weapAmmo[i];
+                    else {
+                        short ammo = shipClass[player->type].weapAmmo[i];
+                        player->weap[i].ammo = ammo;
+                    }
                 }
             }
             for (i = 0; i < 8; i++) {
-                if (gShipTypes[player->type].defOutfCount[i] > 0)
-                    shipSystems[gShipTypes[player->type].defOutfID[i]] +=
-                        gShipTypes[player->type].defOutfCount[i];
+                if (shipClass[player->type].defOutfCount[i] > 0)
+                    shipSystems[shipClass[player->type].defOutfID[i]] +=
+                        shipClass[player->type].defOutfCount[i];
             }
             ShipStatsToSystemInfo();
             LoadIntfResource();
@@ -2195,10 +2482,10 @@ void HandlePlayer(ShipObj *player)
             player->shield = ShipShieldCapacity(player);
         }
 
-        if ((QuickKeyCheck(kScanLShift) || QuickKeyCheck(kScanRShift))
+        if (ShiftKeyQuick()
                 && QuickKeyCheck(keyPrefs.cheatCredits)) {
             PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
-            if (QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt)) {
+            if (AltKeyQuick()) {
                 if (player->credits >= 10000)
                     player->credits -= 10000;
                 else
@@ -2209,7 +2496,11 @@ void HandlePlayer(ShipObj *player)
             statusRedraw[2] = 1;
         }
 
-        if (QuickKeyCheck(0x6d)) {
+#ifdef CEFIX /* F21.10 */
+        if (QuickKeyCheck(kCEScanEnd)) {
+#else
+        if (QuickKeyCheck(kScanCheatsOff)) {
+#endif
             PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
             cheatsActive = 0;
         }
@@ -2231,23 +2522,23 @@ void HandlePlayer(ShipObj *player)
     }
 
     if (disabled || dying) {
-        flag = 0;
+        ok = 0;
         if (dying) {
-            if (gShipTypes[player->type].deathDelay * 0.5 >= player->deathTimer
+            if (player->deathTimer <= shipClass[player->type].deathDelay * 0.5
                     || player->deathTimer <= 30.0f) {
                 if (HasAutoEject(player))
-                    flag = 1;
+                    ok = 1;
             }
         }
-        if (((QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt))
-                && QuickKeyCheck(keyPrefs.eject)) || flag) {
+        if ((CmdKeyQuick()
+                && QuickKeyCheck(keyPrefs.eject)) || ok) {
             keyPressedThisFrame = 1;
             if (HasEscapePod(player)) {
                 n = GenericRandomShipSpawn(player->curSystem, 0);
                 if (n != -1) {
                 shipData[n].aiType = -1;
-                CopyFloatPoint(&shipData[n].pos, &player->pos);
-                CopyFloatPoint(&shipData[n].vel, &player->vel);
+                shipData[n].pos = player->pos;
+                shipData[n].vel = player->vel;
                 shipData[n].heading = player->heading;
                 shipData[n].type = player->type;
                 shipData[n].deathTimer = player->deathTimer;
@@ -2262,9 +2553,9 @@ void HandlePlayer(ShipObj *player)
                 shipData[n].shield = player->shield;
                 shipData[n].armor = player->armor;
                 shipData[n].boarded = 1;
-                SWCloneFramesFromMaster((SpritePtr)shipData[n].sprite,
+                SWCloneFramesFromMaster(shipData[n].sprite,
                                         masterShipSprite[shipData[n].type]);
-                SWSetCurrentFrameIndex((SpritePtr)shipData[n].sprite, 0);
+                SWSetCurrentFrameIndex(shipData[n].sprite, 0);
                 player->deathTimer = -1.0f;
                 player->targetShip = -1;
                 player->targetStellar = -1;
@@ -2272,37 +2563,37 @@ void HandlePlayer(ShipObj *player)
                 statusRedraw[4] = statusRedraw[0] = statusRedraw[6] =
                     statusRedraw[2] = statusRedraw[3] = 1;
                 crashlog_mission_bit_set("retiring",
-                    (char *)gShipTypes[shipData->type].name, 1,
+                    (char *)shipClass[shipData->type].name, 1,
                     shipData->type + 128,
-                    gShipTypes[shipData->type].onRetire);
-                EvalMissionBitSetString(gShipTypes[shipData->type].onRetire);
-                if (!HasEscapeShip(player)) {
-                    player->type = kShipTypeSpecial;
-                    player->shield = gShipTypes[player->type].shield;
-                    player->armor = gShipTypes[player->type].armor;
-                    player->escapePods = 0x15e;
-                    for (i = 1; i < kMaxShips; i++) {
-                        if (shipData[i].active && shipData[i].targetShip == 0)
-                            shipData[i].targetShip = -1;
-                    }
-                } else {
+                    shipClass[shipData->type].onRetire);
+                EvalMissionBitSetString(shipClass[shipData->type].onRetire);
+                if (HasEscapeShip(player)) {
                     player->type = EscapeShipType(player);
-                    player->shield = ((Rand(0x1e) + 0x32)
-                        * gShipTypes[player->type].shield) * 0.01;
-                    player->armor = ((Rand(0x1e) + 0x32)
-                        * gShipTypes[player->type].armor) * 0.01;
-                    player->fuel = ((Rand(0x1e) + 0x32)
-                        * gShipTypes[player->type].fuel) * 0.01;
+                    player->shield = shipClass[player->type].shield
+                        * (Rand(0x1e) + 0x32) * 0.01;
+                    player->armor = shipClass[player->type].armor
+                        * (Rand(0x1e) + 0x32) * 0.01;
+                    player->fuel = shipClass[player->type].fuel
+                        * (Rand(0x1e) + 0x32) * 0.01;
                     player->escapePods = -1;
                     strcpy((char *)msg, "");
-                    AppendIndString((char *)msg, kGameStrList, 0x34);
+                    StrcatIndCString((char *)msg, kGameStrList, 0x34);
                     strcat((char *)msg, " ");
-                    pstrcpy(name, gShipLongNames[player->type]);
+                    pstrcpy(name, shipyardLongNames[player->type]);
                     PtoCstr(name);
                     strcat((char *)msg, (char *)name);
                     strcat((char *)msg, ".");
                     CtoPstr((char *)msg);
                     DisplayComm(msg, 0x200, 0, 0xc, &rgbWhite, 0, 0);
+                } else {
+                    player->type = kShipTypeSpecial;
+                    player->shield = shipClass[player->type].shield;
+                    player->armor = shipClass[player->type].armor;
+                    player->escapePods = 0x15e;
+                    for (i = 1; i < kMaxShips; i++) {
+                        if (shipData[i].active && shipData[i].targetShip == 0)
+                            shipData[i].targetShip = -1;
+                    }
                 }
                 for (i = 1; i < kMaxShips; i++) {
                     if (shipData[i].active) {
@@ -2317,14 +2608,14 @@ void HandlePlayer(ShipObj *player)
                         }
                     }
                 }
-                SWCloneFramesFromMaster((SpritePtr)player->sprite,
+                SWCloneFramesFromMaster(player->sprite,
                                         masterShipSprite[player->type]);
-                SWSetCurrentFrameIndex((SpritePtr)player->sprite, 0);
+                SWSetCurrentFrameIndex(player->sprite, 0);
                 player->vel.x = player->vel.y;
                 Accel(player->heading, ShipMaxSpeed(player),
                       &player->vel);
                 for (i = 0; i < kMaxOutfits; i++) {
-                    if (!gOutfits[i].persistent)
+                    if (!outfitSystem[i].persistent)
                         shipSystems[i] = 0;
                 }
                 for (i = 0; i < kMaxWeapTypes; i++) {
@@ -2333,26 +2624,26 @@ void HandlePlayer(ShipObj *player)
                 }
                 for (i = 0; i < kMaxWeapTypes; i++) {
                     player->weap[i].count =
-                        gShipTypes[player->type].weapCount[i];
-                    if (gShipTypes[player->type].weapAmmo[i] > 0) {
-                        if (gWeapons[i].ammoType >= 0
-                                && gWeapons[i].ammoType < kMaxWeapTypes
-                                && gWeapons[i].guidance != kGuidanceBay)
-                            player->weap[gWeapons[i].ammoType].ammo =
-                                gShipTypes[player->type].weapAmmo[i];
+                        shipClass[player->type].weapCount[i];
+                    if (shipClass[player->type].weapAmmo[i] > 0) {
+                        if (weaponStats[i].ammoType >= 0
+                                && weaponStats[i].ammoType < kMaxWeapTypes
+                                && weaponStats[i].guidance != kGuidanceBay)
+                            player->weap[weaponStats[i].ammoType].ammo =
+                                shipClass[player->type].weapAmmo[i];
                         else
                             player->weap[i].ammo =
-                                gShipTypes[player->type].weapAmmo[i];
+                                shipClass[player->type].weapAmmo[i];
                     }
                     player->weap[i].reloadTimer = 0;
                     player->weap[i].burstCount = 0;
                 }
                 ShipStatsToSystemInfo();
                 for (i = 0; i < 8; i++) {
-                    if (gShipTypes[player->type].defOutfCount[i] > 0)
+                    if (shipClass[player->type].defOutfCount[i] > 0)
                         shipSystems[
-                            gShipTypes[player->type].defOutfID[i]] +=
-                            gShipTypes[player->type].defOutfCount[i];
+                            shipClass[player->type].defOutfID[i]] +=
+                            shipClass[player->type].defOutfCount[i];
                 }
                 PlaySound(escapePodSnd, 0x32, gSoundVolume, gSoundVolume);
                 if (ST_IsSoundPlaying(warpUpSnd[0]))
@@ -2372,9 +2663,8 @@ void HandlePlayer(ShipObj *player)
             playerMaxVel.y = ShipMaxSpeed(player) * 1.8;
         }
         if (ShipIsInertialess(player)) {
-            player->accelMag = ShipAccelRate(player) * 2.75
-                               + player->accelMag;
-            if (ShipMaxSpeed(player) * 1.8 < player->accelMag)
+            player->accelMag = player->accelMag + ShipAccelRate(player) * 2.75;
+            if (player->accelMag > ShipMaxSpeed(player) * 1.8)
                 player->accelMag = ShipMaxSpeed(player) * 1.8;
         } else {
             pos.x = pos.y = 0;
@@ -2385,14 +2675,14 @@ void HandlePlayer(ShipObj *player)
                     || (pos.y <= 0.0f && player->vel.y > dest.y))
                 player->vel.y = player->vel.y + pos.y;
             else
-                player->vel.y = player->vel.y * 0.99;
+                player->vel.y *= 0.99;
             if ((pos.x > 0.0f && player->vel.x < dest.x)
                     || (pos.x <= 0.0f && player->vel.x > dest.x))
                 player->vel.x = player->vel.x + pos.x;
             else
-                player->vel.x = player->vel.x * 0.99;
+                player->vel.x *= 0.99;
         }
-        player->fuel = player->fuel - ShipAfterburnerFuelUsage(player) * gTimeScale;
+        player->fuel = player->fuel - ShipAfterburnerFuelUsage(player) * gSpeedMult;
         if (player->fuel < 0.0)
             player->fuel = 0;
         if (frameCounter % 4 == 0)
@@ -2419,10 +2709,14 @@ void HandlePlayer(ShipObj *player)
             player->engineGlow -= 1;
     }
 
-    if ((QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt))
+    if (CmdKeyQuick()
             && QuickKeyCheck(keyPrefs.jettison)) {
         keyPressedThisFrame = 1;
+#ifdef MACBUILD
+        if (QuickKeyCheck(kScanOption))
+#else
         if (QuickKeyCheck(kScanLShift) || QuickKeyCheck(kScanRShift))
+#endif
             JettisonCargo(0);
         else
             JettisonCargo(1);
@@ -2430,38 +2724,41 @@ void HandlePlayer(ShipObj *player)
         ResetPlayerPrecalcedValues();
     }
 
-    if ((QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt))
+    if (CmdKeyQuick()
             && QuickKeyCheck(keyPrefs.selfDestruct) && destructCount < 0.0f
             && !dying) {
         keyPressedThisFrame = 1;
         PlaySound(beepSnd[3], 0xf, gSoundVolume, gSoundVolume);
         strcpy((char *)msg, "");
-        AppendIndString((char *)msg, kGameStrList, 0x181);
+        StrcatIndCString((char *)msg, kGameStrList, 0x181);
         strcat((char *)msg, " ");
-        AppendIndString((char *)msg, kGameStrList, 0x182);
+        StrcatIndCString((char *)msg, kGameStrList, 0x182);
         CtoPstr((char *)msg);
         DisplayComm(msg, 0x28, 0, 0xc, &rgbWhite, 0, 0);
         destructCount = 150.0f;
     }
 
     if (destructCount > 0.0f) {
-        if ((QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt))
+        if (CmdKeyQuick()
                 && QuickKeyCheck(keyPrefs.selfDestruct)) {
             destructing = 1;
             if (destructCount >= 1.0)
-                destructCount = destructCount - gTimeScale;
+                destructCount = destructCount - gSpeedMult;
             if ((short)destructCount % 30 == 0 && destructCount <= 120.0f) {
                 extern char *strcpy(char *, const char *);
                 strcpy((char *)msg, "");
-                AppendIndString((char *)msg, kGameStrList, 0x181);
+                StrcatIndCString((char *)msg, kGameStrList, 0x181);
                 strcat((char *)msg, " ");
-                AppendIndString((char *)msg, kGameStrList, 0x18b);
+                StrcatIndCString((char *)msg, kGameStrList, 0x18b);
                 strcat((char *)msg, " ");
                 NumToString(destructCount / 30.0f, name);
                 PtoCstr(name);
                 strcat((char *)msg, (char *)name);
                 strcat((char *)msg, " ");
-                AppendIndString((char *)msg, kGameStrList, 0x185);
+                if (destructCount > 30.0f)
+                    StrcatIndCString((char *)msg, kGameStrList, 0x185);
+                else
+                    StrcatIndCString((char *)msg, kGameStrList, 0x185);
                 strcat((char *)msg, ".");
                 CtoPstr((char *)msg);
                 PlaySound(beepSnd[2], 0xf, gSoundVolume,
@@ -2472,9 +2769,9 @@ void HandlePlayer(ShipObj *player)
             extern char *strcpy(char *, const char *);
             PlaySound(beepSnd[1], 0xf, gSoundVolume, gSoundVolume);
             strcpy((char *)msg, "");
-            AppendIndString((char *)msg, kGameStrList, 0x181);
+            StrcatIndCString((char *)msg, kGameStrList, 0x181);
             strcat((char *)msg, " ");
-            AppendIndString((char *)msg, kGameStrList, 0x183);
+            StrcatIndCString((char *)msg, kGameStrList, 0x183);
             CtoPstr((char *)msg);
             DisplayComm(msg, 0x28, 0, 0xc, &rgbWhite, 0, 0);
             destructing = 1;
@@ -2485,7 +2782,7 @@ void HandlePlayer(ShipObj *player)
     }
 
     if (destructCount <= 1.0f && destructing) {
-        if ((QuickKeyCheck(kScanLAlt) || QuickKeyCheck(kScanRAlt))
+        if (CmdKeyQuick()
                 && QuickKeyCheck(keyPrefs.selfDestruct)) {
             keyPressedThisFrame = 1;
             PlaySound(beepSnd[1], 0xf, gSoundVolume, gSoundVolume);
@@ -2510,13 +2807,15 @@ void HandlePlayer(ShipObj *player)
             playerInfoFlag = 1;
             if (player->jumpTimer <= 0.0f && player->escapePods <= 0
                     && frameCounter >= 0 && !dying) {
+                SetRetainedWindow(gWind, false);
                 HideCursorSprite();
                 RefreshSAT();
                 ShowTheCursor();
                 DoPlayerInfoDialog();
-                gTimeScale = 0;
+                gSpeedMult = 0;
                 RedrawStatus(1);
                 RedrawComm(0);
+                SetRetainedWindow(gWind, true);
                 SetAllKeyCmdFlags();
             } else {
                 PlaySound(beepSnd[3], 5, gSoundVolume, gSoundVolume);
@@ -2545,15 +2844,17 @@ void HandlePlayer(ShipObj *player)
             n = 0;
             for (i = 0; i < kMaxActiveMissions; i++) {
                 if (currentMissionObjectives[i].active
-                        && !(currentMissionObjectives[i].flags & kMisnHidden))
+                        && !(currentMissionObjectives[i].flags & kMissionHidden))
                     n++;
             }
             if (n > 0) {
+                SetRetainedWindow(gWind, false);
                 HideCursorSprite();
                 RefreshSAT();
                 ShowTheCursor();
                 DoMissionInfoDialog();
-                gTimeScale = 0;
+                gSpeedMult = 0;
+                SetRetainedWindow(gWind, true);
                 RedrawStatus(1);
                 RedrawComm(0);
                 SetAllKeyCmdFlags();
@@ -2590,7 +2891,7 @@ void HandlePlayer(ShipObj *player)
             DoShipUncloak(player);
         n = CloakFuelUsage(player);
         if (n > 0) {
-            player->fuel = player->fuel - n * 0.03333 * gTimeScale;
+            player->fuel = player->fuel - n * 0.03333 * gSpeedMult;
             if (frameCounter % 10 == 0)
                 statusRedraw[4] = 1;
             if (player->fuel <= 0.0f)
@@ -2602,8 +2903,8 @@ void HandlePlayer(ShipObj *player)
                 statusRedraw[1] = 1;
         } else {
             n = CloakShieldUsage(player);
-            if (n > 0 && n <= player->shield) {
-                player->shield -= n * 0.03333 * gTimeScale;
+            if (n > 0 && player->shield >= n) {
+                player->shield -= n * 0.03333 * gSpeedMult;
                 if (frameCounter % 10 == 0)
                     statusRedraw[1] = 1;
                 if (player->shield <= 0.0f)
@@ -2615,33 +2916,34 @@ void HandlePlayer(ShipObj *player)
     if (playerHasTribbles && frameCounter % 250 == 0) {
         n = TotalFleetHolds() - TotalCargo(player);
         for (i = 0; i < kMaxJunks; i++) {
-            if ((junkData[i].flags & kJunkGrows) && junkData[i].held > 0
-                    && n > 0) {
-                junkData[i].held += 1;
-                statusRedraw[2] = 1;
+            if ((junkData[i].flags & kJunkTribbles) && junkData[i].held > 0) {
+                if (n > 0) {
+                    junkData[i].held += 1;
+                    statusRedraw[2] = 1;
+                }
             }
         }
     }
     if (playerHasPerishableJunk && frameCounter % 250 == 0) {
         for (i = 0; i < kMaxJunks; i++) {
-            if ((junkData[i].flags & kJunkPerishes) && junkData[i].held > 0
-                    && n > 0) {
-                junkData[i].held -= 1;
-                statusRedraw[2] = 1;
+            if ((junkData[i].flags & kJunkPerishable) && junkData[i].held > 0) {
+                if (n > 0) {
+                    junkData[i].held -= 1;
+                    statusRedraw[2] = 1;
+                }
             }
         }
     }
 
     if (newbieFlag < 2 && frameCounter % 60 == 0) {
-        origin.y = 0;
-        origin.x = origin.y;
+        origin.x = origin.y = 0;
         dist = FloatAbs(XYFloatSquaredDist(&player->pos,
                                          &origin));
         if (newbieFlag == -3 && newbieString[0][0] && newbieString[1][0]) {
             n = FindNearestStellar(shipData);
             if (n != -1) {
                 PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
-                if (stellarData[n].flags & kSpobDestroyed)
+                if (stellarData[n].flags & kSpobIsStation)
                     pstrcpy(msg, newbieString[0]);
                 else
                     pstrcpy(msg, newbieString[1]);
@@ -2654,7 +2956,12 @@ void HandlePlayer(ShipObj *player)
                 pstrcpy(name, newbieString[2]);
                 PtoCstr(name);
                 strcat((char *)msg, (char *)name);
+#ifdef MACBUILD
+                GetIndString(name, kKeyNameStrList, keyPrefs.land + 1);
+                PtoCstr(name);
+#else
                 KeyboardScanCodeToString((char *)name, 0x100, keyPrefs.land);
+#endif
                 strcat((char *)msg, (char *)name);
                 pstrcpy(name, newbieString[3]);
                 PtoCstr(name);
@@ -2669,12 +2976,22 @@ void HandlePlayer(ShipObj *player)
                 PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
                 pstrcpy(msg, newbieString[4]);
                 PtoCstr(msg);
+#ifdef MACBUILD
+                GetIndString(name, kKeyNameStrList, keyPrefs.map + 1);
+                PtoCstr(name);
+#else
                 KeyboardScanCodeToString((char *)name, 0x100, keyPrefs.map);
+#endif
                 strcat((char *)msg, (char *)name);
                 pstrcpy(name, newbieString[5]);
                 PtoCstr(name);
                 strcat((char *)msg, (char *)name);
+#ifdef MACBUILD
+                GetIndString(name, kKeyNameStrList, keyPrefs.jump + 1);
+                PtoCstr(name);
+#else
                 KeyboardScanCodeToString((char *)name, 0x100, keyPrefs.jump);
+#endif
                 strcat((char *)msg, (char *)name);
                 pstrcpy(name, newbieString[6]);
                 PtoCstr(name);
@@ -2690,11 +3007,12 @@ void HandlePlayer(ShipObj *player)
                 DisplayComm(newbieString[8], 0x200, 0, 0xc, &rgbWhite, 0, 0);
                 newbieFlag = 1;
             }
-        } else if (dist > 10000000.0 && newbieFlag == 1 && !disabled
-                && newbieString[9][0]) {
-            PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
-            DisplayComm(newbieString[9], 0x200, 0, 0xc, &rgbWhite, 0, 0);
-            newbieFlag = 2;
+        } else if (dist > 10000000.0 && newbieFlag == 1) {
+            if (!disabled && newbieString[9][0]) {
+                PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
+                DisplayComm(newbieString[9], 0x200, 0, 0xc, &rgbWhite, 0, 0);
+                newbieFlag = 2;
+            }
         }
     }
 
@@ -2707,33 +3025,38 @@ void HandlePlayer(ShipObj *player)
         statusRedraw[4] = 1;
     }
     n = FindFirstCoLocatedSystem(player->curSystem);
-    if (gSystems[n].exploreLevel < 1)
-        gSystems[n].exploreLevel = 1;
-    if (gSystems[player->curSystem].exploreLevel < 1)
-        gSystems[player->curSystem].exploreLevel = 1;
+    if (systemData[n].exploreLevel < 1)
+        systemData[n].exploreLevel = 1;
+    if (systemData[player->curSystem].exploreLevel < 1)
+        systemData[player->curSystem].exploreLevel = 1;
     if (player->heading != heading)
         playerTurnedThisFrame = 1;
 
-    if (showFloatingMap > 0 && !keyComboBlocked
+    if (showFloatingMap > 0 && !quickKeyCheckResult
+#ifdef MACBUILD
+            && !QuickKeyCheck(kScanShift) && !QuickKeyCheck(kScanOption)
+            && !QuickKeyCheck(kScanControl) && !QuickKeyCheck(kScanCommand)) {
+#else
             && !QuickKeyCheck(kScanLShift) && !QuickKeyCheck(kScanRShift)
             && !QuickKeyCheck(kScanLCtrl) && !QuickKeyCheck(kScanRCtrl)
             && !QuickKeyCheck(kScanLAlt) && !QuickKeyCheck(kScanRAlt)) {
-        if ((QuickKeyCheck(0xc) || QuickKeyCheck(0x4a)) && !mapZoomFlag
+#endif
+        if ((QuickKeyCheck(kScanMinus) || QuickKeyCheck(kScanPadMinus)) && !mapZoomFlag
                 && floatingMapZoom < 2.0) {
-            floatingMapZoom = floatingMapZoom * 1.333333;
-            gJumpStartTick = ReadTick();
+            floatingMapZoom *= 1.333333;
+            floatingMapStartTime = ReadTick();
             DrawMapInFloatingFrame();
             PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
         }
-        if ((QuickKeyCheck(0xd) || QuickKeyCheck(0x4e)) && !mapZoomFlag
+        if ((QuickKeyCheck(kScanEquals) || QuickKeyCheck(kScanPadPlus)) && !mapZoomFlag
                 && floatingMapZoom > 0.5) {
-            floatingMapZoom = floatingMapZoom * 0.75;
-            gJumpStartTick = ReadTick();
+            floatingMapZoom *= 0.75;
+            floatingMapStartTime = ReadTick();
             DrawMapInFloatingFrame();
             PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
         }
-        if (QuickKeyCheck(0xd) || QuickKeyCheck(0xc) || QuickKeyCheck(0x4a)
-                || QuickKeyCheck(0x4e))
+        if (QuickKeyCheck(kScanEquals) || QuickKeyCheck(kScanMinus) || QuickKeyCheck(kScanPadMinus)
+                || QuickKeyCheck(kScanPadPlus))
             mapZoomFlag = 1;
         else
             mapZoomFlag = 0;
@@ -2744,16 +3067,6 @@ void HandlePlayer(ShipObj *player)
 #define kHailKeyB           0x6f
 
 #define kRouteDeparture     2      /* navTargetKind: a departure route has been picked */
-
-#define kSpobNoLanding      0x20   /* spöb Flags: cannot be landed on */
-#define kSpobNoComm         0x3000 /* spöb Flags2: comm is refused */
-
-#define kGovtNoComm         0x400  /* gövt Flags */
-
-#define kPersNoComm         0x200  /* përs Flags: never offers over comm */
-#define kPersOneShot        0x100  /* përs Flags: retire the person once used */
-#define kPersLeavesSystem   0x800  /* përs Flags: the ship departs after the offer */
-#define kPersSwapsShip      0x40   /* përs Flags: the offer swaps the person's ship */
 
 #define kCommRefused        0x35
 #define kCommDisabled       0x36
@@ -2775,42 +3088,49 @@ void HandlePlayer(ShipObj *player)
 /* HandlePlayerCommunication (mac _HandlePlayerCommunication). STATE: MATCH 100.0%, exe 504 / obj 504 instrs, byte-identical (masked).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00454910
+// MAC: _HandlePlayerCommunication i386 0x00061f48 ppc 0x00069e14
 void HandlePlayerCommunication(void)
 {
-    short i;
     ShipObj *me;
     short pers;
     short mission;
-    short newShip;
     Str255 buf;
     short found;
-    char canHail;
-    char canLand;
+    Boolean canHail;
+    short i;
+    short newShip;
+    Boolean canLand;
 
     me = shipData;
 
     if (ShipIsCloaked(me) == 0 && IsDying(me) == 0 &&
             me->jumpTimer <= 0.0f) {
+#ifdef MACBUILD
+        if (me->targetShip == -1 || QuickKeyCheck(kScanOption) != 0) {
+#else
         if (me->targetShip == -1 || QuickKeyCheck(kHailKeyA) != 0 ||
                 QuickKeyCheck(kHailKeyB) != 0) {
+#endif
             if (me->navTargetKind == kRouteDeparture && me->targetStellar != -1) {
-                canLand = (stellarData[me->targetStellar].flags
-                           & kSpobNoLanding) == 0;
+                canLand = !(stellarData[me->targetStellar].flags
+                           & kSpobUninhabited);
                 if (StellarIsLandable(&stellarData[me->targetStellar]) == 0)
                     canLand = 0;
-                if ((stellarData[me->targetStellar].flags2 & kSpobNoComm) != 0)
+                if ((stellarData[me->targetStellar].flags2 & kSpobGateOrWormhole) != 0)
                     canLand = 0;
-                if (stellarData[me->targetStellar].loaded != 0 && canLand) {
-                    HideCursorSprite();
-                    RefreshSAT();
-                    ShowTheCursor();
-                    DoPlanetCommDialog(me->targetStellar);
-                    SetAllKeyCmdFlags();
-                } else {
+                if (stellarData[me->targetStellar].loaded == 0 || !canLand) {
                     PlaySound(beepSnd[3], 5, gSoundVolume, gSoundVolume);
                     GetIndString(buf, kGameStrList, kCommRefused);
                     DisplayComm(buf, kCommTextWidth, 0, kCommTextLines,
                                 &rgbWhite, 0, 0);
+                } else {
+                    SetRetainedWindow(gWind, false);
+                    HideCursorSprite();
+                    RefreshSAT();
+                    ShowTheCursor();
+                    DoPlanetCommDialog(me->targetStellar);
+                    SetRetainedWindow(gWind, true);
+                    SetAllKeyCmdFlags();
                 }
             } else {
                 PlaySound(beepSnd[3], 5, gSoundVolume, gSoundVolume);
@@ -2823,8 +3143,8 @@ void HandlePlayerCommunication(void)
                         (govtData[shipData[me->targetShip].govt].flags
                             & kGovtNoComm) != 0)
                     canHail = 0;
-                if (gShipTypes[shipData[me->targetShip].type].inherentGovtB != -1 &&
-                        (govtData[gShipTypes[shipData[me->targetShip].type]
+                if (shipClass[shipData[me->targetShip].type].inherentGovtB != -1 &&
+                        (govtData[shipClass[shipData[me->targetShip].type]
                             .inherentGovtB].flags & kGovtNoComm) != 0)
                     canHail = 0;
             }
@@ -2838,25 +3158,27 @@ void HandlePlayerCommunication(void)
             if (canHail) {
                 if (pers != -1) {
                   if (personData[pers].linkMission != -1) {
-                    if ((personData[pers].flags & kPersNoComm) == 0) {
+                    if ((personData[pers].flags & kPersOfferWhenBoarded) == 0) {
                     offeringFromShip = 1;
                     offeringShipIndex = me->targetShip;
                     if (IsMissionAvailable(
                             personData[shipData[me->targetShip].persType].linkMission, 1) != 0) {
                         PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
+                        SetRetainedWindow(gWind, false);
                         HideCursorSprite();
                         RefreshSAT();
                         ShowTheCursor();
                         mission = OfferOneMission(
                             personData[shipData[me->targetShip].persType].linkMission);
+                        SetRetainedWindow(gWind, true);
                         SetAllKeyCmdFlags();
                         RefreshSAT();
                         if (mission == 1) {
                             if ((personData[shipData[me->targetShip].persType].flags
-                                    & kPersOneShot) != 0)
+                                    & kPersDeactivateOnAccept) != 0)
                                 personData[shipData[me->targetShip].persType].loaded = 0;
                             if ((personData[shipData[me->targetShip].persType].flags
-                                    & kPersLeavesSystem) != 0)
+                                    & kPersLeavesOnAccept) != 0)
                                 AIMakeShipLeave(&shipData[me->targetShip]);
                             found = -1;
                             for (i = 0; i < kMaxActiveMissions; i++) {
@@ -2896,33 +3218,41 @@ void HandlePlayerCommunication(void)
                             }
                         }
                     } else {
+                        SetRetainedWindow(gWind, false);
                         HideCursorSprite();
                         RefreshSAT();
                         ShowTheCursor();
                         DoCommDialog(me->targetShip);
+                        SetRetainedWindow(gWind, true);
                         SetAllKeyCmdFlags();
                     }
                     offeringFromShip = 0;
                     offeringShipIndex = me->targetShip;
                     } else {
+                    SetRetainedWindow(gWind, false);
                     HideCursorSprite();
                     RefreshSAT();
                     ShowTheCursor();
                     DoCommDialog(me->targetShip);
+                    SetRetainedWindow(gWind, true);
                     SetAllKeyCmdFlags();
                     }
                   } else {
+                    SetRetainedWindow(gWind, false);
                     HideCursorSprite();
                     RefreshSAT();
                     ShowTheCursor();
                     DoCommDialog(me->targetShip);
+                    SetRetainedWindow(gWind, true);
                     SetAllKeyCmdFlags();
                   }
                 } else {
+                    SetRetainedWindow(gWind, false);
                     HideCursorSprite();
                     RefreshSAT();
                     ShowTheCursor();
                     DoCommDialog(me->targetShip);
+                    SetRetainedWindow(gWind, true);
                     SetAllKeyCmdFlags();
                 }
                 RedrawStatus(1);
@@ -2950,55 +3280,47 @@ void HandlePlayerCommunication(void)
 /* abs is inlined only when <stdlib.h> declares it; a local extern emits a call. */
 
 
-/* gShipTypes[].shanFlags bits gating the "weapon is locked out" early return */
-#define kShipTypeA24Bit7    0x0080
-/* gWeapons[].flags2 */
-#define kWeapU22NoAmmoUse   0x0200
-/* gWeapons[].flags */
-#define kWeapFlagSoundOnce  0x0010
-#define kWeapFlagSoundNear  0x0002
-#define kWeapFlagKeepReload 0x0040
-
 /* FirePlayerWeapon (mac _FirePlayerWeapon). STATE: MATCH 100.0%, exe 829 / obj 829,
-   byte-identical (3257 bytes), relocregcheck 0 of 137. OPEN: none. */
+   byte-identical (3257 bytes), relocregcheck 0 of 137. mac: MATCH both slices. OPEN: none */
 // FUNCTION: EVNOVA 0x00455150
+// MAC: _FirePlayerWeapon i386 0x00062702 ppc 0x0006a510
 void FirePlayerWeapon(short w)
 {
     unsigned long long key;
-    char keyed[4];
+    KeyCheckFlag keyed[4];
     short i;
+    Boolean soundOK;
+    Boolean didFire;
     short shot;
     short n;
     short fired;
-    char didFire;
-    char soundOK;
+    short beamAngle;
     short angle;
     short diff;
     short ammoType;
+    short slot;
 
-    key = *(unsigned long long *)((char *)shipData + 0x4b7a0);
-    keyed[0] = ((key ^ 0xf6100bf185059c3dULL) & 0x0fffffffffffffffULL)
-                   != 0x0ec22bc220ac327aULL;
-    keyed[1] = ((key ^ 0xa298c3a6ef99fff6ULL) & 0x0fffffffffffffffULL)
-                   != 0x05ac9ee5e4ba1ec7ULL;
-    keyed[2] = ((key ^ 0xa63b2518c45f7e5bULL) & 0x0fffffffffffffffULL)
-                   != 0x010d795bcf7c9f6aULL;
-    keyed[3] = ((key ^ 0xe38ddae6a46ec9deULL) & 0x0fffffffffffffffULL)
-                   != 0x0659dbdcb54d0094ULL;
+#ifndef MAC1010
+    key = shipData[5].licenseCode;
+#endif
+    KeyMismatch(keyed[0], key, shipData[5].licenseCode, 0xf6100bf185059c3dULL, 0x0ec22bc220ac327aULL);
+    KeyMismatch(keyed[1], key, shipData[5].licenseCode, 0xa298c3a6ef99fff6ULL, 0x05ac9ee5e4ba1ec7ULL);
+    KeyMismatch(keyed[2], key, shipData[5].licenseCode, 0xa63b2518c45f7e5bULL, 0x010d795bcf7c9f6aULL);
+    KeyMismatch(keyed[3], key, shipData[5].licenseCode, 0xe38ddae6a46ec9deULL, 0x0659dbdcb54d0094ULL);
     for (i = 0; i < 4; i++) {
         if (keyed[i] == 0)
             return;
     }
 
     if (ShipIsCloaked(shipData)) {
-        if ((gWeapons[w].flags2 & kWeapFireWhileCloaked) == 0)
+        if ((weaponStats[w].flags2 & kWeapFireWhileCloaked) == 0)
             return;
     }
 
     shipData->fireTick = ReadTick();
 
-    if ((gShipTypes[shipData->type].shanFlags & kShipTypeA24Bit1)
-            && (gShipTypes[shipData->type].shanFlags & kShipTypeA24Bit7)
+    if ((shipClass[shipData->type].shanFlags & kShanFoldingParts)
+            && (shipClass[shipData->type].shanFlags & kShanUnfoldsWhenFiring)
             && shipData->foldSet > 0) {
         shipData->foldDir = -1;
         return;
@@ -3012,31 +3334,31 @@ void FirePlayerWeapon(short w)
             if (!WeaponHasAmmo(shipData, w))
                 continue;
 
-            if (gWeapons[w].guidance == kGuidanceUnguided
-                    || gWeapons[w].guidance == kGuidanceHoming
-                    || gWeapons[w].guidance == kGuidanceFreefall
-                    || gWeapons[w].guidance == kGuidanceRocket) {
+            if (weaponStats[w].guidance == kGuidanceUnguided
+                    || weaponStats[w].guidance == kGuidanceHoming
+                    || weaponStats[w].guidance == kGuidanceFreefall
+                    || weaponStats[w].guidance == kGuidanceRocket) {
                 SpawnShot(0, shipData->targetShip, w, 0);
                 fired = fired + 1;
                 didFire = 1;
             }
-            if (gWeapons[w].guidance == kGuidanceBeam) {
+            if (weaponStats[w].guidance == kGuidanceBeam) {
                 SpawnBeam(0, shipData->targetShip, w, shipData->heading, -1, -1);
                 fired++;
                 didFire = 1;
             }
-            if (gWeapons[w].guidance == kGuidanceTurretBeam
+            if (weaponStats[w].guidance == kGuidanceTurretBeam
                     && shipData->targetShip != -1) {
-                angle = CalcInterceptAngle(
+                beamAngle = CalcInterceptAngle(
                     &shipData->pos,
                     &shipData[shipData->targetShip].pos);
-                if (!TurretBlindSpot(shipData, angle, w)) {
-                    SpawnBeam(0, shipData->targetShip, w, angle, -1, -1);
+                if (!TurretBlindSpot(shipData, beamAngle, w)) {
+                    SpawnBeam(0, shipData->targetShip, w, beamAngle, -1, -1);
                     fired++;
                     didFire = 1;
                 }
             }
-            if (gWeapons[w].guidance == kGuidanceTurret
+            if (weaponStats[w].guidance == kGuidanceTurret
                     && shipData->targetShip != -1) {
                 if (!TurretBlindSpot(shipData, CalcInterceptAngle(
                         &shipData->pos,
@@ -3046,39 +3368,39 @@ void FirePlayerWeapon(short w)
                     didFire = 1;
                 }
             }
-            if (gWeapons[w].guidance == kGuidanceFrontQuad
-                    || gWeapons[w].guidance == kGuidanceRearQuad) {
-                if (shipData->targetShip == -1) {
-                    if (gWeapons[w].guidance == kGuidanceFrontQuad) {
-                        SpawnShot(0, -1, w, 0);
-                        fired++;
-                        didFire = 1;
-                    }
-                } else {
+            if (weaponStats[w].guidance == kGuidanceFrontQuad
+                    || weaponStats[w].guidance == kGuidanceRearQuad) {
+                if (shipData->targetShip != -1) {
                     angle = CalcInterceptAngle(
                         &shipData->pos,
                         &shipData[shipData->targetShip].pos);
-                    if (gWeapons[w].guidance == kGuidanceFrontQuad)
+                    if (weaponStats[w].guidance == kGuidanceFrontQuad)
                         diff = abs(AngularDifference(
                             angle, shipData->heading));
-                    if (gWeapons[w].guidance == kGuidanceRearQuad)
+                    if (weaponStats[w].guidance == kGuidanceRearQuad)
                         diff = abs(AngularDifference(
                             angle,
                             ((short)(shipData->heading + 180.0f) % 360)));
-                    if (diff > 45) {
-                        if (gWeapons[w].guidance == kGuidanceFrontQuad) {
+                    if (diff <= 45) {
+                        SpawnShot(0, shipData->targetShip, w, 0);
+                        fired++;
+                        didFire = 1;
+                    } else {
+                        if (weaponStats[w].guidance == kGuidanceFrontQuad) {
                             SpawnShot(0, -1, w, 0);
                             fired++;
                             didFire = 1;
                         }
-                    } else {
-                        SpawnShot(0, shipData->targetShip, w, 0);
+                    }
+                } else {
+                    if (weaponStats[w].guidance == kGuidanceFrontQuad) {
+                        SpawnShot(0, -1, w, 0);
                         fired++;
                         didFire = 1;
                     }
                 }
             }
-            if (gWeapons[w].guidance == kGuidanceBay) {
+            if (weaponStats[w].guidance == kGuidanceBay) {
                 if (LaunchFighter(shipData, w)) {
                     fired++;
                     didFire = 1;
@@ -3087,81 +3409,80 @@ void FirePlayerWeapon(short w)
             if (!didFire)
                 continue;
 
-            if (gWeapons[w].flags2 & kWeapU22NoAmmoUse)
+            if (weaponStats[w].flags2 & kWeapUsesShipSprite)
                 shipData->weapGlow = 32.0f;
-            ammoType = gWeapons[w].ammoType;
+            ammoType = weaponStats[w].ammoType;
             if (ammoType == -1)
                 continue;
-            if (gWeapons[w].flags3 & kWeapAmmoFlag)
+            if (weaponStats[w].flags3 & kWeapAmmoAtBurstEnd)
                 continue;
             if (ammoType >= 0) {
-                if (gWeapons[w].guidance == kGuidanceBay)
-                    ammoType = w;
-                else if (ammoType < 0 || ammoType >= kMaxWeapTypes)
-                    ammoType = -1;
-                if (ammoType != -1) {
-                    shipData->weap[ammoType].ammo--;
-                    if (shipData->weap[ammoType].ammo < 0)
-                        shipData->weap[ammoType].ammo = 0;
+                if (weaponStats[w].guidance == kGuidanceBay)
+                    slot = w;
+                else if (ammoType >= 0 && ammoType < kMaxWeapTypes)
+                    slot = ammoType;
+                else
+                    slot = -1;
+                if (slot != -1) {
+                    shipData->weap[slot].ammo--;
+                    if (shipData->weap[slot].ammo < 0)
+                        shipData->weap[slot].ammo = 0;
                 }
-            } else {
-                if (ammoType > -kWeapAmmoFuelBase)
-                    continue;
+                statusRedraw[3] = 1;
+            } else if (ammoType <= -kWeapAmmoFuelBase) {
                 shipData->fuel -= (abs(ammoType) - kWeapAmmoFuelBase) * 0.1;
                 if (shipData->fuel < 0.0f)
                     shipData->fuel = 0.0f;
                 statusRedraw[4] = 1;
-                continue;
             }
-            statusRedraw[3] = 1;
         }
 
         if (fired > 0) {
             soundOK = 1;
-            if (gWeapons[w].flags & kWeapFlagSoundOnce) {
-                if (gWeapons[w].sound >= 0) {
-                    if (ST_IsSoundPlaying(shotSnd[gWeapons[w].sound]))
+            if (weaponStats[w].flags & kWeapLoopSound) {
+                if (weaponStats[w].sound >= 0) {
+                    if (ST_IsSoundPlaying(shotSnd[weaponStats[w].sound]))
                         soundOK = 0;
                 }
             }
-            if (gWeapons[w].sound >= 0 && soundOK) {
-                if (gWeapons[w].guidance == kGuidanceBeam
-                        || gWeapons[w].guidance == kGuidanceTurretBeam) {
-                    PlaySoundDistance(2, shotSnd[gWeapons[w].sound], 6,
+            if (weaponStats[w].sound >= 0 && soundOK) {
+                if (weaponStats[w].guidance == kGuidanceBeam
+                        || weaponStats[w].guidance == kGuidanceTurretBeam) {
+                    PlaySoundDistance(2, shotSnd[weaponStats[w].sound], 6,
                                       &shipData->pos, &shipData->pos);
                     soundOK = 0;
                 }
             }
-            if (gWeapons[w].sound < 0)
+            if (weaponStats[w].sound < 0)
                 soundOK = 0;
             if (soundOK) {
-                if (gWeapons[w].guidance == kGuidanceBay)
-                    PlaySoundDistance(-1, shotSnd[gWeapons[w].sound], 6,
+                if (weaponStats[w].guidance == kGuidanceBay)
+                    PlaySoundDistance(-1, shotSnd[weaponStats[w].sound], 6,
                                       &shipData->pos, &shipData->pos);
-                else if (gWeapons[w].flags & kWeapFlagSoundNear)
-                    PlaySoundDistance(-1, shotSnd[gWeapons[w].sound], 6,
+                else if (weaponStats[w].flags & kWeapSecondary)
+                    PlaySoundDistance(-1, shotSnd[weaponStats[w].sound], 6,
                                       &shipData->pos, &shipData->pos);
                 else
-                    PlaySoundDistance(-1, shotSnd[gWeapons[w].sound], 5,
+                    PlaySoundDistance(-1, shotSnd[weaponStats[w].sound], 5,
                                       &shipData->pos, &shipData->pos);
             }
 
             /* recoil */
-            if (gWeapons[w].recoil > 0) {
+            if (weaponStats[w].recoil > 0) {
                 AdjustedAccel(((short)(shipData->heading + 180.0f) % 360),
-                              gWeapons[w].recoil
-                                  / (float)gShipTypes[shipData->type].mass,
+                              weaponStats[w].recoil
+                                  / (float)shipClass[shipData->type].mass,
                               &shipData->vel,
-                              gShipTypes[shipData->type].maxSpeed);
+                              shipClass[shipData->type].maxSpeed);
             }
 
-            if (gWeapons[w].flags & kWeapFlagKeepReload)
-                shipData->weap[w].reloadTimer = gWeapons[w].reload;
+            if (weaponStats[w].flags & kWeapFireSimultaneously)
+                shipData->weap[w].reloadTimer = weaponStats[w].reload;
             else
                 shipData->weap[w].reloadTimer =
-                    gWeapons[w].reload / shipData->weap[w].count * fired;
+                    fired * (weaponStats[w].reload / shipData->weap[w].count);
 
-            if (gWeapons[w].flags3 & kWeapExclusive) {
+            if (weaponStats[w].flags3 & kWeapExclusive) {
                 for (i = 0; i < kMaxWeapTypes; i++) {
                     if (i != w) {
                         if (shipData->weap[i].reloadTimer
@@ -3172,31 +3493,31 @@ void FirePlayerWeapon(short w)
                 }
             }
 
-            if (gWeapons[w].burstCount > 0) {
+            if (weaponStats[w].burstCount > 0) {
                 shipData->weap[w].burstCount++;
 
                 /* per-burst ammo is charged once the burst completes */
-                if ((gWeapons[w].flags3 & kWeapAmmoFlag)
+                if ((weaponStats[w].flags3 & kWeapAmmoAtBurstEnd)
                         && shipData->weap[w].burstCount
-                            % gWeapons[w].burstCount == 0) {
-                    if (gWeapons[w].flags & kWeapFlagKeepReload)
-                        n = fired;
+                            % weaponStats[w].burstCount == 0) {
+                    if (weaponStats[w].flags & kWeapFireSimultaneously)
+                        shot = fired;
                     else
-                        n = 1;
-                    if (gWeapons[w].guidance == kGuidanceBay) {
-                        shipData->weap[w].ammo -= n;
+                        shot = 1;
+                    if (weaponStats[w].guidance == kGuidanceBay) {
+                        shipData->weap[w].ammo -= shot;
                         if (shipData->weap[w].ammo < 0)
                             shipData->weap[w].ammo = 0;
                     } else {
-                        ammoType = gWeapons[w].ammoType;
+                        ammoType = weaponStats[w].ammoType;
                         if (ammoType >= 0 && ammoType < kMaxWeapTypes) {
-                            shipData->weap[gWeapons[w].ammoType].ammo -= n;
-                            if (shipData->weap[gWeapons[w].ammoType].ammo < 0)
-                                shipData->weap[gWeapons[w].ammoType].ammo = 0;
+                            shipData->weap[weaponStats[w].ammoType].ammo -= shot;
+                            if (shipData->weap[weaponStats[w].ammoType].ammo < 0)
+                                shipData->weap[weaponStats[w].ammoType].ammo = 0;
                             statusRedraw[3] = 1;
                         } else if (ammoType <= -kWeapAmmoFuelBase) {
                             shipData->fuel -=
-                                (abs(ammoType) - kWeapAmmoFuelBase) * 0.1 * n;
+                                (abs(ammoType) - kWeapAmmoFuelBase) * 0.1 * shot;
                             if (shipData->fuel < 0.0f)
                                 shipData->fuel = 0.0f;
                             statusRedraw[4] = 1;
@@ -3207,7 +3528,7 @@ void FirePlayerWeapon(short w)
                 if (shipData->weap[w].burstCount
                         >= WeaponBurstInterval(w, shipData->weap[w].count)) {
                     shipData->weap[w].burstCount = 0;
-                    shipData->weap[w].reloadTimer = gWeapons[w].burstReload;
+                    shipData->weap[w].reloadTimer = weaponStats[w].burstReload;
                 }
             }
         }
@@ -3217,6 +3538,7 @@ void FirePlayerWeapon(short w)
 /* PlayerLandOnStellar (mac _PlayerLandOnStellar). STATE: MATCH 100.0%, exe 397 / obj 397,
    relocregcheck 0 of 124; the landing-position test is written `!= -1' first. OPEN: none */
 // FUNCTION: EVNOVA 0x00455e10
+// MAC: _PlayerLandOnStellar i386 0x000631c4 ppc 0x0006b244
 void PlayerLandOnStellar(void)
 {
     ShipObj *ship;
@@ -3233,11 +3555,12 @@ void PlayerLandOnStellar(void)
     EraseParticlesOffscreen(gSpriteWorld);
     SWUpdateSpriteWorld(gSpriteWorld, 1);
     UpdateParticlesInWindow(gSpriteWorld);
+    SetRetainedWindow(gWind, false);
     HideCursorSprite();
     RefreshSAT();
     RedrawStatus(1);
     ShowTheCursor();
-    if (!gEarlyOutFlag)
+    if (!settings.noMovies)
         PlayQTMovieFromDesc(ship->targetStellar + 128);
     if (!SpobUninhabited(&stellarData[ship->targetStellar]))
         DoAutoRefuel();
@@ -3245,7 +3568,7 @@ void PlayerLandOnStellar(void)
         PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
     RedrawStatus(1);
     OSCursorReset();
-    cursorVisible = 0;
+    cursorHidden = 0;
     ShowTheCursor();
     SWSetPortToWindow(gSpriteWorld);
     ship->targetShip = -1;
@@ -3278,15 +3601,15 @@ void PlayerLandOnStellar(void)
     IncrementGameTime();
     HandleGlobalPriceFlux();
     sys = FindFirstCoLocatedSystem(ship->curSystem);
-    if (gSystems[sys].exploreLevel < 2)
-        gSystems[sys].exploreLevel = 2;
-    if (gSystems[ship->curSystem].exploreLevel < 2)
-        gSystems[ship->curSystem].exploreLevel = 2;
+    if (systemData[sys].exploreLevel < 2)
+        systemData[sys].exploreLevel = 2;
+    if (systemData[ship->curSystem].exploreLevel < 2)
+        systemData[ship->curSystem].exploreLevel = 2;
     AutoSetExploration(ship->curSystem, 0, 2);
     ExploreNebulaeFromSystem(ship->curSystem);
     for (i = 0; i < 16; i++) {
         if (currentMissionObjectives[i].active != 0) {
-            if ((currentMissions[i].flags & kMissionFlagRearmShips) != 0)
+            if ((currentMissions[i].flags & kMissionInfiniteAuxShips) != 0)
                 currentMissions[i].auxShipsLeft = currentMissions[i].auxShipCount;
             currentMissions[i].auxShipDelay = Rand(0x46) + 0x46;
             currentMissions[i].auxShipsSpawned = 0;
@@ -3294,6 +3617,7 @@ void PlayerLandOnStellar(void)
     }
     SavePilotFile(ship->targetStellar);
     ship->heading = Rand(0x168);
+    SetRetainedWindow(gWind, true);
     SetAllKeyCmdFlags();
     playerIsLanded = 0;
     if (absquatulateStr[0] != 0) {
@@ -3301,32 +3625,32 @@ void PlayerLandOnStellar(void)
         RedrawComm(1);
         absquatulateStr[0] = 0;
     } else if (newbieFlag > 2) {
-        char name[256];
-        char msg[256];
-        long n;
+        unsigned char msg[256];
+        unsigned char name[256];
+        short n;
 
-        n = Rand(5) + 0x37;
-        strcpy(msg, "");
-        AppendIndString(msg, kGameStrList, n);
-        strcat(msg, " ");
-        strncpy(name, (char *)stellarData[dockTarget].name, 0x3f);
-        PtoCstr((unsigned char *)name);
-        strcat(msg, name);
-        strcat(msg, " ");
-        AppendIndString(msg, kGameStrList, 0x3c);
-        strcat(msg, " ");
-        DateToLongString(gameTime, name);
-        strcat(msg, name);
-        strcat(msg, ".");
-        CtoPstr(msg);
-        DisplayComm((unsigned char *)msg, 240, 0, 12, &rgbWhite, 0, 0);
+        n = Rand(5);
+        strcpy((char *)msg, "");
+        StrcatIndCString((char *)msg, kGameStrList, n + 0x37);
+        strcat((char *)msg, " ");
+        strncpy((char *)name, (char *)stellarData[dockTarget].name, 0x3f);
+        PtoCstr(name);
+        strcat((char *)msg, (char *)name);
+        strcat((char *)msg, " ");
+        StrcatIndCString((char *)msg, kGameStrList, 0x3c);
+        strcat((char *)msg, " ");
+        DateToLongString(gameTime, (char *)name);
+        strcat((char *)msg, (char *)name);
+        strcat((char *)msg, ".");
+        CtoPstr((char *)msg);
+        DisplayComm(msg, 240, 0, 12, &rgbWhite, 0, 0);
         RedrawComm(1);
     } else {
         newbieFlag = -1;
     }
     dockTarget = -1;
     dockPermission = -1;
-    gTimeScale = 0.0;
+    gSpeedMult = 0.0;
     killShots = 1;
     SWHideAllSprites(gSpriteWorld);
     for (i = 0; i < 128; i++)
@@ -3340,6 +3664,7 @@ void PlayerLandOnStellar(void)
    loop's `link' is a split web; `n' carries the scan's system and the nav-link count, as in
    PlayerEnterWormhole. OPEN: none. */
 // FUNCTION: EVNOVA 0x00456480
+// MAC: _PlayerEnterHypergate i386 0x000637bf ppc 0x0006b87c
 short PlayerEnterHypergate(void)
 {
     short i;
@@ -3348,8 +3673,8 @@ short PlayerEnterHypergate(void)
     short link;
     short n;
     ShipObj *ship;
-    char name[256];
-    char msg[256];
+    unsigned char msg[256];
+    unsigned char name[256];
 
     ship = shipData;
     shipData->navTargetKind = -1;
@@ -3358,6 +3683,7 @@ short PlayerEnterHypergate(void)
     if (link == 0)
         return -1;
     ShowTheCursor();
+    SetRetainedWindow(gWind, false);
     HideCursorSprite();
     RefreshSAT();
     hypergateMapMode = 1;
@@ -3365,6 +3691,7 @@ short PlayerEnterHypergate(void)
     DoSystemMap();
     hypergateMapMode = 0;
     hypergateMapModeStellar = -1;
+    SetRetainedWindow(gWind, true);
     SetAllKeyCmdFlags();
     if (shipData->navTargetKind == 4 && shipData->targetStellar != -1) {
         destSyst = -1;
@@ -3383,61 +3710,97 @@ short PlayerEnterHypergate(void)
             }
         }
         if (destSyst != -1) {
+            SetRetainedWindow(gWind, false);
             HideCursorSprite();
             RefreshSAT();
-            if (!gEarlyOutFlag)
+            if (!settings.noMovies)
                 PlayQTMovieFromDesc(ship->targetStellar + kFirstResourceID);
+            SetRetainedWindow(gWind, true);
             SetAllKeyCmdFlags();
             ship->curSystem = destSyst;
             n = FindFirstCoLocatedSystem(destSyst);
-            if (gSystems[n].exploreLevel < 1)
-                gSystems[n].exploreLevel = 1;
-            if (gSystems[destSyst].exploreLevel < 1)
-                gSystems[destSyst].exploreLevel = 1;
-            mapScroll.x = gSystems[destSyst].xPos;
-            mapScroll.y = gSystems[destSyst].yPos;
+            if (systemData[n].exploreLevel < 1)
+                systemData[n].exploreLevel = 1;
+            if (systemData[destSyst].exploreLevel < 1)
+                systemData[destSyst].exploreLevel = 1;
+            mapScroll.h = systemData[destSyst].pos.h;
+            mapScroll.v = systemData[destSyst].pos.v;
             ship->pos.x = stellarData[destStellar].pos.h;
             ship->pos.y = stellarData[destStellar].pos.v;
-            if (stellarData[destStellar].customSound < 0
-                || stellarData[destStellar].customSound > kFullCircle - 1)
-                ship->heading = Rand(kFullCircle);
-            else
+            if (stellarData[destStellar].customSound >= 0
+                && stellarData[destStellar].customSound <= kFullCircle - 1)
                 ship->heading = stellarData[destStellar].customSound;
+            else
+                ship->heading = Rand(kFullCircle);
             ship->vel.x = ship->vel.y = 0;
             ship->accelMag = (ShipMaxSpeed(ship) * 0.5);
             Accel(ship->heading, ship->accelMag, &ship->vel);
-            SWSetPortToWindow(gSpriteWorld);
-            RGBForeColor(whiteColor);
+#if V111
+            SWSetPortToWorkArea(gSpriteWorld);
+            ForeColor(whiteColor);
             PaintRect(&gSpriteWorld->workFrameP->frameRect);
-            RGBForeColor(blackColor);
+            ForeColor(blackColor);
+            if (useLegacyRenderingPipeline) {
+                BlitPixieRectDrawProc(gSpriteWorld->workFrameP, gSpriteWorld->windowFrameP,
+                             &gSpriteWorld->workFrameP->frameRect,
+                             &gSpriteWorld->windowFrameP->frameRect);
+            } else {
+                SWSetPortToWindow(gSpriteWorld);
+                CopyBits((PixMapPtr)GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
+                         GetPortPixMapBits(gSpriteWorld->windowFrameP->framePort),
+                         &gSpriteWorld->workFrameP->frameRect,
+                         &gSpriteWorld->windowFrameP->frameRect, 0, NULL);
+                QDFlushPortBuffer(gSpriteWorld->windowFrameP->framePort, NULL);
+            }
+#ifdef MACBUILD
+            if (!settings.windowed && !settings.noHyperGamma && !ignoreKeys)
+                FadeWhiteOut();
+#endif
+#else
+#ifdef MAC1010
+            SWSetPortToWorkArea(gSpriteWorld);
+            ForeColor(whiteColor);
+            PaintRect(&gSpriteWorld->workFrameP->frameRect);
+            ForeColor(blackColor);
+#else
+            SWSetPortToWindow(gSpriteWorld);
+#ifdef CEFIX /* F22.02 */
+            CE_SetFlashColor(whiteColor);
+#else
+            ForeColor(whiteColor);
+#endif
+            PaintRect(&gSpriteWorld->workFrameP->frameRect);
+            ForeColor(blackColor);
             ScreenEndScene();
             SWSetPortToWorkArea(gSpriteWorld);
+#endif
             BlitPixieRectDrawProc(gSpriteWorld->workFrameP, gSpriteWorld->windowFrameP,
                          &gSpriteWorld->workFrameP->frameRect,
                          &gSpriteWorld->windowFrameP->frameRect);
-            strcpy(msg, "");
-            AppendIndString(msg, kGameStrList, 0x2e);
-            strcat(msg, " ");
-            pstrcpy((unsigned char *)name, gSystems[destSyst].name);
-            PtoCstr((unsigned char *)name);
-            strcat(msg, name);
-            strcat(msg, " ");
-            AppendIndString(msg, kGameStrList, 0x30);
-            strcat(msg, " ");
-            DateToLongString(gameTime, name);
-            strcat(msg, name);
-            strcat(msg, ".");
+#endif
+            strcpy((char *)msg, "");
+            StrcatIndCString((char *)msg, kGameStrList, 0x2e);
+            strcat((char *)msg, " ");
+            pstrcpy(name, systemData[destSyst].name);
+            PtoCstr(name);
+            strcat((char *)msg, (char *)name);
+            strcat((char *)msg, " ");
+            StrcatIndCString((char *)msg, kGameStrList, 0x30);
+            strcat((char *)msg, " ");
+            DateToLongString(gameTime, (char *)name);
+            strcat((char *)msg, (char *)name);
+            strcat((char *)msg, ".");
             n = 0;
             for (i = 0; i < kNavSlots; i++) {
-                if (gSystems[ship->curSystem].navDefault[i] != -1)
+                if (systemData[ship->curSystem].navDefault[i] != -1)
                     n++;
             }
             if (n == 0) {
-                strcat(msg, " ");
-                AppendIndString(msg, kGameStrList, 0x31);
+                strcat((char *)msg, " ");
+                StrcatIndCString((char *)msg, kGameStrList, 0x31);
             }
-            CtoPstr(msg);
-            if (gSystems[ship->curSystem].murk < 0)
+            CtoPstr((char *)msg);
+            if (systemData[ship->curSystem].murk < 0)
                 ClearStarfield();
             else
                 RandomizeStars();
@@ -3459,7 +3822,7 @@ short PlayerEnterHypergate(void)
             PaintRect(&gSpriteWorld->workFrameP->frameRect);
             SWSetPortToWindow(gSpriteWorld);
             RefreshSAT();
-            DisplayComm((unsigned char *)msg, 0x168, 0, 12, &rgbWhite, 0, 0);
+            DisplayComm(msg, 0x168, 0, 12, &rgbWhite, 0, 0);
             killShots = 1;
             killBoxes = 1;
             killExplods = 1;
@@ -3468,7 +3831,7 @@ short PlayerEnterHypergate(void)
             crashlog_print("travelled through hypergate to system ");
             crashlog_print_num(shipData->curSystem + kFirstResourceID);
             crashlog_print(" (");
-            crashlog_print_pstr(gSystems[shipData->curSystem].name);
+            crashlog_print_pstr(systemData[shipData->curSystem].name);
             crashlog_print(")\n");
             shipData->navTargetKind = -1;
             shipData->targetStellar = -1;
@@ -3483,17 +3846,20 @@ short PlayerEnterHypergate(void)
             return destStellar;
         }
     }
-    GetIndString((unsigned char *)msg, kGameStrList, 0x32);
-    DisplayComm((unsigned char *)msg, 250, 0, 12, &rgbWhite, 0, 0);
+    GetIndString(msg, kGameStrList, 0x32);
+    DisplayComm(msg, 250, 0, 12, &rgbWhite, 0, 0);
     return -1;
 }
 
 /* PlayerEnterWormhole (mac _PlayerEnterWormhole). STATE: MATCH 100.0%, exe 564 / obj 564,
-   relocregcheck 0 of 156. The customSound test is written in-range arm first; the navDefault
-   count reuses `link'. OPEN: none. */
+   relocregcheck 0 of 156. The customSound test is written in-range arm first. OPEN: none. */
 // FUNCTION: EVNOVA 0x00456ca0
+// MAC: _PlayerEnterWormhole i386 0x00064005 ppc 0x0006c064
 short PlayerEnterWormhole(void)
 {
+#ifdef MACBUILD
+    short count;
+#endif
     short i;
     short destStellar;
     short dest;
@@ -3501,43 +3867,44 @@ short PlayerEnterWormhole(void)
     short pick;
     short n;
     ShipObj *ship;
-    char name[256];
-    char msg[256];
+    unsigned char msg[256];
+    unsigned char name[256];
 
+    ship = shipData;
     dest = -1;
     destStellar = -1;
-    ship = shipData;
     if (StellarNumHyperLinks(&stellarData[dockTarget]) > 0) {
         do {
             n = 0;
             for (i = 0; i < kSpobHyperLinks; i++) {
-                link = stellarData[dockTarget].hyperLinks[i];
-                if (link != -1) {
-                    if (FindActiveCoLocatedSystem(stellarData[link].system) != -1)
+                if (stellarData[dockTarget].hyperLinks[i] != -1) {
+                    if (FindActiveCoLocatedSystem(stellarData[stellarData[dockTarget].hyperLinks[i]].system) != -1)
                         n++;
                 }
             }
             if (n == 0) {
                 extern char *strcpy(char *, const char *);
 
-                strcpy(msg, "");
-                AppendIndString(msg, kGameStrList, 0x54);
-                strcat(msg, " ");
-                AppendIndString(msg, kGameStrList, 0x56);
-                CtoPstr(msg);
-                DisplayComm((unsigned char *)msg, 250, 0, 12, &rgbWhite, 0, 0);
+                strcpy((char *)msg, "");
+                StrcatIndCString((char *)msg, kGameStrList, 0x54);
+                strcat((char *)msg, " ");
+                StrcatIndCString((char *)msg, kGameStrList, 0x56);
+                CtoPstr((char *)msg);
+                DisplayComm(msg, 250, 0, 12, &rgbWhite, 0, 0);
                 PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
                 return -1;
             }
             pick = Rand(8);
-            link = stellarData[dockTarget].hyperLinks[pick];
+            i = pick;
+            link = stellarData[dockTarget].hyperLinks[i];
             if (link != -1) {
                 destStellar = link;
                 dest = stellarData[link].system;
             }
         } while (dest == -1);
     } else {
-        n = 0;
+#ifdef MACBUILD
+        count = 0;
         for (i = 0; i < 0x800; i++) {
             if (i != dockTarget && stellarData[i].loaded != 0
                 && (stellarData[i].flags2 & kSpobWormhole) != 0
@@ -3545,48 +3912,92 @@ short PlayerEnterWormhole(void)
                 && ship->curSystem != stellarData[i].system
                 && StellarNumHyperLinks(&stellarData[i]) == 0
                 && FindActiveCoLocatedSystem(stellarData[i].system) != -1)
-                n++;
+                count++;
         }
-        if (n <= 0) {
+        if (count > 0) {
+            while (dest == -1) {
+                i = Rand(0x800);
+                if (i != dockTarget && stellarData[i].loaded != 0
+                    && (stellarData[i].flags2 & kSpobWormhole) != 0
+                    && stellarData[i].system != -1
+                    && ship->curSystem != stellarData[i].system) {
+                    if (StellarNumHyperLinks(&stellarData[i]) == 0
+                        && FindActiveCoLocatedSystem(stellarData[i].system) != -1) {
+                        destStellar = i;
+                        dest = stellarData[i].system;
+                    }
+                    break;
+                }
+            }
+        } else {
             extern char *strcpy(char *, const char *);
 
-            strcpy(msg, "");
-            AppendIndString(msg, kGameStrList, 0x54);
-            strcat(msg, " ");
-            AppendIndString(msg, kGameStrList, 0x56);
-            CtoPstr(msg);
-            DisplayComm((unsigned char *)msg, 250, 0, 12, &rgbWhite, 0, 0);
+            strcpy((char *)msg, "");
+            StrcatIndCString((char *)msg, kGameStrList, 0x54);
+            strcat((char *)msg, " ");
+            StrcatIndCString((char *)msg, kGameStrList, 0x56);
+            CtoPstr((char *)msg);
+            DisplayComm(msg, 250, 0, 12, &rgbWhite, 0, 0);
             PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
             return -1;
         }
-        do {
-            i = Rand(0x800);
-        } while (i == dockTarget || stellarData[i].loaded == 0
-                 || (stellarData[i].flags2 & kSpobWormhole) == 0
-                 || stellarData[i].system == -1
-                 || ship->curSystem == stellarData[i].system);
-        if (StellarNumHyperLinks(&stellarData[i]) == 0
-            && FindActiveCoLocatedSystem(stellarData[i].system) != -1) {
-            destStellar = i;
-            dest = stellarData[i].system;
+#else
+        link = 0;
+        for (i = 0; i < 0x800; i++) {
+            if (i != dockTarget && stellarData[i].loaded != 0
+                && (stellarData[i].flags2 & kSpobWormhole) != 0
+                && stellarData[i].system != -1
+                && ship->curSystem != stellarData[i].system
+                && StellarNumHyperLinks(&stellarData[i]) == 0
+                && FindActiveCoLocatedSystem(stellarData[i].system) != -1)
+                link++;
         }
+        if (link <= 0) {
+            extern char *strcpy(char *, const char *);
+
+            strcpy((char *)msg, "");
+            StrcatIndCString((char *)msg, kGameStrList, 0x54);
+            strcat((char *)msg, " ");
+            StrcatIndCString((char *)msg, kGameStrList, 0x56);
+            CtoPstr((char *)msg);
+            DisplayComm(msg, 250, 0, 12, &rgbWhite, 0, 0);
+            PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
+            return -1;
+        }
+        while (dest == -1) {
+            i = Rand(0x800);
+            if (i != dockTarget && stellarData[i].loaded != 0
+                && (stellarData[i].flags2 & kSpobWormhole) != 0
+                && stellarData[i].system != -1
+                && ship->curSystem != stellarData[i].system) {
+                if (StellarNumHyperLinks(&stellarData[i]) == 0
+                    && FindActiveCoLocatedSystem(stellarData[i].system) != -1) {
+                    destStellar = i;
+                    dest = stellarData[i].system;
+                }
+                break;
+            }
+        }
+#endif
     }
     if (dest == -1) {
         dest = ship->curSystem;
         destStellar = dockTarget;
     }
-    if (!gEarlyOutFlag)
+    SetRetainedWindow(gWind, false);
+    if (!settings.noMovies)
         PlayQTMovieFromDesc(ship->targetStellar + 128);
     RefreshSAT();
+    SetRetainedWindow(gWind, true);
     SetAllKeyCmdFlags();
     ship->curSystem = dest;
     n = FindFirstCoLocatedSystem(dest);
-    if (gSystems[n].exploreLevel < 1)
-        gSystems[n].exploreLevel = 1;
-    if (gSystems[dest].exploreLevel < 1)
-        gSystems[dest].exploreLevel = 1;
-    mapScroll.x = gSystems[dest].xPos;
-    mapScroll.y = gSystems[dest].yPos;
+    if (systemData[n].exploreLevel < 1)
+        systemData[n].exploreLevel = 1;
+    if (systemData[dest].exploreLevel < 1)
+        systemData[dest].exploreLevel = 1;
+    mapScroll.h = systemData[dest].pos.h;
+    mapScroll.v = systemData[dest].pos.v;
     ship->pos.x = stellarData[destStellar].pos.h;
     ship->pos.y = stellarData[destStellar].pos.v;
     if (stellarData[destStellar].customSound >= 0
@@ -3598,40 +4009,55 @@ short PlayerEnterWormhole(void)
     ship->accelMag = ShipMaxSpeed(ship) * 0.5;
     Accel(ship->heading, ship->accelMag, &ship->vel);
     SWSetPortToWindow(gSpriteWorld);
-    RGBForeColor(whiteColor);
+#ifdef CEFIX /* F22.03 */
+    CE_SetFlashColor(whiteColor);
+#else
+    ForeColor(whiteColor);
+#endif
     PaintRect(&gSpriteWorld->windRect);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
+#ifndef MACBUILD
     ScreenEndScene();
+#endif
     PlaySound(warpOutSnd, 0x32, gSoundVolume, gSoundVolume);
-    strcpy(msg, "");
-    AppendIndString(msg, kGameStrList, 0x2f);
-    strcat(msg, " ");
-    pstrcpy((unsigned char *)name, gSystems[dest].name);
-    PtoCstr((unsigned char *)name);
-    strcat(msg, name);
-    strcat(msg, " ");
-    AppendIndString(msg, kGameStrList, 0x30);
-    strcat(msg, " ");
-    DateToLongString(gameTime, name);
-    strcat(msg, name);
-    strcat(msg, ".");
+    strcpy((char *)msg, "");
+    StrcatIndCString((char *)msg, kGameStrList, 0x2f);
+    strcat((char *)msg, " ");
+    pstrcpy(name, systemData[dest].name);
+    PtoCstr(name);
+    strcat((char *)msg, (char *)name);
+    strcat((char *)msg, " ");
+    StrcatIndCString((char *)msg, kGameStrList, 0x30);
+    strcat((char *)msg, " ");
+    DateToLongString(gameTime, (char *)name);
+    strcat((char *)msg, (char *)name);
+    strcat((char *)msg, ".");
+#ifdef MACBUILD
+    count = 0;
+    for (i = 0; i < kNavSlots; i++) {
+        if (systemData[ship->curSystem].navDefault[i] != -1)
+            count++;
+    }
+    if (count == 0) {
+#else
     link = 0;
     for (i = 0; i < kNavSlots; i++) {
-        if (gSystems[ship->curSystem].navDefault[i] != -1)
+        if (systemData[ship->curSystem].navDefault[i] != -1)
             link++;
     }
     if (link == 0) {
-        strcat(msg, " ");
-        AppendIndString(msg, kGameStrList, 0x31);
+#endif
+        strcat((char *)msg, " ");
+        StrcatIndCString((char *)msg, kGameStrList, 0x31);
     }
-    CtoPstr(msg);
-    DisplayComm((unsigned char *)msg, 240, 0, 12, &rgbWhite, 0, 0);
+    CtoPstr((char *)msg);
+    DisplayComm(msg, 240, 0, 12, &rgbWhite, 0, 0);
     killShots = 1;
     killBoxes = 1;
     killExplods = 1;
     killSmoke = 1;
     killAsteroids = 1;
-    if (gSystems[ship->curSystem].murk < 0)
+    if (systemData[ship->curSystem].murk < 0)
         ClearStarfield();
     else
         RandomizeStars();
@@ -3655,16 +4081,58 @@ short PlayerEnterWormhole(void)
     return destStellar;
 }
 
-/* HandlePlayerDockRequest (mac _HandlePlayerDockRequest). STATE: MATCH 100.0%, 2120/2120,
-   relocregcheck 0 of 378; byte-identical yes (9159 bytes). OPEN: none. see notes */
+#ifdef MACBUILD /* mac spelling */
+#define dockMission badLicense
+#define dockDistX spawnStellar
+#else
+#define dockMission sVal2
+#define dockDistX distX
+#endif
+#ifdef MAC1010
+#define sVal2 sVal
+#define badLicense sVal
+#define distX spawnStellar
+#endif
+
+/* HandlePlayerDockRequest (mac _HandlePlayerDockRequest). STATE: win MATCH 100.0%, 2120/2120,
+   relocregcheck 0 of 378; byte-identical yes (9159 bytes). mac MATCH both slices.
+   OPEN: nothing. */
 // FUNCTION: EVNOVA 0x00457580
+// MAC: _HandlePlayerDockRequest i386 0x00066691 ppc 0x0006e890
 void HandlePlayerDockRequest(void)
 {
+#ifdef MAC1010
+    short spawnStellar;
+    short distY;
+    unsigned char msg[256];
+    Boolean granted;
+    short i;
+    int iVal2;
+    short qtStellar;
+    short commResult;
+    unsigned char t1;
+    ShipObj *ship = shipData;
+    unsigned char pbuf[256];
+    short sVal;
+#elif defined(MACBUILD)
+    short distY;
+    unsigned char msg[256];
+    Boolean granted;
+    short i;
+    int iVal2;
+    short spawnStellar;
+    short qtStellar;
+    short sVal2;
+    short commResult;
+    ShipObj *ship = shipData;
+    unsigned char pbuf[256];
+    short distX;
+    short badLicense;
+    short sVal;
+#else
     ShipObj *ship = shipData;
     unsigned char msg[256];
-    float fdx;
-    float fdy;
-    char granted;
+    Boolean granted;
     unsigned char sb;
     char cval;
     short i;
@@ -3676,7 +4144,7 @@ void HandlePlayerDockRequest(void)
     unsigned char pmov[3] = { 0x49, 0x71, 0xad };
     unsigned char key[17] = "EV NovaEV NovaEV";
     unsigned char scram;
-    char nameMatch;
+    Boolean nameMatch;
     short commResult;
     unsigned char pbuf[256];
     unsigned int distX;
@@ -3684,21 +4152,352 @@ void HandlePlayerDockRequest(void)
     unsigned long long lic;
     unsigned long hash;
     unsigned char regBuf[17] = "";
-    char *regName;
+    unsigned char *regName;
     int licSerial;
     short badLicense;
     short sVal;
+#endif
 
-    licSerial = shipData[36].unkC940;
-    regName = shipData[17].unkC930;
-    /* one 64-bit field; shipobj.h still spells it as unkC938/unkC93C */
-    lic = *(unsigned long long *)&shipData[5].unkC938;
+#ifdef MAC1010
+    do {
+        unsigned char blob[3] = { 0x49, 0x71, 0xad };
+        unsigned char name[17] = "EV NovaEV NovaEV";
+        unsigned char key[17] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+        long g;
+        char *p;
+        long long mem;
+        unsigned char x;
+        unsigned char y;
+        unsigned char c;
+        char t2;
+        unsigned short rem;
+        Boolean ok;
+        unsigned int v;
+
+        g = shipData[36].licenseCopies;
+        p = shipData[17].licenseName;
+        mem = shipData[5].licenseCode;
+        x = 0;
+        if (p != 0 && *p != 0) {
+            while (StringGetLength(p) != 0 && StringGetLength(key) + 1 < 17)
+                StringAppendSafe(key, p, 17);
+        }
+        x ^= (unsigned char)g;
+        x += (char)0xe7;
+        x ^= (unsigned char)g;
+        x = ROTL(x, 3);
+        x ^= name[5];
+        x += 0x31;
+        x = ROTL(x, 7);
+        c = key[0];
+        x ^= c;
+        x = ROTL(x, 4);
+        x = ROTL(x, 8);
+        x += 0x0b;
+        t1 = name[2];
+        x ^= t1;
+        x ^= key[13];
+        x ^= name[13];
+        x += (char)0xa6;
+        x ^= (unsigned char)g;
+        x ^= name[12];
+        x ^= (unsigned char)g;
+        t2 = key[1];
+        x ^= t2;
+        x ^= (unsigned char)g;
+        x ^= c;
+        x ^= key[4];
+        x += 0x67;
+        x ^= name[6];
+        x ^= (unsigned char)g;
+        x += 0x58;
+        if (x > t2)
+            x ^= (unsigned char)g;
+        x = ROTL(x, 2);
+        x = ((x + (char)0xa0) & 0xff) + 0x7d;
+        x ^= (unsigned char)g;
+        x += 0x5a;
+        x = ROTL(x, 7);
+        x ^= (unsigned char)g;
+        x += (char)0x93;
+        x ^= (unsigned char)g;
+        x = ROTL(x, 4);
+        x = ROTL(x, 2);
+        x ^= name[9];
+        rem = RT3_ExtractLicenseBlock2(mem);
+        x += 0x78;
+        x = ROTL(x, 2);
+        x ^= key[2];
+        x ^= t1;
+        x ^= (unsigned char)g;
+        x ^= (unsigned char)g;
+        x = ROTL(x, 5);
+        x = ROTL(x, 5);
+        x ^= (unsigned char)g;
+        if (x < (char)key[14])
+            x ^= (unsigned char)g;
+        if (x > (char)key[4])
+            x ^= name[4];
+        x ^= (unsigned char)g;
+        x = ROTL(x, 4);
+        x ^= key[15];
+        x ^= name[14];
+        x = ROTL(x, 2);
+        x += 0x75;
+        x = ROTL(x, 1);
+        x = ROTL(x, 4);
+        x = ROTL(x, 8);
+        x = ROTL(x, 1);
+        x += -0x65;
+        x = ROTL(x, 1);
+        x ^= (unsigned char)g;
+        x += 0x58;
+        x ^= key[15];
+        LICENSE_STEP_BEGIN
+        y = x * IsPlatformOpen() + -0x61;
+        RegScramB2(y);
+        x = ROTL(y, 5);
+        LICENSE_STEP_END
+        x ^= key[3];
+        TimerGetSeconds();
+        x += (char)0xa4;
+        x ^= key[1];
+        x ^= key[14];
+        x += 0x29;
+        x = ROTL(x, 2);
+        x += (char)0xd1;
+        x ^= (unsigned char)g;
+        x += 0x82;
+        x ^= name[0];
+        x ^= name[1];
+        x ^= (unsigned char)g;
+        x += -0x7c;
+        RegScramB2(x);
+        y = x & 0xff;
+        x = ROTL(y, 5);
+        x += -0x4e;
+        x = ROTL(x, 1);
+        x ^= (unsigned char)g;
+        x = ROTL(x, 5);
+        x += 0x5a;
+        x ^= name[11];
+        x ^= (unsigned char)g;
+        x = ROTL(x, 5);
+        x ^= (unsigned char)g;
+        x += (char)0xe8;
+        x ^= key[7];
+        x += (char)0xdd;
+        x ^= key[2];
+        x ^= key[5];
+        x = ROTL(x, 1);
+        x ^= (unsigned char)g;
+        x ^= (unsigned char)g;
+        x = ROTL(x, 7);
+        x = ROTL(x, 1);
+        x ^= (unsigned char)g;
+        x += 0x36;
+        x ^= (unsigned char)g;
+        if (x < 0x23)
+            x = ROTL(x, 4);
+        x ^= (unsigned char)g;
+        x ^= (unsigned char)g;
+        x ^= key[11];
+        if (x < 3)
+            x = blob[x];
+        while (rem >= x)
+            rem -= x;
+        ok = (g != 0 && rem == 0);
+        badLicense = ((v = shipData[36].licenseCopies) != 0
+                && ok == 0 ? (unsigned char)1 : (unsigned char)0);
+    } while (0);
+#elif defined(MACBUILD)
+    {
+        unsigned char blob[3] = { 0x49, 0x71, 0xad };
+        unsigned char name[17] = "EV NovaEV NovaEV";
+        unsigned char key[17] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+        unsigned long g;
+        char *p;
+        long long mem;
+        unsigned char x;
+        unsigned char y;
+        unsigned char c;
+        char b;
+        unsigned char t1;
+        char t2;
+        unsigned short rem;
+        Boolean ok;
+        unsigned int v;
+
+        g = shipData[36].licenseCopies;
+        p = RT3_CheckLicenseName(shipData[17].licenseName);
+        mem = shipData[5].licenseCode;
+        x = 0;
+        if (p != 0 && *p >= '0' && *p <= '9')
+            g = 1;
+        if (p != 0 && *p != 0) {
+            while (StringGetLength(p) != 0 && StringGetLength(key) + 1 < 17)
+                StringAppendSafe(key, p, 17);
+        }
+        x ^= g;
+        x += 0xe7;
+        x ^= g;
+        x = ROTL(x, 3);
+        x ^= name[5];
+        x += 0x31;
+        x = ROTL(x, 7);
+        c = key[0];
+        x ^= c;
+        x = ROTL(x, 4);
+        x = ROTL(x, 8);
+        x += 0x0b;
+        t1 = name[2];
+        x ^= t1;
+        x ^= key[13];
+        x ^= name[13];
+        x += 0xa6;
+        x ^= g;
+        x ^= name[12];
+        x ^= g;
+        t2 = key[1];
+        x ^= (unsigned char)t2;
+        x ^= g;
+        x ^= c;
+        x ^= key[4];
+        x += 0x67;
+        x ^= name[6];
+        x ^= g;
+        x += 0x58;
+        if (x > t2)
+            x ^= g;
+        x = ROTL(x, 2);
+        x ^= RegScramE2();
+        y = x + 0x1d;
+        y ^= g;
+        y += 0x5a;
+        x = ROTL(y, 7);
+        x ^= g;
+        x += 0x93;
+        x ^= g;
+        x = ROTL(x, 4);
+        x = ROTL(x, 2);
+        x ^= name[9];
+        rem = RT3_ExtractLicenseBlock2(mem);
+        x += 0x78;
+        x = ROTL(x, 2);
+        x ^= key[2];
+        x ^= t1;
+        x ^= g;
+        x ^= g;
+        x = ROTL(x, 5);
+        x = ROTL(x, 5);
+        x ^= g;
+        if (x < (char)key[14])
+            x ^= g;
+        if (x > (char)key[4])
+            x ^= name[4];
+        x ^= g;
+        x = ROTL(x, 4);
+        x ^= key[15];
+        x ^= name[14];
+        x = ROTL(x, 2);
+        x += 0x75;
+        RegScramC2(x);
+        x = ROTL(x, 1);
+        x = ROTL(x, 4);
+        x = ROTL(x, 8);
+        x = ROTL(x, 1);
+        x += -0x65;
+        x = ROTL(x, 1);
+        x ^= g;
+        x += 0x58;
+        x ^= key[15];
+        x = RegScramA2(x);
+        x += -0x61;
+        RegScramB2(x);
+        RegScramC2(x);
+        x = ROTL(x, 5);
+        x ^= key[3];
+        b = x;
+        x = RegScramD2(&b);
+        x += 0xa4;
+        x ^= key[1];
+        x ^= key[14];
+        x += 0x29;
+        x = ROTL(x, 2);
+        x += 0xd1;
+        x ^= g;
+        x = (x + 0x82) % 256;
+        x ^= name[0];
+        x ^= name[1];
+        x ^= g;
+        x += -0x7c;
+        RegScramB2(x);
+        x = ROTL(x, 0);
+        x = ROTL(x, 5);
+        x += -0x4e;
+        x = ROTL(x, 1);
+        x ^= g;
+        x = ROTL(x, 5);
+        x += 0x5a;
+        x ^= name[11];
+        x ^= g;
+        x = ROTL(x, 5);
+        x ^= g;
+        x += 0xe8;
+        x ^= key[7];
+        x += 0xdd;
+        x ^= key[2];
+        x ^= key[5];
+        x = ROTL(x, 1);
+        x ^= g;
+        x ^= g;
+        x = ROTL(x, 7);
+        x = ROTL(x, 1);
+        x ^= g;
+        x += 0x36;
+        x ^= g;
+        if (x < 0x23)
+            x = ROTL(x, 4);
+        x ^= g;
+        x ^= g;
+        x ^= key[11];
+        if (x < 3)
+            x = blob[x];
+        while (rem >= x)
+            rem -= x;
+        ok = (g != 0 && rem == 0);
+        x ^= key[10];
+        x += 0x4d;
+        x = ROTL(x, 3);
+        x = ROTL(x, 4);
+        x += 0xee;
+        x ^= key[9];
+        x ^= RegScramE2();
+        x += -0x4c;
+        x = ROTL(x, 4);
+        x = ROTL(x, 4);
+        x = ROTL(x, 8);
+        x ^= key[8];
+        x = ROTL(x, 6);
+        x ^= key[2];
+        x = ROTL(x, 7);
+        v = x + 0x57;
+        x = v;
+        if (x != 0)
+            RegScramC2(v);
+
+        badLicense = shipData[36].licenseCopies != 0 && ok == 0;
+    }
+#else
+    licSerial = shipData[36].licenseCopies;
+    regName = shipData[17].licenseName;
+    lic = shipData[5].licenseCode;
     sb = 0;
     scram = 0;
     if (regName != 0 && *regName != 0) {
-        while (StringGetLength((unsigned char *)regName) != 0 &&
+        while (StringGetLength(regName) != 0 &&
                StringGetLength(regBuf) + 1U < 0x11) {
-            StringAppendSafe(regBuf, (unsigned char *)regName, 0x11);
+            StringAppendSafe(regBuf, regName, 0x11);
         }
     }
     sb ^= licSerial;
@@ -3794,10 +4593,15 @@ void HandlePlayerDockRequest(void)
     sb = uVal2;
     if (sb != 0)
         RegScramC(uVal2);
-    badLicense = (shipData[36].unkC940 != 0 && nameMatch == 0)
+    badLicense = (shipData[36].licenseCopies != 0 && nameMatch == 0)
         ? (unsigned char)1 : (unsigned char)0;
+#endif
     if (badLicense && TimerGetElapsedSeconds() > 0x4b0)
+#ifdef MACBUILD
+        FT_FileDelete(-3, "EV Nova License");
+#else
         FT_FileDelete(-3, "EV Nova License.lcs");
+#endif
 
     if (!StellarIsLandable(&stellarData[ship->targetStellar]) ||
         ship->curSystem != stellarData[ship->targetStellar].system ||
@@ -3808,16 +4612,16 @@ void HandlePlayerDockRequest(void)
     if (iVal2 > 0 && stellarData[ship->targetStellar].dominated == 0 &&
         iVal2 > shipData->credits) {
         strcpy((char *)msg, "");
-        AppendIndString((char *)msg, kGameStrList, 0x3d);
+        StrcatIndCString((char *)msg, kGameStrList, 0x3d);
         strcat((char *)msg, " ");
         strcat((char *)msg, creditsCString);
         strcat((char *)msg, " ");
-        if (stellarData[ship->targetStellar].flags2 & 0x1000) {
-            AppendIndString((char *)msg, kGameStrList, 0x3e);
-        } else if (stellarData[ship->targetStellar].flags & 0x10) {
-            AppendIndString((char *)msg, kGameStrList, 0x3f);
+        if (stellarData[ship->targetStellar].flags2 & kSpobHypergate) {
+            StrcatIndCString((char *)msg, kGameStrList, 0x3e);
+        } else if (stellarData[ship->targetStellar].flags & kSpobIsStation) {
+            StrcatIndCString((char *)msg, kGameStrList, 0x3f);
         } else {
-            AppendIndString((char *)msg, kGameStrList, 0x40);
+            StrcatIndCString((char *)msg, kGameStrList, 0x40);
         }
         CtoPstr((char *)msg);
         DisplayComm(msg, 0xfa, 0, 0xc, &rgbWhite, 0, 0);
@@ -3835,29 +4639,35 @@ void HandlePlayerDockRequest(void)
         goto done;
     if (IsDying(ship))
         goto done;
-    autoDockFlag = stellarData[ship->targetStellar].flags & 0x10;
-    if (stellarData[ship->targetStellar].flags & 0x20) {
+    dockLand = stellarData[ship->targetStellar].flags & kSpobIsStation;
+#ifdef MACBUILD
+    iVal2 = !(stellarData[ship->targetStellar].flags & kSpobUninhabited);
+    if (iVal2 == 0) {
+#else
+    if (stellarData[ship->targetStellar].flags & kSpobUninhabited) {
+#endif
         dockPermission = 0x2ee;
         ship->aiTimer = 0;
         dockTarget = ship->targetStellar;
         GetIndString(msg, kGameStrList, 0x35);
         DisplayComm(msg, 0xfa, 0, 0xc, &rgbWhite, 0, 0);
     }
-    sVal = ship->targetStellar;
-    if (dockTarget == sVal) {
-        fdx = fabs((double)ship->vel.x);
-        fdy = fabs((double)ship->vel.y);
+    if (dockTarget == ship->targetStellar) {
+        float fdy;
+        float fdx;
+
+        fdx = FloatAbs(ship->vel.x);
+        fdy = FloatAbs(ship->vel.y);
         if (dockPermission >= 0x2ee &&
             ship->aiTimer <= 0.0f &&
             fdx <= 0.75 &&
             fdy <= 0.75) {
-
             distX = abs((short)(ship->pos.x
-                    - stellarData[sVal].pos.h));
+                    - stellarData[ship->targetStellar].pos.h));
             distY = abs((short)(ship->pos.y
-                    - stellarData[sVal].pos.v));
-            if (stellarData[sVal].sprite->curFrameP) {
-                sVal = GetStellarSpriteXSize(sVal) * 1.75;
+                    - stellarData[ship->targetStellar].pos.v));
+            if (stellarData[ship->targetStellar].sprite->curFrameP) {
+                sVal = GetStellarSpriteXSize(ship->targetStellar) * 1.75;
             } else {
                 sVal = 0x4b;
             }
@@ -3866,11 +4676,8 @@ void HandlePlayerDockRequest(void)
                 offeringFromShip = 0;
                 dockedPort = &stellarData[ship->targetStellar];
                 if (lastMissionStellar != ship->targetStellar || lastMissionStellar < 0) {
-                    sVal2 = 0;
-                    do {
+                    for (sVal2 = 0; sVal2 < 1000; sVal2++)
                         missionRandom[sVal2] = Rand(100) + 1;
-                        sVal2++;
-                    } while (sVal2 < 1000);
                     RandomizeMissionData();
                 }
                 lastMissionStellar = ship->targetStellar;
@@ -3881,10 +4688,10 @@ void HandlePlayerDockRequest(void)
                 DrawStatus();
                 KillVoiceSound();
                 AdjustSoundVolume();
-                iVal2 = stellarData[dockTarget].landingFee;
-                if (iVal2 > 0 && stellarData[dockTarget].dominated == 0 &&
-                    (shipData->credits -= iVal2, shipData->credits < 0)) {
-                    shipData->credits = 0;
+                if (stellarData[dockTarget].landingFee > 0 && stellarData[dockTarget].dominated == 0) {
+                    shipData->credits -= stellarData[dockTarget].landingFee;
+                    if (shipData->credits < 0)
+                        shipData->credits = 0;
                 }
                 qtStellar = -1;
                 commResult = -1;
@@ -3898,16 +4705,16 @@ void HandlePlayerDockRequest(void)
                 FlushEvents(3, 0);
                 FlushEvents(4, 0);
                 FlushEvents(5, 0);
-                if (stellarData[ship->targetStellar].flags2 & 0x1000) {
+                if (stellarData[ship->targetStellar].flags2 & kSpobHypergate) {
                     qtStellar = PlayerEnterHypergate();
                     if (qtStellar == -1) {
                         dockTarget = -1;
-                        granted = 0;
                         dockPermission = 0;
+                        granted = 0;
                     } else {
                         granted = 1;
                     }
-                } else if (stellarData[ship->targetStellar].flags2 & 0x2000) {
+                } else if (stellarData[ship->targetStellar].flags2 & kSpobWormhole) {
                     commResult = PlayerEnterWormhole();
                     granted = 1;
                 } else {
@@ -3922,9 +4729,9 @@ void HandlePlayerDockRequest(void)
                 killExplods = 1;
                 killSmoke = 1;
                 killAsteroids = 1;
-                if ((gShipTypes[ship->type].shanFlags & 2) != 0 &&
-                    (gShipTypes[ship->type].shanFlags & 0x80) != 0) {
-                    ship->foldSet = gShipTypes[ship->type].baseSets - 1;
+                if ((shipClass[ship->type].shanFlags & kShanFoldingParts) != 0 &&
+                    (shipClass[ship->type].shanFlags & kShanUnfoldsWhenFiring) != 0) {
+                    ship->foldSet = shipClass[ship->type].baseSets - 1;
                     ship->foldDir = 0;
                 } else {
                     ship->foldSet = 0;
@@ -3958,19 +4765,17 @@ void HandlePlayerDockRequest(void)
                 antiEscortDelay = Rand(0x1e) + 0x1e;
                 DeleteAllComputerShips(0, 1);
                 ResetPlayerPrecalcedValues();
-                if (gSystems[ship->curSystem].murk < 0)
+                if (systemData[ship->curSystem].murk < 0)
                     ClearStarfield();
                 LoadIntfResource();
                 SWSetPortToBackground(gSpriteWorld);
                 SetSystemBackgroundColor();
                 PaintRect(&gSpriteWorld->windRect);
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
                 SWSetPortToWindow(gSpriteWorld);
                 SWFlagRectAsChanged(gSpriteWorld, &gSpriteWorld->windRect);
                 RedrawComm(1);
-                if (qtStellar == -1 && commResult == -1) {
-                    SetupShipsInSystem(ship->curSystem, 1);
-                } else {
+                if (qtStellar != -1 || commResult != -1) {
                     MissionHandlePlayerEnteredNewSystem();
                     for (sVal = 0; sVal < 0x10; sVal++) {
                         if (currentMissionObjectives[sVal].active != 0 &&
@@ -3986,14 +4791,14 @@ void HandlePlayerDockRequest(void)
                                 if (currentMissions[sVal].shipBehav == 0) {
                                     if (dudeData[currentMissions[sVal].shipDude].govt != -1) {
                                         if (qtStellar != -1 &&
-                                            (govtData[dudeData[currentMissions[sVal].shipDude].govt].flags2 & 0x20) == 0) {
-                                            if ((govtData[dudeData[currentMissions[sVal].shipDude].govt].flags2 & 0x40) != 0 ||
+                                            (govtData[dudeData[currentMissions[sVal].shipDude].govt].flags2 & kGovtNoHypergates) == 0) {
+                                            if ((govtData[dudeData[currentMissions[sVal].shipDude].govt].flags2 & kGovtPrefersHypergates) != 0 ||
                                                 Rand(2) == 0) {
                                                 currentMissions[sVal].shipDelay = 0;
                                                 currentMissions[sVal].specialShipsJumpedIn = 0;
                                             }
                                         } else if (commResult != -1 &&
-                                                   ((govtData[dudeData[currentMissions[sVal].shipDude].govt].flags2 & 0x80) != 0 ||
+                                                   ((govtData[dudeData[currentMissions[sVal].shipDude].govt].flags2 & kGovtPrefersWormholes) != 0 ||
                                                     Rand(4) == 0)) {
                                             currentMissions[sVal].shipDelay = 0;
                                             currentMissions[sVal].specialShipsJumpedIn = 0;
@@ -4007,19 +4812,19 @@ void HandlePlayerDockRequest(void)
                     }
                     SetupShipsInSystem(ship->curSystem, 0);
                     EnterMoreShips(ship->curSystem);
-                    if (qtStellar == -1)
-                        spawnStellar = commResult;
-                    else
+                    if (qtStellar != -1)
                         spawnStellar = qtStellar;
-                    for (sVal2 = 0; sVal2 < 0x10; sVal2++) {
-                        if (currentMissionObjectives[sVal2].active != 0 &&
-                            currentMissions[sVal2].shipSyst == -6 &&
-                            currentMissions[sVal2].shipCount > 0 &&
-                            currentMissions[sVal2].shipBehav == 0 &&
-                            currentMissions[sVal2].shipDelay == -1) {
+                    else
+                        spawnStellar = commResult;
+                    for (dockMission = 0; dockMission < 0x10; dockMission++) {
+                        if (currentMissionObjectives[dockMission].active != 0 &&
+                            currentMissions[dockMission].shipSyst == -6 &&
+                            currentMissions[dockMission].shipCount > 0 &&
+                            currentMissions[dockMission].shipBehav == 0 &&
+                            currentMissions[dockMission].shipDelay == -1) {
                             for (i = 1; i < 0x40; i++) {
                                 if (shipData[i].active != 0 &&
-                                    sVal2 == shipData[i].specialMission) {
+                                    dockMission == shipData[i].specialMission) {
                                     shipData[i].vel.x = 0;
                                     shipData[i].vel.y = 0;
                                     shipData[i].accelMag = 0;
@@ -4033,20 +4838,24 @@ void HandlePlayerDockRequest(void)
                             }
                         }
                     }
+                } else {
+                    SetupShipsInSystem(ship->curSystem, 1);
                 }
                 HandleStellarSystemVisibility();
                 ship->targetStellar = -1;
-                SelectHyperLinkToSelection();
+                CueNextHyperRouteDest();
                 SpawnBountyHunter();
                 if (qtStellar != -1 || commResult != -1) {
                     if (qtStellar != -1)
-                        commResult = qtStellar;
+                        spawnStellar = qtStellar;
+                    else
+                        spawnStellar = commResult;
                     for (sVal = 1; sVal < 0x40; sVal++) {
                         if (shipData[sVal].active != 0 &&
                             shipData[sVal].parentShip == 0) {
-                            AIMakeShipEmergeFromHyperGate(&shipData[sVal], commResult);
-                            shipData[sVal].pos.x = stellarData[commResult].pos.h;
-                            shipData[sVal].pos.y = stellarData[commResult].pos.v;
+                            AIMakeShipEmergeFromHyperGate(&shipData[sVal], spawnStellar);
+                            shipData[sVal].pos.x = stellarData[spawnStellar].pos.h;
+                            shipData[sVal].pos.y = stellarData[spawnStellar].pos.v;
                             shipData[sVal].heading = ship->heading;
                             shipData[sVal].aiTimer = (Rand(0x14) + 0xf);
                         }
@@ -4074,11 +4883,11 @@ void HandlePlayerDockRequest(void)
                 PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
                 if (ship->targetStellar < 0)
                     goto done;
-                if (stellarData[ship->targetStellar].flags2 & 0x1000) {
+                if (stellarData[ship->targetStellar].flags2 & kSpobHypergate) {
                     GetIndString(msg, kGameStrList, 0x41);
-                } else if (stellarData[ship->targetStellar].flags2 & 0x2000) {
+                } else if (stellarData[ship->targetStellar].flags2 & kSpobWormhole) {
                     GetIndString(msg, kGameStrList, 0x42);
-                } else if (autoDockFlag != 0) {
+                } else if (dockLand != 0) {
                     GetIndString(msg, kGameStrList, 0x43);
                 } else {
                     GetIndString(msg, kGameStrList, 0x44);
@@ -4088,15 +4897,12 @@ void HandlePlayerDockRequest(void)
             }
         } else {
             PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
-            sVal = ship->targetStellar;
-            if (sVal < 0)
+            if (ship->targetStellar < 0 || ship->targetStellar >= 0x800)
                 goto done;
-            if (sVal >= 0x800)
-                goto done;
-            if (!stellarData[sVal].sprite->curFrameP) {
+            if (!stellarData[ship->targetStellar].sprite->curFrameP) {
                 sVal = 0x4b;
             } else {
-                sVal = GetStellarSpriteXSize(sVal) * 1.75;
+                sVal = GetStellarSpriteXSize(ship->targetStellar) * 1.75;
             }
             distX = abs((short)(ship->pos.x
                     - stellarData[ship->targetStellar].pos.h));
@@ -4104,22 +4910,22 @@ void HandlePlayerDockRequest(void)
                     - stellarData[ship->targetStellar].pos.v));
             if ((short)distX < sVal && (short)distY < sVal &&
                 dockPermission >= 0x2ee) {
-                if (stellarData[ship->targetStellar].flags2 & 0x1000) {
+                if (stellarData[ship->targetStellar].flags2 & kSpobHypergate) {
                     GetIndString(msg, kGameStrList, 0x45);
-                } else if (stellarData[ship->targetStellar].flags2 & 0x2000) {
+                } else if (stellarData[ship->targetStellar].flags2 & kSpobWormhole) {
                     GetIndString(msg, kGameStrList, 0x46);
-                } else if (autoDockFlag != 0) {
+                } else if (dockLand != 0) {
                     GetIndString(msg, kGameStrList, 0x47);
                 } else {
                     GetIndString(msg, kGameStrList, 0x48);
                 }
                 DisplayComm(msg, 0x168, 0, 0xc, &rgbWhite, 0, 0);
             } else {
-                if (stellarData[ship->targetStellar].flags2 & 0x1000) {
+                if (stellarData[ship->targetStellar].flags2 & kSpobHypergate) {
                     GetIndString(msg, kGameStrList, 0x41);
-                } else if (stellarData[ship->targetStellar].flags2 & 0x2000) {
+                } else if (stellarData[ship->targetStellar].flags2 & kSpobWormhole) {
                     GetIndString(msg, kGameStrList, 0x42);
-                } else if (autoDockFlag != 0) {
+                } else if (dockLand != 0) {
                     GetIndString(msg, kGameStrList, 0x43);
                 } else {
                     GetIndString(msg, kGameStrList, 0x44);
@@ -4131,72 +4937,65 @@ void HandlePlayerDockRequest(void)
     }
 
     /* dockTarget != stellar: the player has just asked to dock here. */
-    dockTarget = sVal;
-    fdx = ship->pos.x - stellarData[sVal].pos.h;
-    distX = abs((short)fdx);
-    fdy = ship->pos.y - stellarData[sVal].pos.v;
-    distY = abs((short)fdy);
-    qtStellar = stellarData[sVal].minStatus;
+    dockTarget = ship->targetStellar;
+    dockDistX = abs((short)(ship->pos.x - stellarData[dockTarget].pos.h));
+    distY = abs((short)(ship->pos.y - stellarData[dockTarget].pos.v));
     granted = 0;
-    if ((playerLegalStatus[ship->curSystem] >= qtStellar || qtStellar == -0x7fff) &&
-        qtStellar != 0x7fff)
+    if ((playerRecord[ship->curSystem] >= stellarData[dockTarget].minStatus ||
+         stellarData[dockTarget].minStatus == -0x7fff) &&
+        stellarData[dockTarget].minStatus != 0x7fff)
         granted = 1;
-    if (stellarData[sVal].dominated != 0)
+    if (stellarData[dockTarget].dominated != 0)
         granted = 1;
     if (dockPermission >= 0x2ee)
         granted = 1;
-    if (stellarData[sVal].govt != -1 &&
+    if (stellarData[dockTarget].govt != -1 &&
         !PlayerMeetsRequirements(
-            govtData[stellarData[sVal].govt].requires[0],
-            govtData[stellarData[sVal].govt].requires[1]))
+            govtData[stellarData[dockTarget].govt].requires[0],
+            govtData[stellarData[dockTarget].govt].requires[1]))
         granted = 0;
     if (!granted) {
         for (sVal = 0; sVal < 0x10; sVal++) {
             if (currentMissionObjectives[sVal].active != 0) {
-                if (shipData->targetStellar == currentMissions[sVal].travelStellar)
+                if (currentMissions[sVal].travelStellar == shipData->targetStellar)
                     granted = 1;
                 if (shipData->targetStellar == currentMissions[sVal].returnStellar)
                     granted = 1;
             }
         }
     }
-    if (!granted && (sVal = stellarData[dockTarget].govt, sVal != -1) &&
-        PlayerBlessedByGovt(sVal, 1))
+    if (!granted && stellarData[dockTarget].govt != -1 &&
+        PlayerBlessedByGovt(stellarData[dockTarget].govt, 1))
         granted = 1;
     if (granted) {
-        if ((short)distX < 0xfa && (short)distY < 0xfa) {
+        if ((short)dockDistX < 0xfa && (short)distY < 0xfa) {
             dockPermission = 0x2ed;
             goto done;
         }
         dockPermission = 0;
         PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
         strcpy((char *)msg, "");
-        if ((stellarData[dockTarget].flags2 & 0x1000) == 0) {
-            if (stellarData[dockTarget].flags & 0x10) {
-                if (Rand(3) == 0) {
-                    strncpy((char *)msg, (char *)stellarData[shipData->targetStellar].name, 0x1f);
-                    PtoCstr(msg);
-                    strcat((char *)msg, " ");
-                    AppendIndString((char *)msg, kGameStrList, 0x4c);
-                    goto greetTail;
-                } else {
-                    AppendIndString((char *)msg, kGameStrList, 0x4d);
-                }
+        if (stellarData[dockTarget].flags2 & kSpobHypergate) {
+            StrcatIndCString((char *)msg, kGameStrList, Rand(2) + 0x4a);
+        } else if (stellarData[dockTarget].flags & kSpobIsStation) {
+            if (Rand(3) == 0) {
+                strncpy((char *)msg, (char *)stellarData[shipData->targetStellar].name, 0x1f);
+                PtoCstr(msg);
+                strcat((char *)msg, " ");
+                StrcatIndCString((char *)msg, kGameStrList, 0x4c);
             } else {
-                if (Rand(3) == 0) {
-                    strncpy((char *)msg, (char *)stellarData[shipData->targetStellar].name, 0x1f);
-                    PtoCstr(msg);
-                    strcat((char *)msg, " ");
-                    AppendIndString((char *)msg, kGameStrList, 0x4e);
-                    goto greetTail;
-                } else {
-                    AppendIndString((char *)msg, kGameStrList, 0x4f);
-                }
+                StrcatIndCString((char *)msg, kGameStrList, 0x4d);
             }
         } else {
-            AppendIndString((char *)msg, kGameStrList, Rand(2) + 0x4a);
+            if (Rand(3) == 0) {
+                strncpy((char *)msg, (char *)stellarData[shipData->targetStellar].name, 0x1f);
+                PtoCstr(msg);
+                strcat((char *)msg, " ");
+                StrcatIndCString((char *)msg, kGameStrList, 0x4e);
+            } else {
+                StrcatIndCString((char *)msg, kGameStrList, 0x4f);
+            }
         }
-greetTail:
         if (Rand(2) == 0) {
             strncpy((char *)pbuf, (char *)shipName, 0x40);
             PtoCstr(pbuf);
@@ -4204,15 +5003,15 @@ greetTail:
             strcat((char *)msg, (char *)pbuf);
         }
         strcat((char *)msg, ". ");
-        AppendIndString((char *)msg, kGameStrList, 0x50);
+        StrcatIndCString((char *)msg, kGameStrList, 0x50);
         CtoPstr((char *)msg);
         DisplayComm(msg, 0xfa, 0, 0xc, &rgbWhite, 0, 0);
         goto done;
     } else {
         PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
-        if (stellarData[dockTarget].flags2 & 0x1000) {
+        if (stellarData[dockTarget].flags2 & kSpobHypergate) {
             GetIndString(msg, kGameStrList, 0x51);
-        } else if (stellarData[dockTarget].flags & 0x10) {
+        } else if (stellarData[dockTarget].flags & kSpobIsStation) {
             GetIndString(msg, kGameStrList, 0x52);
         } else {
             GetIndString(msg, kGameStrList, 0x53);
@@ -4229,27 +5028,27 @@ cantDock:
 
         strcpy((char *)msg, "");
     }
-    AppendIndString((char *)msg, kGameStrList, 0x54);
+    StrcatIndCString((char *)msg, kGameStrList, 0x54);
     strcat((char *)msg, " ");
-    if (stellarData[ship->targetStellar].flags2 & 0x1000) {
-        AppendIndString((char *)msg, kGameStrList, 0x55);
-    } else if (stellarData[ship->targetStellar].flags2 & 0x2000) {
-        AppendIndString((char *)msg, kGameStrList, 0x56);
-    } else if (stellarData[ship->targetStellar].flags & 0x10) {
-        AppendIndString((char *)msg, kGameStrList, 0x57);
+    if (stellarData[ship->targetStellar].flags2 & kSpobHypergate) {
+        StrcatIndCString((char *)msg, kGameStrList, 0x55);
+    } else if (stellarData[ship->targetStellar].flags2 & kSpobWormhole) {
+        StrcatIndCString((char *)msg, kGameStrList, 0x56);
+    } else if (stellarData[ship->targetStellar].flags & kSpobIsStation) {
+        StrcatIndCString((char *)msg, kGameStrList, 0x57);
     } else {
-        AppendIndString((char *)msg, kGameStrList, 0x58);
+        StrcatIndCString((char *)msg, kGameStrList, 0x58);
     }
-    if ((stellarData[ship->targetStellar].flags2 & 0x3000) == 0) {
+    if ((stellarData[ship->targetStellar].flags2 & (kSpobHypergate | kSpobWormhole)) == 0) {
         strcat((char *)msg, " ");
         pstrcpy(pbuf, stellarData[ship->targetStellar].name);
         PtoCstr(pbuf);
         strcat((char *)msg, (char *)pbuf);
         strcat((char *)msg, ". ");
-        if (stellarData[ship->targetStellar].flags & 0x10)
-            AppendIndString((char *)msg, kGameStrList, 0x59);
+        if (stellarData[ship->targetStellar].flags & kSpobIsStation)
+            StrcatIndCString((char *)msg, kGameStrList, 0x59);
         else
-            AppendIndString((char *)msg, kGameStrList, 0x5a);
+            StrcatIndCString((char *)msg, kGameStrList, 0x5a);
     }
     CtoPstr((char *)msg);
     DisplayComm(msg, 0xfa, 0, 0xc, &rgbWhite, 0, 0);
@@ -4277,40 +5076,42 @@ done:
 #define kStrFeeSmall        104
 #define kStrFeeTail         105
 
-#define kSpobFlagBig        0x10    /* selects the 94-96 greeting set (name TBC) */
-#define kSpobFlagUninhabited 0x20
-#define kSpob2FlagSpecial   0x1000  /* selects the 91-93 greeting set (name TBC) */
-
 /* HandlePlayerDockApproach. STATE: MATCH 675/675, byte-identical yes (2679 bytes),
    relocregcheck 0 of 146. OPEN: none -- `inhabited = !(...)' then `canDock = 0' before the
    govt read is what places the entry compare's registers; see notes. */
 // FUNCTION: EVNOVA 0x00459950
+// MAC: _HandlePlayerDockApproach i386 0x000647a6 ppc 0x0006c824
 void HandlePlayerDockApproach(void)
 {
+    short govt;
+    Boolean canDock;
+    Boolean inhabited;
     ShipObj *me;
     long targ;
-    short govt;
-    char inhabited;
-    char canDock;
     short i;
     short dx;
     short dy;
     short r;
-    char tmp[256];
-    char msg[256];
+    unsigned char msg[256];
+    unsigned char tmp[256];
 
     me = shipData;
+#ifdef MAC1010
+#define targ dockTarget
+    if (me->curSystem == stellarData[targ].system) {
+#else
     targ = dockTarget;
     if (stellarData[targ].system == shipData[0].curSystem) {
+#endif
         if (dockPermission <= -1)
             goto out;
-        inhabited = !(stellarData[targ].flags & kSpobFlagUninhabited);
+        inhabited = !(stellarData[targ].flags & kSpobUninhabited);
         canDock = 0;
         govt = stellarData[targ].govt;
         if (govt == -1)
             canDock = 1;
         else if (govt != -1) {
-            if ((playerLegalStatus[me->curSystem] >= stellarData[targ].minStatus ||
+            if ((playerRecord[me->curSystem] >= stellarData[targ].minStatus ||
                  stellarData[targ].minStatus == -32767) &&
                 stellarData[targ].minStatus != 32767)
                 canDock = 1;
@@ -4322,135 +5123,131 @@ void HandlePlayerDockApproach(void)
         if (!canDock) {
             for (i = 0; i < 16; i++) {
                 if (currentMissionObjectives[i].active) {
-                    if (shipData[0].targetStellar == currentMissions[i].travelStellar)
+                    if (currentMissions[i].travelStellar == shipData[0].targetStellar)
                         canDock = 1;
                     if (shipData[0].targetStellar == currentMissions[i].returnStellar)
                         canDock = 1;
                 }
             }
         }
-        if (!canDock && govt != -1 && PlayerBlessedByGovt(govt, 1))
-            canDock = 1;
+        if (!canDock) {
+            if (govt != -1 && PlayerBlessedByGovt(govt, 1))
+                canDock = 1;
+        }
         if (inhabited && canDock) {
             if (dockPermission < 749) ;
             else
                 dockPermission++;
-            targ = shipData[0].targetStellar;
-            dx = abs((short)(me->pos.x - stellarData[targ].pos.h));
-            dy = abs((short)(me->pos.y - stellarData[targ].pos.v));
+            dx = abs((short)(me->pos.x - stellarData[shipData[0].targetStellar].pos.h));
+            dy = abs((short)(me->pos.y - stellarData[shipData[0].targetStellar].pos.v));
             if (dx < 250 && dy < 250 && dockPermission < 750)
                 dockPermission = 750;
             if (dockPermission != 750) ;
             else {
                 PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
-                strcpy(msg, "");
-                targ = shipData[0].targetStellar;
-                if (stellarData[targ].flags2 & kSpob2FlagSpecial) {
+                strcpy((char *)msg, "");
+                if (stellarData[shipData[0].targetStellar].flags2 & kSpobHypergate) {
                     r = Rand(3);
                     if (r == 0) {
-                        AppendIndString(msg, kGameStrList, kStrGreetSpecialA);
-                        strcat(msg, ", ");
-                        strncpy(tmp, (char *)shipName, 0x40);
-                        PtoCstr((unsigned char *)tmp);
-                        strcat(msg, tmp);
-                        strcat(msg, ". ");
+                        StrcatIndCString((char *)msg, kGameStrList, kStrGreetSpecialA);
+                        strcat((char *)msg, ", ");
+                        strncpy((char *)tmp, (char *)shipName, 0x40);
+                        PtoCstr(tmp);
+                        strcat((char *)msg, (char *)tmp);
+                        strcat((char *)msg, ". ");
                     } else if (r == 1) {
-                        strncpy(msg, (char *)shipName, 0x40);
-                        PtoCstr((unsigned char *)msg);
-                        strcat(msg, ", ");
-                        AppendIndString(msg, kGameStrList, kStrGreetSpecialB);
+                        strncpy((char *)msg, (char *)shipName, 0x40);
+                        PtoCstr(msg);
+                        strcat((char *)msg, ", ");
+                        StrcatIndCString((char *)msg, kGameStrList, kStrGreetSpecialB);
                     } else
-                        AppendIndString(msg, kGameStrList, kStrGreetSpecialC);
-                    CtoPstr(msg);
+                        StrcatIndCString((char *)msg, kGameStrList, kStrGreetSpecialC);
+                    CtoPstr((char *)msg);
                 } else {
-                    if (stellarData[targ].flags & kSpobFlagBig) {
+                    if (stellarData[shipData[0].targetStellar].flags & kSpobIsStation) {
                         r = Rand(3);
                         if (r == 0) {
-                            AppendIndString(msg, kGameStrList, kStrGreetBigA);
-                            strcat(msg, ", ");
-                            strncpy(tmp, (char *)shipName, 0x40);
-                            PtoCstr((unsigned char *)tmp);
-                            strcat(msg, tmp);
-                            strcat(msg, ". ");
+                            StrcatIndCString((char *)msg, kGameStrList, kStrGreetBigA);
+                            strcat((char *)msg, ", ");
+                            strncpy((char *)tmp, (char *)shipName, 0x40);
+                            PtoCstr(tmp);
+                            strcat((char *)msg, (char *)tmp);
+                            strcat((char *)msg, ". ");
                         } else if (r == 1) {
-                            strncpy(msg, (char *)shipName, 0x40);
-                            PtoCstr((unsigned char *)msg);
-                            strcat(msg, ", ");
-                            AppendIndString(msg, kGameStrList, kStrGreetBigB);
-                            strcat(msg, " ");
+                            strncpy((char *)msg, (char *)shipName, 0x40);
+                            PtoCstr(msg);
+                            strcat((char *)msg, ", ");
+                            StrcatIndCString((char *)msg, kGameStrList, kStrGreetBigB);
+                            strcat((char *)msg, " ");
                         } else {
-                            AppendIndString(msg, kGameStrList, kStrGreetBigC);
-                            strcat(msg, " ");
+                            StrcatIndCString((char *)msg, kGameStrList, kStrGreetBigC);
+                            strcat((char *)msg, " ");
                         }
                     } else {
                         r = Rand(3);
                         if (r == 0) {
-                            AppendIndString(msg, kGameStrList, kStrGreetSmallA);
-                            strcat(msg, ", ");
-                            strncpy(tmp, (char *)shipName, 0x40);
-                            PtoCstr((unsigned char *)tmp);
-                            strcat(msg, tmp);
-                            strcat(msg, ". ");
+                            StrcatIndCString((char *)msg, kGameStrList, kStrGreetSmallA);
+                            strcat((char *)msg, ", ");
+                            strncpy((char *)tmp, (char *)shipName, 0x40);
+                            PtoCstr(tmp);
+                            strcat((char *)msg, (char *)tmp);
+                            strcat((char *)msg, ". ");
                         } else if (r == 1) {
-                            strncpy(msg, (char *)shipName, 0x40);
-                            PtoCstr((unsigned char *)msg);
-                            strcat(msg, ", ");
-                            AppendIndString(msg, kGameStrList, kStrGreetSmallB);
-                            strcat(msg, " ");
+                            strncpy((char *)msg, (char *)shipName, 0x40);
+                            PtoCstr(msg);
+                            strcat((char *)msg, ", ");
+                            StrcatIndCString((char *)msg, kGameStrList, kStrGreetSmallB);
+                            strcat((char *)msg, " ");
                         } else {
-                            AppendIndString(msg, kGameStrList, kStrGreetSmallC);
-                            strcat(msg, " ");
+                            StrcatIndCString((char *)msg, kGameStrList, kStrGreetSmallC);
+                            strcat((char *)msg, " ");
                         }
                     }
-                    r = Rand(2);
-                    if (r == 0) {
-                        AppendIndString(msg, kGameStrList, kStrWelcomeShort);
+                    if (Rand(2) == 0) {
+                        StrcatIndCString((char *)msg, kGameStrList, kStrWelcomeShort);
                     } else {
-                        AppendIndString(msg, kGameStrList, kStrWelcomeTo);
-                        strcat(msg, " ");
-                        strncpy(tmp, (char *)stellarData[shipData[0].targetStellar].name, 0x1f);
-                        PtoCstr((unsigned char *)tmp);
-                        strcat(msg, tmp);
-                        strcat(msg, ". ");
+                        StrcatIndCString((char *)msg, kGameStrList, kStrWelcomeTo);
+                        strcat((char *)msg, " ");
+                        strncpy((char *)tmp, (char *)stellarData[shipData[0].targetStellar].name, 0x1f);
+                        PtoCstr(tmp);
+                        strcat((char *)msg, (char *)tmp);
+                        strcat((char *)msg, ". ");
                     }
                     if (stellarData[dockTarget].landingFee > 0 &&
                         stellarData[dockTarget].dominated == 0) {
-                        strcat(msg, "  ");
-                        if (stellarData[dockTarget].flags2 & kSpob2FlagSpecial)
-                            AppendIndString(msg, kGameStrList, kStrFeeSpecial);
-                        else if (stellarData[dockTarget].flags & kSpobFlagBig)
-                            AppendIndString(msg, kGameStrList, kStrFeeBig);
+                        strcat((char *)msg, "  ");
+                        if (stellarData[dockTarget].flags2 & kSpobHypergate)
+                            StrcatIndCString((char *)msg, kGameStrList, kStrFeeSpecial);
+                        else if (stellarData[dockTarget].flags & kSpobIsStation)
+                            StrcatIndCString((char *)msg, kGameStrList, kStrFeeBig);
                         else
-                            AppendIndString(msg, kGameStrList, kStrFeeSmall);
-                        strcat(msg, " ");
-                        StrcatCommaNumber(stellarData[dockTarget].landingFee, msg);
-                        strcat(msg, " ");
-                        strcat(msg, creditsCString);
-                        AppendIndString(msg, kGameStrList, kStrFeeTail);
+                            StrcatIndCString((char *)msg, kGameStrList, kStrFeeSmall);
+                        strcat((char *)msg, " ");
+                        StrcatCommaNumber(stellarData[dockTarget].landingFee, (char *)msg);
+                        strcat((char *)msg, " ");
+                        strcat((char *)msg, creditsCString);
+                        StrcatIndCString((char *)msg, kGameStrList, kStrFeeTail);
                     }
-                    CtoPstr(msg);
+                    CtoPstr((char *)msg);
                 }
-                DisplayComm((unsigned char *)msg, 250, 0, 12, &rgbWhite, 0, 0);
+                DisplayComm(msg, 250, 0, 12, &rgbWhite, 0, 0);
             }
             if (dockPermission >= 0x800) {
                 dockPermission = -1;
                 dockTarget = -1;
             }
-        } else {
-            if (!canDock)
-                goto out;
+        } else if (canDock) {
             if (dockPermission < 749) ;
             else
                 dockPermission++;
-            targ = dockTarget;
-            dx = abs((short)(me->pos.x - stellarData[targ].pos.h));
-            dy = abs((short)(me->pos.y - stellarData[targ].pos.v));
+            dx = abs((short)(me->pos.x - stellarData[dockTarget].pos.h));
+            dy = abs((short)(me->pos.y - stellarData[dockTarget].pos.v));
             if (dx < 250 && dy < 250 && dockPermission < 750)
                 dockPermission = 750;
             if (dockPermission == 750 && dockTryFlag) {
                 PlaySound(beepSnd[0], 1, gSoundVolume, gSoundVolume);
-                GetIndString((unsigned char *)msg, kGameStrList, kStrAutoClearance);
-                DisplayComm((unsigned char *)msg, 240, 0, 12, &rgbWhite, 0, 0);
+                GetIndString(msg, kGameStrList, kStrAutoClearance);
+                DisplayComm(msg, 240, 0, 12, &rgbWhite, 0, 0);
             }
             if (dockPermission >= 0x800) {
                 dockPermission = -1;
@@ -4463,6 +5260,9 @@ void HandlePlayerDockApproach(void)
     }
 out: ;
 }
+#ifdef MAC1010
+#undef targ
+#endif
 
 /* STR# 2002 indexes */
 #define kStrTookCargo       106     /* "You pick up the" */
@@ -4476,33 +5276,27 @@ out: ;
 #define kStrNotAligned      131
 #define kStrTooFast         132
 
-#define kPersFlagOffersMission  0x200
-#define kPersFlagDeleteOnOffer  0x100
-#define kShipFlagBigBonus       0x10    /* picks the 0.1 armor refit (name TBC) */
-#define kMisnFlagBoardShip      0x1     /* flags55 bit 0 (name TBC) */
-#define kMisnFlagShipName       0x8     /* flags55 bit 3 (name TBC) */
-
-
                                                             /* 0x004694a0 fighter bay */
                                                             /* 0x00466fc0 */
 
 /* per-mission state, stride 0x14 */
 
-/* HandlePlayerBoardAttempt (mac _HandlePlayerBoardAttempt). STATE: MATCH 100%, exe 1355 / obj 1355,
-   byte-identical yes (relocs masked). OPEN: none. */
+/* HandlePlayerBoardAttempt (mac _HandlePlayerBoardAttempt). STATE: win MATCH 100%, exe 1355 / obj
+   1355, byte-identical yes (relocs masked); mac MATCH on both slices. OPEN: none. */
 // FUNCTION: EVNOVA 0x0045a3d0
+// MAC: _HandlePlayerBoardAttempt i386 0x00065000 ppc 0x0006d078
 void HandlePlayerBoardAttempt(void)
 {
     extern char *strcpy(char *dst, const char *src);   /* 0x004d6010 MSL, CALLED not inlined */
 
-    char skip;
+    unsigned char msg[256];
     unsigned char pbuf[256];
-    char msg[256];
     float limit;
     float dist;
     float limit2;
     ShipObj *me;
-    char canBoard;
+    Boolean canBoard;
+    Boolean skip;
     short j;
     short m;
     short k;
@@ -4520,38 +5314,38 @@ void HandlePlayerBoardAttempt(void)
     skip = 0;
 
     if (shipData[me->targetShip].boarded != 0 &&
-        (shipData[me->targetShip].specialMission != -1 || shipData[me->targetShip].formerEscort < 0)) {
+        (shipData[me->targetShip].specialMission != -1 || shipData[me->targetShip].formerEscort < 0))
+#if defined(MACBUILD) || V111
+        goto reject;
+#else
+    {
 reject:
         PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
-        GetIndString((unsigned char *)msg, kGameStrList, kStrCannotBoard);
-        DisplayComm((unsigned char *)msg, 360, 0, 12, &rgbWhite, 0, 0);
+        GetIndString(msg, kGameStrList, kStrCannotBoard);
+        DisplayComm(msg, 360, 0, 12, &rgbWhite, 0, 0);
         goto out;
     }
+#endif
     if (!IsDisabled(&shipData[me->targetShip]))
         goto reject;
     if (shipData[me->targetShip].active == 0)
         goto reject;
-    if (me->curSystem != shipData[me->targetShip].curSystem)
+    if (shipData[me->targetShip].curSystem != me->curSystem)
         goto reject;
     if (shipData[me->targetShip].persType == kPersCaptainHector)
         goto reject;
     if (IsDying(me))
         goto reject;
 
-    dist = fabs(shipData[me->targetShip].vel.x - me->vel.x);
-    if (dist <= 0.5) ; else
+    if (FloatAbs(shipData[me->targetShip].vel.x - me->vel.x) <= 0.5) ; else
         goto tooFast;
-    dist = fabs(shipData[me->targetShip].vel.y - me->vel.y);
-    if (dist <= 0.5) ; else
+    if (FloatAbs(shipData[me->targetShip].vel.y - me->vel.y) <= 0.5) ; else
         goto tooFast;
-
-    limit = GetSpriteXSize((SpriteRec *)shipData[me->targetShip].sprite) * 0.5;
-    dist = fabs(shipData[me->targetShip].pos.x - me->pos.x);
-    if (dist <= limit) ; else
+    if (FloatAbs(shipData[me->targetShip].pos.x - me->pos.x)
+            <= (float)(GetSpriteXSize((SpriteRec *)shipData[me->targetShip].sprite) * 0.5)) ; else
         goto notClose;
-    limit2 = GetSpriteYSize((SpriteRec *)shipData[me->targetShip].sprite) * 0.5;
-    dist = fabs(shipData[me->targetShip].pos.y - me->pos.y);
-    if (dist <= limit2) ; else
+    if (FloatAbs(shipData[me->targetShip].pos.y - me->pos.y)
+            <= (float)(GetSpriteYSize((SpriteRec *)shipData[me->targetShip].sprite) * 0.5)) ; else
         goto notClose;
 
     if (abs(AngularDifference(me->heading, shipData[me->targetShip].heading)) > 30) {
@@ -4564,67 +5358,77 @@ reject:
         m = shipData[me->targetShip].specialMission;
         if (currentMissionObjectives[m].active) {
             if (currentMissions[m].pickupMode == 2) {
+                SetRetainedWindow(gWind, false);
                 HideCursorSprite();
                 RefreshSAT();
                 ShowTheCursor();
                 canBoard = DoMissionCargoPickup(currentMissions[m].cargoType, currentMissions[m].cargoQty);
+                SetRetainedWindow(gWind, true);
                 SetAllKeyCmdFlags();
                 if (canBoard) {
                     if (shipData[me->targetShip].specialMission != -1 &&
                         currentMissionObjectives[shipData[me->targetShip].specialMission].active)
                         currentMissions[shipData[me->targetShip].specialMission].specialShipsBoarded++;
+#ifdef MACBUILD
+                    AIShipBoardedByPlayer(&shipData[me->targetShip]);
+#else
                     ClearTargetsOnShip(&shipData[me->targetShip]);
+#endif
                     shipData[me->targetShip].boarded = 1;
                     currentMissions[m].hasCargo = 1;
                     statusRedraw[2] = 1;
-                    strcpy(msg, "");
-                    AppendIndString(msg, kGameStrList, kStrTookCargo);
-                    strcat(msg, " ");
+                    strcpy((char *)msg, "");
+                    StrcatIndCString((char *)msg, kGameStrList, kStrTookCargo);
+                    strcat((char *)msg, " ");
                     if (lcCargoName[currentMissions[m].cargoType][1] != '*') {
-                        AppendIndString(msg, kGameStrList, kStrCargoSome);
-                        strcat(msg, " ");
+                        StrcatIndCString((char *)msg, kGameStrList, kStrCargoSome);
+                        strcat((char *)msg, " ");
                     }
                     pstrcpy(pbuf, lcCargoName[currentMissions[m].cargoType]);
                     PtoCstr(pbuf);
                     if (lcCargoName[currentMissions[m].cargoType][1] == '*')
-                        strcat(msg, (char *)pbuf + 1);
+                        strcat((char *)msg, (char *)pbuf + 1);
                     else
-                        strcat(msg, (char *)pbuf);
-                    strcat(msg, " ");
-                    AppendIndString(msg, kGameStrList, kStrCargoTail);
-                    CtoPstr(msg);
-                    DisplayComm((unsigned char *)msg, 250, 0, 12, &rgbWhite, 0, 0);
+                        strcat((char *)msg, (char *)pbuf);
+                    strcat((char *)msg, " ");
+                    StrcatIndCString((char *)msg, kGameStrList, kStrCargoTail);
+                    CtoPstr((char *)msg);
+                    DisplayComm(msg, 250, 0, 12, &rgbWhite, 0, 0);
                     PlaySound(beepSnd[4], 8, gSoundVolume, gSoundVolume);
                 } else {
                     skip = 1;
                 }
             } else if ((currentMissions[m].shipGoal == 2 || currentMissions[m].shipGoal == 5) &&
-                       (currentMissions[m].flags & kMisnFlagBoardShip) &&
+                       (currentMissions[m].flags & kMissionAutoAbort) &&
                        currentMissions[m].shipCount == 1) {
-                if (currentMissions[m].flags & kMisnFlagShipName) {
-                    pstrcpy((unsigned char *)msg, gShipTypes[shipData[me->targetShip].type].name);
-                    PtoCstr((unsigned char *)msg);
-                    strcat(msg, ":  ");
+                if (currentMissions[m].flags & kMissionTakesFuel) {
+                    pstrcpy(msg, shipClass[shipData[me->targetShip].type].name);
+                    PtoCstr(msg);
+                    strcat((char *)msg, ":  ");
                     pstrcpy(pbuf, fuelString[0]);
                     PtoCstr(pbuf);
-                    strcat(msg, (char *)pbuf);
-                    strcat(msg, ", ");
+                    strcat((char *)msg, (char *)pbuf);
+                    strcat((char *)msg, ", ");
                     pstrcpy(pbuf, shipName);
                     PtoCstr(pbuf);
-                    strcat(msg, (char *)pbuf);
-                    strcat(msg, ".");
+                    strcat((char *)msg, (char *)pbuf);
+                    strcat((char *)msg, ".");
                 } else {
-                    strcpy(msg, "");
-                    AppendIndString(msg, kGameStrList, kStrDropoffDone);
+                    strcpy((char *)msg, "");
+                    StrcatIndCString((char *)msg, kGameStrList, kStrDropoffDone);
                 }
-                CtoPstr(msg);
-                DisplayComm((unsigned char *)msg, 250, 0, 12, &rgbWhite, 0, 0);
+                CtoPstr((char *)msg);
+                DisplayComm(msg, 250, 0, 12, &rgbWhite, 0, 0);
                 PlaySound(beepSnd[4], 8, gSoundVolume, gSoundVolume);
                 if (currentMissionObjectives[shipData[me->targetShip].specialMission].active)
                     currentMissions[shipData[me->targetShip].specialMission].specialShipsBoarded++;
                 shipData[me->targetShip].aiTimer = 100.0;
                 shipData[me->targetShip].boarded = 1;
+#ifdef MACBUILD
+                AIShipBoardedByPlayer(&shipData[me->targetShip]);
+#else
                 ClearTargetsOnShip(&shipData[me->targetShip]);
+#endif
                 canBoard = 1;
             } else {
                 canBoard = 1;
@@ -4633,7 +5437,7 @@ reject:
             canBoard = 1;
         }
     } else {
-        if (gShipTypes[shipData[me->targetShip].type].crew > 0)
+        if (shipClass[shipData[me->targetShip].type].crew > 0)
             canBoard = 1;
         else
             canBoard = 0;
@@ -4645,8 +5449,12 @@ reject:
         me->vel.x = shipData[me->targetShip].vel.x;
         me->vel.y = shipData[me->targetShip].vel.y;
         j = 0;
+#ifdef MAC1010
+        m = shipData[me->targetShip].specialMission;
+#else
         k = me->targetShip;
         m = shipData[k].specialMission;
+#endif
         if (m == -1)
             j = 1;
         else if (currentMissionObjectives[m].active && currentMissionObjectives[m].failed)
@@ -4656,26 +5464,30 @@ reject:
             if (shipData[me->targetShip].persType != -1) {
                 if (personData[shipData[me->targetShip].persType].linkMission != -1) {
                     if (personData[shipData[me->targetShip].persType].flags &
-                        kPersFlagOffersMission) {
+                        kPersOfferWhenBoarded) {
                         offeringFromShip = 1;
                         offeringShipIndex = me->targetShip;
                         if (IsMissionAvailable(personData[shipData[me->targetShip].persType].linkMission, 1)) {
+                            SetRetainedWindow(gWind, false);
                             HideCursorSprite();
                             RefreshSAT();
                             ShowTheCursor();
                             PlaySound(hardDockSnd, 8, gSoundVolume, gSoundVolume);
                             if (OfferOneMission(personData[shipData[me->targetShip].persType].linkMission) != 1)
                                 skip = 1;
+                            SetRetainedWindow(gWind, true);
                             SetAllKeyCmdFlags();
                             RefreshSAT();
                             if (personData[shipData[me->targetShip].persType].flags &
-                                kPersFlagDeleteOnOffer)
+                                kPersDeactivateOnAccept)
                                 personData[shipData[me->targetShip].persType].loaded = 0;
                         } else {
                             PlaySound(hardDockSnd, 8, gSoundVolume, gSoundVolume);
+                            SetRetainedWindow(gWind, false);
                             HideCursorSprite();
                             RefreshSAT();
                             DoPlunderDialog();
+                            SetRetainedWindow(gWind, true);
                             SetAllKeyCmdFlags();
                         }
                         offeringFromShip = 0;
@@ -4683,8 +5495,8 @@ reject:
                     } else {
                         if (CanBuyFighter(shipData[me->targetShip].type, -1, -1) &&
                             shipData[me->targetShip].formerEscort == 0) {
-                            GetIndString((unsigned char *)msg, kGameStrList, kStrRefuseYield);
-                            DisplayComm((unsigned char *)msg, 250, 0, 12, &rgbWhite, 0, 0);
+                            GetIndString(msg, kGameStrList, kStrRefuseYield);
+                            DisplayComm(msg, 250, 0, 12, &rgbWhite, 0, 0);
                             PlaySound(beepSnd[4], 8, gSoundVolume, gSoundVolume);
                             shipData[me->targetShip].formerEscort = -1;
                             shipData[me->targetShip].aiType = 5;
@@ -4695,17 +5507,19 @@ reject:
                             AIAddFighterToParent(&shipData[me->targetShip]);
                         } else {
                             PlaySound(hardDockSnd, 8, gSoundVolume, gSoundVolume);
+                            SetRetainedWindow(gWind, false);
                             HideCursorSprite();
                             RefreshSAT();
                             DoPlunderDialog();
+                            SetRetainedWindow(gWind, true);
                             SetAllKeyCmdFlags();
                         }
                     }
                 } else {
                     if (CanBuyFighter(shipData[me->targetShip].type, -1, -1) &&
                         shipData[me->targetShip].formerEscort == 0) {
-                        GetIndString((unsigned char *)msg, kGameStrList, kStrRefuseYield);
-                        DisplayComm((unsigned char *)msg, 250, 0, 12, &rgbWhite, 0, 0);
+                        GetIndString(msg, kGameStrList, kStrRefuseYield);
+                        DisplayComm(msg, 250, 0, 12, &rgbWhite, 0, 0);
                         PlaySound(beepSnd[4], 8, gSoundVolume, gSoundVolume);
                         shipData[me->targetShip].formerEscort = -1;
                         shipData[me->targetShip].aiType = 5;
@@ -4717,9 +5531,11 @@ reject:
                     } else {
                         DoGoodSamaritan(&shipData[me->targetShip], me);
                         PlaySound(hardDockSnd, 8, gSoundVolume, gSoundVolume);
+                        SetRetainedWindow(gWind, false);
                         HideCursorSprite();
                         RefreshSAT();
                         DoPlunderDialog();
+                        SetRetainedWindow(gWind, true);
                         SetAllKeyCmdFlags();
                     }
                 }
@@ -4733,7 +5549,7 @@ reject:
                     else
                         shipData[me->targetShip].hired = 0;
                     shipData[me->targetShip].formerEscort = -1;
-                    if (gShipTypes[shipData[me->targetShip].type].flags & kShipFlagBigBonus)
+                    if (shipClass[shipData[me->targetShip].type].flags & kShipArmorDisableTenth)
                         shipData[me->targetShip].armor =
                             ShipArmorCapacity(&shipData[me->targetShip]) * 0.1 + 1.0;
                     else
@@ -4743,13 +5559,13 @@ reject:
                     for (k = 0; k < 6; k++)
                         shipData[0].cargo[k] += shipData[me->targetShip].cargo[k];
                     statusRedraw[2] = 1;
-                    GetIndString((unsigned char *)msg, kGameStrList, kStrEscortJoins);
-                    DisplayComm((unsigned char *)msg, 250, 0, 12, &rgbWhite, 0, 0);
+                    GetIndString(msg, kGameStrList, kStrEscortJoins);
+                    DisplayComm(msg, 250, 0, 12, &rgbWhite, 0, 0);
                     PlaySound(beepSnd[4], 8, gSoundVolume, gSoundVolume);
                 } else if (CanBuyFighter(shipData[me->targetShip].type, -1, -1) &&
                            shipData[me->targetShip].formerEscort == 0) {
-                    GetIndString((unsigned char *)msg, kGameStrList, kStrRefuseYield);
-                    DisplayComm((unsigned char *)msg, 250, 0, 12, &rgbWhite, 0, 0);
+                    GetIndString(msg, kGameStrList, kStrRefuseYield);
+                    DisplayComm(msg, 250, 0, 12, &rgbWhite, 0, 0);
                     PlaySound(beepSnd[4], 8, gSoundVolume, gSoundVolume);
                     shipData[me->targetShip].formerEscort = -1;
                     shipData[me->targetShip].aiType = 5;
@@ -4760,8 +5576,8 @@ reject:
                     AIAddFighterToParent(&shipData[me->targetShip]);
                 } else if (CanBuyFighter(shipData[me->targetShip].type, -1, -1) &&
                            shipData[me->targetShip].formerEscort == -1) {
-                    GetIndString((unsigned char *)msg, kGameStrList, kStrRefuseYieldAlt);
-                    DisplayComm((unsigned char *)msg, 250, 0, 12, &rgbWhite, 0, 0);
+                    GetIndString(msg, kGameStrList, kStrRefuseYieldAlt);
+                    DisplayComm(msg, 250, 0, 12, &rgbWhite, 0, 0);
                     PlaySound(beepSnd[4], 8, gSoundVolume, gSoundVolume);
                     shipData[me->targetShip].formerEscort = -1;
                     shipData[me->targetShip].aiType = 5;
@@ -4773,18 +5589,22 @@ reject:
                 } else {
                     DoGoodSamaritan(&shipData[me->targetShip], me);
                     PlaySound(hardDockSnd, 8, gSoundVolume, gSoundVolume);
+                    SetRetainedWindow(gWind, false);
                     HideCursorSprite();
                     RefreshSAT();
                     DoPlunderDialog();
+                    SetRetainedWindow(gWind, true);
                     SetAllKeyCmdFlags();
                 }
             }
         } else if (m == -1) {
             DoGoodSamaritan(&shipData[me->targetShip], me);
             PlaySound(hardDockSnd, 8, gSoundVolume, gSoundVolume);
+            SetRetainedWindow(gWind, false);
             HideCursorSprite();
             RefreshSAT();
             DoPlunderDialog();
+            SetRetainedWindow(gWind, true);
             SetAllKeyCmdFlags();
         }
         if (skip)
@@ -4792,29 +5612,49 @@ reject:
         if (me->targetShip == -1)
             goto out;
         shipData[me->targetShip].boarded = 1;
+#ifdef MACBUILD
+        AIShipBoardedByPlayer(&shipData[me->targetShip]);
+#else
         ClearTargetsOnShip(&shipData[me->targetShip]);
+#endif
     }
     goto out;
 
+#if V111 /* V111 spelling */
+#else
 cantBoard:
     PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
-    GetIndString((unsigned char *)msg, kGameStrList, kStrCannotBoard);
-    DisplayComm((unsigned char *)msg, 360, 0, 12, &rgbWhite, 0, 0);
+    GetIndString(msg, kGameStrList, kStrCannotBoard);
+    DisplayComm(msg, 360, 0, 12, &rgbWhite, 0, 0);
     goto out;
+#endif
 notClose:
     PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
-    GetIndString((unsigned char *)msg, kGameStrList, kStrNotAligned);
-    DisplayComm((unsigned char *)msg, 360, 0, 12, &rgbWhite, 0, 0);
+    GetIndString(msg, kGameStrList, kStrNotAligned);
+    DisplayComm(msg, 360, 0, 12, &rgbWhite, 0, 0);
     goto out;
 tooFast:
     PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
-    GetIndString((unsigned char *)msg, kGameStrList, kStrTooFast);
-    DisplayComm((unsigned char *)msg, 360, 0, 12, &rgbWhite, 0, 0);
+    GetIndString(msg, kGameStrList, kStrTooFast);
+    DisplayComm(msg, 360, 0, 12, &rgbWhite, 0, 0);
+    goto out;
+#ifdef MAC1010
+reject:
+    PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
+    GetIndString(msg, kGameStrList, kStrCannotBoard);
+    DisplayComm(msg, 360, 0, 12, &rgbWhite, 0, 0);
+#elif V111 /* V111 spelling */
+reject:
+cantBoard:
+    PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
+    GetIndString(msg, kGameStrList, kStrCannotBoard);
+    DisplayComm(msg, 360, 0, 12, &rgbWhite, 0, 0);
+#endif
 out:;
 }
 
 /*
- * WrapNearbyObject skips anything further than 15000 units from the
+ * WrapObject skips anything further than 15000 units from the
  * player, which is why the shift is applied to the player LAST. beamData is
  * the odd one out: its endpoints are shorts, not floats, so the shift is
  * written inline and each store carries the float-to-int rounding correction
@@ -4833,14 +5673,15 @@ out:;
 
 /* WrapPlayerPosition. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0045baa0
+// MAC: _WrapPlayerPosition i386 0x00067efa ppc 0x00070490
 void WrapPlayerPosition(void)
 {
     short i;
-    char wrapped;
+    Boolean wrapped;
 
+    wrapped = 0;
     wrapDelta.x = 0.0f;
     wrapDelta.y = 0.0f;
-    wrapped = 0;
     if (shipData->pos.x > kWrapTrigger) {
         wrapped = 1;
         wrapDelta.x = -kWrapStep;
@@ -4859,17 +5700,17 @@ void WrapPlayerPosition(void)
         return;
 
     for (i = 1; i < kMaxShips; i++)
-        WrapNearbyObject(&shipData[i].pos.x);
+        WrapObject(&shipData[i].pos);
     for (i = 0; i < kMaxShots; i++)
-        WrapNearbyObject(&shotData[i].pos.x);
+        WrapObject(&shotData[i].pos);
     for (i = 0; i < kMaxExplods; i++)
-        WrapNearbyObject(&explodData[i].pos.x);
+        WrapObject(&explodData[i].pos);
     for (i = 0; i < kMaxBoxes; i++)
-        WrapNearbyObject(&boxData[i].pos.x);
+        WrapObject(&boxData[i].pos);
     for (i = 0; i < kMaxSmoke; i++)
-        WrapNearbyObject(&gDebrisSlots[i].pos.x);
+        WrapObject(&smokeData[i].pos);
     for (i = 0; i < kMaxPods; i++)
-        WrapNearbyObject(&podData[i].pos.x);
+        WrapObject(&podData[i].pos);
 
     for (i = 0; i < kMaxBeams; i++) {
         beamData[i].head.h += wrapDelta.x;
@@ -4886,22 +5727,23 @@ void WrapPlayerPosition(void)
 
 #define kWrapRange 15000
 
-/* WrapNearbyObject. STATE: MATCH, byte-identical. OPEN: none */
+/* WrapObject. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0045c6d0
-void WrapNearbyObject(float *pos)
+// MAC: _WrapObject i386 0x00066065 ppc 0x0006e268
+void WrapObject(FloatPoint *pos)
 {
     long dx;
     long dy;
 
-    dx = (pos[0] - shipData->pos.x);
-    dy = (pos[1] - shipData->pos.y);
+    dx = (pos->x - shipData->pos.x);
+    dy = (pos->y - shipData->pos.y);
     if (dx < 0)
         dx = -dx;
     if (dy < 0)
         dy = -dy;
     if (dx < kWrapRange && dy < kWrapRange) {
-        pos[0] += wrapDelta.x;
-        pos[1] += wrapDelta.y;
+        pos->x += wrapDelta.x;
+        pos->y += wrapDelta.y;
     }
 }
 
@@ -4913,6 +5755,7 @@ void WrapNearbyObject(float *pos)
 
 /* SetAllKeyCmdFlags. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0045c7a0
+// MAC: _SetAllKeyCmdFlags i386 0x00061e6d ppc 0x00069cc8
 void SetAllKeyCmdFlags(void)
 {
     short i;
@@ -4965,14 +5808,15 @@ void SetAllKeyCmdFlags(void)
    exe 409 / obj 409 instrs, byte-identical yes.
    OPEN: nothing. [esp+4] is mwcc's CSE spill of `(long)cmd`, not a local; see notes */
 // FUNCTION: EVNOVA 0x0045c880
-char IssueNewEscortCommand(short aiTypeFilter, short cmd, char quiet)
+// MAC: _IssueNewEscortCommand i386 0x000660d5 ppc 0x0006e2f8
+Boolean IssueNewEscortCommand(short aiTypeFilter, short cmd, Boolean quiet)
 {
-    short spoken;
+    Boolean changed;
+    Boolean sawVoice;
     short i;
-    char sawVoice;
-    short voiceClass;
     short govt;
-    char changed;
+    short voiceClass;
+    short spoken;
     Str255 msg;
 
     changed = 0;
@@ -4986,99 +5830,100 @@ char IssueNewEscortCommand(short aiTypeFilter, short cmd, char quiet)
             continue;
         if (shipData[i].parentShip != 0)
             continue;
-        if (aiTypeFilter != gShipTypes[shipData[i].type].escortType &&
-            aiTypeFilter != -1)
-            continue;
-        if (cmd != shipData[i].escortOrder) {
-            shipData[i].escortMayAttack = 1;
-            if (shipData[i].aiType != kShipTypeFighterBay) {
-                if ((long)cmd == kOrderRegroup) {
-                    if ((long)shipData[i].escortOrder != kOrderFormation) {
-                        shipData[i].escortOrder = kOrderFormation;
-                        spoken = kOrderFormation;
+        if (aiTypeFilter == shipClass[shipData[i].type].escortType ||
+            aiTypeFilter == -1) {
+            if (cmd != shipData[i].escortOrder) {
+                shipData[i].escortMayAttack = 1;
+                if (shipData[i].aiType != kShipTypeFighterBay) {
+                    if ((long)cmd == kOrderRegroup) {
+                        if ((long)shipData[i].escortOrder != kOrderFormation) {
+                            shipData[i].escortOrder = kOrderFormation;
+                            spoken = kOrderFormation;
+                            changed = 1;
+                            if ((shipClass[shipData[i].type].flags2 &
+                                 kShipNoFighterVoice) == 0)
+                                sawVoice = 1;
+                        }
+                    } else {
+                        shipData[i].escortOrder = cmd;
                         changed = 1;
-                        if ((gShipTypes[shipData[i].type].flags2 &
-                             kShipFlagNoVoice) == 0)
+                        if ((shipClass[shipData[i].type].flags2 & kShipNoFighterVoice) == 0)
                             sawVoice = 1;
                     }
                 } else {
                     shipData[i].escortOrder = cmd;
                     changed = 1;
-                    if ((gShipTypes[shipData[i].type].flags2 & kShipFlagNoVoice) == 0)
+                    if ((shipClass[shipData[i].type].flags2 & kShipNoFighterVoice) == 0)
                         sawVoice = 1;
                 }
-            } else {
-                shipData[i].escortOrder = cmd;
-                changed = 1;
-                if ((gShipTypes[shipData[i].type].flags2 & kShipFlagNoVoice) == 0)
-                    sawVoice = 1;
             }
-        }
-        if (shipData[i].escortOrder == kOrderAttack && shipData[0].targetShip != -1 &&
-            shipData[0].targetShip != shipData[i].targetShip &&
-            AlliedWithPlayer(&shipData[shipData[0].targetShip]) == 0) {
-            shipData[i].targetShip = shipData[0].targetShip;
-            changed = 1;
-        }
-        if ((long)cmd != kOrderRegroup) {
-            if (AIIsFighterReturning(&shipData[i]) != 0) {
-                shipData[i].targetShip = -1;
-                shipData[i].targetStellar = -1;
-                if (govt < -1 || Rand(2) == 0) {
-                    govt = gShipTypes[shipData[i].type].inherentGovtB;
-                    voiceClass = shipData[i].voiceClass;
+            if (shipData[i].escortOrder == kOrderAttack && shipData[0].targetShip != -1 &&
+                shipData[0].targetShip != shipData[i].targetShip &&
+                AlliedWithPlayer(&shipData[shipData[0].targetShip]) == 0) {
+                shipData[i].targetShip = shipData[0].targetShip;
+                changed = 1;
+            }
+            if ((long)cmd != kOrderRegroup) {
+                if (AIIsFighterReturning(&shipData[i]) != 0) {
+                    shipData[i].targetShip = -1;
+                    shipData[i].targetStellar = -1;
+                    if (govt < -1 || Rand(2) == 0) {
+                        govt = shipClass[shipData[i].type].inherentGovtB;
+                        voiceClass = shipData[i].voiceClass;
+                    }
+                    changed = 1;
                 }
-                changed = 1;
             }
-        }
-        if (changed != 0 &&
-            (gShipTypes[shipData[i].type].flags2 & kShipFlagNoVoice) == 0 &&
-            (govt < -1 || Rand(2) == 0)) {
-            govt = gShipTypes[shipData[i].type].inherentGovtB;
-            voiceClass = shipData[i].voiceClass;
+            if (changed != 0 &&
+                (shipClass[shipData[i].type].flags2 & kShipNoFighterVoice) == 0 &&
+                (govt < -1 || Rand(2) == 0)) {
+                govt = shipClass[shipData[i].type].inherentGovtB;
+                voiceClass = shipData[i].voiceClass;
+            }
         }
     }
     if (changed != 0 && quiet == 0) {
         strcpy((char *)msg, "");
-        AppendIndString((char *)msg, kGameStrList, kStrEscortPrefix);
+        StrcatIndCString((char *)msg, kGameStrList, kStrEscortPrefix);
         if (aiTypeFilter == 0)
-            AppendIndString((char *)msg, kGameStrList, kStrFilterFighters);
+            StrcatIndCString((char *)msg, kGameStrList, kStrFilterFighters);
         else if (aiTypeFilter == 1)
-            AppendIndString((char *)msg, kGameStrList, kStrFilterWarships);
+            StrcatIndCString((char *)msg, kGameStrList, kStrFilterWarships);
         else if (aiTypeFilter == 2)
-            AppendIndString((char *)msg, kGameStrList, kStrFilterFreighters);
+            StrcatIndCString((char *)msg, kGameStrList, kStrFilterFreighters);
         else if (aiTypeFilter == 3)
-            AppendIndString((char *)msg, kGameStrList, kStrFilterEscorts);
+            StrcatIndCString((char *)msg, kGameStrList, kStrFilterEscorts);
         else
-            AppendIndString((char *)msg, kGameStrList, kStrFilterAll);
+            StrcatIndCString((char *)msg, kGameStrList, kStrFilterAll);
         strcat((char *)msg, " ");
         if (shipData[0].jumpTimer > 0.0f) {
             if ((long)spoken == kOrderRegroup)
-                AppendIndString((char *)msg, kGameStrList, kStrLoudBase);
+                StrcatIndCString((char *)msg, kGameStrList, kStrLoudBase);
             else if ((long)spoken == kOrderFormation)
-                AppendIndString((char *)msg, kGameStrList, kStrLoudBase + 1);
+                StrcatIndCString((char *)msg, kGameStrList, kStrLoudBase + 1);
             else if ((long)spoken == kOrderHold)
-                AppendIndString((char *)msg, kGameStrList, kStrLoudBase + 2);
+                StrcatIndCString((char *)msg, kGameStrList, kStrLoudBase + 2);
             else if ((long)spoken == kOrderDefend)
-                AppendIndString((char *)msg, kGameStrList, kStrLoudBase + 3);
+                StrcatIndCString((char *)msg, kGameStrList, kStrLoudBase + 3);
             else if ((long)spoken == kOrderAttack)
-                AppendIndString((char *)msg, kGameStrList, kStrAckAttack);
+                StrcatIndCString((char *)msg, kGameStrList, kStrAckAttack);
         } else {
             if ((long)spoken == kOrderRegroup)
-                AppendIndString((char *)msg, kGameStrList, kStrQuietBase);
+                StrcatIndCString((char *)msg, kGameStrList, kStrQuietBase);
             else if ((long)spoken == kOrderFormation)
-                AppendIndString((char *)msg, kGameStrList, kStrQuietBase + 1);
+                StrcatIndCString((char *)msg, kGameStrList, kStrQuietBase + 1);
             else if ((long)spoken == kOrderHold)
-                AppendIndString((char *)msg, kGameStrList, kStrQuietBase + 2);
+                StrcatIndCString((char *)msg, kGameStrList, kStrQuietBase + 2);
             else if ((long)spoken == kOrderDefend)
-                AppendIndString((char *)msg, kGameStrList, kStrQuietBase + 3);
+                StrcatIndCString((char *)msg, kGameStrList, kStrQuietBase + 3);
             else if ((long)spoken == kOrderAttack) {
-                if (shipData[0].targetShip == -1)
-                    AppendIndString((char *)msg, kGameStrList, kStrAckAttack);
-                else if (shipData[shipData[0].targetShip].parentShip == 0)
-                    AppendIndString((char *)msg, kGameStrList, kStrAckAttack);
-                else
-                    AppendIndString((char *)msg, kGameStrList, kStrAckAttackEscort);
+                if (shipData[0].targetShip != -1) {
+                    if (shipData[shipData[0].targetShip].parentShip == 0)
+                        StrcatIndCString((char *)msg, kGameStrList, kStrAckAttack);
+                    else
+                        StrcatIndCString((char *)msg, kGameStrList, kStrAckAttackEscort);
+                } else
+                    StrcatIndCString((char *)msg, kGameStrList, kStrAckAttack);
             }
         }
         CtoPstr((char *)msg);
@@ -5103,4 +5948,4 @@ char IssueNewEscortCommand(short aiTypeFilter, short cmd, char quiet)
     return changed;
 }
 
-}
+EXTERN_C_END

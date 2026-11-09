@@ -8,16 +8,27 @@
 #include "burgertypes.h"
 #include "burger.h"
 #include "burgerplat.h"
-#include "win32.h"
+#ifdef MAC1010
+#if TARGET_API_MAC_CARBON
+#define memset(p, c, n) BlockZero(p, n)
+#else
+#define memset(p, c, n) MemoryClear(p, n)
+#endif
+#define memmove(d, s, n) BlockMoveData(s, d, n)
+#endif
 
 /* AddressToNetworkStack (an IPX address: 1 for IPX, 0 for Inet or any other family). STATE: MATCH
    100%, exe 28 / obj 28, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052917a
 Word16 AddressToNetworkStack(const NetAddress *a)
 {
+#ifdef MAC1010
+    long family;
+#else
     long long family;
+#endif
     long err, e;
-    long result;
+    Word16 result;
 
     e = err = 0;
     result = 0;
@@ -81,13 +92,9 @@ unsigned char AddressCompare(const void *refA, const void *refB)
 unsigned char AddressIsEmpty(const NetAddress *a)
 {
     long err, e;
-    long result;
 
     e = err = 0;
-    result = 1;
-    if ((ULong)a->kind >= 2 && (a->family & kNetFamilyMask) != 0)
-        result = 0;
-    return result;
+    return (ULong)a->kind < 2 || (a->family & kNetFamilyMask) == 0;
 }
 
 /* AddressComposeEmpty (clear an address). STATE: MATCH 100%, exe 12 / obj 12, byte-identical yes.
@@ -115,7 +122,7 @@ void AddressComposeTCPIP(void *ref, unsigned short port, ULong ip)
     ULong *p;
     long err;
 
-    a = (NetAddress *)ref;
+    a = ref;
     err = 0;
     a->kind = kSockaddrInLen;
     a->family = kNetFamilyInet;
@@ -126,6 +133,19 @@ void AddressComposeTCPIP(void *ref, unsigned short port, ULong ip)
     memset(p, 0, 2 * sizeof(ULong));
 }
 
+#ifdef MAC1010
+void AddressComposeAppleTalk(NetAddress *a, unsigned short net, unsigned char node, unsigned char socket, unsigned char type)
+{
+    a->kind = 8;
+    a->family = kNetFamilyIPX;
+    a->port = net;
+    a->node[0] = node;
+    a->node[1] = socket;
+    a->node[2] = type;
+    a->node[3] = 0;
+}
+#endif
+
 /* AddressDecomposeTCPIP (an IPv4 address's port and address). STATE: MATCH 100%, exe 25 / obj 25,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00529323
@@ -134,7 +154,7 @@ void AddressDecomposeTCPIP(const void *ref, unsigned short *port, ULong *ip)
     const NetAddress *a;
     long err;
 
-    a = (const NetAddress *)ref;
+    a = ref;
     err = 0;
     if (port != 0)
         *port = 0;
@@ -146,9 +166,47 @@ void AddressDecomposeTCPIP(const void *ref, unsigned short *port, ULong *ip)
         *ip = ((const ULong *)a)[2];
 }
 
+#ifdef MAC1010
+void AddressDecomposeAppleTalk(const NetAddress *a, unsigned short *net, unsigned char *node, unsigned char *socket, unsigned char *type)
+{
+    if (net != 0)
+        *net = 0;
+    if (node != 0)
+        *node = 0;
+    if (socket != 0)
+        *socket = 0;
+    if (type != 0)
+        *type = 0;
+    if (net != 0)
+        *net = a->port;
+    if (node != 0)
+        *node = a->node[0];
+    if (socket != 0)
+        *socket = a->node[1];
+    if (type != 0)
+        *type = a->node[2];
+}
+#endif
+
 #define HIGH_DIGIT(b)   (digits[((b) >> 4) & 0xf])
 #define LOW_DIGIT(b)    (digits[(b) & 0xf])
 
+#ifdef MAC1010
+static inline char *AppendString(char *dst, const char *src)
+{
+    unsigned char *q;
+    const unsigned char *p;
+
+    q = (unsigned char *)dst - 1;
+    p = src - 1;
+    while (*++q != 0)
+        ;
+    q--;
+    while ((*++q = *++p) != 0)
+        ;
+    return dst;
+}
+#else
 static inline char *AppendString(char *dst, const char *src)
 {
     char *start;
@@ -162,6 +220,7 @@ static inline char *AppendString(char *dst, const char *src)
     dst = start;
     return dst;
 }
+#endif
 
 /* AddressTranscribe (an address as text: "a.b.c.d[:port]" for IPv4, "net.node[:node]" in hex
    for IPX; any other family leaves out untouched). STATE: MATCH 100%, exe 242 / obj 242,

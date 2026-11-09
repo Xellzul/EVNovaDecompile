@@ -5,6 +5,20 @@
 
 /* BlitPixieMemCopy (mac _BlitPixieMemCopy). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00474350
+// MAC: _BlitPixieMemCopy i386 0x000c03d0 ppc 0x000cc0cc
+#ifdef MACBUILD
+void BlitPixieMemCopy( unsigned char *dst, unsigned char *src, long bytes)
+{
+	long	i;
+
+	for ( i = 0; i < (bytes >> 2); i++ )
+		*((unsigned long *) dst)++ = *((unsigned long *) src)++;
+	if ( bytes & 2 )
+		*((unsigned short *) dst)++ = *((unsigned short *) src)++;
+	if ( bytes & 1 )
+		*( dst)++ = *((unsigned char *) src)++;
+}
+#else
 void BlitPixieMemCopy(unsigned char *dstPixels, unsigned char *srcPixels,
         long byteWidth)
 {
@@ -26,3 +40,4 @@ void BlitPixieMemCopy(unsigned char *dstPixels, unsigned char *srcPixels,
         *dstPixels = *srcPixels;
     }
 }
+#endif

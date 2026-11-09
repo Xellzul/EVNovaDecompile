@@ -149,7 +149,7 @@ long PlatformOpen(void)
 
     shift = GetTickCount();
     shift %= kSeedBits;
-    seed = (ULong)TimerGetMicroseconds();
+    seed = TimerGetMicroseconds();
     gRandomSeed = seed;
     gRandomSeed = (seed << shift) | (seed >> (kSeedBits - shift));
 
@@ -531,7 +531,7 @@ long __stdcall _SystemExceptionFilter(void *info)
     ULong *code;
     long result;
 
-    code = (ULong *)info;
+    code = info;
     result = EXCEPTION_EXECUTE_HANDLER;
     if (gPlatSavedExceptionFilterProc != 0)
         result = ((long (__stdcall *)(void *))gPlatSavedExceptionFilterProc)(info);

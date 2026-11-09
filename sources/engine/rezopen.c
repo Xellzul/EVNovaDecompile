@@ -35,13 +35,17 @@ typedef struct RawRezMap {
 /* endianswap.c's helpers by value: the exe swaps the register it has just tested */
 static __inline short SwapEndianShort(unsigned short t)
 {
+#ifndef MACBUILD
     asm { ror t, 8 }
+#endif
     return t;
 }
 
 static __inline long SwapEndianLong(unsigned long t)
 {
+#ifndef MACBUILD
     asm { bswap t }
+#endif
     return t;
 }
 
@@ -71,12 +75,12 @@ short EVOpenResourceFile(void *path)
     if (mapData == NULL)
         goto closeFail;
 
-    map = (RawRezMap *)mapData;
+    map = mapData;
     if (map->typeCount != 0) {
         rawType = (RawTypeEntry *)((char *)mapData + SwapEndianLong(map->typeListOffset));
         typeCount = SwapEndianLong(map->typeCount);
         rez->typeCount = typeCount;
-        rez->types = (RezTypeEntry *)AllocAPointer(rez->typeCount * sizeof(RezTypeEntry));
+        rez->types = AllocAPointer(rez->typeCount * sizeof(RezTypeEntry));
 
         type = rez->types;
         do {
@@ -86,7 +90,7 @@ short EVOpenResourceFile(void *path)
                 entryCount = SwapEndianLong(rawType->count);
                 type->type = SwapEndianLong(rawType->type);
                 type->count = entryCount;
-                type->first = (ResRecord *)AllocAPointer(type->count * sizeof(ResRecord));
+                type->first = AllocAPointer(type->count * sizeof(ResRecord));
 
                 record = type->first;
                 do {

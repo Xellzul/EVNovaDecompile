@@ -2,6 +2,24 @@
 #ifndef GAMETYPES_H
 #define GAMETYPES_H
 
+/* the C++-linkage declarations of the win build's C++ TUs; the mac build is C only */
+#if defined(__MWERKS__) && !defined(MACBUILD)
+#define EXTERN_CPP_BEGIN extern "C++" {
+#define EXTERN_CPP_END }
+#define EXTERN_C_BEGIN extern "C" {
+#define EXTERN_C_END }
+#else
+#define EXTERN_CPP_BEGIN
+#define EXTERN_CPP_END
+#define EXTERN_C_BEGIN
+#define EXTERN_C_END
+#endif
+
+/* the Toolbox flag type: the port's is signed, Carbon's unsigned char */
+#ifndef MACBUILD
+typedef char Boolean;
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -11,14 +29,28 @@ typedef struct FloatPoint {
     float                  y;
 } FloatPoint;
 
+#ifdef MACBUILD
+typedef struct ShortPoint {
+    short                  h;
+    short                  v;
+} ShortPoint;
+typedef ShortPoint MapScroll;
+#define SalvageAmmo short
+#define ShipClassID short
+#define PStrChar char
+#else
 typedef struct MapScroll {
-    short                  x;
-    short                  y;
+    short                  h;
+    short                  v;
 } MapScroll;
+#define SalvageAmmo unsigned short
+#define ShipClassID unsigned short
+#define PStrChar unsigned char
+#endif
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern MapScroll mapScroll;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 typedef struct StringListRec {
@@ -54,9 +86,11 @@ typedef struct MStr64 {
     char                   c[0x40];
 } MStr64;
 
+#ifndef MACBUILD
 typedef unsigned char Str255[256];
 
 typedef struct DialogRecord *DialogPtr;
+#endif
 
 typedef struct PictCacheSlot {
     short                  picID;
@@ -96,7 +130,7 @@ typedef struct RezFile {
 /* one parallax star slot (starData[], stride 0x14) */
 typedef struct StarSlot {
     struct SpriteRec       *sprite;
-    char                   live;
+    Boolean                   live;
     char pad05[0x1];
     short                  frame;
     float                  depth;
@@ -112,7 +146,7 @@ typedef struct BoomSlot {
     float                  delay;
 } BoomSlot;
 
-/* one smoke slot in gDebrisSlots, stride 0x18 */
+/* one smoke slot in smokeData, stride 0x18 */
 typedef struct DebrisSlot {
     struct SpriteRec      *sprite;
     FloatPoint             pos;
@@ -121,9 +155,9 @@ typedef struct DebrisSlot {
     float                  angle;
 } DebrisSlot;
 #pragma cplusplus on
-extern "C++" {
-extern DebrisSlot *gDebrisSlots;
-}
+EXTERN_CPP_BEGIN
+extern DebrisSlot *smokeData;
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 /* one escape pod, stride 0x18, 32 entries */
@@ -134,11 +168,12 @@ typedef struct PodObj {
     float                  life;
 } PodObj;
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern PodObj *podData;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
+#ifndef MACBUILD
 typedef struct UnsignedWide {
     unsigned long          lo;
     unsigned long          hi;
@@ -168,15 +203,18 @@ typedef struct Rect {
     short                  right;
 } Rect;
 #pragma options align=reset
+#endif
 
+#ifndef MACBUILD
 typedef struct ShortPoint {
     short                  h;
     short                  v;
 } ShortPoint;
+#endif
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern ShortPoint menuButtonPos[];
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 /* one beam in beamData, stride 0x22, 64 entries */
@@ -202,17 +240,6 @@ typedef struct UpdateRectStruct {
     struct UpdateRectStruct *nextRectStructP;
 } UpdateRectStruct, *UpdateRectStructPtr;
 
-typedef struct WeapSlot {
-    short                  count;
-    char                   unk2[6];
-    short                  ammo;
-    char                   unkA[0x26];
-    float                  reloadTimer;
-    char                   unk34[0x80];
-    short                  burstCount;
-    char                   unkB6[0x12];
-} WeapSlot;
-
 typedef struct GovtRecord {
     unsigned char          name[32];
     unsigned short         flags;
@@ -236,11 +263,11 @@ typedef struct GovtRecord {
     long                   requires[2];
     RGBColor               rgb;
     RGBColor               rgb2;
-    unsigned short         rgbBytes[3];
-    char                   reinfInhibited;
-    char                   iffScrambled;
-    char                   blessesPlayer[2];
-    char                   loaded;
+    RGBColor               rgbBytes;
+    Boolean                   reinfInhibited;
+    Boolean                   iffScrambled;
+    unsigned char          blessesPlayer[2];
+    Boolean                   loaded;
     char                   pad87;
 } GovtRecord;
 
@@ -266,10 +293,10 @@ typedef struct SpobRecord {
     long                   landingFee;
     long                   deadCounter;
     long                   strength;
-    char                   loaded;
-    char                   prepared;
-    char                   dominated;
-    char                   defenseActive;
+    Boolean                   loaded;
+    Boolean                prepared;
+    Boolean                dominated;
+    Boolean                   defenseActive;
     unsigned char          name[32];
     char                   onDominate[255];
     char                   onRelease[255];
@@ -309,7 +336,7 @@ typedef struct AsteroidObj {
     float                  frameRate;
     short                  strength;
     short                  type;
-    char                   active;
+    Boolean                   active;
     char                   pad21[3];
 } AsteroidObj;
 
@@ -323,9 +350,38 @@ typedef struct BoxObj {
     short                  pict;
     short                  spin;
     short                  cargoType;
-    char                   mining;
+    Boolean                   mining;
     char                   pad25[3];
 } BoxObj;
+
+/* the live preferences; PrefsRecord is their file image */
+typedef struct Settings {
+#if V111
+    long reserved;
+#endif
+    Boolean introMusic;
+    Boolean voicesOn;
+    Boolean clipping;
+    Boolean noMovies;
+    Boolean unused;
+    Boolean noDebris;
+    Boolean yieldEvents;
+    Boolean parallaxStars;
+    Boolean windowed;
+    Boolean windowedPending;
+    unsigned char shipAnimations;
+    unsigned char engineGlows;
+    unsigned char weaponGlows;
+    unsigned char runningLights;
+    Boolean ambientSounds;
+    unsigned char showMapBorders;
+    Boolean noHyperGamma;
+    Boolean noVersionCheck;
+    short volume;
+#ifndef MAC1010
+    short gamma;
+#endif
+} Settings;
 
 #pragma options align=packed
 typedef struct PrefsRecord {
@@ -335,7 +391,7 @@ typedef struct PrefsRecord {
     short volume;
     short keys[36];
     short unk50;
-    char unk52[0xe];
+    DateTimeRec date;
     short unk60;
     short earlyOut;
     short unk64;
@@ -350,12 +406,16 @@ typedef struct PrefsRecord {
     short showInfluence;
     short noHyperGamma;
     short noVersionCheck;
+#ifdef MAC1010
+    short reserved[6];
+#else
     short gamma;
     short unk7E;
     short unk80;
     short unk82;
     short unk84;
     short unk86;
+#endif
     short unk88;
 } PrefsRecord;
 #pragma options align=reset
@@ -373,7 +433,7 @@ typedef struct MissionAvailRec {
     short                  sourceStellar;
     short                  destStellar;
     short                  timeLimit;
-    char                   avail;
+    Boolean                   avail;
     char pad017;
     unsigned short         flags;
     unsigned short         flags2;
@@ -396,7 +456,10 @@ typedef struct BriefMissionRec {
     short                  unk1E;
 } BriefMissionRec;
 
+/* one entry of the mission table, stride 0x8e6; the pilot file holds sixteen */
+#ifndef MACBUILD
 #pragma options align=packed
+#endif
 typedef struct MissionRecord {
     short                  travelStellar;
     short                  unk2;
@@ -422,9 +485,9 @@ typedef struct MissionRecord {
     short                  specialShipsJumpedIn;
     short                  specialShipsJumpedOut;
     short                  initialShipCount;
-    char                   canAbort;
-    char                   hasCargo;
-    char                   unk34;
+    Boolean                   canAbort;
+    Boolean                   hasCargo;
+    Boolean                   unk34;
     short                  briefDesc;
     short                  quickBriefDesc;
     short                  loadCargoDesc;
@@ -443,8 +506,7 @@ typedef struct MissionRecord {
     short                  shipTypeIndex;
     unsigned short         flags;
     unsigned short         flags2;
-    long                   unk59;
-    long                   unk5D;
+    long                   unk59[2];
     short                  auxShipCount;
     short                  auxShipDude;
     short                  auxShipSyst;
@@ -462,29 +524,31 @@ typedef struct MissionRecord {
     char                   shipDoneSetString[0xff];
     char                   name[0x100];
 } MissionRecord;
+#ifndef MACBUILD
 #pragma options align=reset
+#endif
 
 typedef struct MissionState {
-    char                   active;
-    char                   returnDone;
-    char                   objectivesDone;
-    char                   failed;
+    Boolean                active;
+    Boolean                   returnDone;
+    Boolean                objectivesDone;
+    Boolean                failed;
     unsigned short         flags;
     DateTimeRec            dueDate;
 } MissionState;
 
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern MissionState *currentMissionObjectives;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
+/* one type: weaponStats[] and each ship's weap[], whose copy keeps count, ammo and reload countdown here */
 typedef struct WeapRecord {
-    short                  lifetime;
-    short                  massDmg;
-    short                  energyDmg;
+    union { short lifetime; short count; };
+    short                  damage[2];      /* mass, energy */
     short                  guidance;
-    short                  ammoType;
+    union { short ammoType; short ammo; };
     short                  graphic;
     short                  inaccuracy;
     short                  sound;
@@ -503,7 +567,7 @@ typedef struct WeapRecord {
     unsigned short         smokeSet;
     char pad2A[0x2];
     float                  speed100;
-    float                  reload;
+    union { float reload; float reloadTimer; };
     float                  partVel[8];
     float                  hitPartVel;
     float                  guidedTurn;
@@ -559,7 +623,7 @@ typedef struct PrefsFileRec {
 
 /* the four shot sprite layers, in address order */
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern struct SpriteLayerRec *shotLayer;
 extern struct SpriteLayerRec *guidedShotLayer;
 extern struct SpriteLayerRec *pointDefenseLayer;
@@ -568,7 +632,7 @@ extern struct SpriteLayerRec *turretedShotLayer;
 extern BoomSlot *explodData;
 extern BriefMissionRec briefMissionInfo[];
 extern unsigned char hypergateMapMode;
-extern char *missionBit;
+extern Boolean *missionBit;
 extern char parseBuffer[];
 extern char briefingTextPtr[0x2000];
 extern unsigned char playerName[256];
@@ -582,7 +646,7 @@ extern unsigned char cargoName[256][0x100];
 extern unsigned char cargoAbbrev[256][0x100];
 extern unsigned char creditString[0x100];
 extern unsigned char creditsString[0x100];
-extern unsigned char legalStrings[18][256];
+extern unsigned char legalStatusStrings[18][256];
 extern unsigned char govtTargStrings[256][256];
 #define kButtonLabelCount 61
 extern unsigned char buttonLabel[kButtonLabelCount][256];
@@ -597,9 +661,12 @@ extern unsigned char statusCargoName[6][0x100];
 extern unsigned char playerNickname[256];
 extern short missionRandom[1000];
 extern short prevParent[64];
-extern struct Image_t *missionBackgroundPic[3];
+#ifndef MACBUILD
+typedef struct Image_t *PicHandle;
+#endif
+extern PicHandle missionBackgroundPic[3];
 extern DialogPtr alertDialog;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 typedef struct KeyPrefs {

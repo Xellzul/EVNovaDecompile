@@ -13,6 +13,11 @@
 #define kPngSignatureBytes  4
 #define kFormatPng          0x504e4766    /* 'PNGf' */
 #define kScreenGamma        2.2
+#ifdef MAC1010
+#define kDisplayGamma       1.7
+#else
+#define kDisplayGamma       kScreenGamma
+#endif
 #define kFormatDirect       0x8888
 #define kDirectDepth        32
 #define kMaxImageSide       0x1000
@@ -21,19 +26,44 @@
 #define kPpmAt72Dpi         2835          /* 72 dpi in pixels per metre */
 #define kMicronsPerInch     25400.0
 #define kTransparentNone    0
+#ifdef MAC1010
+#define kAlphaSide          PNG_FILLER_BEFORE     /* the Mac's pixels are ARGB */
+#define kAlphaByte          0
+#else
+#define kAlphaSide          PNG_FILLER_AFTER      /* Windows' are BGRA */
+#define kAlphaByte          3
+#endif
 
 static const unsigned char DAT_0057aff8[8] = { 0 };   /* 0x0057aff8, unreferenced */
 static char kNoMemoryText[] = "Out of memory.";
 
+#ifdef MAC1010
+AT_STATIC png_voidp DT_png_malloc(png_structp png_ptr, png_size_t size)
+{
+    png_voidp ptr;
+
+    ptr = MemoryAllocate(size);
+    if (ptr == NULL)
+        png_error(png_ptr, kNoMemoryText);
+    return ptr;
+}
+
+AT_STATIC void DT_png_free(png_structp png_ptr, png_voidp ptr)
+{
+    if (ptr != NULL)
+        MemoryDeallocate(ptr);
+}
+#endif
+
 /* DT_png_read_data (libpng's read callback: the loaders' memory stream). STATE: MATCH 100%, exe 18 / obj 18, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0051491d
-void DT_png_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
+AT_STATIC void DT_png_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
 {
     long err;
 
     err = 0;
-    if (DT_BufferRead((ITStream *)png_ptr->io_ptr, data, length) != 0)
+    if (DT_BufferRead(png_ptr->io_ptr, data, length) != 0)
         png_error(png_ptr, "Read Error");
 }
 
@@ -87,13 +117,12 @@ long PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     long transMode;
     ULong format;
     png_color grey_palette[256];
-    long i;
-    long j;
+    int i;
+    int j;
     long best;
     int count;
     long step;
     long levels;
-    long odd;
     long bump;
     ULong x;
     long y;
@@ -126,14 +155,19 @@ long PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     if (bg != NULL)
         DT_FileInfoDefaults(bg);
 
-    png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-    if (png_ptr == NULL) {
+#ifdef MAC1010
+    if ((png_ptr = png_create_read_struct_2(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL, NULL,
+                                            DT_png_malloc, DT_png_free)) == NULL) {
+#else
+    if ((png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)) == NULL) {
+#endif
         err = kOutOfMemory;
         goto done;
     }
-    info_ptr = png_create_info_struct(png_ptr);
-    if (info_ptr == NULL)
-        goto nomem;
+    if ((info_ptr = png_create_info_struct(png_ptr)) == NULL) {
+        err = kOutOfMemory;
+        goto done;
+    }
     e = setjmp(png_ptr->jmpbuf);
     if (e != 0) {
         err = e;
@@ -145,7 +179,7 @@ long PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type,
                  &interlace_type, NULL, NULL);
 
-    screen_gamma = kScreenGamma;
+    screen_gamma = kDisplayGamma;
     if (bg != NULL) {
         bg->format = kFormatPng;
         if (png_get_bKGD(png_ptr, info_ptr, &image_background)) {
@@ -158,7 +192,7 @@ long PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
             } else {
                 bg->color.alpha = 0xff;
                 bg->color.red = image_background->gray;
-                bg->color.green = (unsigned char)image_background->gray;
+                bg->color.green = image_background->gray;
                 bg->color.blue = image_background->gray;
             }
         }
@@ -177,7 +211,7 @@ long PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
         if (png_get_sRGB(png_ptr, info_ptr, &intent)) {
             png_set_sRGB(png_ptr, info_ptr, intent);
         } else {
-            image_gamma = 1.0 / kScreenGamma;
+            image_gamma = 1.0 / kDisplayGamma;
             if (png_get_gAMA(png_ptr, info_ptr, &image_gamma))
                 png_set_gamma(png_ptr, screen_gamma, image_gamma);
             else
@@ -238,11 +272,7 @@ long PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
         levels = 1 << bit_depth;
         count = levels;
         step = 0xff / (count - 1);
-        if (step % 2 != 0)
-            odd = 0;
-        else
-            odd = 1;
-        bump = odd;
+        bump = step % 2 != 0 ? 0L : 1L;
         for (j = 0; j < count / 2; j++) {
             palette.entry[j].alpha = 0xff;
             palette.entry[j].red = palette.entry[j].green = palette.entry[j].blue =
@@ -255,7 +285,11 @@ long PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                 grey_palette[j].red = grey_palette[j].green = grey_palette[j].blue =
                 j * step + bump;
         }
+#ifdef MAC1010 /* 1.0.10 spelling */
+        for (; j < 1 << bit_depth; j++) {
+#else
         for (; j < levels; j++) {
+#endif
             palette.entry[j].alpha = 0xff;
             palette.entry[j].red = palette.entry[j].green = palette.entry[j].blue =
                 grey_palette[j].red = grey_palette[j].green = grey_palette[j].blue = 0;
@@ -267,7 +301,10 @@ long PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
         if (bit_depth == 16)
             png_set_strip_16(png_ptr);
         if (!png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS))
-            png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
+            png_set_filler(png_ptr, 0xff, kAlphaSide);
+#ifdef MAC1010
+        png_set_swap_alpha(png_ptr);
+#endif
         png_set_gray_to_rgb(png_ptr);
         bit_depth = kDirectDepth;
         format = kFormatDirect;
@@ -277,8 +314,13 @@ long PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     case PNG_COLOR_TYPE_RGB_ALPHA:
         if (bit_depth == 16)
             png_set_strip_16(png_ptr);
+#ifdef MAC1010
+        png_set_filler(png_ptr, 0xff, kAlphaSide);
+        png_set_swap_alpha(png_ptr);
+#else
         png_set_bgr(png_ptr);
-        png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
+        png_set_filler(png_ptr, 0xff, kAlphaSide);
+#endif
         bit_depth = kDirectDepth;
         format = kFormatDirect;
         if ((color_type & PNG_COLOR_MASK_ALPHA) != 0)
@@ -295,17 +337,19 @@ long PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     } else {
         palette.count = 0;
     }
-    *imageOut = DT_ImageCreate(&bounds, format, &palette);
-    if (*imageOut == NULL)
-        goto nomem;
+    if ((*imageOut = DT_ImageCreate(&bounds, format, &palette)) == NULL) {
+        err = kOutOfMemory;
+        goto done;
+    }
     switch (transMode) {
     case kTransparentNone:
         break;
     case kTransparentMask:
         if (maskOut != NULL) {
-            *maskOut = DT_ImageCreate(&bounds, kIndexedDepth, &gDT_AlphaPalette);
-            if (*maskOut == NULL)
-                goto nomem;
+            if ((*maskOut = DT_ImageCreate(&bounds, kIndexedDepth, &gDT_AlphaPalette)) == NULL) {
+                err = kOutOfMemory;
+                goto done;
+            }
             if (trans != NULL) {
                 trans->mode = kTransparentMask;
                 trans->key.alpha = 0xff;
@@ -324,12 +368,12 @@ long PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
         noMask = NULL;
     }
     e = DT_ImageLock(*imageOut, *maskOut, &info, NULL);
-    if (e != 0)
-        goto fail;
+    if (e != 0) {
+        err = e;
+        goto done;
+    }
     locked = 1;
-    rows = (png_bytepp)MemoryAllocate(height * sizeof(png_bytep));
-    if (rows == NULL) {
-nomem:
+    if ((rows = MemoryAllocate(height * sizeof(png_bytep))) == NULL) {
         err = kOutOfMemory;
         goto done;
     }
@@ -338,9 +382,9 @@ nomem:
     png_read_image(png_ptr, rows);
     png_read_end(png_ptr, info_ptr);
 
-    dst = (unsigned char *)info.otherBits;
-    if (dst != NULL) {
-        src = (unsigned char *)info.bits;
+    if (info.otherBits != NULL) {
+        dst = info.otherBits;
+        src = info.bits;
         srcRowBytes = info.rowBytes;
         dstRowBytes = info.otherRowBytes;
         if (bit_depth == 8) {
@@ -353,7 +397,7 @@ nomem:
         } else {
             for (y = 0; y < height; y++) {
                 for (x = 0; x < width; x++)
-                    dst[x] = src[x * 4 + 3];
+                    dst[x] = src[x * 4 + kAlphaByte];
                 src += srcRowBytes;
                 dst += dstRowBytes;
             }
@@ -367,39 +411,35 @@ nomem:
         ratio = 1.0f;
         scale = 1.0f;
         first = 1;
-        ratio = (float)info_ptr->y_pixels_per_unit / (float)info_ptr->x_pixels_per_unit;
+        ratio = info_ptr->y_pixels_per_unit / (float)info_ptr->x_pixels_per_unit;
         scale = 1.0f;
         switch (info_ptr->phys_unit_type) {
         case PNG_RESOLUTION_UNKNOWN:
-            hScale = ratio / scale;
-            hScale = hScale > 1.0 ? hScale : 1.0;
-            vScale = scale / ratio;
-            vScale = vScale > 1.0 ? vScale : 1.0;
+            hScale = ratio / scale > 1.0 ? ratio / scale : 1.0;
+            vScale = scale / ratio > 1.0 ? scale / ratio : 1.0;
             break;
         case PNG_RESOLUTION_METER:
             if (info_ptr->x_pixels_per_unit != kPpmAt72Dpi)
-                hScale = info_ptr->x_pixels_per_unit * kMetresPerInch * (1.0 / kPointsPerInch);
+                hScale = (float)info_ptr->x_pixels_per_unit * kMetresPerInch / kPointsPerInch;
             if (info_ptr->y_pixels_per_unit != kPpmAt72Dpi)
-                vScale = info_ptr->y_pixels_per_unit * kMetresPerInch * (1.0 / kPointsPerInch);
+                vScale = (float)info_ptr->y_pixels_per_unit * kMetresPerInch / kPointsPerInch;
             break;
         default:
             hScale = vScale = 1.0f;
             break;
         }
         if (hScale != 1.0 || vScale != 1.0) {
-            width = (png_uint_32)((bounds.right - bounds.left) * hScale + 0.5);
-            height = (png_uint_32)((bounds.bottom - bounds.top) * vScale + 0.5);
+            width = ((bounds.right - bounds.left) * hScale + 0.5);
+            height = ((bounds.bottom - bounds.top) * vScale + 0.5);
             /* BUG: the scales never change between passes, so once entered this never ends */
             while (width >= kMaxImageSide || height >= kMaxImageSide) {
-                hScale = ratio / scale;
-                hScale = hScale > 1.0 ? hScale : 1.0;
-                vScale = scale / ratio;
-                vScale = vScale > 1.0 ? vScale : 1.0;
-                width = (png_uint_32)((bounds.right - bounds.left) * hScale + 0.5);
-                height = (png_uint_32)((bounds.bottom - bounds.top) * vScale + 0.5);
+                hScale = ratio / scale > 1.0 ? ratio / scale : 1.0;
+                vScale = scale / ratio > 1.0 ? scale / ratio : 1.0;
+                width = ((bounds.right - bounds.left) * hScale + 0.5);
+                height = ((bounds.bottom - bounds.top) * vScale + 0.5);
                 first = 0;
-                ratio /= 2.0f;
-                scale /= 2.0f;
+                ratio /= 2.0;
+                scale /= 2.0;
             }
         }
         if (hScale != 1.0 || vScale != 1.0) {
@@ -408,11 +448,15 @@ nomem:
             DT_ImageUnlock(*imageOut, *maskOut);
             locked = 0;
             e = DT_ImageResize(*imageOut, *maskOut, &bounds);
-            if (e != 0)
-                goto fail;
+            if (e != 0) {
+                err = e;
+                goto done;
+            }
             e = DT_ImageLock(*imageOut, *maskOut, NULL, NULL);
-            if (e != 0)
-                goto fail;
+            if (e != 0) {
+                err = e;
+                goto done;
+            }
             locked = 1;
         }
     }
@@ -420,10 +464,10 @@ nomem:
     dh = 0;
     dv = 0;
     if (info_ptr->offset_unit_type == PNG_OFFSET_MICROMETER) {
-        dh = (long)(png_get_x_offset_microns(png_ptr, info_ptr) * kPointsPerInch *
-                    (1.0 / kMicronsPerInch) + 0.5);
-        dv = (long)(png_get_y_offset_microns(png_ptr, info_ptr) * kPointsPerInch *
-                    (1.0 / kMicronsPerInch) + 0.5);
+        dh = (png_get_x_offset_microns(png_ptr, info_ptr) * kPointsPerInch /
+                    kMicronsPerInch + 0.5);
+        dv = (png_get_y_offset_microns(png_ptr, info_ptr) * kPointsPerInch /
+                    kMicronsPerInch + 0.5);
     } else if (info_ptr->offset_unit_type == PNG_OFFSET_PIXEL) {
         dh = png_get_x_offset_pixels(png_ptr, info_ptr);
         dv = png_get_y_offset_pixels(png_ptr, info_ptr);
@@ -433,11 +477,12 @@ nomem:
         locked = 0;
         DT_RectOffset(DT_ImageGetRect(*imageOut, &bounds), dh, dv);
         e = DT_ImageResize(*imageOut, *maskOut, &bounds);
-        if (e != 0)
-            goto fail;
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
         e = DT_ImageLock(*imageOut, *maskOut, NULL, NULL);
         if (e != 0) {
-fail:
             err = e;
             goto done;
         }

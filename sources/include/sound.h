@@ -16,7 +16,7 @@ extern "C" {
 
 
 /* --- one declaration per name --- */
-extern char PlaySoundDistance(long unused, void *sound, short flags,
+extern Boolean PlaySoundDistance(long unused, void *sound, short flags,
                               FloatPoint *pos, FloatPoint *listener);
                                                       /* 0x004692e0 (engineutils.c) */
 extern void AdjustSoundVolume(void);                  /* 0x0046ab60 (mac _AdjustSoundVolume) */
@@ -24,28 +24,36 @@ extern void HandleVoiceSound(void);              /* 0x004311f0 */
 extern void LoadSounds(void);                            /* 0x004b0740 */
 extern void PlaySound(void *snd, short id, short leftVol, short rightVol);      /* 0x0046aad0 */
 #pragma cplusplus on
-extern "C++" {
-extern unsigned long introMusicLastServiced;
+EXTERN_CPP_BEGIN
+extern unsigned long lastMoviesTaskTime;
 extern short pendingVoiceGovt;          /* 0x00735400 (globaldefs.c) */
 extern short voiceResourceCount[kVoiceSets][kVoiceMessages]; /* 0x005979da gameloop.c */
 extern short pendingVoiceMsg;           /* 0x007353fe (globaldefs.c) */
 extern short pendingVoiceParity;        /* 0x00735402 (globaldefs.c) */
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 
 /* --- one declaration per name --- */
+#ifndef MAC1010
 extern void SetMovieVolume(Movie movie, short volume); /* 0x004d9fb0 */
+#endif
 
 
 extern void SetupIntroMusic(void);                   /* 0x004ab5d0 */
-extern void StopIntroMusic(char fadeOut);            /* 0x004ab820 */
-extern void HandleIntroMusic(char force);            /* 0x004ab8d0 */
+extern void StopIntroMusic(Boolean fadeOut);            /* 0x004ab820 */
+extern void HandleIntroMusic(Boolean force);            /* 0x004ab8d0 */
+/* the engine's calls that keep the intro music fed: 1.1.1 plays it on its own thread */
+#if V111 /* POTENTIAL BUG (win V111): nothing services the intro music on win */
+#define ServiceIntroMusic(force)
+#else
+#define ServiceIntroMusic(force) HandleIntroMusic(force)
+#endif
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern SoundRequest warpUpSoundSpec;                 /* 0x00591a98 (mac name) */
 extern SoundRequest planetSoundSpec;                 /* 0x00591ab4 (mac name) */
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 extern short ScrambleRand(void);                     /* 0x004ab970 (licensescramble.c) */
 

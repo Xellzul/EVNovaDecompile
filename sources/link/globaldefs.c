@@ -18,6 +18,7 @@
 #include "gameutil.h"
 #include "missions.h"
 #include "stellar.h"
+#include "cefix.h"
 
 void *Win95MainWindow;
 int gDisableUpdatesMode;

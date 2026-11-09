@@ -12,6 +12,7 @@
 
 /* SWCloneFramesFromMaster (mac _SWCloneFramesFromMaster). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00475f70
+// MAC: _SWCloneFramesFromMaster i386 0x000ac436 ppc 0x000b74b8
 short SWCloneFramesFromMaster(SpritePtr dstSpriteP, SpritePtr masterSpriteP)
 {
     short i;

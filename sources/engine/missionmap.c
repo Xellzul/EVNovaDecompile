@@ -8,13 +8,9 @@
 
 #define kMissionSystMax    32
 
-#define kMissionSkipMapMark 0x0002 /* flags55; suppresses both marks below (name TBC) */
-#define kMissionSystemMark  0x0200 /* flags55; also mark the mission's system field (name TBC) */
-
-
-
 /* RecalcMissionSystsForMap. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004aa980
+// MAC: _RecalcMissionSystsForMap i386 0x0000e1b5 ppc 0x00011924
 void RecalcMissionSystsForMap(void)
 {
     short i;
@@ -41,17 +37,20 @@ void RecalcMissionSystsForMap(void)
             stellarData[currentMissions[i].returnStellar].loaded != 0) {
             result = stellarData[currentMissions[i].returnStellar].system;
         }
-        if (result != -1 && (currentMissions[i].flags & kMissionSkipMapMark) == 0) {
-            missionSyst[count++] = result;
+        if (result != -1 && (currentMissions[i].flags & kMissionNoDestArrows) == 0) {
+            missionSyst[count] = result;
+            count++;
         }
 
-        if ((currentMissions[i].flags & kMissionSystemMark) != 0 &&
-            (currentMissions[i].flags & kMissionSkipMapMark) == 0 &&
+        if ((currentMissions[i].flags & kMissionExtraArrow) != 0 &&
+            (currentMissions[i].flags & kMissionNoDestArrows) == 0 &&
             currentMissions[i].shipCount > 0 &&
             currentMissions[i].shipSyst >= 0) {
             sys = FindActiveCoLocatedSystem(currentMissions[i].shipSyst);
-            if (sys != -1)
-                missionSyst[count++] = sys;
+            if (sys != -1) {
+                missionSyst[count] = sys;
+                count++;
+            }
         }
     }
 }

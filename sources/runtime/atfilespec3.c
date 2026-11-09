@@ -27,7 +27,7 @@ long _FT_BufferOpen(void **handle, unsigned char mode, FTFile *file);
 /* _FT_IsIndirectBusy (the handle-release hook FT_Open installs). STATE: MATCH 100%, 9/9,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00509fa2
-char _FT_IsIndirectBusy(void *handle)
+unsigned char _FT_IsIndirectBusy(void *handle)
 {
     char released;
 
@@ -354,7 +354,7 @@ long _FT_PathGoToVolumeName(FolderSpec **spec, const unsigned char *volume)
     if (drive == kDriveCount - 1)
         err = kFTErrDirNotFound;
     else {
-        e = _FT_PathGoToDrive(spec, (char)('A' + drive), "\\");
+        e = _FT_PathGoToDrive(spec, ('A' + drive), "\\");
         if (e != 0)
             err = e;
     }
@@ -404,7 +404,7 @@ long _FT_PathGoToVolume(FolderSpec **spec, ULong index)
     if (index > 1 || index != 0)
         err = kFTErrFileNotFound;
     else {
-        e = _FT_PathGoToDrive(spec, (char)('A' + drive), "\\");
+        e = _FT_PathGoToDrive(spec, ('A' + drive), "\\");
         if (e != 0)
             err = e;
     }
@@ -809,7 +809,7 @@ FTFile *_FT_IsFileOpen(FolderSpec **spec)
         if (ATStrCmp((*link)->path, path) == 0)
             break;
     if (link != 0)
-        return (FTFile *)*(void **)link;
+        return *(void **)link;
     return 0;
 }
 

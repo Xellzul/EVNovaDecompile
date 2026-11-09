@@ -32,7 +32,7 @@ TEHandle TENew(const Rect *destRect, const Rect *viewRect)
     TEHandle te;
     Rect *r;
 
-    te = (TEHandle)AllocAHandle2(sizeof(TERec), 0);
+    te = AllocAHandle2(sizeof(TERec), 0);
     LockAHandle((Handle)te);
     memset(*te, 0, sizeof(TERec));
 
@@ -98,9 +98,9 @@ void TEPinScroll(int dh, int dv, TEHandle hTE)
     }
     OffsetRect(&(*hTE)->destRect, dh, dv);
 
-    if ((*hTE)->port) {
+    if ((*hTE)->inPort) {
         GetPort(&savePort);
-        SetPort((*hTE)->port);
+        SetPort((*hTE)->inPort);
         TEUpdate(&(*hTE)->viewRect, hTE);
         SetPort(savePort);
         nv_UpdateDialogWindow(0);

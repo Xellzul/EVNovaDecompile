@@ -36,15 +36,17 @@ void ProgressiveDispose(ZState *state)
 /* ProgressiveDecompress (inflate a handle in place, the stream kept in state). STATE: MATCH 100%
    (with the file's `-g`), exe 225 / obj 225, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052bc39
-long ProgressiveDecompress(void **h, ZState *state)
+long ProgressiveDecompress(void **h, ZState *ref)
 {
+    ULong size;
+    long e;
+    ZState *state;
+    long err;
     void **out;
     z_stream *strm;
-    ULong size;
     long ret;
-    long err;
-    long e;
 
+    state = (void *)ref;
     err = 0;
     out = 0;
     strm = 0;
@@ -104,6 +106,9 @@ long ProgressiveDecompress(void **h, ZState *state)
         case Z_STREAM_END:
             break;
         case Z_STREAM_ERROR:
+            err = ret;
+            err = kBadArgument;
+            goto done;
         case Z_BUF_ERROR:
         default:
             err = ret;
@@ -157,16 +162,18 @@ done:
 /* ProgressiveCompress (deflate a handle in place, the stream kept in state). STATE: MATCH 100%
    (with the file's `-g`), exe 205 / obj 205, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052bea5
-long ProgressiveCompress(void **h, ZState *state)
+long ProgressiveCompress(void **h, ZState *ref)
 {
+    ULong size;
+    long e;
+    ZState *state;
+    long err;
     void **out;
     z_stream *strm;
-    ULong size;
-    unsigned char finished;
     long ret;
-    long err;
-    long e;
+    unsigned char finished;
 
+    state = (void *)ref;
     err = 0;
     out = 0;
     strm = 0;

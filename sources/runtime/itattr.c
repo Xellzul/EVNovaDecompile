@@ -8,6 +8,8 @@
 #include "burger.h"
 #include "ambrosia.h"
 
+extern unsigned char UnicodeAdvancePtr(const unsigned short **p, ULong *c);
+
 #define kPageBuckets        31
 #define HEX_DIGIT(c)        ((c) >= 'a' && (c) <= 'f' ? (c) - 'a' + 10 : \
                              (c) >= 'A' && (c) <= 'F' ? (c) - 'A' + 10 : \
@@ -19,12 +21,19 @@
 // FUNCTION: EVNOVA 0x0054016a
 ITElement *_IT_ParseTreeFindNextTag(ITElement *root, ITElement *start, const char *name, unsigned char skip)
 {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    unsigned short wideName[256];
+#endif
     char wanted[256];
     long err;
     unsigned char a;
 
     err = 0;
     String2UpperCopySafe(wanted, name, sizeof(wanted));
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    if (root->wide)
+        C2UStringCopySafe(wideName, wanted, sizeof(wideName), -1);
+#endif
     if (skip && start != 0)
         start = _IT_ParseTreeFindLastNode(root, start);
     if (start == 0)
@@ -32,6 +41,14 @@ ITElement *_IT_ParseTreeFindNextTag(ITElement *root, ITElement *start, const cha
     else
         start = PT_ParseTreeGetNext(root, start);
     for (; start != 0; start = PT_ParseTreeGetNext(root, start)) {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+        if (start->name != 0 && AsByte(start->tag > 0) && !AsByte(start->tag > 2 && start->tag < 0x7f)) {
+            if (root->wide && UnicodeCompare(start->name, wideName) == 0)
+                break;
+            if (!root->wide && StringCompare(start->name, wanted) == 0)
+                break;
+        }
+#else
         if (start->name != 0) {
             if (start->tag > 0)
                 a = 1;
@@ -43,6 +60,7 @@ ITElement *_IT_ParseTreeFindNextTag(ITElement *root, ITElement *start, const cha
                     break;
             }
         }
+#endif
     }
     return start;
 }
@@ -52,6 +70,9 @@ ITElement *_IT_ParseTreeFindNextTag(ITElement *root, ITElement *start, const cha
 // FUNCTION: EVNOVA 0x0054021f
 ITElement *_IT_ParseTreeFindParentTag(ITElement *root, ITElement *element, const char *tag)
 {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    unsigned short wideName[256];
+#endif
     char tagName[256];
     long err;
     unsigned char a;
@@ -60,6 +81,19 @@ ITElement *_IT_ParseTreeFindParentTag(ITElement *root, ITElement *element, const
 
     err = 0;
     String2UpperCopySafe(tagName, tag, sizeof(tagName));
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    if (root->wide)
+        C2UStringCopySafe(wideName, tagName, sizeof(wideName), -1);
+    do {
+        if (element->tag > 0 && !AsByte(element->tag > 2 && element->tag < 0x7f) && element->name != 0) {
+            if (root->wide && UnicodeCompare(element->name, wideName) == 0)
+                break;
+            if (!root->wide && StringCompare(element->name, tagName) == 0)
+                break;
+        }
+    } while ((element = PT_ParseTreeGetParent(root, element)) != 0);
+    return element;
+#else
     do {
         if (element->tag > 0)
             a = 1;
@@ -82,6 +116,7 @@ ITElement *_IT_ParseTreeFindParentTag(ITElement *root, ITElement *element, const
         element = PT_ParseTreeGetParent(root, element);
     } while (element != 0);
     return element;
+#endif
 }
 
 /* _IT_ParseTreeFindLastNode (the last element of a subtree in document order). STATE: MATCH 100%, exe 35 / obj
@@ -94,6 +129,17 @@ ITElement *_IT_ParseTreeFindLastNode(void *doc, ITElement *element)
     ITElement *e;
 
     err = 0;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    if (element->child != 0) {
+        element = element->child;
+        while ((e = element->next) != 0 || element->child != 0) {
+            if (e != 0)
+                element = e;
+            else
+                element = element->child;
+        }
+    }
+#else
     e = element->child;
     if (e != 0) {
         while ((e = (element = e)->next) != 0 || element->child != 0) {
@@ -109,6 +155,7 @@ ITElement *_IT_ParseTreeFindLastNode(void *doc, ITElement *element)
                 e = element->child;
         }
     }
+#endif
     return element;
 }
 
@@ -123,13 +170,15 @@ ITElement *_IT_ParseTreeFindThisData(ITElement *e, const char *text)
 
     err = 0;
     found = 0;
-    if (text == 0)
-        return e;
-    for (; e != 0 && found == 0; e = e->next) {
-        if ((char *)e->attributes == text)
-            found = e;
-        else if (e->child != 0)
-            found = _IT_ParseTreeFindThisData(e->child, text);
+    if (text == 0) {
+        found = e;
+    } else {
+        for (; e != 0 && found == 0; e = e->next) {
+            if ((char *)e->attributes == text)
+                found = e;
+            else if (e->child != 0)
+                found = _IT_ParseTreeFindThisData(e->child, text);
+        }
     }
     return found;
 }
@@ -140,13 +189,17 @@ ITElement *_IT_ParseTreeFindThisData(ITElement *e, const char *text)
 ITElement *_IT_ParseTreeFindNextData(ITElement *root, ITElement *node)
 {
     long err;
-    long len;
+    ULong len;
 
     err = 0;
     len = 0;
     while ((node = PT_ParseTreeGetNext(root, node)) != 0) {
         if (node->tag == kTagText && node->attributes != 0 &&
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+            (len = node->wide ? UnicodeGetCharCount(node->attributes) : StringGetLength(node->attributes)) != 0)
+#else
             (len = StringGetLength((unsigned char *)node->attributes)) != 0)
+#endif
             break;
     }
     return node;
@@ -164,11 +217,42 @@ char *_IT_ParseTreeFindAttribute(ITElement *root, ITElement *element, const char
     unsigned char a;
     unsigned char b;
     unsigned char c;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    unsigned short wideTag[256];
+    unsigned short wideKey[256];
+#endif
     char tagName[256];
     char keyName[256];
 
     err = 0;
     value = 0;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    if (tag != 0) {
+        String2UpperCopySafe(tagName, tag, sizeof(tagName));
+        if (root->wide)
+            C2UStringCopySafe(wideTag, tagName, sizeof(wideTag), -1);
+    }
+    StringCopySafe(keyName, key, sizeof(keyName));
+    if (root->wide)
+        C2UStringCopySafe(wideKey, keyName, sizeof(wideKey), -1);
+    do {
+        if (element->tag > 0 && !AsByte(element->tag > 2 && element->tag < 0x7f) && element->name != 0) {
+            if (tag != 0) {
+                if (root->wide && UnicodeCompare(element->name, wideTag) != 0)
+                    goto next;
+                if (!root->wide && StringCompare(element->name, tagName) != 0)
+                    goto next;
+            }
+            if (root->wide)
+                value = HashLookupUnicode(element->attributes, wideKey, 0);
+            else
+                value = HashLookup(element->attributes, keyName, 0);
+        }
+next:
+        ;
+    } while (inherit && value == 0 && (element = PT_ParseTreeGetParent(root, element)) != 0);
+    return value;
+#else
     if (tag != 0)
         String2UpperCopySafe(tagName, tag, sizeof(tagName));
     StringCopySafe(keyName, key, sizeof(keyName));
@@ -193,12 +277,26 @@ char *_IT_ParseTreeFindAttribute(ITElement *root, ITElement *element, const char
         }
     } while (inherit && value == 0 && (element = PT_ParseTreeGetParent(root, element)) != 0);
     return value;
+#endif
 }
 
 /* _IT_SimpleFindAttribute (an element's attribute value by name, NULL when absent). STATE: MATCH 100%,
    exe 28 / obj 28, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00540482
 char *_IT_SimpleFindAttribute(ITElement *element, const char *key)
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+{
+    unsigned short wideName[256];
+    char name[256];
+
+    StringCopySafe(name, key, sizeof(name));
+    if (element->wide)
+        C2UStringCopySafe(wideName, name, sizeof(wideName), -1);
+    if (element->wide)
+        return HashLookupUnicode(element->attributes, wideName, 0);
+    return HashLookup(element->attributes, name, 0);
+}
+#else
 {
     char name[256];
     long err;
@@ -215,11 +313,66 @@ char *_IT_SimpleFindAttribute(ITElement *element, const char *key)
     result = HashLookup(element->attributes, name, 0);
     return result;
 }
+#endif
 
 /* _IT_ParseAttributeGetNumber (a signed decimal number, up to a comma). STATE: MATCH 100%, exe 39 / obj 39,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005404d9
 long _IT_ParseAttributeGetNumber(unsigned char wide, const char *s)
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+{
+    unsigned char negative;
+    long value;
+
+    if (wide) {
+        const unsigned short *p;
+        ULong c;
+
+        p = s;
+        value = 0;
+        negative = 0;
+        while (UnicodeAdvancePtr(&p, &c) && c != ',') {
+            if (c >= '0' && c <= '9')
+                value = value * 10 + (c - '0');
+            else if (value == 0 && c == '-')
+                negative = 1;
+            else
+                break;
+        }
+    } else {
+        value = 0;
+        negative = 0;
+        while (*s != 0 && *s != ',') {
+            if (*s >= '0' && *s <= '9')
+                value = value * 10 + (*s - '0');
+            else if (value == 0 && *s == '-')
+                negative = 1;
+            else
+                break;
+            s++;
+        }
+    }
+    return negative ? -value : value;
+}
+#elif defined(MAC1010)
+{
+    unsigned char negative;
+    long value;
+
+    value = 0;
+    negative = 0;
+    while (*s != 0 && *s != ',') {
+        if (*s >= '0' && *s <= '9')
+            value = value * 10 + (*s - '0');
+        else if (value == 0 && *s == '-')
+            negative = 1;
+        else
+            break;
+        s++;
+    }
+    return negative ? -value : value;
+}
+#else
 {
     long value;
     unsigned char negative;
@@ -243,8 +396,15 @@ long _IT_ParseAttributeGetNumber(unsigned char wide, const char *s)
     tmp = negative ? -value : value;
     return tmp;
 }
+#endif
 
 static char kNumberFormat[] = "%ld";
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+#define kRightW L"RIGHT"
+#define kLeftW L"LEFT"
+#define kFalseW L"FALSE"
+#define kNoneW L"NONE"
+#endif
 
 /* _IT_ParseAttributeGetAlign (an ALIGN value: 1 RIGHT, -1 LEFT, 0 anything else). STATE: MATCH 100%, exe 35 / obj 35, byte-identical yes.
    OPEN: none */
@@ -252,21 +412,39 @@ static char kNumberFormat[] = "%ld";
 long _IT_ParseAttributeGetAlign(unsigned char wide, const char *s)
 {
     long align;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    unsigned short wideValue[256];
+#endif
     char value[256];
     long err;
 
     err = 0;
     align = 0;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    if (wide) {
+        Unicode2UpperCopySafe(wideValue, s, sizeof(wideValue), -1);
+        if (UnicodeCompare(wideValue, kRightW) == 0)
+            align = kAlignRight;
+        else if (UnicodeCompare(wideValue, kLeftW) == 0)
+            align = -1;
+    } else {
+#endif
     String2UpperCopySafe(value, s, sizeof(value));
     if (StringCompare(value, "RIGHT") == 0)
         align = kAlignRight;
     else if (StringCompare(value, "LEFT") == 0)
         align = kAlignLeft;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    }
+#endif
     return align;
 }
 
 static char kAlignCenter[] = "CENTER";
 
+#ifdef MAC1010
+static
+#endif
 ITColor gIT_DefaultColor = { 0xff, 0xff, 0xff, 0xff };  /* 0x00581b74 the default colour */
 
 /* _IT_ParseAttributeGetColor (a colour attribute: `#rgb' or `#rrggbb', any number of leading '#', opaque;
@@ -276,32 +454,61 @@ ITColor gIT_DefaultColor = { 0xff, 0xff, 0xff, 0xff };  /* 0x00581b74 the defaul
 ITColor _IT_ParseAttributeGetColor(unsigned char wide, const char *s)
 {
     ITColor color;
+    const char *p;
     ULong length;
     ULong i;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    const unsigned short *wp;
+#endif
     ULong c;
     long err;
-    const char *p;
 
     err = 0;
     color = gIT_DefaultColor;
     p = s;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    wp = s;
+    if (wide) {
+        while (UnicodeAdvancePtr(&wp, &c) && c != '#')
+            ;
+        length = UnicodeGetCharCount(wp);
+    } else {
+#endif
     while ((c = *p) == '#')
         p++;
     length = StringGetLength((const unsigned char *)p);
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    }
+#endif
     if (length == 3 || length == 6) {
         color.alpha = 0xff;
         color.red = 0;
         color.green = 0;
         color.blue = 0;
         for (i = 0; i < length; i += 3) {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+            if (wide)
+                UnicodeAdvancePtr(&wp, &c);
+            else
+#endif
             c = *p++;
             color.red = color.red << 4 | HEX_DIGIT(c);
         }
         for (i = 0; i < length; i += 3) {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+            if (wide)
+                UnicodeAdvancePtr(&wp, &c);
+            else
+#endif
             c = *p++;
             color.green = color.green << 4 | HEX_DIGIT(c);
         }
         for (i = 0; i < length; i += 3) {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+            if (wide)
+                UnicodeAdvancePtr(&wp, &c);
+            else
+#endif
             c = *p++;
             color.blue = color.blue << 4 | HEX_DIGIT(c);
         }
@@ -321,8 +528,27 @@ static char kRectFormat[] = "%ld,%ld,%ld,%ld";
    its terminator, a NUL too, as the exe's does). STATE: MATCH 100%, exe 67 / obj 67, byte-
    identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0054072a
+#ifdef MAC1010
+void _IT_ParseAttributeGetRect(void *rect, unsigned char wide, char *s)
+#else
 ITRect *_IT_ParseAttributeGetRect(void *rect, unsigned char wide, const char *s)
+#endif
 {
+#ifdef MAC1010 /* 1.0.10 spelling */
+    ITRect *r;
+    ITRect parsed = {0, 0, 0, 0};
+    unsigned char negative;
+    long value;
+    char *p;
+    long *field;
+    ULong i;
+    char c;
+    long err;
+#if TARGET_API_MAC_CARBON
+    const unsigned short *wp;
+    ULong wc;
+#endif
+#else
     static ITRect zero;
     ITRect *r;
     ITRect parsed;
@@ -333,13 +559,31 @@ ITRect *_IT_ParseAttributeGetRect(void *rect, unsigned char wide, const char *s)
     char c;
     long err;
     const char *p;
+#endif
 
     r = rect;
     err = 0;
     p = s;
+#ifndef MAC1010
     parsed = zero;
+#endif
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    wp = s;
+#endif
     field = &parsed.left;
     for (i = 0; i < 4; i++) {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+        if (wide) {
+            value = 0;
+            negative = 0;
+            while (UnicodeAdvancePtr(&wp, &wc) && wc != ',') {
+                if (wc >= '0' && wc <= '9')
+                    value = value * 10 + (wc - '0');
+                else if (value == 0 && wc == '-')
+                    negative = 1;
+            }
+        } else {
+#endif
         value = 0;
         negative = 0;
         while ((c = *p++) != 0 && c != ',') {
@@ -348,10 +592,15 @@ ITRect *_IT_ParseAttributeGetRect(void *rect, unsigned char wide, const char *s)
             else if (value == 0 && c == '-')
                 negative = 1;
         }
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+        }
+#endif
         *field++ = negative ? -value : value;
     }
     *r = parsed;
+#ifndef MAC1010
     return rect;
+#endif
 }
 
 /* _IT_ParseAttributeGetFlag (a boolean attribute: anything but FALSE or NONE, in any case, is true). STATE:
@@ -359,15 +608,28 @@ ITRect *_IT_ParseAttributeGetRect(void *rect, unsigned char wide, const char *s)
 // FUNCTION: EVNOVA 0x005407b7
 unsigned char _IT_ParseAttributeGetFlag(unsigned char wide, const char *s)
 {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    unsigned short wideValue[256];
+#endif
     char value[256];
     long err;
     long result;
 
     err = 0;
     result = 1;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    if (wide) {
+        Unicode2UpperCopySafe(wideValue, s, sizeof(wideValue), -1);
+        if (UnicodeCompare(wideValue, kFalseW) == 0 || UnicodeCompare(wideValue, kNoneW) == 0)
+            result = 0;
+    } else {
+#endif
     String2UpperCopySafe(value, s, sizeof(value));
     if (StringCompare(value, "FALSE") == 0 || StringCompare(value, "NONE") == 0)
         result = 0;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    }
+#endif
     return result;
 }
 
@@ -378,6 +640,10 @@ unsigned char _IT_ParseAttributeGetFlag(unsigned char wide, const char *s)
 void _IT_ParseTreeGetFontAttributes(ITElement *root, ITElement *element, char **face, long *size, ULong *style,
                   ITColor *color, char **href)
 {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    static unsigned char faceText[256];
+    static unsigned char hrefText[256];
+#endif
     char *value;
     long err;
 
@@ -391,6 +657,20 @@ void _IT_ParseTreeGetFontAttributes(ITElement *root, ITElement *element, char **
         *style = 0;
     if (href != 0)
         *href = 0;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    if (face != 0) {
+        value = _IT_ParseTreeFindAttribute(root, element, 0, "FACE", 1);
+        if (root->wide && value != 0)
+            *face = (char *)U2CStringCopySafe(faceText, value, sizeof(faceText), -1);
+        else
+            *face = value;
+    }
+    if (size != 0) {
+        value = _IT_ParseTreeFindAttribute(root, element, 0, "SIZE", 1);
+        if (value != 0)
+            *size = _IT_ParseAttributeGetNumber(root->wide, value);
+    }
+#else
     if (face != 0)
         *face = _IT_ParseTreeFindAttribute(root, element, 0, "FACE", 1);
     if (size != 0) {
@@ -398,6 +678,7 @@ void _IT_ParseTreeGetFontAttributes(ITElement *root, ITElement *element, char **
         if (value != 0)
             *size = _IT_ParseAttributeGetNumber(0, value);
     }
+#endif
     if (style != 0) {
         if (_IT_ParseTreeFindParentTag(root, element, "B") != 0 || _IT_ParseTreeFindParentTag(root, element, "STRONG") != 0)
             *style |= kStyleBold;
@@ -413,7 +694,11 @@ void _IT_ParseTreeGetFontAttributes(ITElement *root, ITElement *element, char **
     if (color != 0) {
         value = _IT_ParseTreeFindAttribute(root, element, 0, "FGCOLOR", 1);
         if (value != 0) {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+            *color = _IT_ParseAttributeGetColor(root->wide, value);
+#else
             *color = _IT_ParseAttributeGetColor(0, value);
+#endif
             if (style != 0)
                 *style |= kStyleColor;
         }
@@ -424,11 +709,17 @@ void _IT_ParseTreeGetFontAttributes(ITElement *root, ITElement *element, char **
             if (style != 0)
                 *style |= kStyleLink;
             if (href != 0)
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+                if (root->wide)
+                    *href = (char *)U2CStringCopySafe(hrefText, value, sizeof(hrefText), -1);
+                else
+#endif
                 *href = value;
         }
     }
 }
 
+#ifndef MAC1010
 /* IT_HashName (a name's hash). STATE: MATCH 100%, exe 17 / obj 17, byte-identical yes. OPEN:
    none */
 // FUNCTION: EVNOVA 0x005409d9
@@ -503,7 +794,7 @@ done:
 // FUNCTION: EVNOVA 0x00540b10
 long _IT_PageListDispose(void *tableRef)
 {
-    ITPageTable *table = (ITPageTable *)tableRef;
+    ITPageTable *table = tableRef;
     long err;
     ITPage *e;
     ITPage *next;
@@ -550,3 +841,4 @@ ITPage *_IT_GetPageByIndex(ITPageTable *table, ULong index)
         ;
     return e;
 }
+#endif

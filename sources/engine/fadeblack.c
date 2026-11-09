@@ -12,6 +12,7 @@
 
 /* ShowSplashScreen. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004aaf60
+// MAC: _ShowSplashScreen i386 0x00060e68 ppc 0x00068bfc
 void ShowSplashScreen(void)
 {
     void *pic;
@@ -20,30 +21,55 @@ void ShowSplashScreen(void)
 
     pic = GetPicture(kSplashPictID);
     SetGWorldContainer(&loadPort);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     rect = &loadPort.bounds;
     PaintRect(rect);
+#ifdef MACBUILD
+    box = loadPort.bounds;
+#else
     box.top = loadPort.bounds.top;
     box.left = loadPort.bounds.left;
     box.bottom = loadPort.bounds.bottom;
     box.right = loadPort.bounds.right;
+#endif
     if (pic != 0) {
         CenterPict(pic, &box);
         DrawPicHandle(pic, &box);
+#ifdef MACBUILD
+        HPurge(pic);
+#endif
         QDReleaseResource(pic);
     }
     UnsetGWorldContainer(&loadPort);
     SWSetPortToWindow(gSpriteWorld);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetCWindowPortRect(gWind));
-    CopyBits(GetGWCPixMap(&loadPort),
+    CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+#ifdef MAC1010
+             &loadPort.bounds, GetCWindowPortRect(gWind), 0, 0);
+#else
              rect, GetCWindowPortRect(gWind), 0, 0);
+#endif
+#ifndef MACBUILD
     ScreenEndScene();
+#endif
 }
+
+#ifdef MACBUILD
+/* HideSplashScreen (mac _HideSplashScreen): mac only. */
+// MAC: _HideSplashScreen i386 0x00060f76 ppc 0x00068d04
+void HideSplashScreen(void)
+{
+    SWSetPortToWindow(gSpriteWorld);
+    ForeColor(blackColor);
+    PaintRect(GetCWindowPortRect(gWind));
+}
+#endif
 
 /* ShowAmbrosiaLogo. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ab070
+// MAC: _ShowAmbrosiaLogo i386 0x00060fb0 ppc 0x00068d54
 void ShowAmbrosiaLogo(void)
 {
     void *pic;
@@ -52,35 +78,50 @@ void ShowAmbrosiaLogo(void)
 
     pic = GetPicture(kAmbrosiaLogoPictID);
     SetGWorldContainer(&loadPort);
+#ifdef MACBUILD
+    box = loadPort.bounds;
+#else
     box.top = loadPort.bounds.top;
     box.left = loadPort.bounds.left;
     box.bottom = loadPort.bounds.bottom;
     box.right = loadPort.bounds.right;
+#endif
     CenterPict(pic, &box);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(&loadPort.bounds);
     DrawPicHandle(pic, &box);
     UnsetGWorldContainer(&loadPort);
     SWSetPortToWindow(gSpriteWorld);
+#ifdef MACBUILD
+    box = *GetCWindowPortRect(gWind);
+#else
     rect = GetCWindowPortRect(gWind);
     box.top = rect->top;
     box.left = rect->left;
     box.bottom = rect->bottom;
     box.right = rect->right;
+#endif
     CenterPict(pic, &box);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetCWindowPortRect(gWind));
     DrawPicHandle(pic, &box);
     if (pic != 0)
         QDReleaseResource(pic);
+#if V111
+#else
     FadeScreenIn();
+#endif
 }
 
-/* FadeToBlack. STATE: MATCH, byte-identical. OPEN: none */
+/* HideAmbrosiaLogo. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ab180
-void FadeToBlack(void)
+// MAC: _HideAmbrosiaLogo i386 0x0006108f ppc 0x00068e40
+void HideAmbrosiaLogo(void)
 {
+#if V111
+#else
     FadeScreenOut();
-    RGBForeColor(blackColor);
+#endif
+    ForeColor(blackColor);
     PaintRect(GetCWindowPortRect(gWind));
 }

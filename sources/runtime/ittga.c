@@ -18,8 +18,8 @@ typedef struct TGAHeader {
     unsigned short colorMapLength;               /* +0x06 */
     unsigned char colorMapDepth;                 /* +0x08 */
     unsigned char pad9;                          /* +0x09 */
-    unsigned short xOrigin;                      /* +0x0a */
-    unsigned short yOrigin;                      /* +0x0c */
+    short xOrigin;                      /* +0x0a */
+    short yOrigin;                      /* +0x0c */
     unsigned short width;                        /* +0x0e */
     unsigned short height;                       /* +0x10 */
     unsigned char pixelDepth;                    /* +0x12 */
@@ -90,7 +90,11 @@ typedef struct TGAExtension {
 /* DT_ReverseBytes (reverse n bytes in place). STATE: MATCH 100%, exe 24 / obj 24, byte-identical
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00518757
+#ifdef MAC1010
+char *DT_ReverseBytes(char *p, ULong n)
+#else
 void DT_ReverseBytes(char *p, ULong n)
+#endif
 {
     ULong i;
     ULong j;
@@ -101,12 +105,19 @@ void DT_ReverseBytes(char *p, ULong n)
         p[i] = p[j];
         p[j] = p[i];
     }
+#ifdef MAC1010
+    return p;
+#endif
 }
 
 /* _TGA_ReverseColors (reverse n dwords in place). STATE: MATCH 100%, exe 25 / obj 25, byte-identical
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00518786
+#ifdef MAC1010
+ULong *_TGA_ReverseColors(ULong *p, ULong n)
+#else
 void _TGA_ReverseColors(ULong *p, ULong n)
+#endif
 {
     ULong i;
     ULong j;
@@ -117,14 +128,23 @@ void _TGA_ReverseColors(ULong *p, ULong n)
         p[i] = p[j];
         p[j] = p[i];
     }
+#ifdef MAC1010
+    return p;
+#endif
 }
 
 /* TGA_CheckFileType (is this a Targa file this reader takes). STATE: MATCH 100%, exe 177 / obj 177,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005187bd
+#ifdef MAC1010
+#define FixLE16(v) (v) = (((v) >> 8) & 0xff) | (((v) & 0xff) << 8)
+#else
+#define FixLE16(v)
+#endif
+
 unsigned char TGA_CheckFileType(const void *buffer, ULong size)
 {
-    const unsigned char *data = (const unsigned char *)buffer;
+    const unsigned char *data = buffer;
     TGAHeader h;
 
     if (size >= kTGAFileHeaderSize) {
@@ -133,12 +153,18 @@ unsigned char TGA_CheckFileType(const void *buffer, ULong size)
         MemoryCopy(&h.colorMapType, data + 1, 1);
         MemoryCopy(&h.imageType, data + 2, 1);
         MemoryCopy(&h.colorMapFirst, data + 3, 2);
+        FixLE16(h.colorMapFirst);
         MemoryCopy(&h.colorMapLength, data + 5, 2);
+        FixLE16(h.colorMapLength);
         MemoryCopy(&h.colorMapDepth, data + 7, 1);
         MemoryCopy(&h.xOrigin, data + 8, 2);
+        FixLE16(h.xOrigin);
         MemoryCopy(&h.yOrigin, data + 10, 2);
+        FixLE16(h.yOrigin);
         MemoryCopy(&h.width, data + 12, 2);
+        FixLE16(h.width);
         MemoryCopy(&h.height, data + 14, 2);
+        FixLE16(h.height);
         MemoryCopy(&h.pixelDepth, data + 16, 1);
         MemoryCopy(&h.descriptor, data + 17, 1);
 
@@ -189,9 +215,7 @@ unsigned char TGA_CheckFileType(const void *buffer, ULong size)
         case 16:
         case 24:
         case 32:
-            if (h.imageType == kTGAMapped)
-                return 0;
-            if (h.imageType == kTGAMappedRLE)
+            if (h.imageType == kTGAMapped || h.imageType == kTGAMappedRLE)
                 return 0;
             break;
         default:
@@ -203,6 +227,12 @@ unsigned char TGA_CheckFileType(const void *buffer, ULong size)
     }
     return 0;
 }
+
+#ifdef MAC1010
+#define FixLE32(v) (v) = Swap32(v)
+#else
+#define FixLE32(v)
+#endif
 
 /* a 5-bit channel already shifted to the top of a byte, its top bits repeated below */
 #define Widen5(c)   ((c) | (c) >> 5)
@@ -224,12 +254,12 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     unsigned char hasAlpha;
     unsigned char rightToLeft;
     unsigned char topToBottom;
+    ULong x;
     ULong y;
     ULong width;
     ULong height;
     ULong carry;
     ULong count;
-    ULong x;
     ULong i;
     ULong size;
     ULong k;
@@ -288,11 +318,13 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
         err = e;
         goto done;
     }
+    FixLE16(h.colorMapFirst);
     e = DT_BufferRead(stream, &h.colorMapLength, 2);
     if (e != 0) {
         err = e;
         goto done;
     }
+    FixLE16(h.colorMapLength);
     e = DT_BufferRead(stream, &h.colorMapDepth, 1);
     if (e != 0) {
         err = e;
@@ -303,21 +335,25 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
         err = e;
         goto done;
     }
+    FixLE16(h.xOrigin);
     e = DT_BufferRead(stream, &h.yOrigin, 2);
     if (e != 0) {
         err = e;
         goto done;
     }
+    FixLE16(h.yOrigin);
     e = DT_BufferRead(stream, &h.width, 2);
     if (e != 0) {
         err = e;
         goto done;
     }
+    FixLE16(h.width);
     e = DT_BufferRead(stream, &h.height, 2);
     if (e != 0) {
         err = e;
         goto done;
     }
+    FixLE16(h.height);
     e = DT_BufferRead(stream, &h.pixelDepth, 1);
     if (e != 0) {
         err = e;
@@ -338,11 +374,13 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
             err = e;
             goto done;
         }
+        FixLE32(footer.extensionOffset);
         e = DT_BufferRead(stream, &footer.developerOffset, 4);
         if (e != 0) {
             err = e;
             goto done;
         }
+        FixLE32(footer.developerOffset);
         e = DT_BufferRead(stream, footer.signature, sizeof(footer.signature));
         if (e != 0) {
             err = e;
@@ -361,8 +399,14 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
         stream->pos = i;
         if (footer.terminator != 0 || StringCompare(footer.signature, kTGASignature) != 0)
             MemoryClear(&footer, sizeof(footer));
-        if (footer.extensionOffset >= stream->size || footer.developerOffset >= stream->size)
-            goto bad;
+        if (footer.extensionOffset >= stream->size) {
+            err = kStreamOverrun;
+            goto done;
+        }
+        if (footer.developerOffset >= stream->size) {
+            err = kStreamOverrun;
+            goto done;
+        }
     }
 
     MemoryClear(&ext, sizeof(ext));
@@ -374,8 +418,9 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
             err = e;
             goto done;
         }
+        FixLE16(ext.size);
         if (ext.size == kTGAExtensionSize) {
-            if (ext.size + footer.extensionOffset >= stream->size) {
+            if (footer.extensionOffset + ext.size >= stream->size) {
                 err = kStreamOverrun;
                 goto done;
             }
@@ -395,6 +440,7 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                     err = e;
                     goto done;
                 }
+                FixLE16(ext.dateTime[i]);
             }
             e = DT_BufferRead(stream, ext.jobName, sizeof(ext.jobName));
             if (e != 0) {
@@ -407,6 +453,7 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                     err = e;
                     goto done;
                 }
+                FixLE16(ext.jobTime[i]);
             }
             e = DT_BufferRead(stream, ext.softwareId, sizeof(ext.softwareId));
             if (e != 0) {
@@ -428,36 +475,43 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                 err = e;
                 goto done;
             }
+            FixLE16(ext.pixelRatioNum);
             e = DT_BufferRead(stream, &ext.pixelRatioDen, 2);
             if (e != 0) {
                 err = e;
                 goto done;
             }
+            FixLE16(ext.pixelRatioDen);
             e = DT_BufferRead(stream, &ext.gammaNum, 2);
             if (e != 0) {
                 err = e;
                 goto done;
             }
+            FixLE16(ext.gammaNum);
             e = DT_BufferRead(stream, &ext.gammaDen, 2);
             if (e != 0) {
                 err = e;
                 goto done;
             }
+            FixLE16(ext.gammaDen);
             e = DT_BufferRead(stream, &ext.colorCorrectionOffset, 4);
             if (e != 0) {
                 err = e;
                 goto done;
             }
+            FixLE32(ext.colorCorrectionOffset);
             e = DT_BufferRead(stream, &ext.postageStampOffset, 4);
             if (e != 0) {
                 err = e;
                 goto done;
             }
+            FixLE32(ext.postageStampOffset);
             e = DT_BufferRead(stream, &ext.scanLineOffset, 4);
             if (e != 0) {
                 err = e;
                 goto done;
             }
+            FixLE32(ext.scanLineOffset);
             e = DT_BufferRead(stream, &ext.attributesType, 1);
             if (e != 0) {
                 err = e;
@@ -507,7 +561,7 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
             /* BUG: k is both the byte offset and the colour word it reads, and the bytes are
                read signed */
             for (i = k = 0; i < palette.count; i++, k += 2) {
-                k = (cmap[k + 1] << 8) | cmap[k];
+                k = cmap[k] | (cmap[k + 1] << 8);
                 palette.entry[i].alpha = 0xff;
                 r = (k & 0x7c00) >> 7;
                 palette.entry[i].red = Widen5(r);
@@ -537,9 +591,8 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
         }
     }
 
-    DT_SetRect(&bounds, (short)h.xOrigin, -(short)h.yOrigin, h.width, h.height);
-    *imageOut = DT_ImageCreate(&bounds, h.pixelDepth, palette.count != 0 ? &palette : NULL);
-    if (*imageOut == NULL) {
+    DT_SetRect(&bounds, h.xOrigin, -h.yOrigin, h.width, h.height);
+    if ((*imageOut = DT_ImageCreate(&bounds, h.pixelDepth, palette.count != 0 ? &palette : NULL)) == NULL) {
         err = kOutOfMemory;
         goto done;
     }
@@ -625,8 +678,7 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
             hasAlpha = 1;
     }
     if (hasAlpha && maskOut != NULL) {
-        *maskOut = DT_ImageCreate(&bounds, kMaskDepth, &gDT_AlphaPalette);
-        if (*maskOut == NULL) {
+        if ((*maskOut = DT_ImageCreate(&bounds, kMaskDepth, &gDT_AlphaPalette)) == NULL) {
             err = kOutOfMemory;
             goto done;
         }
@@ -664,10 +716,8 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
             if (carry != 0) {
                 count = carry;
                 carry = 0;
-            } else if ((h.imageType & kTGARLE) != 0) {
-                count = 0;
             } else {
-                count = width;
+                count = (h.imageType & kTGARLE) != 0 ? 0 : width;
             }
             packet = 0;
             for (x = 0; x < width; ) {
@@ -712,10 +762,8 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
             if (carry != 0) {
                 count = carry;
                 carry = 0;
-            } else if ((h.imageType & kTGARLE) != 0) {
-                count = 0;
             } else {
-                count = width;
+                count = (h.imageType & kTGARLE) != 0 ? 0 : width;
             }
             packet = 0;
             for (x = 0; x < width; ) {
@@ -753,7 +801,12 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                         goto done;
                     }
                     for (k = 0; count--; k++) {
+#ifdef MAC1010      /* 1.0.10 spelling */
+#define LE16(v) ((((v) >> 8) & 0xff) | (((v) & 0xff) << 8))
+                        word = (long long)LE16(((unsigned short *)row)[k]);
+#else
                         word = ((unsigned short *)row)[k];
+#endif
                         b = hasAlpha && (word & kTGAAlpha16) != 0;
                         pixels[x].alpha = b ? 0 : 0xff;
                         r = (word & 0x7c00) >> 7;
@@ -781,10 +834,8 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
             if (carry != 0) {
                 count = carry;
                 carry = 0;
-            } else if ((h.imageType & kTGARLE) != 0) {
-                count = 0;
             } else {
-                count = width;
+                count = (h.imageType & kTGARLE) != 0 ? 0 : width;
             }
             packet = 0;
             for (x = 0; x < width; ) {
@@ -797,7 +848,6 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                     count = (packet & kTGARunCount) + 1;
                 }
                 if (x + count > width) {
-bad:
                     err = kStreamOverrun;
                     goto done;
                 }
@@ -814,7 +864,7 @@ bad:
                     while (count--)
                         pixels[x++] = color;
                 } else {
-                    e = DT_BufferRead(stream, row, h.pixelDepth * count >> 3);
+                    e = DT_BufferRead(stream, row, count * h.pixelDepth >> 3);
                     if (e != 0) {
                         err = e;
                         goto done;

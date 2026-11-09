@@ -28,8 +28,8 @@ FileTypeMap **gFT_FileTypes;                     /* 0x00870930 */
 FolderSpec **gFT_PathList;                       /* 0x008701b4 registered specs */
 FTFile *gFT_FileList;                            /* 0x00870138 open files */
 unsigned char gFT_Open;                      /* 0x00870e08 */
-static unsigned char DAT_00865b00[8];            /* 0x00865b00 entropy */
-unsigned char *DAT_00576ce8 = DAT_00865b00;      /* 0x00576ce8 the stir pointer */
+static unsigned char sStirByte[8];            /* 0x00865b00 entropy */
+unsigned char *DAT_00576ce8 = sStirByte;      /* 0x00576ce8 the stir pointer */
 static const char kSlash[] = "/";                /* 0x00576cec, unreferenced */
 
 FileProc gFT_FileHooks[6];                       /* 0x0086e868 */
@@ -105,8 +105,8 @@ long FT_Open(void)
         goto done;
     }
     DAT_00576ce8 = DAT_00576ce8 + kStirPointerBackoff;
-    *DAT_00576ce8 = DAT_00865b00[0];
-    DAT_00865b00[0] = 0;
+    *DAT_00576ce8 = sStirByte[0];
+    sStirByte[0] = 0;
     gFT_Open = 1;
 
 done:
@@ -141,11 +141,11 @@ void FT_Close(void)
     while ((file = gFT_FileList) != 0)
         FT_FileClose(file);
 
-    if (DAT_00576ce8 != 0 && DAT_00576ce8 != DAT_00865b00) {
-        DAT_00865b00[0] = *DAT_00576ce8;
+    if (DAT_00576ce8 != 0 && DAT_00576ce8 != sStirByte) {
+        sStirByte[0] = *DAT_00576ce8;
         DAT_00576ce8 -= kStirPointerBackoff;
         MemoryDeallocate(DAT_00576ce8);
-        DAT_00576ce8 = DAT_00865b00;
+        DAT_00576ce8 = sStirByte;
     }
 
     if (gIndirectBusy == _FT_IsIndirectBusy)
@@ -458,7 +458,7 @@ long FT_FileGetFlags(long where, const char *name, FTFileInfo *info, long flags)
                 goto done;
         }
     } else {
-        e = _FT_FileGetFlags(spec, info, (unsigned char)flags);
+        e = _FT_FileGetFlags(spec, info, flags);
     }
     err = e;
 done:
@@ -572,7 +572,7 @@ long FT_FileFlush(void *ref)
     FTFile *file;
     long err, e, result;
 
-    file = (FTFile *)ref;
+    file = ref;
     err = 0;
     if (file->parent != 0) {
         result = FT_FileFlush(file->parent);
@@ -598,7 +598,7 @@ long FT_FileRead(void *ref, ULong count, void *buffer)
     FTFile *file;
     long err, e;
 
-    file = (FTFile *)ref;
+    file = ref;
     err = 0;
     if (count > file->size - file->position)
         err = kFTErrPosition;
@@ -840,7 +840,7 @@ done:
 long FT_FileSave(long where, const char *name, long flags, ULong type, ULong creator,
                   void **handle)
 {
-    return _FT_FileSaveAppend(where, name, (unsigned char)flags, 0, type, creator, handle);
+    return _FT_FileSaveAppend(where, name, flags, 0, type, creator, handle);
 }
 
 /* FT_GetResFile (the application's module handle). STATE: MATCH 100%, exe 3 / obj 3, byte-identical yes.

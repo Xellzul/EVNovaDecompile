@@ -9,16 +9,21 @@
 #include "player.h"
 #include "render.h"
 #include "burger.h"
+#include "cefix.h"
 
-unsigned short lastTargetedShipClass;
+ShipClassID lastTargetedShipClass;
 short lastTargetedShipShields;
 short radarCount;
 unsigned char lastDebugTargInfoState;
 unsigned char targKeyOnNow;
+#ifndef MACBUILD
 unsigned char DAT_007cab70[4];
+#endif
 unsigned long lastRadarUpdateTime;
+#ifndef MACBUILD
 unsigned char DAT_007cab78[4];
-char preventStatusCopy;
+#endif
+Boolean preventStatusCopy;
 RGBColor *statusBrightColor;
 RGBColor *statusDimColor;
 RGBColor *shieldStatusColor;
@@ -30,27 +35,34 @@ short interferenceThisFrame;
 
 /* RedrawStatus (mac _RedrawStatus). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0045d0a0
-void RedrawStatus(char copyToScreen)
+// MAC: _RedrawStatus i386 0x0004cac0 ppc 0x00055a18
+void RedrawStatus(Boolean copyToScreen)
 {
     Rect box;
     Rect box2;
-    Rect *pr;
 
     if (creatingPilotFile || gPause)
         return;
+#ifdef CEFIX /* F14.03 */
+    SetRect(&box, GetCWindowPortRect(gWind)->right - ceStatusBarWidth,
+            GetCWindowPortRect(gWind)->top, GetCWindowPortRect(gWind)->right,
+            GetCWindowPortRect(gWind)->bottom);
+#else
     SetRect(&box, GetCWindowPortRect(gWind)->right - 0xc2,
             GetCWindowPortRect(gWind)->top, GetCWindowPortRect(gWind)->right,
             GetCWindowPortRect(gWind)->bottom);
-    CopyBits(GetGWCPixMap(&statusOffPort), (BitMapPtr)GetGWCPixMap(&loadPort),
+#endif
+    CopyBits(GWorldContainerPixMap(&statusOffPort), (BitMapPtr)GWorldContainerBits(&loadPort),
              &statusOffPort.bounds, &box, 0, 0);
     if (HasIFF(shipData)) {
         SetGWorldContainer(&loadPort);
-        box2.top = statusOffRect[0].top;
-        box2.left = statusOffRect[0].left;
-        box2.bottom = statusOffRect[0].bottom;
-        box2.right = statusOffRect[0].right;
+        box2 = statusOffRect[0];
+#ifdef CEFIX /* F14.04 */
+        OffsetRect(&box, GetCWindowPortRect(gWind)->right - ceStatusBarWidth, 0);
+#else
         OffsetRect(&box, GetCWindowPortRect(gWind)->right - 0xc2, 0);
-        RGBForeColor(blackColor);
+#endif
+        ForeColor(blackColor);
         PaintRect(&box2);
         SWSetPortToWindow(gSpriteWorld);
     }
@@ -68,22 +80,26 @@ void RedrawStatus(char copyToScreen)
     DrawStatus();
     preventStatusCopy = 0;
     if (copyToScreen) {
-        pr = GetCWindowPortRect(gWind);
-        box.top = pr->top;
-        box.left = pr->left;
-        box.bottom = pr->bottom;
-        box.right = pr->right;
+        box = *GetCWindowPortRect(gWind);
+#ifdef CEFIX /* F14.05 */
+        box.left = box.right - ceStatusBarWidth;
+#else
         box.left = box.right - 0xc2;
+#endif
         if (gSpriteWorld->fastBlit) {
-            CopyBits(GetGWCPixMap(&loadPort),
+            CopyBits(GWorldContainerBits(&loadPort),
                      GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                      &box, &box, 0, 0);
         } else {
-            CopyBits(GetGWCPixMap(&loadPort),
+            CopyBits(GWorldContainerBits(&loadPort),
                      GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                      &box, &box, 0, GetCWindowVisRgn(gWind));
         }
     }
+#if V111
+    if (!useLegacyRenderingPipeline)
+        QDFlushPortBuffer(GetWindowPort(gWind), NULL);
+#endif
 }
 
 /* DrawStatus (mac _DrawStatus). STATE: MATCH 100.0%, exe 150 / obj 150, relocregcheck
@@ -91,8 +107,13 @@ void RedrawStatus(char copyToScreen)
    that arm order, not a spelling at the site, decided the lastRadarUpdateTime+15 register.
    OPEN: none. */
 // FUNCTION: EVNOVA 0x0045d320
+// MAC: _DrawStatus i386 0x0004c85d ppc 0x00055688
 void DrawStatus(void)
 {
+#ifdef MACBUILD
+    Boolean drew;
+
+#endif
     if (fadePending[0] || fadePending[1] || creatingPilotFile)
         return;
     if (shipData[0].navTargetKind != -1 && ReadTick() % 30 == 0)
@@ -101,16 +122,28 @@ void DrawStatus(void)
         if (ReadTick() % 45 == 0)
             statusRedraw[6] = statusRedraw[2] = 1;
     }
+#ifdef MACBUILD
+    if (QuickKeyCheck(kScanControl))
+#else
     if (QuickKeyCheck(kScanLCtrl) || QuickKeyCheck(kScanRCtrl))
+#endif
         targKeyOnNow = 1;
     else
         targKeyOnNow = 0;
+#ifdef MACBUILD
+    drew = 0;
+#endif
     if (ReadTick() >= lastRadarUpdateTime + 15) {
         lastRadarUpdateTime = ReadTick();
         radarCount = (radarCount + 1) % 2;
         if (shipData[0].targetShip != -1) {
+#ifdef MACBUILD
+            if (shipData[shipData[0].targetShip].shield != lastTargetedShipShields ||
+                shipData[shipData[0].targetShip].type != lastTargetedShipClass)
+#else
             if (lastTargetedShipShields != shipData[shipData[0].targetShip].shield ||
                 lastTargetedShipClass != (unsigned short)shipData[shipData[0].targetShip].type)
+#endif
                 statusRedraw[6] = 1;
             if (lastDebugTargInfoState != targKeyOnNow || targKeyOnNow)
                 statusRedraw[6] = 1;
@@ -118,10 +151,16 @@ void DrawStatus(void)
             lastTargetedShipClass = lastTargetedShipShields = 0x8001;
         }
         statusRedraw[5] = 1;
+#ifdef MACBUILD
+        drew = 1;
+#endif
     }
     if (statusRedraw[6]) {
         DrawStatusTarg();
         statusRedraw[6] = 0;
+#ifdef MACBUILD
+        drew = 1;
+#endif
     }
     if (statusRedraw[5]) {
         if (!onPlanet && !playerIsLanded)
@@ -129,25 +168,47 @@ void DrawStatus(void)
         else
             DrawStatusRadar(1);
         statusRedraw[5] = 0;
+#ifdef MACBUILD
+        drew = 1;
+#endif
     }
     if (statusRedraw[3]) {
         DrawStatusWeap();
         statusRedraw[3] = 0;
+#ifdef MACBUILD
+        drew = 1;
+#endif
     }
     if (statusRedraw[0]) {
         DrawStatusNav();
         statusRedraw[0] = 0;
+#ifdef MACBUILD
+        drew = 1;
+#endif
     }
     if (statusRedraw[1]) {
         DrawStatusShield();
         statusRedraw[1] = 0;
+#ifdef MACBUILD
+        drew = 1;
+#endif
     }
     if (statusRedraw[4]) {
         DrawStatusFuel();
         statusRedraw[4] = 0;
+#ifdef MACBUILD
+        drew = 1;
+#endif
     }
     if (statusRedraw[2]) {
         DrawStatusCargo();
         statusRedraw[2] = 0;
+#ifdef MACBUILD
+        drew = 1;
+#endif
     }
+#ifdef MACBUILD
+    if (drew)
+        QDFlushPortBuffer(GetCWindowGrafPort(gWind), NULL);
+#endif
 }

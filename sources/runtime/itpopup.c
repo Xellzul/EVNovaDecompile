@@ -282,7 +282,7 @@ compare:
                 length = kTextMax - 1;
             MemoryCopy(value, *handle, length);
             value[length] = 0;
-            if (SendMessageA(popup->combo, CB_SELECTSTRING, (unsigned int)-1, (long)value) == CB_ERR) {
+            if (SendMessageA(popup->combo, CB_SELECTSTRING, -1, (long)value) == CB_ERR) {
                 err = CB_ERR;
                 err = kNotFound;
                 goto done;

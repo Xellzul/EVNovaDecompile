@@ -12,41 +12,49 @@
 #include "dialogs.h"
 #include "game.h"
 #include "missions.h"
-
-#define kMissionKeepsUnk61 0x0010 /* flags55 */
+#include "cefix.h"
 
 /* the mission object's globals; this file ends that object (the .CRT hook) */
 unsigned char missionName[1000][256];
-char forceRandom;
-char canRefuseMission;
-char offeringFromShip;
-char showAbortMissionButton;
-char reenterMissionDialog;
-char suppressMissionOffer[1000];
+Boolean forceRandom;
+Boolean canRefuseMission;
+Boolean offeringFromShip;
+Boolean showAbortMissionButton;
+Boolean reenterMissionDialog;
+Boolean suppressMissionOffer[1000];
 PicHandle missionBackgroundPic[3];
-PicHandle gMissionInfoPict;
+PicHandle missionInfoBackgroundPic;
 short activeMissions[16];
-short missionListVenue;
+short missionsOutside;
 short selMissionListItem;
-short gMissionInfoIndex;
+short selMissionInfoListItem;
 short offeringShipIndex;
 short tempMissions[kMaxMissions];
 short nextPortMission;
 short lastPortMissionLoc;
+#ifndef MACBUILD
 DialogPtr missionDialog;
+#endif
 DialogPtr missionInfoDialog;
 ScrollRec **missionList;
 ScrollRec **missionInfoList;
 char briefingTextPtr[0x2000];
 unsigned long missionOfferTime;
 void *stringHandle;
-TEHandle gMissionTE;
+TEHandle offerTextHandle;
 short currentMissionIndexForSetParser;
+#ifndef MACBUILD
 BriefMissionRec briefMissionInfo[1000];
 unsigned char DAT_0077e804[1972];
 Handle missionFileHand;
 unsigned char DAT_0077efbc[1648];
 MissionAvailRec missionAvailData[kMaxMissions];
+#else
+/* tentative here too; ResourceTypes.o's equal-size definitions come later in link order and win */
+BriefMissionRec briefMissionInfo[1000];
+Handle missionFileHand;
+MissionAvailRec missionAvailData[kMaxMissions];
+#endif
 
 /*
  * Per-arrival mission housekeeping (win 0x00448910). A mission wanting the
@@ -57,6 +65,7 @@ MissionAvailRec missionAvailData[kMaxMissions];
 
 /* MissionHandlePlayerEnteredNewSystem. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00448910
+// MAC: _MissionHandlePlayerEnteredNewSystem i386 0x00099f11 ppc 0x000a5d14
 void MissionHandlePlayerEnteredNewSystem(void)
 {
     short i;
@@ -80,7 +89,7 @@ void MissionHandlePlayerEnteredNewSystem(void)
                     }
                 }
             }
-            if ((currentMissions[i].flags & kMissionKeepsUnk61) != 0)
+            if ((currentMissions[i].flags & kMissionInfiniteAuxShips) != 0)
                 currentMissions[i].auxShipsLeft = currentMissions[i].auxShipCount;
             currentMissions[i].auxShipDelay = Rand(70) + 70;
             currentMissions[i].auxShipsSpawned = 0;
@@ -91,9 +100,66 @@ void MissionHandlePlayerEnteredNewSystem(void)
 /* MissionListDefinition (mac _MissionListDefinition). STATE: MATCH, byte-identical.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00448a30
-void MissionListDefinition(short lMessage, char lSelect, Rect *lRect, long lCell,
+// MAC: _MissionListDefinition i386 0x0009a018 ppc 0x000a5e68
+void MissionListDefinition(short lMessage, Boolean lSelect, Rect *lRect, long lCell,
                    short lDataOffset, short lDataLen, ScrollRec **lHandle)
 {
+#ifdef MACBUILD
+    SInt32 penMode;
+    short h;
+    void *text;
+    short v;
+    FontInfo fontInfo;
+    GrafPtr port;
+
+    text = *(*lHandle)->cells;
+    switch (lMessage) {
+    case lDrawMsg:
+        GetFontInfo(&fontInfo);
+        if (lSelect)
+            RGBForeColor(&ldefColors[2]);
+        else
+            RGBForeColor(&ldefColors[1]);
+        PaintRect(lRect);
+        ForeColor(blackColor);
+        if (lDataLen <= 0)
+            break;
+        h = lRect->left + (*lHandle)->indent.h + 4;
+        v = lRect->top + (*lHandle)->indent.v;
+        GetFontInfo(&fontInfo);
+        MoveTo(h, v + fontInfo.ascent);
+        TextFace(0);
+        if (TextWidth(text, lDataOffset, lDataLen) > lRect->right - h)
+            TextFace(condense);
+        RGBForeColor(&ldefColors[0]);
+        DrawText(text, lDataOffset, lDataLen);
+        ForeColor(blackColor);
+        break;
+    case lHiliteMsg:
+        GetPort(&port);
+        penMode = GetPortPenMode(port);
+        if (lSelect)
+            RGBForeColor(&ldefColors[2]);
+        else
+            RGBForeColor(&ldefColors[1]);
+        PaintRect(lRect);
+        ForeColor(blackColor);
+        if (lDataLen > 0) {
+            h = lRect->left + (*lHandle)->indent.h + 4;
+            v = lRect->top + (*lHandle)->indent.v;
+            GetFontInfo(&fontInfo);
+            MoveTo(h, v + fontInfo.ascent);
+            TextFace(0);
+            if (TextWidth(text, lDataOffset, lDataLen) > lRect->right - h)
+                TextFace(condense);
+            RGBForeColor(&ldefColors[0]);
+            DrawText(text, lDataOffset, lDataLen);
+            ForeColor(blackColor);
+        }
+        SetPortPenMode(port, penMode);
+        break;
+    }
+#else
     void *text;
     short v;
 
@@ -105,15 +171,20 @@ void MissionListDefinition(short lMessage, char lSelect, Rect *lRect, long lCell
         else
             RGBForeColor(&ldefColors[1]);
         PaintRect(lRect);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         if (lDataLen <= 0)
             break;
         v = lRect->top + (*lHandle)->indent.v;
+#ifdef CEFIX /* F12.08 */
+        CE_SetPen(lRect->left + (*lHandle)->indent.h + CE_Scale(4),
+                  v + smallTextSize - 9 + CE_Scale(9));
+#else
         MoveTo(lRect->left + (*lHandle)->indent.h + 4, v + smallTextSize);
+#endif
         TextFace(0);
         RGBForeColor(&ldefColors[0]);
         DrawText(text, lDataOffset, lDataLen);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         break;
     case 2:
         if (lSelect)
@@ -121,26 +192,36 @@ void MissionListDefinition(short lMessage, char lSelect, Rect *lRect, long lCell
         else
             RGBForeColor(&ldefColors[1]);
         PaintRect(lRect);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         if (lDataLen <= 0)
             break;
         v = lRect->top + (*lHandle)->indent.v;
+#ifdef CEFIX /* F12.09 */
+        CE_SetPen(lRect->left + (*lHandle)->indent.h + CE_Scale(4),
+                  v + smallTextSize - 9 + CE_Scale(9));
+#else
         MoveTo(lRect->left + (*lHandle)->indent.h + 4, v + smallTextSize);
+#endif
         TextFace(0);
         RGBForeColor(&ldefColors[0]);
         DrawText(text, lDataOffset, lDataLen);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         break;
     }
+#endif
 }
 
+#ifndef MACBUILD
 /* CrtInitHook2. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00448b90
 void CrtInitHook2(void)
 {
 }
+#endif
 
 /* The exe ends this object with a C++ static initializer, reached through .CRT$XCU; its body
    is the function above.  An empty constructor makes the compiler emit the hook. */
+#ifndef MACBUILD
 struct CrtHook { CrtHook() {} };
 static CrtHook crtHook;
+#endif

@@ -22,89 +22,119 @@
 #include "crashlog.h"
 #include "game.h"
 /* the main-screen object's globals; this file ends that object (the .CRT hook) */
-PicHandle keyDialogPict;
+PicHandle keyPic;
+#ifndef MACBUILD
 unsigned char DAT_007d1f14[40];
-short gSelectedBinding;
+#endif
+short keyDialogSel;
+#ifdef MACBUILD
+short introTextID;
+short introPictID[4];
+short introPictDelay[4];
+#else
 unsigned char DAT_007d1f3e[4];
 short gViewSlot[5];
 short gViewSlotDuration[4];
+#endif
 DialogPtr prefsDialog;
 DialogPtr keyDialog;
+#ifndef MACBUILD
 unsigned char DAT_007d1f5c[4];
+#endif
 Rect standardPicRect;
 Rect interfacePicRect;
+#ifndef MACBUILD
 unsigned char DAT_007d1f70[8];
+#endif
 Rect logoDestRect;
 Rect rolloverDestRect;
 Rect slideDestRect[3];
-char didSpeak;
-char doMainScreenAnim;
-char majorPrefsChange;
-char creatingPilotFile;
-char gUpdateFlag;
-char regNoticeShown;
-char showingIntroText;
+Boolean didSpeak;
+Boolean doMainScreenAnim;
+#if !defined(MACBUILD) || defined(MAC1010)
+Boolean majorPrefsChange;
+#endif
+Boolean creatingPilotFile;
+#ifdef MACBUILD
+#ifndef MAC1010 /* 1.0.10: at the head of Main Screen.c */
+Boolean gUpdateFlag = 0;
+#endif
+#else
+Boolean gUpdateFlag;
+#endif
+Boolean regNoticeShown;
+Boolean showingIntroText;
+#ifdef MACBUILD
+EventRecord gEvent;
+#else
 unsigned char DAT_007d1fa7[272];
+#endif
 Str255 newPlayerName[2];
 Str255 newPilotPopupChoice[2];
 void *mainScreenSnd[4];
 ShortPoint mainMenuCenter;
 ShortPoint menuButtonPos[6];
-GWorldContainer gDlgWorld;
-GWorldContainer gDlgWorlds[3];
-short gMainPicFrame;
-short gHilitedButton;
-short gAnimStep[3];
-short gHiliteLevel;
+GWorldContainer logoPort;
+GWorldContainer slidePort[3];
+short logoIndex;
+short rolloverIndex;
+short slideIndex[3];
+short rolloverAlpha;
+#ifdef MACBUILD
+AnimDelta logoFrameSize;
+#else
 short gMainPicWidthDelta;
 short gMainPicHeightDelta;
+#endif
 ShortPoint logoDestPoint;
 ShortPoint rolloverDestPoint;
-AnimDelta gAnimDelta[3];
+AnimDelta slideFrameSize[3];
 ShortPoint slideDestPoint[3];
 ShortPoint menuTopCorner;
-short gLogoAnimEnd;
-short gAnimEnd[3];
-unsigned long gLastLogoAnimTick;
-unsigned long gHiliteLastTick;
-unsigned long gLastSlideAnimTick;
-char mainScreenBackgroundDirty;
-long gVersionCheckStart;
-char gLatestVersion[256];
-char gVersionCheckDone;
+short logoFrameCount;
+short slideFrameCount[3];
+unsigned long lastLogoAnimTime;
+unsigned long lastRolloverAnimTime;
+unsigned long lastSlideAnimTime;
+Boolean mainScreenBackgroundDirty;
+#ifdef MACBUILD
+#ifndef MAC1010 /* 1.0.10: at the head of Main Screen.c */
+long reggieStarted = 0;
+char reggieVersion[256] = "";
+Boolean reggieSuccess = 0;
+#endif
+#else
+long reggieStarted;
+char reggieVersion[256];
+Boolean reggieSuccess;
+#endif
+#ifndef MACBUILD
 unsigned char DAT_007d2665[258];
+#endif
 
 /* MainScreenRolloverDraw. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048c580
+// MAC: _MainScreenRolloverDraw i386 0x00017ad4 ppc 0x0001b76c
 void MainScreenRolloverDraw(void)
 {
     short idx;
-    Rect *frameRect;
     Rect srcRect;
-    short width;
-    short height;
 
     if (menuRolloverSprite != NULL) {
-        idx = gHilitedButton;
-        if (gHilitedButton < 0)
+        idx = rolloverIndex;
+        if (rolloverIndex < 0)
             idx = 0;
         if (idx >= menuRolloverSprite->numFrames)
             idx = menuRolloverSprite->numFrames - 1;
-        frameRect = &menuRolloverSprite->frameArray[idx]->frameRect;
-        srcRect.top = frameRect->top;
-        srcRect.left = frameRect->left;
-        srcRect.bottom = frameRect->bottom;
-        srcRect.right = frameRect->right;
-        width = srcRect.right - srcRect.left;
-        height = srcRect.bottom - srcRect.top;
-        rolloverDestRect.right = rolloverDestRect.left + width;
-        rolloverDestRect.bottom = rolloverDestRect.top + height;
+        srcRect = menuRolloverSprite->frameArray[idx]->frameRect;
+        rolloverDestRect.right = rolloverDestRect.left + (srcRect.right - srcRect.left);
+        rolloverDestRect.bottom = rolloverDestRect.top + (srcRect.bottom - srcRect.top);
         SWSetSpriteLocation(menuRolloverSprite, rolloverDestRect.left,
                             rolloverDestRect.top);
         menuRolloverSprite->translucency = kHiliteFull;
-        menuRolloverSprite->tintRed = gHiliteLevel;
-        menuRolloverSprite->tintGreen = gHiliteLevel;
-        menuRolloverSprite->tintBlue = gHiliteLevel;
+        menuRolloverSprite->tintRed = rolloverAlpha;
+        menuRolloverSprite->tintGreen = rolloverAlpha;
+        menuRolloverSprite->tintBlue = rolloverAlpha;
         menuRolloverSprite->tintMode = 0;
         menuRolloverSprite->tintColor = 0;
         gSWCurrentSpriteBeingDrawn = menuRolloverSprite;
@@ -119,13 +149,17 @@ void MainScreenRolloverDraw(void)
     }
 }
 
+#ifndef MACBUILD
 /* CrtInitHook4. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048c720
 void CrtInitHook4(void)
 {
 }
+#endif
 
 /* The exe ends this object with a C++ static initializer, reached through .CRT$XCU; its body
    is the function above.  An empty constructor makes the compiler emit the hook. */
+#ifndef MACBUILD
 struct CrtHook { CrtHook() {} };
 static CrtHook crtHook;
+#endif

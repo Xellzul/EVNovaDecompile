@@ -20,17 +20,239 @@
 #include "crashlog.h"
 #include "prototypes.h"
 #include "ships.h"
+#include "cefix.h"
 #include "space.h"
+#ifdef MACBUILD
+#include "../mac/include/rt3_ev_nova.h"
+
+#define kStrListMainInfo    140
+#define kStrDepth256         17
+#define kStrDepthThousands   18
+#define kStrResolution       19
+#define kStrResolutionTail   20
+#define NameByte(i) playerName[i]
+#else
+#define NameByte(i) (int)playerName[i]
+#endif
 
 /* gameview.c's type, and its +0x4c is why the exe derefs twice here */
 
 /* MainScreenUpdate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004873b0
+// MAC: _MainScreenUpdate i386 0x00017c0d ppc 0x0001b8e8
+#ifdef MACBUILD
 void MainScreenUpdate(short which)
 {
     unsigned char text[256];
     Rect box;
-    char shown[8];
+    Rect dst;
+    Boolean shown[6];
+    short i;
+    RGBColor *valueColor;
+    RGBColor *labelColor;
+
+    if (mainScreenBackgroundDirty != 0) {
+        SetupInterfaceBackground();
+        MainScreenAnimDraw();
+        mainScreenBackgroundDirty = 0;
+    }
+    SetGWorldContainer(&loadPort);
+    SWSetPortToWorkArea(gSpriteWorld);
+    ForeColor(blackColor);
+    if (which == 2) {
+        CopyBits(GWorldContainerBits(&loadPort),
+                 GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
+                 &rolloverDestRect, &rolloverDestRect, 0, NULL);
+        for (i = 0; i < 3; i++) {
+            if (slidePort[i].world != NULL && slideIndex[i] < slideFrameCount[i]) {
+                CopyBits(GWorldContainerBits(&loadPort),
+                         GetPortBitMapForCopyBits(
+                             gSpriteWorld->workFrameP->framePort),
+                         &slideDestRect[i], &slideDestRect[i], 0, NULL);
+            }
+        }
+    } else {
+        CopyBits(GWorldContainerBits(&loadPort),
+                 GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
+                 &gSpriteWorld->workFrameP->frameRect,
+                 &gSpriteWorld->workFrameP->frameRect, 0, NULL);
+    }
+    SetRect(&box, standardPicRect.left + 0x115, standardPicRect.top + 0x10a,
+            standardPicRect.left + 0x171, standardPicRect.top + 0x1be);
+    valueColor = &menuTextColor[0];
+    labelColor = &menuTextColor[1];
+    TextFont(menuFontID);
+    TextSize(menuTextSize);
+    if (creatingPilotFile != 0) {
+        RGBForeColor(labelColor);
+        GetIndString(text, kGameStrList, 0x113);
+        DrawStringCentered(text, (mainMenuCenter.h - 0x96),
+                           (mainMenuCenter.h + 0x96),
+                           (mainMenuCenter.v + 0x136));
+    } else {
+        if (gameInProgress) {
+            if (IsDying(shipData) == 0) {
+            MoveTo((mainMenuCenter.h - 0xbe), (mainMenuCenter.v + 0xfa));
+            RGBForeColor(labelColor);
+            DrawIndString(kGameStrList, 0xfb);
+            MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x106));
+            RGBForeColor(valueColor);
+            DrawString(playerName);
+            MoveTo((mainMenuCenter.h - 0xbe), (mainMenuCenter.v + 0x11e));
+            RGBForeColor(labelColor);
+            DrawIndString(kGameStrList, 0xff);
+            MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x12a));
+            RGBForeColor(valueColor);
+            DrawString(shipName);
+            MoveTo((mainMenuCenter.h - 0xbe), (mainMenuCenter.v + 0x142));
+            RGBForeColor(labelColor);
+            DrawIndString(kGameStrList, 0x100);
+            MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x14e));
+            RGBForeColor(valueColor);
+            DrawString(shipClass[shipData->type].name);
+            MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x15a));
+            RGBForeColor(valueColor);
+            DrawString(shipClass[shipData->type].subtitle);
+            RGBForeColor(labelColor);
+            MoveTo((mainMenuCenter.h + 0x78), (mainMenuCenter.v + 0xfa));
+            DrawIndString(kGameStrList, 0x116);
+            MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x106));
+            DrawIndString(kGameStrList, 0x117);
+            MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x112));
+            RGBForeColor(valueColor);
+            if (SystemIsInhabited(shipData->curSystem))
+                DrawLegalStatusString(shipData->curSystem);
+            else
+                DrawIndString(kGameStrList, 0x18c);
+            MoveTo((mainMenuCenter.h + 0x78), (mainMenuCenter.v + 0x12a));
+            RGBForeColor(labelColor);
+            DrawIndString(kGameStrList, 0xfe);
+            MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x136));
+            RGBForeColor(valueColor);
+            DrawCombatRatingString();
+            MoveTo((mainMenuCenter.h + 0x78), (mainMenuCenter.v + 0x14e));
+            RGBForeColor(labelColor);
+            DrawIndString(kGameStrList, 0xfc);
+            MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x15a));
+            RGBForeColor(valueColor);
+            DateToMedString(gameTime, (char *)text);
+            CtoPstr((char *)text);
+            DrawString(text);
+            ForeColor(blackColor);
+            i = shipClass[shipData->type].targetPictID;
+            if (targetInfoPic[i] != NULL) {
+                SWSetPortToBackground(gSpriteWorld);
+                ForeColor(blackColor);
+                QDGetPictureBounds(targetInfoPic[i], &box);
+                OffsetRect(&box, -box.left, -box.top);
+                OffsetRect(&box,
+                           mainMenuCenter.h - (box.right - box.left) / 2,
+                           mainMenuCenter.v + 0x118);
+                DrawPicHandle(targetInfoPic[i], &box);
+                SWSetPortToWorkArea(gSpriteWorld);
+                ForeColor(blackColor);
+                CopyBits((PixMapPtr)GetPortBitMapForCopyBits(
+                             gSpriteWorld->backFrameP->framePort),
+                         GetPortBitMapForCopyBits(
+                             gSpriteWorld->workFrameP->framePort),
+                         &box, &box, 0x22, NULL);
+            }
+        } else {
+            RGBForeColor(labelColor);
+            if (NameByte(1) == 'K' && NameByte(2) == 'e' &&
+                NameByte(3) == 'n' && NameByte(4) == 'n' &&
+                NameByte(5) == 'y') {
+                DrawStringCentered("\pOh my God! They killed Kenny!",
+                                   (mainMenuCenter.h - 0x96),
+                                   (mainMenuCenter.h + 0x96),
+                                   (mainMenuCenter.v + 0x136));
+            } else {
+                pstrcpy(text, playerName);
+                PtoCstr(text);
+                strcat((char *)text, " ");
+                StrcatIndCString((char *)text, kGameStrList, 0x115);
+                CtoPstr((char *)text);
+                DrawStringCentered(text, (mainMenuCenter.h - 0x96),
+                                   (mainMenuCenter.h + 0x96),
+                                   (mainMenuCenter.v + 0x136));
+            }
+            }
+        } else if (slideIndex[2] >= slideFrameCount[2]) {
+            RGBForeColor(labelColor);
+            GetIndString(text, kGameStrList, 0x114);
+            DrawStringCentered(text, (mainMenuCenter.h - 0x96),
+                               (mainMenuCenter.h + 0x96),
+                               (mainMenuCenter.v + 0x136));
+        }
+    }
+
+    if (slideIndex[0] >= slideFrameCount[0])
+        shown[0] = shown[3] = 1;
+    else
+        shown[0] = shown[3] = 0;
+    if (slideIndex[1] >= slideFrameCount[1])
+        shown[1] = shown[4] = 1;
+    else
+        shown[1] = shown[4] = 0;
+    if (slideIndex[2] >= slideFrameCount[2])
+        shown[2] = shown[5] = 1;
+    else
+        shown[2] = shown[5] = 0;
+
+    for (i = 0; i < 6; i++) {
+        if (menuButtonSprite[i] != NULL && shown[i] != 0) {
+            box = menuButtonSprite[i]->frameArray[0]->frameRect;
+            OffsetRect(&box, menuTopCorner.h + menuButtonPos[i].h,
+                       menuTopCorner.v + menuButtonPos[i].v);
+            SWSetSpriteLocation(menuButtonSprite[i],
+                         (menuTopCorner.h + menuButtonPos[i].h),
+                         (menuTopCorner.v + menuButtonPos[i].v));
+            BlitPixieRLEDrawProc(
+                menuButtonSprite[i]->frameArray[0],
+                gSpriteWorld->workFrameP, &box, &box);
+        }
+    }
+    ForeColor(blackColor);
+    SWSetPortToWindow(gSpriteWorld);
+    ForeColor(blackColor);
+    for (i = 0; i < 6; i++) {
+        if (menuButtonSprite[i] != NULL && shown[i] != 0) {
+            box = menuButtonSprite[i]->frameArray[0]->frameRect;
+            OffsetRect(&box, menuTopCorner.h + menuButtonPos[i].h,
+                       menuTopCorner.v + menuButtonPos[i].v);
+            SWSetSpriteLocation(menuButtonSprite[i],
+                         (menuTopCorner.h + menuButtonPos[i].h),
+                         (menuTopCorner.v + menuButtonPos[i].v));
+            BlitPixieRLEDrawProc(
+                menuButtonSprite[i]->frameArray[0],
+                gSpriteWorld->workFrameP, &box, &box);
+        }
+    }
+    if (!useLegacyRenderingPipeline)
+        ForeColor(blackColor);
+    MainScreenRolloverDraw();
+    if (which == 1) {
+        CopyBits((PixMapPtr)GetPortBitMapForCopyBits(
+                     gSpriteWorld->workFrameP->framePort),
+                 GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                 &gSpriteWorld->workFrameP->frameRect,
+                 &gSpriteWorld->workFrameP->frameRect, 0, NULL);
+        box = loadPort.bounds;
+        box.left = (box.right - 0xc2);
+        dst = *GetCWindowPortRect(gWind);
+        dst.left = (dst.right - 0xc2);
+        CopyBits(GWorldContainerBits(&loadPort),
+                 GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                 &box, &dst, 0, NULL);
+        QDFlushPortBuffer(GetCWindowGrafPort(gWind), NULL);
+    }
+}
+#else
+void MainScreenUpdate(short which)
+{
+    unsigned char text[256];
+    Rect box;
+    Boolean shown[8];
     Rect dst;
     Rect *wr;
     short i;
@@ -44,13 +266,13 @@ void MainScreenUpdate(short which)
     }
     SetGWorldContainer(&loadPort);
     SWSetPortToWorkArea(gSpriteWorld);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     if (which == 2) {
         CopyBits(GetGWCPixMap(&loadPort),
                  GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
                  &rolloverDestRect, &rolloverDestRect, 0, NULL);
         for (i = 0; i < 3; i++) {
-            if (gDlgWorlds[i].world != NULL && gAnimStep[i] < gAnimEnd[i]) {
+            if (slidePort[i].world != NULL && slideIndex[i] < slideFrameCount[i]) {
                 CopyBits(GetGWCPixMap(&loadPort),
                          GetPortBitMapForCopyBits(
                              gSpriteWorld->workFrameP->framePort),
@@ -77,7 +299,7 @@ void MainScreenUpdate(short which)
                            (mainMenuCenter.v + 0x136));
     } else {
         if (gameInProgress == 0) {
-            if (gAnimStep[2] >= gAnimEnd[2]) {
+            if (slideIndex[2] >= slideFrameCount[2]) {
                 RGBForeColor(labelColor);
                 GetIndString(text, kGameStrList, 0x114);
                 DrawStringCentered(text, (mainMenuCenter.h - 0x96),
@@ -102,10 +324,10 @@ void MainScreenUpdate(short which)
             DrawIndString(kGameStrList, 0x100);
             MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x14e));
             RGBForeColor(valueColor);
-            DrawString(gShipTypes[shipData->type].name);
+            DrawString(shipClass[shipData->type].name);
             MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x15a));
             RGBForeColor(valueColor);
-            DrawString(gShipTypes[shipData->type].subtitle);
+            DrawString(shipClass[shipData->type].subtitle);
             RGBForeColor(labelColor);
             MoveTo((mainMenuCenter.h + 0x78), (mainMenuCenter.v + 0xfa));
             DrawIndString(kGameStrList, 0x116);
@@ -131,11 +353,11 @@ void MainScreenUpdate(short which)
             DateToMedString(gameTime, (char *)text);
             CtoPstr((char *)text);
             DrawString(text);
-            RGBForeColor(blackColor);
-            i = gShipTypes[shipData->type].targetPictID;
+            ForeColor(blackColor);
+            i = shipClass[shipData->type].targetPictID;
             if (targetInfoPic[i] != NULL) {
                 SWSetPortToBackground(gSpriteWorld);
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
                 QDGetPictureBounds(targetInfoPic[i], &box);
                 OffsetRect(&box, -box.left, -box.top);
                 OffsetRect(&box,
@@ -143,7 +365,7 @@ void MainScreenUpdate(short which)
                            mainMenuCenter.v + 0x118);
                 DrawPicHandle(targetInfoPic[i], &box);
                 SWSetPortToWorkArea(gSpriteWorld);
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
                 CopyBits((PixMapPtr)GetPortBitMapForCopyBits(
                              gSpriteWorld->backFrameP->framePort),
                          GetPortBitMapForCopyBits(
@@ -152,9 +374,9 @@ void MainScreenUpdate(short which)
             }
         } else {
             RGBForeColor(labelColor);
-            if ((int)playerName[1] == 'K' && (int)playerName[2] == 'e' &&
-                (int)playerName[3] == 'n' && (int)playerName[4] == 'n' &&
-                (int)playerName[5] == 'y') {
+            if (NameByte(1) == 'K' && NameByte(2) == 'e' &&
+                NameByte(3) == 'n' && NameByte(4) == 'n' &&
+                NameByte(5) == 'y') {
                 DrawStringCentered("\pOh my God! They killed Kenny!",
                                    (mainMenuCenter.h - 0x96),
                                    (mainMenuCenter.h + 0x96),
@@ -163,7 +385,7 @@ void MainScreenUpdate(short which)
                 pstrcpy(text, playerName);
                 PtoCstr(text);
                 strcat((char *)text, " ");
-                AppendIndString((char *)text, kGameStrList, 0x115);
+                StrcatIndCString((char *)text, kGameStrList, 0x115);
                 CtoPstr((char *)text);
                 DrawStringCentered(text, (mainMenuCenter.h - 0x96),
                                    (mainMenuCenter.h + 0x96),
@@ -172,53 +394,53 @@ void MainScreenUpdate(short which)
         }
     }
 
-    if (gAnimStep[0] >= gAnimEnd[0])
+    if (slideIndex[0] >= slideFrameCount[0])
         shown[0] = shown[3] = 1;
     else
         shown[0] = shown[3] = 0;
-    if (gAnimStep[1] >= gAnimEnd[1])
+    if (slideIndex[1] >= slideFrameCount[1])
         shown[1] = shown[4] = 1;
     else
         shown[1] = shown[4] = 0;
-    if (gAnimStep[2] >= gAnimEnd[2])
+    if (slideIndex[2] >= slideFrameCount[2])
         shown[2] = shown[5] = 1;
     else
         shown[2] = shown[5] = 0;
 
     for (i = 0; i < 6; i++) {
-        if (gMainButtonSprites[i] != NULL && shown[i] != 0) {
-            wr = &gMainButtonSprites[i]->frameArray[0]->frameRect;
+        if (menuButtonSprite[i] != NULL && shown[i] != 0) {
+            wr = &menuButtonSprite[i]->frameArray[0]->frameRect;
             box.top = wr->top;
             box.left = wr->left;
             box.bottom = wr->bottom;
             box.right = wr->right;
             OffsetRect(&box, menuButtonPos[i].h + menuTopCorner.h,
                        menuButtonPos[i].v + menuTopCorner.v);
-            SWSetSpriteLocation(gMainButtonSprites[i],
+            SWSetSpriteLocation(menuButtonSprite[i],
                          (menuButtonPos[i].h + menuTopCorner.h),
                          (menuButtonPos[i].v + menuTopCorner.v));
             BlitPixieRLEDrawProc(
-                gMainButtonSprites[i]->frameArray[0],
+                menuButtonSprite[i]->frameArray[0],
                 gSpriteWorld->workFrameP, &box, &box);
         }
     }
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     SWSetPortToWindow(gSpriteWorld);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     for (i = 0; i < 6; i++) {
-        if (gMainButtonSprites[i] != NULL && shown[i] != 0) {
-            wr = &gMainButtonSprites[i]->frameArray[0]->frameRect;
+        if (menuButtonSprite[i] != NULL && shown[i] != 0) {
+            wr = &menuButtonSprite[i]->frameArray[0]->frameRect;
             box.top = wr->top;
             box.left = wr->left;
             box.bottom = wr->bottom;
             box.right = wr->right;
             OffsetRect(&box, menuButtonPos[i].h + menuTopCorner.h,
                        menuButtonPos[i].v + menuTopCorner.v);
-            SWSetSpriteLocation(gMainButtonSprites[i],
+            SWSetSpriteLocation(menuButtonSprite[i],
                          (menuButtonPos[i].h + menuTopCorner.h),
                          (menuButtonPos[i].v + menuTopCorner.v));
             BlitPixieRLEDrawProc(
-                gMainButtonSprites[i]->frameArray[0],
+                menuButtonSprite[i]->frameArray[0],
                 gSpriteWorld->workFrameP, &box, &box);
         }
     }
@@ -234,18 +456,27 @@ void MainScreenUpdate(short which)
         box.left = loadPort.bounds.left;
         box.bottom = loadPort.bounds.bottom;
         box.right = loadPort.bounds.right;
+#ifdef CEFIX /* F14.15 */
+        box.left = (box.right - ceStatusBarWidth);
+#else
         box.left = (box.right - 0xc2);
+#endif
         wr = GetCWindowPortRect(gWind);
         dst.top = wr->top;
         dst.left = wr->left;
         dst.bottom = wr->bottom;
         dst.right = wr->right;
+#ifdef CEFIX /* F14.16 */
+        dst.left = (dst.right - ceStatusBarWidth);
+#else
         dst.left = (dst.right - 0xc2);
+#endif
         CopyBits(GetGWCPixMap(&loadPort),
                  GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                  &box, &dst, 0, NULL);
     }
 }
+#endif
 
 #define kShippingVer    "1.0.A"
 #define kVersionStrList 0x8c
@@ -256,11 +487,96 @@ void MainScreenUpdate(short which)
 #define kHotStripHeight 0x14
 #define kBarHeight      0x1e
 
-/* MainScreenIdlePoll. STATE: MATCH, byte-identical. OPEN: none */
+#ifdef MAC1010
+void MainScreenActivate(Boolean activate)
+#include "../engine/mainscreenactivate.inc"
+#endif
+
+/* MainScreenIdle. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00488080
-void MainScreenIdlePoll(void)
+// MAC: _MainScreenIdle i386 0x00018ae8 ppc 0x0001c6f0
+#if V111
+void MainScreenIdle(void)
 {
-    char wanted;
+    MainScreenAnimIdle();
+}
+#elif defined(MAC1010)
+void MainScreenIdle(void)
+{
+    unsigned char text[256];
+    Rect strip;
+    Point mouse;
+    void *reply;
+    char *latest;
+    Boolean wanted;
+
+    if (reggieStarted != 0 && reggieVersion[0] == 0 &&
+        slideIndex[2] >= kAnimDone && inBackground == 0) {
+        GetIndString(text, kUrlStrList, 5);
+        PtoCstr(text);
+        reply = ReggieVersionCheck(0, text);
+        if (reply != NULL) {
+            latest = HashLookup(reply, "$VERSION", 0);
+            if (latest != NULL) {
+                crashlog_print("latest version is ");
+                crashlog_print(latest);
+                crashlog_print("\n");
+                strcpy(reggieVersion, latest);
+                reggieSuccess = 1;
+                reggieStarted = 0;
+                if (strcmp(reggieVersion, kShippingVer) > 0) {
+                    GetIndString(text, kVersionStrList, kUpgradePrompt);
+                    wanted = EVYesNoDialog(text);
+                    MainScreenUpdate(1);
+                    if (wanted) {
+                        GetIndString(text, kUrlStrList, kUrlIndex);
+                        PtoCstr(text);
+                        IT_OpenBrowser(text);
+                    }
+                }
+            }
+        } else {
+            crashlog("reggie version check returned nil");
+        }
+        if (reggieSuccess == 0) {
+            if ((TimerGetSeconds() - reggieStarted) > kPollTimeout) {
+                crashlog("timeout contacting version server");
+                reggieStarted = 0;
+            }
+        }
+    }
+    HandleIntroMusic(0);
+    MainScreenAnimIdle();
+#if TARGET_API_MAC_OS8
+    strip = *GetCWindowPortRect(gWind);
+    strip.bottom = strip.top + kHotStripHeight;
+    GetMouse(&mouse);
+    if ((PtInRect)(mouse, &strip)) {
+#else
+    GetMouse(&mouse);
+    if (!(PtInRect)(mouse, &screenMinusDockRect)) {
+#endif
+        if (mBarHidden != 0) {
+            ShowTheMenuBar();
+            InvalWindowRect(gWind, GetCWindowPortRect(gWind));
+            mBarHidden = 0;
+        }
+    } else if (mBarHidden == 0 && inBackground == 0 &&
+               settings.windowed == 0) {
+        HideTheMenuBar();
+        InvalWindowRect(gWind, GetCWindowPortRect(gWind));
+        SetPortWindowPort(gWind);
+        ForeColor(blackColor);
+        strip = *GetCWindowPortRect(gWind);
+        strip.bottom = strip.top + kBarHeight;
+        PaintRect(&strip);
+        mBarHidden = 1;
+    }
+}
+#else
+void MainScreenIdle(void)
+{
+    Boolean wanted;
     void *reply;
     char *latest;
     Rect *portRect;
@@ -269,8 +585,8 @@ void MainScreenIdlePoll(void)
     unsigned char text[256];
     Rect strip;
 
-    if (gVersionCheckStart != 0 && gLatestVersion[0] == 0 &&
-        gAnimStep[2] >= kAnimDone && inBackground == 0) {
+    if (reggieStarted != 0 && reggieVersion[0] == 0 &&
+        slideIndex[2] >= kAnimDone && inBackground == 0) {
         strcpy((char *)text, "EV Nova PC");
         reply = ReggieVersionCheck(0, (char *)text);
         if (reply == NULL) {
@@ -281,10 +597,10 @@ void MainScreenIdlePoll(void)
                 crashlog_print("latest version is ");
                 crashlog_print(latest);
                 crashlog_print("\n");
-                strcpy(gLatestVersion, latest);
-                gVersionCheckDone = 1;
-                gVersionCheckStart = 0;
-                if (memcmp(gLatestVersion, kShippingVer,
+                strcpy(reggieVersion, latest);
+                reggieSuccess = 1;
+                reggieStarted = 0;
+                if (memcmp(reggieVersion, kShippingVer,
                            sizeof(kShippingVer)) > 0) {
                     GetIndString(text, kVersionStrList, kUpgradePrompt);
                     wanted = EVYesNoDialog(text);
@@ -297,16 +613,16 @@ void MainScreenIdlePoll(void)
                 }
             }
         }
-        if (gVersionCheckDone == 0) {
+        if (reggieSuccess == 0) {
             now = TimerGetSeconds();
-            if ((unsigned int)(now - gVersionCheckStart) > kPollTimeout) {
+            if ((unsigned int)(now - reggieStarted) > kPollTimeout) {
                 crashlog("timeout contacting version server");
-                gVersionCheckStart = 0;
+                reggieStarted = 0;
             }
         }
     }
     HandleIntroMusic(0);
-    TrackMainScreenAnim();
+    MainScreenAnimIdle();
     portRect = GetCWindowPortRect(gWind);
     strip.top = portRect->top;
     strip.left = portRect->left;
@@ -322,12 +638,12 @@ void MainScreenIdlePoll(void)
             mBarHidden = 0;
         }
     } else if (mBarHidden == 0 && inBackground == 0 &&
-               windowedPref == 0) {
+               settings.windowed == 0) {
         HideTheMenuBar();
         GetCWindowPortRect(gWind);
         gNeedUpdateFlag = 1;
         SetPortWindowPort(gWind);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         portRect = GetCWindowPortRect(gWind);
         strip.top = portRect->top;
         strip.left = portRect->left;
@@ -338,6 +654,7 @@ void MainScreenIdlePoll(void)
         mBarHidden = 1;
     }
 }
+#endif
 
 /*
  * mainMenuCenter is h-then-v, NOT QuickDraw's Point order: +0 takes
@@ -353,20 +670,44 @@ void MainScreenIdlePoll(void)
 #define kMenuHalfWidth      512
 #define kMenuHalfHeight     384
 
-/* SetupInterfaceBackground (mac _SetupInterfaceBackground). STATE: MATCH, byte-identical. OPEN: none */
+#ifdef MACBUILD
+/* MainScreenClose (mac _MainScreenClose): mac only, no caller. */
+// MAC: _MainScreenClose i386 0x00016313 ppc 0x0001a0ac
+void MainScreenClose(void)
+{
+}
+
+/* MainScreenClobber (mac _MainScreenClobber): mac only, no caller. */
+// MAC: _MainScreenClobber i386 0x00016318 ppc 0x0001a0b0
+void MainScreenClobber(void)
+{
+}
+#endif
+
+#ifdef MAC1010
+void DoMenuClick(long menuChoice)
+#include "../engine/domenuclick.inc"
+#endif
+
+/* SetupInterfaceBackground (mac _SetupInterfaceBackground). STATE:MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00488380
+// MAC: _SetupInterfaceBackground i386 0x0001631d ppc 0x0001a0b4
 void SetupInterfaceBackground(void)
 {
     void *pic;
 
     SetGWorldContainer(&loadPort);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     pic = GetPicture(kInterfacePictID);
     if (pic != 0) {
+#ifdef MACBUILD
+        interfacePicRect = loadPort.bounds;
+#else
         interfacePicRect.top = loadPort.bounds.top;
         interfacePicRect.left = loadPort.bounds.left;
         interfacePicRect.bottom = loadPort.bounds.bottom;
         interfacePicRect.right = loadPort.bounds.right;
+#endif
         CenterPict(pic, &interfacePicRect);
         if (loadPort.bounds.bottom - loadPort.bounds.top < kMinFullHeight)
             OffsetRect(&interfacePicRect, 0, -kSmallScreenNudge);
@@ -376,9 +717,12 @@ void SetupInterfaceBackground(void)
         mainMenuCenter.v = (interfacePicRect.top + interfacePicRect.bottom) / 2;
         menuTopCorner.h = mainMenuCenter.h - kMenuHalfWidth;
         menuTopCorner.v = mainMenuCenter.v - kMenuHalfHeight;
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         PaintRect(&loadPort.bounds);
         DrawPicHandle(pic, &interfacePicRect);
+#ifdef CEFIX /* F28.01 */
+        CE_DrawVersion();
+#endif
         QDReleaseResource(pic);
     }
     SWSetPortToWindow(gSpriteWorld);
@@ -391,6 +735,8 @@ void SetupInterfaceBackground(void)
 
 /* PrefsDialogUpdate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004884f0
+#if V111
+#else
 void PrefsDialogUpdate(void)
 {
     Rect box;
@@ -420,6 +766,7 @@ void PrefsDialogUpdate(void)
         DrawIndString(kItem3StrList, kItem3StrIdx);
     }
 }
+#endif
 
 /* ---- DoPrefsDialog (0x00488650) ---- */
 
@@ -455,6 +802,320 @@ void PrefsDialogUpdate(void)
 
 /* DoPrefsDialog. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00488650
+// MAC: _DoPrefsDialog i386 0x00016459 ppc 0x0001a1ec
+#if V111
+void DoPrefsDialog(void)
+{
+#ifdef MACBUILD
+    CERunPrefsDialog();
+#endif
+}
+#else
+#ifdef MAC1010
+extern long gSystemVersion;
+extern long startupMemoryFree;
+extern void PreflightMemoryUsage(long *base, long *engineGlow, long *runningLights, long *weaponGlow);
+
+void DoPrefsDialog(void)
+{
+    Str255 volText;
+    Settings saved;
+    Rect box;
+    void *item;
+    long baseSize;
+    long engineGlowSize;
+    long lightsSize;
+    long weaponGlowSize;
+    short itemHit;
+    short itemType;
+    void *ctl;
+    Boolean done;
+    long needed;
+    long size;
+
+    prefsDialog = NULL;
+    prefsDialog = GetNewDialog(kPrefsDlogID, 0, -1);
+    if (prefsDialog == NULL)
+        return;
+
+    if (gWind != NULL)
+        CenterWindow(FrontWindow(prefsDialog), gWind);
+    ShowMacWindow(FrontWindow(prefsDialog));
+    SelectWindow(FrontWindow(prefsDialog));
+    SetDialogGWorld(prefsDialog);
+    RedrawDialog(prefsDialog);
+    FrameDefaultButton(prefsDialog, 1);
+
+    saved = settings;
+    done = 0;
+    PreflightMemoryUsage(&baseSize, &engineGlowSize, &lightsSize, &weaponGlowSize);
+    GetMainDevice();
+
+    do {
+        SetDialogGWorld(prefsDialog);
+        TextFont(smallTextFont);
+        TextSize(smallTextSize);
+        ForeColor(blackColor);
+
+        GetDialogItem(prefsDialog, kItemFullScreen, &itemType, &item, &box);
+        ctl = item;
+        if (gSystemVersion >= 0x1000) {
+            SetControlValue(ctl, 1);
+            HiliteControl(ctl, 255);
+        } else if (settings.yieldEvents != 0) {
+            SetControlValue(ctl, 1);
+        } else {
+            SetControlValue(ctl, 0);
+        }
+
+        if (settings.windowed != 0 && gameLoaded != 0) {
+            GetDialogItem(prefsDialog, kItemMessages, &itemType, &item, &box);
+            SetControlValue(ctl = item, 0);
+            HiliteControl(ctl, 255);
+        }
+
+        GetDialogItem(prefsDialog, kItemMusic, &itemType, &item, &box);
+        ctl = item;
+        if (settings.introMusic != 0)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(prefsDialog, kItemSmoothing, &itemType, &item, &box);
+        ctl = item;
+        if (settings.windowedPending != 0)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(prefsDialog, kItemEarlyOut, &itemType, &item, &box);
+        ctl = item;
+        if (settings.noMovies == 0)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(prefsDialog, kItemNoDebris, &itemType, &item, &box);
+        ctl = item;
+        if (settings.noDebris == 0)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(prefsDialog, kItemShipSets, &itemType, &item, &box);
+        ctl = item;
+        if (settings.shipAnimations != 0)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(prefsDialog, kItemShipGlow, &itemType, &item, &box);
+        ctl = item;
+        if (settings.engineGlows != 0)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(prefsDialog, kItemShipLights, &itemType, &item, &box);
+        ctl = item;
+        if (settings.runningLights != 0)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(prefsDialog, kItemShipWeapons, &itemType, &item, &box);
+        ctl = item;
+        if (settings.weaponGlows != 0)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(prefsDialog, kItemStatusBar, &itemType, &item, &box);
+        ctl = item;
+        if (settings.parallaxStars != 0)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(prefsDialog, kItemAutoAim, &itemType, &item, &box);
+        ctl = item;
+        if (settings.ambientSounds != 0)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(prefsDialog, kItemMessages, &itemType, &item, &box);
+        ctl = item;
+        if (settings.noHyperGamma == 0)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(prefsDialog, kItemNetwork, &itemType, &item, &box);
+        ctl = item;
+        if (settings.noVersionCheck == 0)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(prefsDialog, kItemMusicVolText, &itemType, &item, &box);
+        if (settings.volume >= 0 && settings.volume <= kMaxMusicVol) {
+            GetIndString(volText, kMusicVolStrList, settings.volume + 1);
+            SetDialogItemText(item, volText);
+        } else {
+            SetDialogItemText(item, "\p???");
+        }
+
+        majorPrefsChange = 0;
+        if (settings.windowedPending != settings.windowed)
+            majorPrefsChange = 1;
+        if (gameLoaded != 0) {
+            if (settings.shipAnimations != saved.shipAnimations || settings.engineGlows != saved.engineGlows
+                || settings.runningLights != saved.runningLights || settings.weaponGlows != saved.weaponGlows)
+                majorPrefsChange = 1;
+        }
+
+        SetDialogGWorld(prefsDialog);
+        GetDialogItem(prefsDialog, 0x13, &itemType, &item, &box);
+        ForeColor(blackColor);
+        EraseRect(&box);
+        MoveTo(box.left, box.bottom - 10);
+        if (gameLoaded != 0 || gWind == NULL) {
+            TextFont(0);
+            TextSize(12);
+            DrawIndString(kGameStrList, 0x118);
+        } else {
+            TextFont(smallTextFont);
+            TextSize(smallTextSize);
+#if !TARGET_API_MAC_CARBON
+            size = baseSize;
+            if (settings.runningLights != 0)
+                size += lightsSize;
+            if (settings.engineGlows != 0)
+                size += engineGlowSize;
+            if (settings.weaponGlows != 0)
+                size += weaponGlowSize;
+            needed = size + 10000000;
+            if ((unsigned long)needed > startupMemoryFree) {
+                needed -= startupMemoryFree;
+                needed = needed / 1000000 + 1;
+                NumToString(needed, volText);
+                DrawIndString(kItem3StrList, 0xb);
+                DrawString("\p ");
+                DrawString(volText);
+                DrawString("\p ");
+                if (needed == 1)
+                    DrawIndString(kItem3StrList, 0xc);
+                else
+                    DrawIndString(kItem3StrList, 0xd);
+                DrawString("\p ");
+                DrawIndString(kItem3StrList, 0xe);
+            } else {
+                DrawIndString(kItem3StrList, 0xf);
+                DrawString("\p ");
+                DrawIndString(kItem3StrList, 0xe);
+            }
+#endif
+        }
+        PenSize(1, 1);
+        MoveTo(box.left, box.bottom);
+        LineTo(box.right, box.bottom);
+        TextFont(smallTextFont);
+        TextSize(smallTextSize);
+        if (majorPrefsChange != 0 && gWind != NULL) {
+            GetDialogItem(prefsDialog, 3, &itemType, &item, &box);
+            EraseRect(&box);
+            MoveTo(box.left, box.bottom - 5);
+            DrawIndString(kItem3StrList, kItem3StrIdx);
+        }
+
+        ModalDialog(NULL, &itemHit);
+
+        if (itemHit == kItemDone) {
+            SavePrefs();
+            done = 1;
+        }
+        if (itemHit == kItemMusic) {
+            settings.introMusic = (settings.introMusic == 0);
+            RedrawDialog(prefsDialog);
+        }
+        if (itemHit == kItemFullScreen && gSystemVersion < 0x1000) {
+            settings.yieldEvents = (settings.yieldEvents == 0);
+            RedrawDialog(prefsDialog);
+        }
+        if (itemHit == kItemSmoothing) {
+            settings.windowedPending = (settings.windowedPending == 0);
+            RedrawDialog(prefsDialog);
+        }
+        if (itemHit == kItemEarlyOut) {
+            settings.noMovies = (settings.noMovies == 0);
+            RedrawDialog(prefsDialog);
+        }
+        if (itemHit == kItemNoDebris) {
+            settings.noDebris = (settings.noDebris == 0);
+            RedrawDialog(prefsDialog);
+        }
+        if (itemHit == kItemShipSets) {
+            settings.shipAnimations = (settings.shipAnimations == 0);
+            RedrawDialog(prefsDialog);
+        }
+        if (itemHit == kItemShipGlow) {
+            settings.engineGlows = (settings.engineGlows == 0);
+            RedrawDialog(prefsDialog);
+        }
+        if (itemHit == kItemShipLights) {
+            settings.runningLights = (settings.runningLights == 0);
+            RedrawDialog(prefsDialog);
+        }
+        if (itemHit == kItemShipWeapons) {
+            settings.weaponGlows = (settings.weaponGlows == 0);
+            RedrawDialog(prefsDialog);
+        }
+        if (itemHit == kItemStatusBar) {
+            settings.parallaxStars = (settings.parallaxStars == 0);
+            RedrawDialog(prefsDialog);
+        }
+        if (itemHit == kItemAutoAim) {
+            settings.ambientSounds = (settings.ambientSounds == 0);
+            RedrawDialog(prefsDialog);
+        }
+        if (itemHit == kItemMessages) {
+            settings.noHyperGamma = (settings.noHyperGamma == 0);
+            RedrawDialog(prefsDialog);
+        }
+        if (itemHit == kItemNetwork) {
+            settings.noVersionCheck = (settings.noVersionCheck == 0);
+            RedrawDialog(prefsDialog);
+        }
+        if (itemHit == kItemKeys) {
+            DoKeyDialog();
+            RedrawDialog(prefsDialog);
+            if (gameLoaded != 0 && gPause != 0) {
+                MainScreenAnimDraw();
+                MainScreenUpdate(1);
+            }
+            FrameDefaultButton(prefsDialog, 1);
+        }
+        if (itemHit == kItemMusicUp) {
+            if (settings.volume < kMaxMusicVol) {
+                settings.volume += 1;
+                RedrawDialog(prefsDialog);
+            } else {
+                settings.volume = kMaxMusicVol;
+            }
+            HandleIntroMusic(1);
+            AdjustSoundVolume();
+            PlaySound(beepSnd[4], kBeepChannel, gSoundVolume, gSoundVolume);
+        }
+        if (itemHit == kItemMusicDown) {
+            if (settings.volume > 0) {
+                settings.volume -= 1;
+                RedrawDialog(prefsDialog);
+            } else {
+                settings.volume = 0;
+            }
+            HandleIntroMusic(1);
+            AdjustSoundVolume();
+            PlaySound(beepSnd[4], kBeepChannel, gSoundVolume, gSoundVolume);
+        }
+    } while (done == 0);
+
+    if (gWind != NULL)
+        SWSetPortToWindow(gSpriteWorld);
+    DisposeDialog(prefsDialog);
+    prefsDialog = NULL;
+    if (settings.introMusic == 0)
+        StopIntroMusic(0);
+}
+#else
 void DoPrefsDialog(void)
 {
     unsigned char savedShipSets;
@@ -468,7 +1129,7 @@ void DoPrefsDialog(void)
     void *item;                  /* +0x11c */
     void *ctl;
     short savedGamma;
-    char done;
+    Boolean done;
     unsigned short gammaLevel;
     unsigned short musicVol;
 
@@ -485,114 +1146,121 @@ void DoPrefsDialog(void)
     RedrawDialog(prefsDialog);
     FrameDefaultButton(prefsDialog, 1);
 
-    savedShipSets = loadShipSetsPref;
-    savedShipGlow = loadShipGlowPref;
-    savedShipWeapons = loadShipWeaponsPref;
-    savedShipLights = loadShipLightsPref;
+    savedShipSets = settings.shipAnimations;
+    savedShipGlow = settings.engineGlows;
+    savedShipWeapons = settings.weaponGlows;
+    savedShipLights = settings.runningLights;
     done = 0;
-    savedGamma = gammaPref;
+    savedGamma = settings.gamma;
 
     GetDialogItem(prefsDialog, kItemFullScreen, NULL, &item, &box);
     DisableControl(item);
     GetDialogItem(prefsDialog, kItemMessages, NULL, &item, &box);
+#ifndef CEFIX /* F22.04 */
     DisableControl(item);
+#endif
 
     do {
         SetDialogGWorld(prefsDialog);
         TextFont(smallTextFont);
         TextSize(smallTextSize);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
 
         GetDialogItem(prefsDialog, kItemFullScreen, &itemType, &item, &box);
         ctl = item;
         if (DAT_007355d0 >= kTrueColorDepth) {
             SetControlValue(ctl, 1);
-        } else if (yieldEventsPref != 0) {
+        } else if (settings.yieldEvents != 0) {
             SetControlValue(ctl, 1);
         } else {
             SetControlValue(ctl, 0);
         }
 
-        if (windowedPref != 0 && gameLoaded != 0) {
+        if (settings.windowed != 0 && gameLoaded != 0) {
             GetDialogItem(prefsDialog, kItemMessages, &itemType, &item, &box);
             SetControlValue(item, 0);
         }
 
         GetDialogItem(prefsDialog, kItemMusic, &itemType, &item, &box);
         ctl = item;
-        if (musicEnabledPref != 0)
+        if (settings.introMusic != 0)
             SetControlValue(ctl, 1);
         else
             SetControlValue(ctl, 0);
         GetDialogItem(prefsDialog, kItemSmoothing, &itemType, &item, &box);
         ctl = item;
-        if (windowedPrefPending != 0)
+#ifdef CEFIX /* F04.01 */
+        ceRunInAWindow = CE_IsWindowed();
+        SetControlValue(ctl, ceRunInAWindow);
+#else
+        if (settings.windowedPending != 0)
             SetControlValue(ctl, 1);
         else
             SetControlValue(ctl, 0);
+#endif
         GetDialogItem(prefsDialog, kItemEarlyOut, &itemType, &item, &box);
         ctl = item;
-        if (gEarlyOutFlag == 0)
+        if (settings.noMovies == 0)
             SetControlValue(ctl, 1);
         else
             SetControlValue(ctl, 0);
         GetDialogItem(prefsDialog, kItemNoDebris, &itemType, &item, &box);
         ctl = item;
-        if (gNoDebris == 0)
+        if (settings.noDebris == 0)
             SetControlValue(ctl, 1);
         else
             SetControlValue(ctl, 0);
         GetDialogItem(prefsDialog, kItemShipSets, &itemType, &item, &box);
         ctl = item;
-        if (loadShipSetsPref != 0)
+        if (settings.shipAnimations != 0)
             SetControlValue(ctl, 1);
         else
             SetControlValue(ctl, 0);
         GetDialogItem(prefsDialog, kItemShipGlow, &itemType, &item, &box);
         ctl = item;
-        if (loadShipGlowPref != 0)
+        if (settings.engineGlows != 0)
             SetControlValue(ctl, 1);
         else
             SetControlValue(ctl, 0);
         GetDialogItem(prefsDialog, kItemShipLights, &itemType, &item, &box);
         ctl = item;
-        if (loadShipLightsPref != 0)
+        if (settings.runningLights != 0)
             SetControlValue(ctl, 1);
         else
             SetControlValue(ctl, 0);
         GetDialogItem(prefsDialog, kItemShipWeapons, &itemType, &item, &box);
         ctl = item;
-        if (loadShipWeaponsPref != 0)
+        if (settings.weaponGlows != 0)
             SetControlValue(ctl, 1);
         else
             SetControlValue(ctl, 0);
         GetDialogItem(prefsDialog, kItemStatusBar, &itemType, &item, &box);
         ctl = item;
-        if (parallaxStarsPref != 0)
+        if (settings.parallaxStars != 0)
             SetControlValue(ctl, 1);
         else
             SetControlValue(ctl, 0);
         GetDialogItem(prefsDialog, kItemAutoAim, &itemType, &item, &box);
         ctl = item;
-        if (planetSoundsPref != 0)
+        if (settings.ambientSounds != 0)
             SetControlValue(ctl, 1);
         else
             SetControlValue(ctl, 0);
         GetDialogItem(prefsDialog, kItemMessages, &itemType, &item, &box);
         ctl = item;
-        if (noHyperGammaPref == 0)
+        if (settings.noHyperGamma == 0)
             SetControlValue(ctl, 1);
         else
             SetControlValue(ctl, 0);
         GetDialogItem(prefsDialog, kItemNetwork, &itemType, &item, &box);
         ctl = item;
-        if (noVersionCheckPref == 0)
+        if (settings.noVersionCheck == 0)
             SetControlValue(ctl, 1);
         else
             SetControlValue(ctl, 0);
 
         GetDialogItem(prefsDialog, kItemMusicVolText, &itemType, &item, &box);
-        musicVol = volumePref;
+        musicVol = settings.volume;
         if ((short)musicVol < 0 || (short)musicVol > kMaxMusicVol) {
             SetDialogItemText(item, "\p???");
         } else {
@@ -602,7 +1270,7 @@ void DoPrefsDialog(void)
 
         GetDialogItem(prefsDialog, kItemGammaText, NULL, &item, &box);
         if (item != NULL) {
-            gammaLevel = gammaPref;
+            gammaLevel = settings.gamma;
             if ((short)gammaLevel > kMaxGamma) {
                 SetDialogItemText(item, "\p???");
             } else {
@@ -612,12 +1280,12 @@ void DoPrefsDialog(void)
         }
 
         majorPrefsChange = 0;
-        if (windowedPrefPending != windowedPref)
+        if (settings.windowedPending != settings.windowed)
             majorPrefsChange = 1;
         if (gameLoaded != 0) {
-            if (loadShipSetsPref != savedShipSets || loadShipGlowPref != savedShipGlow
-                || loadShipLightsPref != savedShipLights || loadShipWeaponsPref != savedShipWeapons
-                || gammaPref != savedGamma)
+            if (settings.shipAnimations != savedShipSets || settings.engineGlows != savedShipGlow
+                || settings.runningLights != savedShipLights || settings.weaponGlows != savedShipWeapons
+                || settings.gamma != savedGamma)
                 majorPrefsChange = 1;
         }
 
@@ -628,55 +1296,60 @@ void DoPrefsDialog(void)
             done = 1;
         }
         if (itemHit == kItemMusic) {
-            musicEnabledPref = (musicEnabledPref == 0);
+            settings.introMusic = (settings.introMusic == 0);
             RedrawDialog(prefsDialog);
         }
         if (itemHit == kItemFullScreen && DAT_007355d0 < kTrueColorDepth) {
-            yieldEventsPref = (yieldEventsPref == 0);
+            settings.yieldEvents = (settings.yieldEvents == 0);
             RedrawDialog(prefsDialog);
         }
         if (itemHit == kItemSmoothing) {
-            windowedPrefPending = (windowedPrefPending == 0);
+#ifdef CEFIX /* F04.02-04 */
+            ceRunInAWindow = (ceRunInAWindow == 0);
+            CE_ToggleFullscreen();
+#else
+            settings.windowedPending = (settings.windowedPending == 0);
+#endif
             RedrawDialog(prefsDialog);
         }
         if (itemHit == kItemEarlyOut) {
-            gEarlyOutFlag = (gEarlyOutFlag == 0);
+            settings.noMovies = (settings.noMovies == 0);
             RedrawDialog(prefsDialog);
         }
         if (itemHit == kItemNoDebris) {
-            gNoDebris = (gNoDebris == 0);
+            settings.noDebris = (settings.noDebris == 0);
             RedrawDialog(prefsDialog);
         }
         if (itemHit == kItemShipSets) {
-            loadShipSetsPref = (loadShipSetsPref == 0);
+            settings.shipAnimations = (settings.shipAnimations == 0);
             RedrawDialog(prefsDialog);
         }
         if (itemHit == kItemShipGlow) {
-            loadShipGlowPref = (loadShipGlowPref == 0);
+            settings.engineGlows = (settings.engineGlows == 0);
             RedrawDialog(prefsDialog);
         }
         if (itemHit == kItemShipLights) {
-            loadShipLightsPref = (loadShipLightsPref == 0);
+            settings.runningLights = (settings.runningLights == 0);
             RedrawDialog(prefsDialog);
         }
         if (itemHit == kItemShipWeapons) {
-            loadShipWeaponsPref = (loadShipWeaponsPref == 0);
+            settings.weaponGlows = (settings.weaponGlows == 0);
             RedrawDialog(prefsDialog);
         }
         if (itemHit == kItemStatusBar) {
-            parallaxStarsPref = (parallaxStarsPref == 0);
+            settings.parallaxStars = (settings.parallaxStars == 0);
             RedrawDialog(prefsDialog);
         }
         if (itemHit == kItemAutoAim) {
-            planetSoundsPref = (planetSoundsPref == 0);
+            settings.ambientSounds = (settings.ambientSounds == 0);
             RedrawDialog(prefsDialog);
         }
         if (itemHit == kItemMessages) {
-            noHyperGammaPref = (noHyperGammaPref == 0);
+            settings.noHyperGamma = (settings.noHyperGamma == 0);
             RedrawDialog(prefsDialog);
         }
         if (itemHit == kItemNetwork) {
-            noVersionCheckPref = (noVersionCheckPref == 0);
+            settings.noVersionCheck = (settings.noVersionCheck == 0);
             RedrawDialog(prefsDialog);
         }
         if (itemHit == kItemKeys) {
@@ -689,41 +1362,41 @@ void DoPrefsDialog(void)
             FrameDefaultButton(prefsDialog, 1);
         }
         if (itemHit == kItemMusicUp) {
-            if (volumePref < kMaxMusicVol) {
-                volumePref += 1;
+            if (settings.volume < kMaxMusicVol) {
+                settings.volume += 1;
                 RedrawDialog(prefsDialog);
             } else {
-                volumePref = kMaxMusicVol;
+                settings.volume = kMaxMusicVol;
             }
             HandleIntroMusic(1);
             AdjustSoundVolume();
             PlaySound(beepSnd[4], kBeepChannel, gSoundVolume, gSoundVolume);
         }
         if (itemHit == kItemMusicDown) {
-            if (volumePref > 0) {
-                volumePref -= 1;
+            if (settings.volume > 0) {
+                settings.volume -= 1;
                 RedrawDialog(prefsDialog);
             } else {
-                volumePref = 0;
+                settings.volume = 0;
             }
             HandleIntroMusic(1);
             AdjustSoundVolume();
             PlaySound(beepSnd[4], kBeepChannel, gSoundVolume, gSoundVolume);
         }
         if (itemHit == kItemGammaUp) {
-            if (gammaPref < kMaxGamma) {
-                gammaPref += 1;
+            if (settings.gamma < kMaxGamma) {
+                settings.gamma += 1;
                 RedrawDialog(prefsDialog);
             } else {
-                gammaPref = kMaxGamma;
+                settings.gamma = kMaxGamma;
             }
         }
         if (itemHit == kItemGammaDown) {
-            if (gammaPref > 0) {
-                gammaPref -= 1;
+            if (settings.gamma > 0) {
+                settings.gamma -= 1;
                 RedrawDialog(prefsDialog);
             } else {
-                gammaPref = 0;
+                settings.gamma = 0;
             }
         }
     } while (done == 0);
@@ -732,9 +1405,11 @@ void DoPrefsDialog(void)
         SWSetPortToWindow(gSpriteWorld);
     DisposeDialog(prefsDialog);
     prefsDialog = NULL;
-    if (musicEnabledPref == 0)
+    if (settings.introMusic == 0)
         StopIntroMusic(0);
 }
+#endif
+#endif
 
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
 /* entergame -- EnterGameFromMainScreen and DoNewPilot. Notes: Research/notes/entergame.md */
@@ -746,9 +1421,404 @@ void DoPrefsDialog(void)
    0x004eedb0, so these keep FUN_ names. */
 
 /* EnterGameFromMainScreen (mac _EnterGameFromMainScreen). STATE: MATCH 100.0%, exe 763 / obj 763,
-   byte-identical yes (2912 bytes, relocs masked), relocregcheck 0 of 194.
-   OPEN: nothing. */
+   byte-identical yes (2912 bytes, relocs masked), relocregcheck 0 of 194. 1.0.10 MATCH 907 of
+   907 Classic, 894 of 894 Carbon, padded. OPEN: nothing. */
 // FUNCTION: EVNOVA 0x00489210
+// MAC: _EnterGameFromMainScreen i386 0x00019ca7 ppc 0x0001d988
+#ifdef MACBUILD
+void EnterGameFromMainScreen(void)
+{
+    Rect box;
+    Size grow;
+    GDHandle device;
+    Str255 msg;
+    Str255 num;
+
+    crashlog("---");
+    crashlog("entering game");
+    if (useLegacyRenderingPipeline) {
+        device = gSpriteWorld->mainSWGDH;
+        if (device != NULL) {
+            if ((*(*device)->gdPMap)->pixelSize != gSpriteWorld->pixelDepth) {
+                if (gSpriteWorld->pixelDepth == 8)
+                    GetIndString(msg, kStrListMainInfo, kStrDepth256);
+                else
+                    GetIndString(msg, kStrListMainInfo, kStrDepthThousands);
+                EVNoteAlert(msg);
+                return;
+            }
+            box = (*(*device)->gdPMap)->bounds;
+            if (box.right - box.left != mainDeviceInitBounds.right - mainDeviceInitBounds.left
+                || box.bottom - box.top != mainDeviceInitBounds.bottom - mainDeviceInitBounds.top) {
+#ifdef MAC1010
+                strcpy(msg, "");
+#else
+                msg[0] = 0;
+#endif
+                StrcatIndCString((char *)msg, kStrListMainInfo, kStrResolution);
+                strcat((char *)msg, " ");
+                NumToString(mainDeviceInitBounds.right - mainDeviceInitBounds.left, num);
+                PtoCstr(num);
+                strcat((char *)msg, (char *)num);
+                strcat((char *)msg, "x");
+                NumToString(mainDeviceInitBounds.bottom - mainDeviceInitBounds.top, num);
+                PtoCstr(num);
+                strcat((char *)msg, (char *)num);
+                strcat((char *)msg, " ");
+                StrcatIndCString((char *)msg, kStrListMainInfo, kStrResolutionTail);
+                CtoPstr((char *)msg);
+                EVNoteAlert(msg);
+                return;
+            }
+        }
+    }
+    SWWindowMoved(gSpriteWorld);
+    playerIsLanded = 0;
+    crashlog("adjusting sounds");
+    AdjustSoundVolume();
+    shipData[17].licenseName = RT3_GetLicenseName();
+    DisposeMainScreenSounds();
+    crashlog("showing intro screen");
+    if (!seenIntroScreen) {
+        ShowIntroScreen();
+        FadeScreenOut();
+        seenIntroScreen = 1;
+    } else {
+        FadeScreenOut();
+    }
+    CheckForPiratedCodes();
+#ifdef MAC1010
+    StopIntroMusic(1);
+#else
+    CancelMusicThread();
+#endif
+    MaxMem(&grow);
+    LICENSE_STEP_BEGIN
+    shipData[5].licenseCode = RT3_GetLicenseCode();
+    LICENSE_STEP_END
+    crashlog("drawing stuff");
+    LoadIntfResource();
+    SWSetPortToWorkArea(gSpriteWorld);
+    SetSystemBackgroundColor();
+    PaintRect(&gSpriteWorld->workFrameP->frameRect);
+    ForeColor(blackColor);
+    SWSetPortToBackground(gSpriteWorld);
+    SetSystemBackgroundColor();
+    PaintRect(&gSpriteWorld->backFrameP->frameRect);
+    ForeColor(blackColor);
+    SWSetPortToWindow(gSpriteWorld);
+    if (!settings.windowed)
+        HideTheMenuBar();
+    RandomizeStars();
+    PropagateMissionBitEffects();
+    if (systemData[shipData->curSystem].murk < 0)
+        ClearStarfield();
+    DrawMapInFloatingFrame();
+    LICENSE_STEP_BEGIN
+    shipData[36].licenseCopies = RT3_GetLicenseCopies();
+    LICENSE_STEP_END
+    crashlog("drawing more stuff");
+    LICENSE_STEP_BEGIN
+    shipClass[gameIsRegisteredIndex].registered =
+        shipData[36].licenseCopies ? 1 : 0;
+    LICENSE_STEP_END
+    ResetPlayerPrecalcedValues();
+
+    do {
+        unsigned char blob[3] = { 0x49, 0x71, 0xad };
+        unsigned char name[17] = "EV NovaEV NovaEV";
+        unsigned char key[17] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+        unsigned char t2;
+        long g;
+        unsigned char t3;
+        unsigned char t4;
+        unsigned char t1;
+        char *p;
+        long long mem;
+        unsigned char c;
+        char b;
+        char t5;
+        Boolean ok;
+        unsigned short rem = 0;
+        unsigned char x;
+        short dummy;
+
+        /* the entry hoists of both indexes: a second name each, no word */
+        dummy = gameIsRegisteredIndex;
+        dummy = gameIsHackedIndex;
+        g = shipData[36].licenseCopies;
+#ifdef MAC1010
+        p = shipData[17].licenseName;
+#else
+        p = RT3_CheckLicenseName(shipData[17].licenseName);
+#endif
+        mem = shipData[5].licenseCode;
+        x = 0;
+#ifndef MAC1010
+        b = 0;
+        if (p != 0 && *p >= '0' && *p <= '9')
+            g = 1;
+#endif
+        if (p != 0) {
+            while (StringGetLength(key) + 1 < 17 && *p != 0)
+                StringAppendSafe(key, p, 17);
+        }
+        c = key[3];
+        x ^= c;
+        x ^= name[14];
+        x += (char)0xf1;
+        x ^= key[10];
+        x ^= key[8];
+        x = ROTL(x, 0);
+        x ^= key[15];
+        x = ROTL(x, 4);
+        x = ROTL(x, 2);
+        x = ROTL(x, 7);
+        x ^= key[1];
+        x = ROTL(x, 2);
+        x = ROTL(x, 1);
+        x += 0x5f;
+        x = ROTL(x, 4);
+        t1 = name[13];
+        x ^= t1;
+        t2 = name[5];
+        x ^= t2;
+        x = ROTL(x, 0);
+        x ^= (unsigned char)g;
+        x ^= (unsigned char)g;
+        x ^= (unsigned char)g;
+        x += 0x42;
+        if (x < (char)key[11])
+            x = ROTL(x, 8);
+        x ^= name[13];
+        x ^= (unsigned char)g;
+        x += -0x6b;
+        x = ROTL(x, 1);
+        x ^= key[7];
+        x += 0x1e;
+        x ^= key[12];
+        x = ROTL(x, 6);
+        x ^= name[3];
+        x += (char)0xac;
+        x ^= c;
+        x ^= key[13];
+        rem = RT3_ExtractLicenseBlock1(mem);
+        x = ROTL(x, 6);
+        x ^= (unsigned char)g;
+        x = ROTL(x, 2);
+        x ^= key[4];
+        x = ROTL(x, 3);
+#ifdef MAC1010
+        x = (unsigned)x >> 3 | x << 5; /* 1.0.10 pad: ROTL(x, 5) by a logical shift, so no srawi stands between the read below and the call */
+        dummy = mem >> 32; /* 1.0.10 pad: mem's high half read past the licence call; its srawi keeps the read to the colourer, deleted after it */
+#else
+        x = ROTL(x, 5);
+#endif
+        x ^= (unsigned char)g;
+        b = x;
+        x = RegScramD3(&b);
+        x += 0x19;
+        x = ROTL(x, 3);
+        x ^= key[15];
+        RegScramB3(x);
+        x = ROTL(x, 6);
+        RegScramF3();
+        x = ROTL(x, 5);
+        x ^= (unsigned char)g;
+        x ^= key[14];
+        t3 = (unsigned char)name[0];
+        x ^= t3;
+        x ^= t2;
+        x += 7;
+        x ^= key[8];
+        x += -0x60;
+        x = ROTL(x, 4);
+        x += -0x23;
+        x = ROTL(x, 1);
+        x ^= key[13];
+        RegScramB3(x);
+        x += 0x3e;
+        x ^= (unsigned char)g;
+        t4 = name[1];
+        x ^= t4;
+        if (x < (char)key[6])
+            x = ROTL(x, 3);
+        x ^= (unsigned char)g;
+        x += (char)0xe1;
+        x ^= name[7];
+        x ^= RegScramE3();
+        x ^= t3;
+        x ^= key[8];
+        x = ROTL(x, 8);
+        x ^= t1;
+        x = ROTL(x, 3);
+        if (x > (char)(t1 = name[9]))
+            x = ROTL(x, 7);
+        x = ROTL(x, 5);
+        x ^= name[8];
+        x ^= key[7];
+        x ^= (unsigned char)g;
+        if (x > 0x5f) {
+            b = x;
+            x = RegScramD3(&b);
+        }
+        x = ROTL(x, 6);
+        x += -0x53;
+        x = ROTL(x, 7);
+        x = ROTL(x, 0);
+        x ^= key[2];
+        x += -0x53;
+        x = ROTL(x, 0);
+        x += 0xae;
+        x ^= t3;
+        x = ROTL(x, 6);
+        x += (char)0xc2;
+        x ^= key[14];
+        if (x < 0x94)
+            x = ROTL(x, 6);
+        x ^= (unsigned char)g;
+        x = ROTL(x, 1);
+        x = ROTL(x, 2);
+        x += 0x45;
+        x = ROTL(x, 4);
+        x = ROTL(x, 2);
+        x = ROTL(x, 0);
+        x += 0x62;
+        x ^= key[10];
+        if (x < (char)key[1])
+            x = ROTL(x, 5);
+        if (x > (t5 = key[9]))
+            x ^= (unsigned char)t5;
+        x ^= (unsigned char)g;
+        x += 0x6c;
+        x = ROTL(x, 6);
+        x += 3;
+        x ^= (unsigned char)t5;
+        x += -0x6d;
+        x = ROTL(x, 3);
+        x = ROTL(x, 1);
+        x ^= key[15];
+        x ^= key[4];
+        x += (char)0x99;
+        if (x > 0x47)
+            x ^= key[0];
+        if (x < 3)
+            x = blob[x];
+        while (rem >= x)
+            rem -= x;
+        ok = (g != 0 && rem == 0);
+        x ^= (unsigned char)g;
+        x += (char)0xd9;
+        RegScramC3(x);
+        x ^= t2;
+        x = ROTL(x, 6);
+        x += 0xa;
+        x ^= (unsigned char)g;
+        x ^= name[1];
+        x ^= key[10];
+        x += (char)0x96;
+        x ^= name[2];
+        x ^= name[4];
+        x ^= t1;
+        x += 0xb;
+        if (x != 0)
+            RegScramA3(x);
+
+        shipClass[gameIsHackedIndex].hacked =
+            (shipData[36].licenseCopies != 0 && !ok)
+                ? 1 : 0;
+    } while (0);
+
+    HandleStellarSystemVisibility();
+    HandleStellarSprites();
+    totalDaysPlayed = RT3_GetDaysHad();
+    PrepareAllSprites();
+    gameFrozen = 1;
+    ignoreKeys = 1;
+    DoPlayGameWork(1);
+    ignoreKeys = 0;
+    gameFrozen = 0;
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+    RedrawStatus(1);
+    RefreshSAT();
+    SWUpdateSpriteWorld(gSpriteWorld, 1);
+    RedrawComm(0);
+#endif
+    statusRedraw[2] = 1;
+    escortMenuOnscreen = 0;
+    mBarHidden = 1;
+    gPause = 0;
+    SWSetPortToWindow(gSpriteWorld);
+    AdjustSoundVolume();
+    fpsCounter = 0;
+    lastFPSUpdateTime = TickCount();
+    DisposeMainScreenAnim();
+    InitCursor();
+    cursorHidden = 0;
+    ShowTheCursor();
+    HideTheCursor();
+    GetMouse(&lastMousePos);
+    lastMouseMoveTime = TickCount();
+    crashlog("changing window attributes");
+    SetRetainedWindow(gWind, true);
+    IterateInGameEventLoop(-1);
+    RefreshWindowBuffer();
+    crashlog("playing game");
+    if (!EVBugResourceFieldTest(10))
+        PlayGame();
+    crashlog("paused");
+    crashlog("resetting window attributes");
+    SetRetainedWindow(gWind, false);
+    if (!settings.windowed)
+        HideTheMenuBar();
+    if (strictPlay && IsDying(shipData) && shipData->type != kShipTypeEscapePod) {
+        crashlog("deleting pilot file due to strict play death");
+        DeletePilotFile(playerName);
+    }
+    crashlog("restoring stuff");
+    KillVoiceSound();
+    RestoreOrigClut();
+    SWSetPortToWindow(gSpriteWorld);
+    ForeColor(blackColor);
+    PaintRect(GetCWindowPortRect(gWind));
+    SetRect(&box, 0, 0, GetCWindowPortRect(gWind)->right, 20);
+    PaintRect(&box);
+    InvalWindowPortRect(gWind);
+    if (!gQuit) {
+        SetupInterfaceBackground();
+        LoadMainScreenAnim();
+        while (StillDown())
+            BusyIdle();
+        FlushEvents(3, 0);
+        FlushEvents(5, 0);
+        FlushEvents(1, 0);
+        FlushEvents(2, 0);
+    }
+    ShowTheCursor();
+    if (!settings.windowed)
+        HideTheMenuBar();
+    SWSetPortToWindow(gSpriteWorld);
+    ForeColor(blackColor);
+    PaintRect(GetCWindowPortRect(gWind));
+    if (!gQuit) {
+        crashlog("showing main screen again");
+        InvalWindowPortRect(gWind);
+#ifndef MAC1010
+        FadeScreenIn();
+#endif
+        MainScreenAppearStart();
+        MainScreenAppear();
+        SetupInterfaceBackground();
+        MainScreenAnimDraw();
+        MainScreenUpdate(1);
+    }
+    FlushEvents(3, 0);
+    FlushEvents(5, 0);
+    FlushEvents(1, 0);
+    FlushEvents(2, 0);
+    crashlog("---");
+}
+#else
 void EnterGameFromMainScreen(void)
 {
     Rect box;
@@ -760,8 +1830,8 @@ void EnterGameFromMainScreen(void)
     playerIsLanded = 0;
     crashlog("adjusting sounds");
     AdjustSoundVolume();
-    *(void **)((char *)shipData + kLicenseName) = RT3_GetLicenseName();
-    StopDialogSounds();
+    shipData[17].licenseName = RT3_GetLicenseName();
+    DisposeMainScreenSounds();
     crashlog("showing intro screen");
     if (seenIntroScreen) {
         FadeScreenOut();
@@ -772,29 +1842,29 @@ void EnterGameFromMainScreen(void)
     }
     CheckForPiratedCodes();
     StopIntroMusic(1);
-    *(long long *)((char *)shipData + kLicenseCodePair) = RT3_GetLicenseCode();
+    shipData[5].licenseCode = RT3_GetLicenseCode();
     crashlog("drawing stuff");
     LoadIntfResource();
     SWSetPortToWorkArea(gSpriteWorld);
     SetSystemBackgroundColor();
     PaintRect(&gSpriteWorld->workFrameP->frameRect);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     SWSetPortToBackground(gSpriteWorld);
     SetSystemBackgroundColor();
     PaintRect(&gSpriteWorld->backFrameP->frameRect);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     SWSetPortToWindow(gSpriteWorld);
-    if (!windowedPref)
+    if (!settings.windowed)
         HideTheMenuBar();
     RandomizeStars();
     PropagateMissionBitEffects();
-    if (gSystems[shipData->curSystem].murk < 0)
+    if (systemData[shipData->curSystem].murk < 0)
         ClearStarfield();
     DrawMapInFloatingFrame();
-    *(long *)((char *)shipData + kLicenseCopies) = RT3_GetLicenseCopies();
+    shipData[36].licenseCopies = RT3_GetLicenseCopies();
     crashlog("drawing more stuff");
-    gShipTypes[gameIsRegisteredIndex].registered =
-        *(long *)((char *)shipData + kLicenseCopies) ? (unsigned char)1 : (unsigned char)0;
+    shipClass[gameIsRegisteredIndex].registered =
+        shipData[36].licenseCopies ? (unsigned char)1 : (unsigned char)0;
     ResetPlayerPrecalcedValues();
 
     {
@@ -812,11 +1882,11 @@ void EnterGameFromMainScreen(void)
         int t3;
         int t4;
         unsigned short rem;
-        char ok;
+        Boolean ok;
 
-        g = *(long *)((char *)shipData + kLicenseCopies);
-        p = *(unsigned char **)((char *)shipData + kLicenseName);
-        mem = *(long long *)((char *)shipData + kLicenseCodePair);
+        g = shipData[36].licenseCopies;
+        p = shipData[17].licenseName;
+        mem = shipData[5].licenseCode;
         x = 0;
         b = 0;
         if (p != 0) {
@@ -974,14 +2044,14 @@ void EnterGameFromMainScreen(void)
         if (x != 0)
             RegScramA3(x);
 
-        gShipTypes[gameIsHackedIndex].hacked =
-            (*(long *)((char *)shipData + kLicenseCopies) != 0 && !ok)
+        shipClass[gameIsHackedIndex].hacked =
+            (shipData[36].licenseCopies != 0 && !ok)
                 ? (unsigned char)1 : (unsigned char)0;
     }
 
     HandleStellarSystemVisibility();
     HandleStellarSprites();
-    gSharewareDays = RT3_GetDaysHad();
+    totalDaysPlayed = RT3_GetDaysHad();
     PrepareAllSprites();
     gameFrozen = 1;
     ignoreKeys = 1;
@@ -1000,9 +2070,9 @@ void EnterGameFromMainScreen(void)
     AdjustSoundVolume();
     fpsCounter = 0;
     lastFPSUpdateTime = ReadTick();
-    DisposeDialogGWorlds();
+    DisposeMainScreenAnim();
     OSCursorReset();
-    cursorVisible = 0;
+    cursorHidden = 0;
     ShowTheCursor();
     HideTheCursor();
     GetGlobalMouse(&lastMousePos);
@@ -1015,18 +2085,23 @@ void EnterGameFromMainScreen(void)
         PlayGame();
     crashlog("paused");
     crashlog("resetting window attributes");
-    if (!windowedPref)
+    if (!settings.windowed)
         HideTheMenuBar();
     if (strictPlay && IsDying(shipData) && shipData->type != kShipTypeEscapePod) {
         crashlog("deleting pilot file due to strict play death");
         pstrcpy(pilotName, playerName);
+#ifdef V111 /* V111: PtoCstr is void */
+        PtoCstr(pilotName);
+        DeletePilotFile((char *)pilotName);
+#else
         DeletePilotFile(PtoCstr(pilotName));
+#endif
     }
     crashlog("restoring stuff");
     KillVoiceSound();
     RestoreOrigClut();
     SWSetPortToWindow(gSpriteWorld);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetCWindowPortRect(gWind));
     SetRect(&box, 0, 0, GetCWindowPortRect(gWind)->right, 20);
     PaintRect(&box);
@@ -1043,17 +2118,17 @@ void EnterGameFromMainScreen(void)
         FlushEvents(2, 0);
     }
     ShowTheCursor();
-    if (!windowedPref)
+    if (!settings.windowed)
         HideTheMenuBar();
     SWSetPortToWindow(gSpriteWorld);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetCWindowPortRect(gWind));
     if (!gQuit) {
         crashlog("showing main screen again");
         GetCWindowPortRect(gWind);
         gNeedUpdateFlag = 1;
-        MainScreenIdle();
-        LoadMainScreenSounds();
+        MainScreenAppearStart();
+        MainScreenAppear();
         SetupInterfaceBackground();
         MainScreenAnimDraw();
         MainScreenUpdate(1);
@@ -1064,6 +2139,7 @@ void EnterGameFromMainScreen(void)
     FlushEvents(2, 0);
     crashlog("---");
 }
+#endif
 
 #define kNewNameStrList  128
 #define kOverwriteList   140
@@ -1073,46 +2149,63 @@ void EnterGameFromMainScreen(void)
    relocs masked).
    OPEN: none */
 // FUNCTION: EVNOVA 0x00489d70
+// MAC: _DoNewPilot i386 0x00018b0a ppc 0x0001c720
 void DoNewPilot(void)
 {
     unsigned long resType;
-    char wantStrictPlay;
+#ifdef MACBUILD
+    Boolean wantStrictPlay;
+#else
+    Boolean wantStrictPlay;
+#endif
+#ifdef MACBUILD
+    Str255 prompt;
+    Str255 charName;
+    Str255 newShipName;
+#else
     Str255 newShipName;
     char path[2048];
     Str255 charName;
     Str255 prompt;
+#endif
     char **h;
     unsigned char *shipNameP;
     short i;
     short j;
     short sys;
     short k;
+    Boolean ok;
 
     SWSetPortToWindow(gSpriteWorld);
-    GetCWindowPortRect(gWind);
+    InvalWindowPortRect(gWind);
     wantStrictPlay = 0;
-    gNeedUpdateFlag = 1;
     GetIndString(newPlayerName[0], kNewNameStrList, Rand(3) + 1);
+    GetIndString(newPlayerName[1], kNewNameStrList, Rand(3) + 4);
     shipNameP = newPlayerName[1];
-    GetIndString(shipNameP, kNewNameStrList, Rand(3) + 4);
-    if (!DoNewPilotNameDialog(&wantStrictPlay))
+    ok = DoNewPilotNameDialog(&wantStrictPlay);
+    if (!ok)
         return;
     MainScreenAnimDraw();
     MainScreenUpdate(1);
     CullNameString(newPlayerName[0]);
     CullNameString(shipNameP);
-    StripNameComment(newPlayerName[0]);
-    StripNameComment(shipNameP);
+    TrimResourceName(newPlayerName[0]);
+    TrimResourceName(shipNameP);
+#ifdef MACBUILD
+    if (DoesPilotExist(newPlayerName[0])) {
+#else
     strcpy(path, pilotsFolder);
     PStr2CStr((char *)prompt, newPlayerName[0]);
     strcat(path, (char *)prompt);
     strcat(path, ".plt");
     if (DoesPilotExist(path)) {
+#endif
         SWSetPortToWindow(gSpriteWorld);
         MainScreenAnimDraw();
         MainScreenUpdate(1);
         GetIndString(prompt, kOverwriteList, 9);
-        if (!EVYesNoDialog(prompt))
+        ok = EVYesNoDialog(prompt);
+        if (!ok)
             return;
         MainScreenAnimDraw();
         MainScreenUpdate(1);
@@ -1124,17 +2217,18 @@ void DoNewPilot(void)
             ReleaseResource(h);
         }
     }
-    i = GetCharacterShipIndex(newPilotPopupChoice[0]);
+    i = GetCharResourceShipType(newPilotPopupChoice[0]);
     strcpy((char *)prompt, "");
-    AppendIndString((char *)prompt, kGameStrList, 121);
+    StrcatIndCString((char *)prompt, kGameStrList, 121);
     strcat((char *)prompt, " ");
-    pstrcpy(charName, gShipLongNames[i]);
+    pstrcpy(charName, shipyardLongNames[i]);
     PtoCstr(charName);
     strcat((char *)prompt, (char *)charName);
     strcat((char *)prompt, ": ");
     CtoPstr((char *)prompt);
     GetIndString(charName, kNewNameStrList, Rand(3) + 7);
-    if (!EVTextInputDialog(prompt, charName, 64))
+    ok = EVTextInputDialog(prompt, charName, 64);
+    if (!ok)
         return;
     creatingPilotFile = 1;
     if (tolower(newPilotPopupChoice[1][1]) == 'm')
@@ -1147,63 +2241,65 @@ void DoNewPilot(void)
     ResetPlayer(1);
     ResetPlayerRecord(1);
     ResetGameData();
-    i = 0;
-    for (j = 0; j < 512; j++)
-        shipSystems[j] = 0;
+    for (i = 0; i < 512; i++)
+        shipSystems[i] = 0;
     for (i = 0; i < 256; i++) {
         shipData->weap[i].count = 0;
         shipData->weap[i].ammo = 0;
     }
     ActivateCharResource(newPilotPopupChoice[0], 1);
     for (i = 0; i < 2048; i++)
-        gSystems[i].exploreLevel = 0;
+        systemData[i].exploreLevel = 0;
     for (i = 0; i < 256; i++) {
-        shipData->weap[i].count = gShipTypes[shipData->type].weapCount[i];
-        if (gShipTypes[shipData->type].weapAmmo[i] > 0) {
-            if (gWeapons[i].ammoType >= 0 && gWeapons[i].ammoType < 256)
-                shipData->weap[gWeapons[i].ammoType].ammo =
-                    gShipTypes[shipData->type].weapAmmo[i];
+        shipData->weap[i].count = shipClass[shipData->type].weapCount[i];
+        if (shipClass[shipData->type].weapAmmo[i] > 0) {
+            if (weaponStats[i].ammoType >= 0 && weaponStats[i].ammoType < 256)
+                shipData->weap[weaponStats[i].ammoType].ammo =
+                    shipClass[shipData->type].weapAmmo[i];
             else
-                shipData->weap[i].ammo = gShipTypes[shipData->type].weapAmmo[i];
+                shipData->weap[i].ammo = shipClass[shipData->type].weapAmmo[i];
         }
     }
     ShipStatsToSystemInfo();
     for (k = 0; k < 8; k++) {
-        if (gShipTypes[shipData->type].defOutfCount[k] > 0)
-            shipSystems[gShipTypes[shipData->type].defOutfID[k]] +=
-                gShipTypes[shipData->type].defOutfCount[k];
+        if (shipClass[shipData->type].defOutfCount[k] > 0)
+            shipSystems[shipClass[shipData->type].defOutfID[k]] +=
+                shipClass[shipData->type].defOutfCount[k];
     }
     for (i = 0; i < kMaxSystemLinks; i++) {
-        if (gSystems[shipData->curSystem].links[i] != -1
-            && gSystems[gSystems[shipData->curSystem].links[i]].loaded != 0) {
-            sys = FindFirstCoLocatedSystem(gSystems[shipData->curSystem].links[i]);
+        if (systemData[shipData->curSystem].links[i] != -1
+            && systemData[systemData[shipData->curSystem].links[i]].loaded != 0) {
+            sys = FindFirstCoLocatedSystem(systemData[shipData->curSystem].links[i]);
             if (sys >= 0 && sys < 2048)
-                gSystems[sys].exploreLevel = 1;
+                systemData[sys].exploreLevel = 1;
         }
     }
     sys = FindFirstCoLocatedSystem(shipData->curSystem);
     if (sys >= 0 && sys < 2048)
-        gSystems[sys].exploreLevel = 1;
-    mapScroll.x = gSystems[shipData->curSystem].xPos;
-    mapScroll.y = gSystems[shipData->curSystem].yPos;
-    gSystems[shipData->curSystem].reinforceTimer = -1.0f;
-    gSystems[shipData->curSystem].reinforceDaysLeft = 0;
+        systemData[sys].exploreLevel = 1;
+    mapScroll.h = systemData[shipData->curSystem].pos.h;
+    mapScroll.v = systemData[shipData->curSystem].pos.v;
+    systemData[shipData->curSystem].reinforceTimer = -1.0f;
+    systemData[shipData->curSystem].reinforceDaysLeft = 0;
     shipData->shield = ShipShieldCapacity(shipData);
     shipData->armor = ShipArmorCapacity(shipData);
     shipData->fuel = ShipFuelCapacity(shipData);
     LoadObjectData();
     DeleteAllComputerShips(1, 1);
     ExploreNebulaeFromSystem(shipData->curSystem);
-    mapScroll.x = gSystems[shipData->curSystem].xPos;
-    mapScroll.y = gSystems[shipData->curSystem].yPos;
+    mapScroll.h = systemData[shipData->curSystem].pos.h;
+    mapScroll.v = systemData[shipData->curSystem].pos.v;
     missionSoundID = -1;
     killShots = killBoxes = killExplods = killSmoke =
         killAsteroids = 1;
-    pstrcpy(newShipName, gTextInputResult);
+    pstrcpy(newShipName, textInputString);
     CullNameString(newShipName);
     pstrcpy(shipName, newShipName);
     pstrcpy(playerName, newPlayerName[0]);
     pstrcpy(playerNickname, shipNameP);
+#ifdef MACBUILD
+    gameTime = scenarioStartDate;
+#else
     gameTime.year = scenarioStartDate.year;
     gameTime.month = scenarioStartDate.month;
     gameTime.day = scenarioStartDate.day;
@@ -1211,6 +2307,7 @@ void DoNewPilot(void)
     gameTime.minute = scenarioStartDate.minute;
     gameTime.second = scenarioStartDate.second;
     gameTime.dayOfWeek = scenarioStartDate.dayOfWeek;
+#endif
     gameInProgress = 1;
     strictPlay = wantStrictPlay;
     shipData->deathTimer = -1.0f;
@@ -1224,37 +2321,41 @@ void DoNewPilot(void)
     sys = FindNearestStellar(shipData);
     if (sys == -1) {
         for (k = 0; k < kNavSlots; k++) {
-            if (gSystems[shipData->curSystem].navDefault[k] != -1) {
-                sys = gSystems[shipData->curSystem].navDefault[k];
+            if (systemData[shipData->curSystem].navDefault[k] != -1) {
+                sys = systemData[shipData->curSystem].navDefault[k];
                 break;
             }
         }
     }
     for (i = 0; i < 2048; i++) {
-        if ((stellarData[i].flags2 & 0x20) != 0)
+        if ((stellarData[i].flags2 & kSpobAlwaysDominated) != 0)
             stellarData[i].dominated = 1;
         else
             stellarData[i].dominated = 0;
-        if ((stellarData[i].flags2 & 0x40) != 0) {
+        if ((stellarData[i].flags2 & kSpobStartsDestroyed) != 0) {
             stellarData[i].deadCounter = -1;
-            if (stellarData[i].deadDays < 0)
-                stellarData[i].deadDaysLeft = 1;
-            else
+            if (stellarData[i].deadDays >= 0)
                 stellarData[i].deadDaysLeft = stellarData[i].deadDays;
+            else
+                stellarData[i].deadDaysLeft = 1;
         } else {
             stellarData[i].deadCounter = stellarData[i].strength;
             stellarData[i].deadDaysLeft = 0;
         }
     }
     ActivateCharResource(newPilotPopupChoice[0], 0);
-    if (sys == -1)
-        SavePilotFile(0);
-    else
+    if (sys != -1)
         SavePilotFile(sys);
+    else
+        SavePilotFile(0);
     SetupShipsInSystem(shipData->curSystem, 1);
     HandleStellarSystemVisibility();
     CreateAsteroids();
+#ifdef MACBUILD
+    GetCharResourceIntroIDs(newPilotPopupChoice[0], &introTextID, introPictID, introPictDelay);
+#else
     GetCharResourceIntroIDs(newPilotPopupChoice[0], gViewSlot, &gViewSlot[1], gViewSlotDuration);
+#endif
     SWHideAllSprites(gSpriteWorld);
     creatingPilotFile = 0;
     SetupInterfaceBackground();

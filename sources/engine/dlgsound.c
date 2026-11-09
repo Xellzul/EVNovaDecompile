@@ -15,16 +15,20 @@
 
 
 
-/* StopDialogSounds. STATE: MATCH, byte-identical. OPEN: none */
+/* DisposeMainScreenSounds. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048bbb0
-void StopDialogSounds(void)
+// MAC: _DisposeMainScreenSounds i386 0x00016cae ppc 0x0001a960
+void DisposeMainScreenSounds(void)
 {
     short i;
 
     for (i = 0; i < 4; i++) {
         if (mainScreenSnd[i] != NULL) {
+#if V111
+#else
             while (ST_IsSoundPlaying(mainScreenSnd[i]) != 0)
                 BusyIdle();
+#endif
             ST_HaltSound(mainScreenSnd[i]);
             ST_DisposeSound(mainScreenSnd[i]);
             mainScreenSnd[i] = NULL;
@@ -34,6 +38,7 @@ void StopDialogSounds(void)
 
 /* PlayMainScreenClickSound. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048bc20
+// MAC: _PlayMainScreenClickSound i386 0x000177af ppc 0x0001b38c
 void PlayMainScreenClickSound(void)
 {
     PlaySound(mainScreenSnd[0], 10, gSoundVolume, gSoundVolume);
@@ -50,6 +55,7 @@ void PlayMainScreenClickSound(void)
 /* LoadMainScreenAnim (mac _LoadMainScreenAnim). STATE: MATCH 100.0%, exe 165 / obj 165
    instrs, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0048bc90
+// MAC: _LoadMainScreenAnim i386 0x0001781d ppc 0x0001b404
 void LoadMainScreenAnim(void)
 {
     short spriteID;
@@ -57,37 +63,42 @@ void LoadMainScreenAnim(void)
     short i;
     unsigned long tick;
 
+#ifdef MACBUILD
+    if (GetSpriteInfo(0x25e, &spriteID, NULL, &logoFrameSize.width, &logoFrameSize.height,
+                       &xTiles, &logoFrameCount)) {
+#else
     if (GetSpriteInfo(0x25e, &spriteID, NULL, &gMainPicWidthDelta, &gMainPicHeightDelta,
-                       &xTiles, &gLogoAnimEnd)) {
+                       &xTiles, &logoFrameCount)) {
+#endif
         if (xTiles != 1)
             crashlog("warning: logo animation image has wrong dimensions");
-        CreateGWorldContainerFromPictResource(&gDlgWorld, GetMainDevice(), 0, spriteID);
+        CreateGWorldContainerFromPictResource(&logoPort, GetMainDevice(), 0, spriteID);
     }
 
     for (i = 0; i < 3; i++) {
-        if (GetSpriteInfo(0x260 + i, &spriteID, NULL, &gAnimDelta[i].width, &gAnimDelta[i].height,
-                           &xTiles, &gAnimEnd[i])) {
+        if (GetSpriteInfo(0x260 + i, &spriteID, NULL, &slideFrameSize[i].width, &slideFrameSize[i].height,
+                           &xTiles, &slideFrameCount[i])) {
             if (xTiles != 1)
                 crashlog("warning: button slide animation image has wrong dimensions");
-            CreateGWorldContainerFromPictResource(&gDlgWorlds[i], GetMainDevice(), 0, spriteID);
+            CreateGWorldContainerFromPictResource(&slidePort[i], GetMainDevice(), 0, spriteID);
         }
         if (inBackground) {
-            gAnimStep[i] = gAnimEnd[i];
+            slideIndex[i] = slideFrameCount[i];
         } else if (i == 0) {
-            gAnimStep[i] = -1;
+            slideIndex[i] = -1;
         } else {
-            gAnimStep[i] = (gAnimStep[i - 1] - gAnimEnd[i - 1] * 0.5);
+            slideIndex[i] = (slideIndex[i - 1] - slideFrameCount[i - 1] * 0.5);
         }
     }
 
     if (inBackground) {
         if (menuRolloverSprite != NULL)
-            gHilitedButton = menuRolloverSprite->numFrames - 1;
+            rolloverIndex = menuRolloverSprite->numFrames - 1;
         else
-            gHilitedButton = 0;
-        gHiliteLevel = 0x20;
+            rolloverIndex = 0;
+        rolloverAlpha = 0x20;
     } else {
-        gHiliteLevel = 0;
+        rolloverAlpha = 0;
     }
 
     logoDestRect.left = menuTopCorner.h + logoDestPoint.h;
@@ -100,56 +111,58 @@ void LoadMainScreenAnim(void)
     }
 
     tick = ReadTick();
-    gLastLogoAnimTick = gLastSlideAnimTick = tick;
-    gHiliteLastTick = 0;
+    lastLogoAnimTime = lastSlideAnimTime = tick;
+    lastRolloverAnimTime = 0;
 }
 
-/* DisposeDialogGWorlds. STATE: MATCH, byte-identical. OPEN: none */
+/* DisposeMainScreenAnim. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048bf40
-void DisposeDialogGWorlds(void)
+// MAC: _DisposeMainScreenAnim i386 0x00017a81 ppc 0x0001b6ec
+void DisposeMainScreenAnim(void)
 {
     short i;
 
-    if (gDlgWorld.world != NULL) {
-        DisposeGWorldContainer(&gDlgWorld);
-        gDlgWorld.world = NULL;
+    if (logoPort.world != NULL) {
+        DisposeGWorldContainer(&logoPort);
+        logoPort.world = NULL;
     }
     for (i = 0; i < 3; i++) {
-        if (gDlgWorlds[i].world) {
-            DisposeGWorldContainer(&gDlgWorlds[i]);
-            gDlgWorlds[i].world = NULL;
+        if (slidePort[i].world) {
+            DisposeGWorldContainer(&slidePort[i]);
+            slidePort[i].world = NULL;
         }
     }
 }
 
 
 
-/* TrackMainScreenAnim. STATE: MATCH, byte-identical. OPEN: none */
+/* MainScreenAnimIdle. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048bfb0
-void TrackMainScreenAnim(void)
+// MAC: _MainScreenAnimIdle i386 0x0001883c ppc 0x0001c414
+void MainScreenAnimIdle(void)
 {
     short i;
     short oldFrame;
 
     if (!inBackground) {
-        if (ReadTick() >= gLastLogoAnimTick + 5) {
-            gLastLogoAnimTick = ReadTick();
-            oldFrame = gMainPicFrame;
+        if (ReadTick() >= lastLogoAnimTime + 5) {
+            lastLogoAnimTime = ReadTick();
+            oldFrame = logoIndex;
             do {
-                gMainPicFrame = Rand(gLogoAnimEnd);
-            } while (gMainPicFrame == oldFrame);
+                logoIndex = Rand(logoFrameCount);
+            } while (logoIndex == oldFrame);
         }
     }
 
     if (!inBackground) {
-        if (ReadTick() >= gLastSlideAnimTick + 1) {
-            gLastSlideAnimTick = ReadTick();
+        if (ReadTick() >= lastSlideAnimTime + 1) {
+            lastSlideAnimTime = ReadTick();
             for (i = 0; i < 3; i++) {
-                if (gAnimStep[i] < gAnimEnd[i]) {
-                    if (gAnimStep[i] == 0)
+                if (slideIndex[i] < slideFrameCount[i]) {
+                    if (slideIndex[i] == 0)
                         PlaySound(mainScreenSnd[2], 0x32, gSoundVolume, gSoundVolume);
-                    gAnimStep[i]++;
-                    if (gAnimStep[i] == gAnimEnd[i]) {
+                    slideIndex[i]++;
+                    if (slideIndex[i] == slideFrameCount[i]) {
                         PlaySound(mainScreenSnd[3], 0x32, gSoundVolume, gSoundVolume);
                         if (i == 2)
                             MainScreenUpdate(1);
@@ -159,13 +172,13 @@ void TrackMainScreenAnim(void)
         }
     }
 
-    TrackMainScreenHilite();
+    MainScreenRolloverIdle();
     MainScreenAnimDraw();
     MainScreenUpdate(2);
 
     SetPortWindowPort(gWind);
-    RGBForeColor(blackColor);
-    CopyBits(GetGWCPixMap(&loadPort), GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+    ForeColor(blackColor);
+    CopyBits(GWorldContainerBits(&loadPort), GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
              &logoDestRect, &logoDestRect, 0, NULL);
 
     CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
@@ -173,14 +186,16 @@ void TrackMainScreenAnim(void)
              &rolloverDestRect, &rolloverDestRect, 0, NULL);
 
     for (i = 0; i < 3; i++) {
-        if (gDlgWorlds[i].world != NULL && gAnimStep[i] < 0x7d00) {
+        if (slidePort[i].world != NULL && slideIndex[i] < 0x7d00) {
             CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
                      GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                      &slideDestRect[i], &slideDestRect[i], 0, NULL);
-            if (gAnimStep[i] >= gAnimEnd[i])
-                gAnimStep[i] = 0x7d00;
+            if (slideIndex[i] >= slideFrameCount[i])
+                slideIndex[i] = 0x7d00;
         }
     }
 
+#ifndef MACBUILD
     ScreenEndScene();
+#endif
 }

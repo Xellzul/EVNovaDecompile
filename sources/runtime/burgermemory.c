@@ -179,19 +179,19 @@ static void ReleaseMemRange(void *MemPtr, Word32 Length, MyHandle *Parent)
     Prev = FreeMemHands.PrevHandle;
     if (Prev != Next) {
         do {
-            if ((Word8 *)MemPtr >= (Word8 *)Prev->MemPtr)
+            if (MemPtr >= Prev->MemPtr)
                 break;
             Prev = Prev->PrevHandle;
         } while (Prev != Next);
         Next = Prev->NextHandle;
         End = (Word8 *)Prev->MemPtr;
         End += Prev->Length;
-        if (End == (Word8 *)MemPtr) {
+        if (End == MemPtr) {
             Prev->Flags = (Word32)Parent;
             Prev->Length += Length;
             if (Next != &FreeMemHands) {
                 End += Length;
-                if (End == (Word8 *)Next->MemPtr) {
+                if (End == Next->MemPtr) {
                     Prev->Length += Next->Length;
                     Prev->NextHandle = Next->NextHandle;
                     Next->NextHandle->PrevHandle = Prev;
@@ -202,7 +202,7 @@ static void ReleaseMemRange(void *MemPtr, Word32 Length, MyHandle *Parent)
             }
             return;
         }
-        if ((Word8 *)MemPtr + Length == (Word8 *)Next->MemPtr) {
+        if ((Word8 *)MemPtr + Length == Next->MemPtr) {
             Next->Flags = (Word32)Parent;
             Next->Length += Length;
             Next->MemPtr = MemPtr;
@@ -348,10 +348,10 @@ static inline void GrabMemRange(void *MemPtr, Word32 Length, MyHandle *Parent, M
     if (Scan == 0) {
         Scan = FreeMemHands.NextHandle;
         for (;;) {
-            if ((Word8 *)MemPtr >= (Word8 *)Scan->MemPtr) {
+            if (MemPtr >= Scan->MemPtr) {
                 Chunk = (Word8 *)Scan->MemPtr;
                 Chunk += Scan->Length;
-                if ((Word8 *)MemPtr < Chunk)
+                if (MemPtr < Chunk)
                     break;
             }
             Scan = Scan->NextHandle;
@@ -378,7 +378,7 @@ static inline void GrabMemRange(void *MemPtr, Word32 Length, MyHandle *Parent, M
         return;
     }
     Scan->Flags = (Word32)Parent;
-    Scan->Length = (Word8 *)MemPtr - (Word8 *)Scan->MemPtr;
+    Scan->Length = (Word8 *)MemPtr - Scan->MemPtr;
 }
 
 /* AllocAHandle2 (BurgerLib MMMemoryManager): fixed memory from the top of the heap, movable
@@ -971,7 +971,7 @@ Word DebugRemoveSourceLine(Handle Input, const char *File, Word Line)
                 Entry->File = Last->File;
                 Entry->Line = Last->Line;
                 if (DebugCount == 0) {
-                    DeallocAHandle((Handle)DebugMeHand);
+                    DeallocAHandle(DebugMeHand);
                     DebugMeHand = 0;
                     DebugMaxCount = 0;
                 }

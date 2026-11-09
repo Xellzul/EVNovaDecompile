@@ -60,7 +60,15 @@ typedef struct PpatRecord {
 #define kPpatPixelSizeAt    0x3c
 #define kFixed72            0x00480000
 
+#ifdef MAC1010
+#define SwapField(v)    (v)
+#define SwapLong(v)     (v)
+typedef ULong PpatField; /* 1.0.10 spelling */
+#else
 #define SwapField(v)    ((((v) >> 8) & 0xff) | (((v) & 0xff) << 8))
+#define SwapLong(v)     Swap32(v)
+typedef long long PpatField;
+#endif
 
 /* PPAT_CheckFileType (a colour 'ppat': type 1, its PixMap at 0x1c, data after it, 72 dpi, a pixel
    size of 1, 2, 4, 8, 16 or 32; all fields big-endian). STATE: MATCH 100%, exe 187 / obj 187,
@@ -70,23 +78,23 @@ unsigned char PPAT_CheckFileType(const unsigned char *data, ULong size)
 {
     unsigned short type;
     ULong value;
-    long long depth;
+    PpatField depth;
 
     if (size >= kPpatMinSize) {
         MemoryCopy(&type, data, sizeof(type));
-        if ((long long)SwapField(type) != kPpatColorType)
+        if ((PpatField)SwapField(type) != kPpatColorType)
             return 0;
         MemoryCopy(&value, data + kPpatMapAt, sizeof(value));
-        if ((long long)Swap32(value) != kPpatMapOffset)
+        if ((PpatField)SwapLong(value) != kPpatMapOffset)
             return 0;
         MemoryCopy(&value, data + kPpatDataAt, sizeof(value));
-        if ((long long)Swap32(value) < kPpatMinSize)
+        if ((PpatField)SwapLong(value) < kPpatMinSize)
             return 0;
         MemoryCopy(&value, data + kPpatHResAt, sizeof(value));
-        if ((long long)Swap32(value) != kFixed72)
+        if ((PpatField)SwapLong(value) != kFixed72)
             return 0;
         MemoryCopy(&value, data + kPpatVResAt, sizeof(value));
-        if ((long long)Swap32(value) != kFixed72)
+        if ((PpatField)SwapLong(value) != kFixed72)
             return 0;
         MemoryCopy(&type, data + kPpatPixelSizeAt, sizeof(type));
         if ((depth = SwapField(type)) == 1 || depth == 2 || depth == 4 || depth == 8 ||
@@ -112,7 +120,7 @@ unsigned char PPAT_CheckFileType(const unsigned char *data, ULong size)
         err = e;                                            \
         goto done;                                          \
     }                                                       \
-    (f) = Swap32(f)
+    (f) = SwapLong(f)
 
 /* PPAT_Decode (load a 'ppat' off a stream: header, PixMap and optional ColorTable, then the
    unpacked rows at 1, 2, 4 or 8 bits through the palette, 16 or 32 bits direct). STATE: MATCH
@@ -192,9 +200,28 @@ long PPAT_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     ReadLong(rec.map.pmTable);
     ReadLong(rec.map.pmReserved);
 
+#ifdef MAC1010
+    if (rec.map.left >= rec.map.right) {
+        err = kStreamOverrun;
+        goto done;
+    }
+    if (rec.map.top >= rec.map.bottom) {
+        err = kStreamOverrun;
+        goto done;
+    }
+    if ((rec.map.rowBytes & kRowBytesInvalid) != 0) {
+        err = kStreamOverrun;
+        goto done;
+    }
+    if (rec.map.pmTable > stream->size) {
+        err = kStreamOverrun;
+        goto done;
+    }
+#else
     if (rec.map.left >= rec.map.right || rec.map.top >= rec.map.bottom ||
         (rec.map.rowBytes & kRowBytesInvalid) != 0 || rec.map.pmTable > stream->size)
         goto bad;
+#endif
     if (rec.map.pmTable != 0 && rec.map.pmTable < stream->size) {
         stream->pos = rec.map.pmTable;
         e = _PICT_ReadColorTable(stream, &rec.table);
@@ -218,18 +245,32 @@ long PPAT_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
             }
         }
     }
+#ifdef MAC1010
+    if (rec.patData > stream->size) {
+        err = kStreamOverrun;
+        goto done;
+    }
+    if (rowBytes * height + rec.patData > stream->size) {
+        err = kStreamOverrun;
+        goto done;
+    }
+    if (rec.map.packType != 0) {
+        err = kStreamOverrun;
+        goto done;
+    }
+#else
     if (rec.patData > stream->size || rowBytes * height + rec.patData > stream->size ||
         rec.map.packType != 0) {
 bad:
         err = kStreamOverrun;
         goto done;
     }
+#endif
 
     DT_SetRect(&bounds, 0, 0, width, height);
     depth = rec.map.pixelSize < kMinDepth ? kMinDepth : rec.map.pixelSize;
     /* BUG: with no colour table, palette is passed uninitialised */
-    *imageOut = DT_ImageCreate(&bounds, depth, depth == kMinDepth ? &palette : NULL);
-    if (*imageOut == NULL) {
+    if ((*imageOut = DT_ImageCreate(&bounds, depth, depth == kMinDepth ? &palette : NULL)) == NULL) {
         err = kOutOfMemory;
         goto done;
     }
@@ -237,19 +278,19 @@ bad:
         bg->format = kFormatPpat;
         bg->gamma = kPpatGamma;
     }
-    row = (unsigned char *)MemoryAllocate(rowBytes);
+    row = MemoryAllocate(rowBytes);
     if (row == NULL) {
         err = kOutOfMemory;
         goto done;
     }
     if (rec.map.pixelSize > kMinDepth) {
-        pixels = (ITColor *)MemoryAllocate(width * sizeof(ITColor));
+        pixels = MemoryAllocate(width * sizeof(ITColor));
         if (pixels == NULL) {
             err = kOutOfMemory;
             goto done;
         }
     } else {
-        indices = (unsigned char *)MemoryAllocate(width);
+        indices = MemoryAllocate(width);
         if (indices == NULL) {
             err = kOutOfMemory;
             goto done;
@@ -332,11 +373,11 @@ bad:
                 v = ((unsigned short *)row)[x];
                 pixels[x].alpha = 0xff;
                 chan = (v >> 10) & 0x1f;
-                pixels[x].red = (unsigned char)(chan << 3) | (unsigned char)(chan >> 2);
+                pixels[x].red = (chan << 3) | (chan >> 2);
                 chan = (v >> 5) & 0x1f;
-                pixels[x].green = (unsigned char)(chan << 3) | (unsigned char)(chan >> 2);
+                pixels[x].green = (chan << 3) | (chan >> 2);
                 chan = v & 0x1f;
-                pixels[x].blue = (unsigned char)(chan << 3) | (unsigned char)(chan >> 2);
+                pixels[x].blue = (chan << 3) | (chan >> 2);
             }
             DT_ImageSetRawColors(*imageOut, NULL, y, pixels);
         }

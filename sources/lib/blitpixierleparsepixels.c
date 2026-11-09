@@ -12,8 +12,301 @@
 #define RLE_TRANSPARENT 0x3000000
 #define RLE_FILL        0x4000000
 
+#ifdef MACBUILD
+#define kTokenShift 24
+#define kSingleColorToken 4
+typedef unsigned long TokenDataType;
+#define ALIGN_PTR(p) ( (-((long) p)) & 3)
+#define kMinimumFillRun 32
+#define BLITPIXIE_USE_DRAW_SPANS 0
+enum RunFlags
+{
+	kRunNone = 0,
+	kRunSkip,
+	kRunDraw,
+	kRunFill
+};
+#endif
+
 /* BlitPixieRLEParsePixels (mac _BlitPixieRLEParsePixels). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00472510
+// MAC: _BlitPixieRLEParsePixels i386 0x000c2875 ppc 0x000cec48
+#ifdef MACBUILD
+OSErr BlitPixieRLEParsePixels(
+	unsigned char *srcStartAddrP,
+	unsigned char *maskStartAddrP,
+	unsigned long rowBytes,
+	unsigned short numBytesPerRow,
+	unsigned short numberOfScanLines,
+	unsigned short depth,
+	void ***newPixCode)
+{
+	OSErr			err = noErr;
+	unsigned long	newSize;
+	Handle			tempPixCodeH;
+
+	unsigned char	runFlag;
+
+	unsigned char	*lineStartPtr;
+	unsigned char 	*runTokenPtr;
+	unsigned char	*dataPtr;
+
+	unsigned char	*sourcePtr;
+	unsigned char	*maskPtr;
+	unsigned char	*sourceStartPtr;
+	unsigned char	*maskStartPtr;
+
+	unsigned long	xCounter;
+	unsigned long	yCounter;
+
+	unsigned long	thisPixel;
+	unsigned long	maskPixel;
+	unsigned long	lastPixel;
+	unsigned long	advance;
+
+	unsigned long	runCounter;
+	unsigned long	sameCounter;
+
+	Boolean			useDrawSpans = BLITPIXIE_USE_DRAW_SPANS;
+
+	*newPixCode = NULL;
+
+	if ( depth != 8 && depth != 16 && depth != 32 )
+		return paramErr;
+	if ( numBytesPerRow <= 0 || numberOfScanLines <= 0 )
+		return paramErr;
+
+	newSize = 2 * sizeof(TokenDataType) * (  numberOfScanLines * (long) numBytesPerRow) +
+		 sizeof(TokenDataType) * numberOfScanLines + sizeof(TokenDataType);
+
+	advance = depth >> 3;
+
+	tempPixCodeH = NewHandle(newSize);
+	if (tempPixCodeH != NULL)
+	{
+		HLock ( tempPixCodeH);
+		dataPtr = (unsigned char *) ( *tempPixCodeH );
+
+		sourceStartPtr =  srcStartAddrP;
+		maskStartPtr =  maskStartAddrP;
+
+		for( yCounter = 0; yCounter < numberOfScanLines; yCounter++ )
+		{
+			lineStartPtr = dataPtr;
+			dataPtr += sizeof( TokenDataType );
+
+			runFlag = kRunNone;
+			runCounter = 0;
+			sameCounter = 0;
+
+			sourcePtr = sourceStartPtr;
+			maskPtr = maskStartPtr;
+
+			for( xCounter = 0; xCounter < numBytesPerRow; xCounter += advance)
+			{
+				switch ( depth )
+				{
+					case 8:		maskPixel = *( maskPtr);	break;
+					case 16:	maskPixel = *((unsigned short *) maskPtr);	break;
+					case 32:	maskPixel = *((unsigned long  *) maskPtr);	break;
+				}
+
+				if ( maskPixel != 0)
+				{
+					sameCounter = 0;
+
+					switch ( runFlag )
+					{
+						case kRunSkip:
+
+							runCounter += advance;
+							break;
+						case kRunDraw:
+
+							*((TokenDataType *) runTokenPtr) = ( kDrawPixelsToken << kTokenShift ) + runCounter;
+							PtrAddBytes(dataPtr, ALIGN_PTR(dataPtr));
+
+							runTokenPtr = dataPtr;
+							dataPtr += sizeof(TokenDataType);
+							runFlag = kRunSkip;
+							runCounter = advance;
+
+							break;
+						case kRunFill:
+
+							*((TokenDataType *) runTokenPtr) = ( kSingleColorToken << kTokenShift ) + runCounter;
+							runTokenPtr += sizeof(TokenDataType);
+							if ( depth < 16 )	lastPixel |= lastPixel << 8;
+							if ( depth < 32 )	lastPixel |= lastPixel << 16;
+							*( ( unsigned long * )runTokenPtr ) = lastPixel;
+							runTokenPtr += sizeof(unsigned long);
+
+							runTokenPtr = dataPtr;
+							dataPtr += sizeof(TokenDataType);
+							runFlag = kRunSkip;
+							runCounter = advance;
+							break;
+						case kRunNone:
+
+							runTokenPtr = dataPtr;
+							dataPtr += sizeof(TokenDataType);
+							runFlag = kRunSkip;
+							runCounter = advance;
+							break;
+					}
+				}
+				else
+				{
+					switch ( depth )
+					{
+						case 8:		thisPixel = *( sourcePtr);	break;
+						case 16:	thisPixel = *((unsigned short *) sourcePtr);	break;
+						case 32:	thisPixel = *((unsigned long  *) sourcePtr);	break;
+					}
+
+					if ( useDrawSpans && (thisPixel == lastPixel) && (sameCounter + advance >= kMinimumFillRun) )
+					{
+						switch (runFlag)
+						{
+							case kRunFill:
+
+								runCounter += advance;
+								break;
+							case kRunDraw:
+								if ( runCounter > sameCounter )
+								{
+									*( runTokenPtr) =
+										( kDrawPixelsToken << kTokenShift ) + (runCounter - sameCounter);
+
+									dataPtr -= sameCounter;
+									PtrAddBytes(dataPtr, ALIGN_PTR(dataPtr));
+								}
+								else
+								{
+									dataPtr = runTokenPtr;
+								}
+
+								runTokenPtr = dataPtr;
+								dataPtr += sizeof(TokenDataType) + sizeof(unsigned long);
+								runFlag = kRunFill;
+								runCounter = sameCounter + advance;
+								break;
+						}
+					}
+					else
+					{
+						if ( sameCounter > 0 && thisPixel == lastPixel )
+							sameCounter += advance;
+						else
+							sameCounter = advance;
+
+						switch ( runFlag )
+						{
+							case kRunDraw:
+
+								runCounter += advance;
+								break;
+							case kRunFill:
+
+								*((TokenDataType *) runTokenPtr) = ( kSingleColorToken << kTokenShift ) + runCounter;
+								runTokenPtr += sizeof(TokenDataType);
+
+								if ( depth < 16 )	lastPixel |= lastPixel << 8;
+								if ( depth < 32 )	lastPixel |= lastPixel << 16;
+								*( ( unsigned long * )runTokenPtr ) = lastPixel;
+								runTokenPtr += sizeof(unsigned long);
+
+								runTokenPtr = dataPtr;
+								dataPtr += sizeof(TokenDataType);
+								runFlag = kRunDraw;
+								runCounter = advance;
+								break;
+						case kRunSkip:
+
+								*((TokenDataType *) runTokenPtr) = ( kSkipPixelsToken << kTokenShift ) + runCounter;
+
+								runTokenPtr = dataPtr;
+								dataPtr += sizeof(TokenDataType);
+								runFlag = kRunDraw;
+								runCounter = advance;
+								break;
+						case kRunNone:
+
+								runTokenPtr = dataPtr;
+								dataPtr += sizeof(TokenDataType);
+								runFlag = kRunDraw;
+								runCounter = advance;
+								break;
+						}
+
+						switch ( depth )
+						{
+							case 8:		*( dataPtr) = thisPixel;	dataPtr += 1; break;
+							case 16:	*((unsigned short *) dataPtr) = thisPixel;	dataPtr += 2; break;
+							case 32:	*((unsigned long  *) dataPtr) = thisPixel;	dataPtr += 4; break;
+						}
+
+						lastPixel = thisPixel;
+					}
+				}
+
+				sourcePtr += advance;
+				maskPtr += advance;
+			}
+
+			switch ( runFlag )
+			{
+				case kRunSkip:
+
+					dataPtr = runTokenPtr;
+					break;
+				case kRunDraw:
+
+					*( (TokenDataType *) runTokenPtr ) = ( kDrawPixelsToken << kTokenShift ) + runCounter;
+					PtrAddBytes(dataPtr, ALIGN_PTR(dataPtr));
+					break;
+				case kRunFill:
+
+					*( ( TokenDataType *)runTokenPtr) = ( kSingleColorToken << kTokenShift ) + runCounter;
+					runTokenPtr += sizeof(TokenDataType);
+
+					if ( depth < 16 )	lastPixel |= lastPixel << 8;
+					if ( depth < 32 )	lastPixel |= lastPixel << 16;
+					*( ( unsigned long *) runTokenPtr) = lastPixel;
+					runTokenPtr += sizeof(unsigned long);
+					break;
+			}
+
+			*( ( TokenDataType * )lineStartPtr ) = ( kLineStartToken << kTokenShift ) +
+								( (long) dataPtr - sizeof(TokenDataType) - (long) lineStartPtr);
+
+			sourceStartPtr += rowBytes;
+			maskStartPtr += rowBytes;
+		}
+
+		*( ( TokenDataType * )dataPtr ) = kEndShapeToken << kTokenShift;
+		dataPtr += sizeof(TokenDataType);
+
+		newSize = dataPtr - (unsigned char *) (*tempPixCodeH );
+
+		HUnlock(  tempPixCodeH );
+
+		SetHandleSize(  tempPixCodeH, newSize );
+		err = MemError();
+
+		if (err == noErr)
+		{
+			*newPixCode = (void **) tempPixCodeH;
+		}
+	}
+	else
+	{
+		err = memFullErr;
+	}
+
+	return err;
+}
+#else
 short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixels,
         unsigned long rowBytes, unsigned short byteWidth, unsigned short numRows,
         unsigned short depth, void ***frameData)
@@ -53,7 +346,7 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
     depthL = depth;
     bytesPerPixel = depthL >> 3;
 
-    frameHandle = (void **)AllocAHandle2(
+    frameHandle = AllocAHandle2(
             numRows * byteWidth * 8 + rows * 4 + 4, 0);
     if (frameHandle != 0) {
         LockAHandle((Handle)frameHandle);
@@ -231,7 +524,7 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
 
         *(long *)tokens = 0;
 
-        size = (tokens + 4) - (unsigned char *)*frameHandle;
+        size = (tokens + 4) - *frameHandle;
 
         UnlockAHandle((Handle)frameHandle);
         ResizeAHandle((Handle)frameHandle, size);
@@ -245,3 +538,4 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
 
     return err;
 }
+#endif

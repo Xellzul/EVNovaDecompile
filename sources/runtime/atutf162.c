@@ -172,7 +172,7 @@ long unicode_strncmp(const unsigned short *a, ULong lenA,
         else
             cb -= kSurrogateShift;
     }
-    return (long)ca - (long)cb;
+    return ca - cb;
 }
 
 /* _unicode_findmatch (the unit index of the first character in `set', or with inSet 0 the first
@@ -182,14 +182,14 @@ long unicode_strncmp(const unsigned short *a, ULong lenA,
 long _unicode_findmatch(const unsigned short *s, const unsigned short *set, long inSet)
 {
     long setLen;
-    long i;
+    long firstPair;
     long j;
+    long i;
     ULong code;
     unsigned short c;
     unsigned short next;
     unsigned short next2;
     unsigned short next3;
-    long firstPair;
     ULong other;
 
     for (firstPair = 0; (c = set[firstPair]) != 0 &&
@@ -268,6 +268,17 @@ unsigned short *unicode_strpbrk(const unsigned short *s, const unsigned short *s
 // FUNCTION: EVNOVA 0x0052c56c
 ULong _unicode_tocase(ULong c, const FoldRange *table, ULong n)
 {
+#ifdef MAC1010 /* 1.0.10 spelling */
+    long info;
+    ULong first;
+    unsigned char count;
+    unsigned char stride;
+    short delta;
+    const FoldRange *range;
+    ULong mid;
+    ULong hi;
+    ULong lo;
+#else
     ULong lo;
     ULong hi;
     ULong mid;
@@ -277,12 +288,53 @@ ULong _unicode_tocase(ULong c, const FoldRange *table, ULong n)
     unsigned char stride;
     short delta;
     unsigned short info;
+#endif
 
     if ((c >= 0x2500 && c <= 0xfeff) || (c >= 0x600 && c <= 0x1dff) ||
         (c >= 0x2000 && c <= 0x20ff) || (c >= 0x2200 && c <= 0x23ff))
         return c;
     lo = 0;
     hi = n - 1;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    for (mid = -1; lo <= hi; mid = -1) {
+        mid = (lo + hi) >> 1;
+        range = &table[mid];
+        first = range->first;
+        if (c < first) {
+            hi = mid - 1;
+            continue;
+        }
+        info = range->info;
+        count = info >> 8;
+        if (c > first + count) {
+            lo = mid + 1;
+            continue;
+        }
+        stride = info;
+        delta = range->delta;
+        break;
+    }
+    if (mid == -1) {
+        if (table == kUpperRanges) {
+            first = kDeseretLower;
+            count = kDeseretCount;
+            stride = 1;
+            delta = -kDeseretDelta;
+        } else {
+            first = kDeseretUpper;
+            count = kDeseretCount;
+            stride = 1;
+            delta = kDeseretDelta;
+        }
+        if (c >= first && c <= first + count)
+            mid = 0;
+    }
+    if (mid == -1)
+        return c;
+    if (count == 0)
+        return c + delta;
+    return (c - first) % stride != 0 ? c : c + delta;
+#else
     while (found = -1, lo <= hi) {
         mid = (lo + hi) >> 1;
         first = table[mid].first;
@@ -322,6 +374,7 @@ ULong _unicode_tocase(ULong c, const FoldRange *table, ULong n)
         return c + delta;
     }
     return c;
+#endif
 }
 
 /* unicode_toupper. STATE: MATCH, byte-identical. OPEN: none */
@@ -457,6 +510,31 @@ unsigned char *convert_UTF16_to_UTF8(unsigned char *dst, const unsigned short *s
     if (terminate != 0)
         *d = 0;
     return dst;
+}
+
+ULong count_UTF32_to_UTF16(const ULong *s, ULong limit)
+{
+    const ULong *src;
+    const ULong *srcEnd;
+    unsigned short *d;
+    unsigned short *end;
+    long budget;
+
+    src = s;
+    srcEnd = (const ULong *)kNoLength;
+    d = 0;
+    end = (unsigned short *)kNoLength;
+    budget = -1;
+    if (limit != kNoLength) {
+        limit -= limit % sizeof(unsigned short);
+        end = d + limit / sizeof(unsigned short) - 1;
+    }
+    while (ConvertUTF32toUTF16(&src, srcEnd, &d, end, &budget, kStrictConversion) == kSourceIllegal) {
+        src++;
+        d++;
+        budget--;
+    }
+    return (ULong)d;
 }
 
 /* convert_UTF32_to_UTF16 (UTF-32 to UTF-16). STATE: MATCH 100%, exe 53 / obj 53, byte-identical yes.

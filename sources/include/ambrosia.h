@@ -128,7 +128,11 @@
 #define kModCapsLock        0x00000001
 #define kModShift           0x00000002
 #define kModControl         0x00000004
+#ifdef MAC1010
+#define kModAlt             0x00000010
+#else
 #define kModAlt             0x00000008
+#endif
 #define kModWindows         0x00000010
 #define kModNumLock         0x00000100
 #define kModScrollLock      0x00000200

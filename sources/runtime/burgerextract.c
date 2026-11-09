@@ -43,7 +43,7 @@ void ExtractAString2(const char *src, ULong *size, Word flags, char *dst, ULong 
                 break;
             if (dstSize != 0) {
                 --dstSize;
-                *dst++ = (char)c;
+                *dst++ = c;
             }
         } while (--remaining != 0);
         if (dstSize != 0)

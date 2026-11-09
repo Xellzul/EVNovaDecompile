@@ -91,7 +91,7 @@ long __stdcall IT_ButtonsUpEnumProc(void *hwnd, long lParam)
         || PeekMessageA(&msg, hwnd, WM_MBUTTONUP, WM_MBUTTONUP, PM_NOREMOVE) != 0)
         *flags &= ~kModStillDown;
     if (GetParent(hwnd) == 0)
-        EnumChildWindows(hwnd, (void *)IT_ButtonsUpEnumProc, lParam);
+        EnumChildWindows(hwnd, IT_ButtonsUpEnumProc, lParam);
     return (*flags & kModStillDown) != 0 ? true : false;
 }
 
@@ -133,7 +133,7 @@ ULong _InputReadModifiers(void *hwnd)
         lParam = (long)&flags;
         flags |= kModStillDown;
         if (hwnd == kAllWindows)
-            EnumWindows((void *)IT_ButtonsUpEnumProc, lParam);
+            EnumWindows(IT_ButtonsUpEnumProc, lParam);
         else if (hwnd != 0)
             IT_ButtonsUpEnumProc(hwnd, lParam);
     }

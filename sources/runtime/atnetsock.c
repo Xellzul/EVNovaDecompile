@@ -8,13 +8,40 @@
 #include "burgertypes.h"
 #include "burger.h"
 #include "burgerplat.h"
+#ifdef MAC1010
+#if TARGET_API_MAC_CARBON
+#define memset(p, c, n) BlockZero(p, n)
+#else
+#define memset(p, c, n) MemoryClear(p, n)
+#endif
+#else
 #include "win32.h"
+#endif
 
 #define kNetProcBits    ((NetProc)-1)
 
+#ifdef MAC1010
+extern unsigned char _PlatformIsThreaded(void);
+extern void SystemIdleEvents(void);
+#endif
+
+#ifdef MAC1010 /* 1.0.10 real: the Mac defines the six hooks here, win in reggie.c */
+NetSocket *gResolverList = 0;
+NetSocket *gDatagramList = 0;
+NetSocket *gStreamList = 0;
+unsigned char (*gReggieSendFailedProc)(NetSocket *s, const NetAddress *from) = 0;
+unsigned char (*gReggiePrejoinProc)(NetSocket *s, const NetAddress *local,
+                                  const NetAddress *from) = 0;
+unsigned char (*gReggiePacketProc)(NetSocket *s, const char *data, ULong length,
+                               const NetAddress *from) = 0;
+unsigned char (*gReggieSharedProc)(NetSocket *s) = 0;
+long (*gNT_MatchedProc)(NetSocket *s, const NetAddress *peer) = 0;
+long (*gNT_InvitedProc)(NetSocket *s, const NetAddress *peer) = 0;
+#else
 NetSocket *gResolverList;                        /* 0x008707c8 */
 NetSocket *gDatagramList;                        /* 0x008705dc */
 NetSocket *gStreamList;                          /* 0x008700c0 */
+#endif
 
 /* NetworkMakeCallback (tell a socket's owner about an event: a callback, or a bit set in the word
    `ref' when the callback is kNetProcBits). STATE: MATCH 100%, exe 27 / obj 27, byte-identical yes.
@@ -26,7 +53,7 @@ void NetworkMakeCallback(NetProc proc, void *ref, NetSocket *s, unsigned short e
 
     err = 0;
     if (proc == kNetProcBits)
-        AtomicMaskApply((ULong *)ref, event);
+        AtomicMaskApply(ref, event);
     else if (proc != 0)
         proc(s, ref, event);
 }
@@ -149,8 +176,15 @@ MutexNode *NetworkQueueWait(MutexList *list, ULong seconds)
         now = TimerGetMilliseconds();
         deadline = now + seconds * kMsPerSecond;
         while (now <= deadline) {
+#ifdef MAC1010
+            if (_PlatformIsThreaded())
+                SystemIdle();
+            else
+                SystemIdleEvents();
+#else
             SleepEx(deadline - now < kWaitSliceMs ? deadline - now : kWaitSliceMs, 1);
             SystemIdle();
+#endif
             node = QueueRemove(list);
             if (node != 0)
                 break;
@@ -203,8 +237,8 @@ void _EndpointDisposeAll(void)
     err = 0;
     s = 0;
     while ((s = gResolverList) != 0) {
-        ResolverClose((struct NetResolver *)s);
-        ResolverDispose((struct NetResolver *)s);
+        ResolverClose(s);
+        ResolverDispose(s);
     }
     while ((s = gDatagramList) != 0) {
         DatagramClose(s, 0);

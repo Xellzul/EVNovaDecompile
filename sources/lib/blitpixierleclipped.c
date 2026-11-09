@@ -4,8 +4,139 @@
 #include "shipobj.h"
 #include "spriteworld.h"
 
+#ifdef MACBUILD
+#define kTokenShift 24
+#define kCountMask 0x00ffffff
+#define kEndShapeToken 0
+#define kLineStartToken 1
+#define kDrawPixelsToken 2
+#define kSkipPixelsToken 3
+#define kSingleColorToken 4
+typedef unsigned long TokenDataType;
+#define ALIGN_PTR(p) (-((long)p) & 3)
+#endif
+
 /* BlitPixieRLEClipped (mac _BlitPixieRLEClipped). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00471e90
+// MAC: _BlitPixieRLEClipped i386 0x000bde9c ppc 0x000c9938
+#ifdef MACBUILD
+void BlitPixieRLEClipped(
+    unsigned char *srcTokens,
+    unsigned char *dstPixel,
+    long dstOffset,
+    Rect *dstClipRect)
+{
+    unsigned long token,op;
+    long count,extra,spanend;
+    unsigned char *dstRow;
+    int x,y;
+
+    y = 0;
+    dstRow = dstPixel;
+
+    do {
+        token = *((TokenDataType *) srcTokens);
+        (char *)srcTokens += sizeof(TokenDataType);
+
+        op = token >> kTokenShift;
+        count = token & kCountMask;
+
+        switch (op) {
+            case kDrawPixelsToken:
+
+                spanend = x + count - 1;
+
+                if (x < dstClipRect->right && spanend > dstClipRect->left) {
+                    if (x < dstClipRect->left) {
+                        extra = dstClipRect->left - x;
+
+                        count -= extra;
+
+                        x += extra;
+                        dstPixel += extra;
+                        (char *)srcTokens += extra;
+                    }
+
+                    extra = 0;
+                    if (spanend > dstClipRect->right) {
+                        extra = spanend - dstClipRect->right;
+
+                        count -= extra;
+                    }
+
+                    BlitPixieMemCopy(dstPixel, srcTokens, count);
+
+                    x += extra;
+                    dstPixel += extra;
+                    (char *)srcTokens += extra;
+                }
+
+                x += count;
+                dstPixel += count;
+                (char *)srcTokens += count;
+                (char *)srcTokens += ALIGN_PTR(srcTokens);
+
+                break;
+
+            case kSkipPixelsToken:
+                x += count;
+                dstPixel += count;
+                break;
+
+            case kSingleColorToken:
+
+                spanend = x + count -1;
+
+                if (x < dstClipRect->right && spanend > dstClipRect->left) {
+                    if (x < dstClipRect->left) {
+                        extra = dstClipRect->left - x;
+
+                        count -= extra;
+
+                        x += extra;
+                        dstPixel += extra;
+                    }
+
+                    extra = 0;
+                    if (spanend > dstClipRect->right) {
+                        extra = spanend - dstClipRect->right;
+
+                        count -= extra;
+                    }
+
+                    BlitPixieMemSet(dstPixel, *((unsigned long *) srcTokens), count);
+
+                    x += extra;
+                    dstPixel += extra;
+                }
+
+                x += count;
+                dstPixel += count;
+
+                srcTokens += sizeof(long);
+                break;
+            case kLineStartToken:
+                if (y < dstClipRect->top) {
+                    (char *)srcTokens += count;
+                } else if (y >= dstClipRect->bottom) {
+                    op = kEndShapeToken;
+                    break;
+                }
+
+                x = 0;
+                y++;
+                dstPixel = dstRow;
+                dstRow += dstOffset;
+                break;
+            case kEndShapeToken:
+                break;
+            default:
+                return;
+        }
+    } while (op != kEndShapeToken);
+}
+
+#else
 void BlitPixieRLEClipped(unsigned char *rleTokens, unsigned char *dstPixel,
         long dstRowBytes, Rect *srcBlitRect)
 {
@@ -110,6 +241,175 @@ void BlitPixieRLEClipped(unsigned char *rleTokens, unsigned char *dstPixel,
         }
     } while (opcode != 0);
 }
+#endif
+
+#ifdef MACBUILD
+/* BlitPixieRLEColor (mac _BlitPixieRLEColor, mac-only). STATE: see the mac gate. */
+// MAC: _BlitPixieRLEColor i386 0x000be0b8 ppc 0x000c9b74
+void BlitPixieRLEColor(
+    unsigned char *srcTokens,
+    unsigned long srcColor,
+    unsigned char *dstPixel,
+    unsigned long dstRowBytes)
+{
+    unsigned long token,op,count;
+    unsigned char *dstRow;
+
+    dstRow = dstPixel;
+
+    do {
+        token = *((TokenDataType *) srcTokens);
+        srcTokens += sizeof(TokenDataType);
+
+        op = token >> kTokenShift;
+        count = token & kCountMask;
+
+        switch (op) {
+            case kDrawPixelsToken:
+                BlitPixieMemSet(dstPixel, srcColor, count);
+                dstPixel += count;
+                srcTokens += count;
+                PtrAddBytes(srcTokens, ALIGN_PTR(srcTokens));
+                break;
+            case kSkipPixelsToken:
+                dstPixel += count;
+                break;
+            case kSingleColorToken:
+                BlitPixieMemSet(dstPixel, srcColor, count);
+                dstPixel += count;
+                srcTokens += sizeof(long);
+                break;
+            case kLineStartToken:
+                dstPixel = dstRow;
+                dstRow += dstRowBytes;
+                break;
+            case kEndShapeToken:
+                break;
+            default:
+                return;
+        }
+    } while (op != kEndShapeToken);
+}
+
+/* BlitPixieRLEColorClipped (mac _BlitPixieRLEColorClipped, mac-only). STATE: see the mac gate. */
+// MAC: _BlitPixieRLEColorClipped i386 0x000be19c ppc 0x000c9c84
+void BlitPixieRLEColorClipped(
+    unsigned char *srcTokens,
+    unsigned long srcColor,
+    unsigned char *dstPixel,
+    unsigned long dstOffset,
+    Rect *dstClipRect)
+{
+    unsigned short token,op;
+    long count,extra,spanend;
+    unsigned char *dstRow;
+    int x,y;
+
+    y = 0;
+    dstRow = dstPixel;
+
+    do {
+        token = *((TokenDataType *) srcTokens);
+        srcTokens += sizeof(TokenDataType);
+
+        op = token >> kTokenShift;
+        count = token & kCountMask;
+
+        switch (op) {
+            case kDrawPixelsToken:
+
+                spanend = x + count - 1;
+
+                if (x < dstClipRect->right && spanend > dstClipRect->left) {
+                    if (x < dstClipRect->left) {
+                        extra = dstClipRect->left - x;
+
+                        count -= extra;
+
+                        x += extra;
+                        dstPixel += extra;
+                        srcTokens += extra;
+                    }
+
+                    extra = 0;
+                    if (spanend > dstClipRect->right) {
+                        extra = spanend - dstClipRect->right;
+
+                        count -= extra;
+                    }
+
+                    BlitPixieMemSet(dstPixel, srcColor, count);
+
+                    x += extra;
+                    dstPixel += extra;
+                    srcTokens += extra;
+                }
+
+                x += count;
+                dstPixel += count;
+                srcTokens += count;
+                PtrAddBytes(srcTokens, ALIGN_PTR(srcTokens));
+
+                break;
+
+            case kSkipPixelsToken:
+                x += count;
+                dstPixel += count;
+                break;
+
+            case kSingleColorToken:
+
+                spanend = x + count -1;
+
+                if (x < dstClipRect->right && spanend > dstClipRect->left) {
+                    if (x < dstClipRect->left) {
+                        extra = dstClipRect->left - x;
+
+                        count -= extra;
+
+                        x += extra;
+                        dstPixel += extra;
+                    }
+
+                    extra = 0;
+                    if (spanend > dstClipRect->right) {
+                        extra = spanend - dstClipRect->right;
+
+                        count -= extra;
+                    }
+
+                    BlitPixieMemSet(dstPixel, srcColor, count);
+
+                    x += extra;
+                    dstPixel += extra;
+                }
+
+                x += count;
+                dstPixel += count;
+
+                srcTokens += sizeof(long);
+                break;
+            case kLineStartToken:
+                if (y < dstClipRect->top) {
+                    srcTokens += count;
+                } else if (y >= dstClipRect->bottom) {
+                    op = kEndShapeToken;
+                    break;
+                }
+
+                x = 0;
+                y++;
+                dstPixel = dstRow;
+                dstRow += dstOffset;
+                break;
+            case kEndShapeToken:
+                break;
+            default:
+                return;
+        }
+    } while (op != kEndShapeToken);
+}
+#endif
 
 /* The 'RLE#' resource header; the layout of record is
    sources/lib/swcreaterledata.c. */
@@ -117,6 +417,7 @@ void BlitPixieRLEClipped(unsigned char *rleTokens, unsigned char *dstPixel,
 /* FixupRLEPixelData. STATE: MATCH 138/138, compiled after BlitPixieRLEClipped, its predecessor
    in the original object. OPEN: none */
 // FUNCTION: EVNOVA 0x00472000
+#ifndef MACBUILD
 void FixupRLEPixelData(unsigned char *tokens, RLEPixelData *header)
 {
     unsigned long token, opcode, count;
@@ -198,3 +499,4 @@ void FixupRLEPixelData(unsigned char *tokens, RLEPixelData *header)
         }
     } while (opcode != 0 || --frames != 0);
 }
+#endif

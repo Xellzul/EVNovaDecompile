@@ -7,7 +7,9 @@
 #include "burgerplat.h"
 #include "burger.h"
 #include "ambrosia.h"
+#ifndef MAC1010
 #include "win32.h"
+#endif
 #include "ittoolkit.h"
 
 static ITRect DAT_0086bb20[2];                   /* 0x0086bb20, unreferenced */
@@ -20,10 +22,15 @@ extern ITElement *PT_ParseTreeRemove(ITElement *root, ITElement *node, unsigned 
 long _IT_ItemCreate(WindowNode *window, ITControlList *list, ITElement *element,
                   unsigned char front, unsigned char owns);
 long _IT_ParamCreate(WindowNode *window, ITControlList *list, ITElement *element);
-long _IT_ParamModify(WindowNode *window, ULong index, const char *value, long unused);
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+#define ParamWideArg unsigned char
+#else
+#define ParamWideArg long
+#endif
+long _IT_ParamModify(WindowNode *window, ULong index, const char *value, ParamWideArg unused);
 extern ITControlProc IT_ItemHandlerLookup(WindowNode *owner, const char *name);  /* interfacetool.c */
 void _IT_ItemDispose(WindowNode *window, ITControlList *list, ITControl *control);
-long _IT_ParamDispose(WindowNode *window, ITControlList *list, ITInsert *insert);
+void _IT_ParamDispose(WindowNode *window, ITControlList *list, ITInsert *insert);
 
 #define kMsgState           0x03
 #define kMsg4c              0x4c
@@ -31,6 +38,16 @@ long _IT_ParamDispose(WindowNode *window, ITControlList *list, ITInsert *insert)
 #define kMsgActive          0x48
 #define kMsg13              0x13
 #define kEventFollow        9
+
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+#define kNameW L"NAME"
+#endif
+
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+#define kParameterW L"PARAMETER"
+#define kParamW L"PARAM"
+extern ULong C2UGetByteCount(const char *s);
+#endif
 
 /* _IT_ItemListCreate (build a window's controls from a page's elements: PARAMETER / PARAM elements
    recorded, each one's NAME looked up in the window's then the global text variables and a value
@@ -44,12 +61,25 @@ ITControlList *_IT_ItemListCreate(WindowNode *window, ITElement *first)
 {
     long err = 0;
     long e;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    ITInsert *ins;
     long index;
+#else
+    long index;
+#endif
     ITControlList *list;
     ITElement *el;
     ITElement *next;
+#if !(defined(MAC1010) && TARGET_API_MAC_CARBON)
     ITInsert *ins;
+#endif
     WindowNode *root;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    char *buffer;
+    char tagName[256];
+
+    buffer = 0;
+#endif
 
     e = 0;
     ins = 0;
@@ -65,8 +95,19 @@ ITControlList *_IT_ItemListCreate(WindowNode *window, ITElement *first)
     list->root = first;
     window->controls = list;
     for (el = first; el != 0; el = PT_ParseTreeGetNext(first, el)) {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+        if (el->name != 0 && el->tag > 0) {
+            if (el->wide) {
+                if (UnicodeCompare(kParameterW, el->name) != 0 && UnicodeCompare(kParamW, el->name) != 0)
+                    continue;
+            } else {
+                if (StringCompare("PARAMETER", el->name) != 0 && StringCompare("PARAM", el->name) != 0)
+                    continue;
+            }
+#else
         if (el->name != 0 && AsByte(el->tag > 0)
             && (StringCompare("PARAMETER", el->name) == 0 || StringCompare("PARAM", el->name) == 0)) {
+#endif
             e = _IT_ParamCreate(window, list, el);
             if (e != 0) {
                 err = e;
@@ -81,6 +122,29 @@ ITControlList *_IT_ItemListCreate(WindowNode *window, ITElement *first)
 
         name = 0;
         value = 0;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+        if (ins->element->wide) {
+            name = HashLookupUnicode(ins->element->attributes, kNameW, 0);
+        } else {
+            name = HashLookup(ins->element->attributes, "NAME", 0);
+            buffer = MemoryAllocate(C2UGetByteCount(name) + 2);
+            if (buffer == 0) {
+                err = kOutOfMemory;
+                goto done;
+            }
+            name = C2UStringCopySafe(buffer, name, -1, -1);
+        }
+        if (name != 0 && window->variables != 0)
+            value = HashLookupUnicode(window->variables, name, 0);
+        if (name != 0 && value == 0 && gIT_DefaultHash != 0)
+            value = HashLookupUnicode(gIT_DefaultHash, name, 0);
+        if (buffer != 0) {
+            MemoryDeallocate(buffer);
+            buffer = 0;
+        }
+        if (value != 0) {
+            e = _IT_ParamModify(window, index, value, 1);
+#else
         name = HashLookup(ins->element->attributes, "NAME", 0);
         if (name != 0 && window->variables != 0)
             value = HashLookup(window->variables, name, 0);
@@ -88,6 +152,7 @@ ITControlList *_IT_ItemListCreate(WindowNode *window, ITElement *first)
             value = HashLookup(gIT_DefaultHash, name, 0);
         if (value != 0) {
             e = _IT_ParamModify(window, index, value, 0);
+#endif
             if (e != 0) {
                 err = e;
                 goto done;
@@ -95,16 +160,25 @@ ITControlList *_IT_ItemListCreate(WindowNode *window, ITElement *first)
         }
     }
     for (el = first; el != 0; el = PT_ParseTreeGetNext(first, el)) {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+        if (el->name != 0 && el->tag > 0) {
+            if (el->wide) {
+                U2CStringCopySafe(tagName, el->name, sizeof(tagName), -1);
+                if (IT_ItemHandlerLookup(window, tagName) == 0)
+                    continue;
+            } else if (IT_ItemHandlerLookup(window, el->name) == 0) {
+                continue;
+            }
+#else
         if (el->name != 0 && AsByte(el->tag > 0) && IT_ItemHandlerLookup(window, el->name) != 0) {
+#endif
             e = _IT_ItemCreate(window, list, el, 0, 0);
             if (e != 0) {
                 err = e;
                 goto done;
             }
             next = _IT_ParseTreeFindLastNode(first, el);
-            if (next == 0)
-                next = el;
-            el = next;
+            el = next != 0 ? next : el;
         }
     }
     for (root = window; root->parent != 0; root = root->parent)
@@ -113,6 +187,10 @@ ITControlList *_IT_ItemListCreate(WindowNode *window, ITElement *first)
     if (e != 0)
         err = e;
 done:
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    if (buffer != 0)
+        MemoryDeallocate(buffer);
+#endif
     if (err != 0 && list != 0) {
         _IT_ItemListDispose(window, list);
         list = 0;
@@ -135,6 +213,7 @@ void _IT_ItemListDispose(WindowNode *window, ITControlList *list)
     e = _IT_ViewMoveFocus(window, 1, window, 0, 0);
     if (e != 0)
         err = e;
+#ifndef MAC1010
     root = 0;
     hit = 0;
     for (root = window; root->parent != 0; root = root->parent)
@@ -144,6 +223,7 @@ void _IT_ItemListDispose(WindowNode *window, ITControlList *list)
         if (hit)
             root->tracking = 0;
     }
+#endif
     while (list->first != 0)
         _IT_ItemDispose(window, list, list->first);
     while (list->inserts != 0)
@@ -197,7 +277,7 @@ ITControl *_IT_GetPreviousItem(ITControlList *list, ITControl *control)
 /* _IT_GetObjectItem (the window and control holding a focusable item, looking inside FRAME controls'
    child windows). STATE: MATCH 100%, exe 68 / obj 68, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051de58
-long _IT_GetObjectItem(WindowNode *window, ITControlList *list, long item, WindowNode **ownerOut,
+long _IT_GetObjectItem(WindowNode *window, ITControlList *list, ULong item, WindowNode **ownerOut,
                   ITControl **controlOut)
 {
     long err;
@@ -307,6 +387,9 @@ long _IT_ItemListHandleKey(WindowNode *window, ITControlList *list, const ITKeyE
 {
     long err;
     long e;
+#ifdef MAC1010      /* 1.0.10 spelling */
+    ULong param;
+#endif
     char accel;
     unsigned char mnemonic;
     ITControl *c;
@@ -339,7 +422,9 @@ long _IT_ItemListHandleKey(WindowNode *window, ITControlList *list, const ITKeyE
         }
         mnemonic = 1;
     } else {
-        if (key->key == kKeyReturn || key->key == kKeyEnter)
+        if (key->key == kKeyReturn)
+            accel = '+';
+        else if (key->key == kKeyEnter)
             accel = '+';
         else if (key->key == kKeyEscape)
             accel = '-';
@@ -389,9 +474,16 @@ long _IT_ItemListHandleKey(WindowNode *window, ITControlList *list, const ITKeyE
         }
     }
     if (accel != 0 && !click->followed) {
+#ifdef MAC1010      /* 1.0.10 spelling */
+        param = (ULong)key;
+#endif
         for (c = list->first; c != 0 && !click->followed; c = c->next) {
             if (c->proc == IT_FrameHandler) {
+#ifdef MAC1010      /* 1.0.10 spelling */
+                e = _IT_ItemCallback(window, c, kMsgKey, param, click);
+#else
                 e = _IT_ItemCallback(window, c, kMsgKey, (ULong)key, click);
+#endif
                 if (e != 0) {
                     err = e;
                     goto done;
@@ -437,7 +529,7 @@ long _IT_ItemListHandleEdit(WindowNode *window, ITControlList *list, short event
    reports what the click does (0x15): a link, recorded with its window and control). STATE: MATCH
    100%, exe 77 / obj 77, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051e2a3
-long _IT_ItemListHandleClick(WindowNode *window, ITControlList *list, ITInputEvent *event,
+long _IT_ItemListHandleClick(WindowNode *window, ITControlList *list, ULong event,
                   ITClick *click)
 {
     long err;
@@ -450,8 +542,8 @@ long _IT_ItemListHandleClick(WindowNode *window, ITControlList *list, ITInputEve
     c = 0;
     MemoryClear(click, sizeof(ITClick));
     for (c = _IT_GetPreviousItem(list, c); c != 0; c = _IT_GetPreviousItem(list, c)) {
-        if (c->active && DT_IsPointInRect(&event->where, &c->bounds)) {
-            e = _IT_ItemCallback(window, c, kMsgClick, (ULong)event, &hit);
+        if (c->active && DT_IsPointInRect((ITPoint *)(event + sizeof(ITPoint)), &c->bounds)) {
+            e = _IT_ItemCallback(window, c, kMsgClick, event, &hit);
             if (e != 0) {
                 err = e;
                 goto done;
@@ -461,7 +553,7 @@ long _IT_ItemListHandleClick(WindowNode *window, ITControlList *list, ITInputEve
         }
     }
     if (hit) {
-        e = _IT_ItemCallback(window, c, kMsgWhat, (ULong)event, click);
+        e = _IT_ItemCallback(window, c, kMsgWhat, event, click);
         if (e != 0) {
             err = e;
         } else if (click->followed && click->window == 0) {
@@ -506,13 +598,23 @@ long _IT_ItemListHandleDraw(WindowNode *window, ITControlList *list, const ITRec
     long err;
     long e;
     ITControl *c;
+#ifdef MAC1010      /* 1.0.10 spelling */
+    ULong param;
+#endif
     ITRect common;
 
     err = 0;
     c = 0;
+#ifdef MAC1010      /* 1.0.10 spelling */
+    param = (ULong)area;
+#endif
     for (c = list->first; c != 0; c = c->next) {
         if (area == 0 || !DT_IsRectEmpty(DT_RectIntersect(&common, area, &c->bounds))) {
+#ifdef MAC1010      /* 1.0.10 spelling */
+            e = _IT_ItemCallback(window, c, kMsgPaint, param, 0);
+#else
             e = _IT_ItemCallback(window, c, kMsgPaint, (ULong)area, 0);
+#endif
             if (e != 0) {
                 err = e;
                 goto done;
@@ -570,6 +672,11 @@ long _IT_ItemListHandleCursor(WindowNode *window, ITControlList *list, ITInputEv
     return err;
 }
 
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+static unsigned short kEmptyW[] = { 0 };
+extern long IndirectAddUnicodeTag(void **handle);
+#endif
+
 /* _IT_ItemCreate (a control for an element: KEYS upper-cased in place, RECT parsed and moved by the
    window's origin, its handles, its type's procedure, linked at the end of the list or at the
    front, then messages 0 (create), 0x41 (bounds), 0x43 (TITLE, or ""), 0x30 (activate), 1 and
@@ -587,6 +694,12 @@ long _IT_ItemCreate(WindowNode *window, ITControlList *list, ITElement *element,
     char *value;
     void *title;
     ITRect r;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    unsigned char wide;
+    char tagName[256];
+
+    wide = element->wide;
+#endif
 
     err = 0;
     ok = 0;
@@ -594,24 +707,50 @@ long _IT_ItemCreate(WindowNode *window, ITControlList *list, ITElement *element,
     title = 0;
     c = 0;
     c = MemoryAllocateClear(sizeof(ITControl));
-    if (c == 0)
-        goto nomem;
+    if (c == 0) {
+        err = kOutOfMemory;
+        goto done;
+    }
     c->element = element;
     c->ownsElement = owns;
     c->active = 1;
     value = _IT_SimpleFindAttribute(c->element, "KEYS");
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    if (value != 0) {
+        if (wide)
+            Unicode2UpperCopySafe(value, value, -1, -1);
+        else
+            String2Upper(value);
+    }
+#else
     if (value != 0)
         String2Upper(value);
+#endif
     value = _IT_SimpleFindAttribute(c->element, "RECT");
     if (value != 0) {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+        _IT_ParseAttributeGetRect(&r, wide, value);
+#else
         _IT_ParseAttributeGetRect(&r, 0, value);
+#endif
         c->bounds = r;
         DT_RectOffset(&c->bounds, window->bounds.left, window->bounds.top);
     }
-    if ((c->items = IndirectAllocate(0)) == 0)
-        goto nomem;
-    if ((c->data = IndirectAllocate(0)) == 0)
-        goto nomem;
+    if ((c->items = IndirectAllocate(0)) == 0) {
+        err = kOutOfMemory;
+        goto done;
+    }
+    if ((c->data = IndirectAllocate(0)) == 0) {
+        err = kOutOfMemory;
+        goto done;
+    }
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    if (wide) {
+        U2CStringCopySafe(tagName, c->element->name, sizeof(tagName), -1);
+        if ((c->proc = IT_ItemHandlerLookup(window, tagName)) == 0)
+            err = 0;
+    } else
+#endif
     if ((c->proc = IT_ItemHandlerLookup(window, c->element->name)) == 0)
         err = 0;
     if (front) {
@@ -624,19 +763,53 @@ long _IT_ItemCreate(WindowNode *window, ITControlList *list, ITElement *element,
     c->list = list;
     *link = c;
     value = _IT_SimpleFindAttribute(c->element, "TITLE");
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    if (wide) {
+        if (value == 0)
+            value = kEmptyW;
+        title = IndirectInitialize(value, UnicodeGetByteCount(value));
+        if (title == 0) {
+            err = kOutOfMemory;
+            goto done;
+        }
+        e = IndirectAddUnicodeTag(title);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+    } else
+#endif
+    {
     if (value == 0)
         value = "";
     title = IndirectInitialize(value, StringGetLength((unsigned char *)value));
     if (title == 0) {
-nomem:
         err = kOutOfMemory;
         goto done;
     }
-    if ((e = _IT_ItemCallback(window, c, kMsgCreate, 0, 0)) != 0
-        || (e = _IT_ItemCallback(window, c, kMsgBounds, (ULong)&c->bounds, 0)) != 0
-        || (e = _IT_ItemCallback(window, c, kMsgTitle, (ULong)title, 0)) != 0
-        || (e = _IT_ItemCallback(window, c, kMsgActivate, 0, 0)) != 0
-        || (e = _IT_ItemCallback(window, c, kMsgOpen, 0, 0)) != 0) {
+    }
+    e = _IT_ItemCallback(window, c, kMsgCreate, 0, 0);
+    if (e != 0) {
+        err = e;
+        goto done;
+    }
+    e = _IT_ItemCallback(window, c, kMsgBounds, (ULong)&c->bounds, 0);
+    if (e != 0) {
+        err = e;
+        goto done;
+    }
+    e = _IT_ItemCallback(window, c, kMsgTitle, (ULong)title, 0);
+    if (e != 0) {
+        err = e;
+        goto done;
+    }
+    e = _IT_ItemCallback(window, c, kMsgActivate, 0, 0);
+    if (e != 0) {
+        err = e;
+        goto done;
+    }
+    e = _IT_ItemCallback(window, c, kMsgOpen, 0, 0);
+    if (e != 0) {
         err = e;
         goto done;
     }
@@ -645,7 +818,7 @@ nomem:
         err = e;
 done:
     if (title != 0)
-        IndirectDeallocate((void **)title);
+        IndirectDeallocate(title);
     if (err != 0 && c != 0) {
         _IT_ItemDispose(window, list, c);
         c = 0;
@@ -680,7 +853,7 @@ void _IT_ItemDispose(WindowNode *window, ITControlList *list, ITControl *control
     if (control->items != 0)
         IndirectDeallocate(control->items);
     if (control->data != 0)
-        IndirectDeallocate((void **)control->data);
+        IndirectDeallocate(control->data);
     if (control->element != 0 && control->ownsElement)
         PT_ParseTreeRemove(window->source.root, control->element, 1, 1);
     control->element = 0;
@@ -734,6 +907,11 @@ long _IT_ItemExecute(WindowNode *window, ITControl *control, const char *link)
     if (link == 0) {
         text = _IT_SimpleFindAttribute(control->element, "SCRIPT");
         if (text != 0) {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+            if (control->element->wide) {
+                String2Upper(U2CStringCopySafe(command, text, sizeof(command), -1));
+            } else
+#endif
             String2UpperCopySafe(command, text, sizeof(command));
             text = StringFindDelimiter(command, " ()");
             if (text != 0)
@@ -741,14 +919,25 @@ long _IT_ItemExecute(WindowNode *window, ITControl *control, const char *link)
             if (StringCompare(command, "QUIT") == 0) {
                 while (window->parent != 0)
                     window = window->parent;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+                if (window->result != 0 && control->element->wide && (text = HashLookupUnicode(control->element->attributes, kNameW, 0)) != 0)
+                    U2CStringCopySafe(window->result, text, 0x100, -1);
+                else if (window->result != 0 && !control->element->wide && (text = HashLookup(control->element->attributes, "NAME", 0)) != 0)
+                    StringCopySafe(window->result, text, 0x100);
+#else
                 if (window->result != 0 && !control->element->wide) {
                     text = HashLookup(control->element->attributes, "NAME", 0);
                     if (text != 0)
                         StringCopySafe(window->result, text, 0x100);
                 }
+#endif
                 IT_ViewDispose(window);
             } else if (StringCompare(command, "BEEP") == 0) {
+#ifdef MAC1010
+                SysBeep(7);
+#else
                 MessageBeep(0);
+#endif
             }
             goto done;
         }
@@ -758,6 +947,10 @@ long _IT_ItemExecute(WindowNode *window, ITControl *control, const char *link)
         if (text == 0)
             goto done;
     }
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    if (text != link && control->element->wide)
+        text = U2CStringCopySafe(command, text, sizeof(command), -1);
+#endif
     target = window;
     if (StringFindString(text, "://") != 0 || StringFindString(text, "mailto:") != 0) {
         e = IT_OpenBrowser(text);
@@ -820,6 +1013,12 @@ long _IT_ItemCallback(WindowNode *window, ITControl *control, ULong msg, ULong a
     hwnd = window->hwnd;
     for (root = window; root->parent != 0; root = root->parent)
         ;
+#ifdef MAC1010
+    if (root->buffer != 0 && msg == kMsgPaint)
+        dc = DT_PeekAtSysContext(root->buffer->portSelf);
+    else
+        dc = GetWindowPort(hwnd);
+#else
     if (root->buffer != 0 && msg == kMsgPaint) {
         dc = DT_PeekAtSysContext(root->buffer->portSelf);
     } else {
@@ -832,6 +1031,7 @@ long _IT_ItemCallback(WindowNode *window, ITControl *control, ULong msg, ULong a
         SetTextColor(dc, DT_2SysColor(&window->fore));
         SetBkColor(dc, DT_2SysColor(&window->back));
     }
+#endif
     if (control->proc != 0) {
         savedWindow = gIT_CurrentView;
         savedControl = gIT_CurrentItem;
@@ -848,10 +1048,12 @@ long _IT_ItemCallback(WindowNode *window, ITControl *control, ULong msg, ULong a
     if (err != 0)
         err = e;
 done:
+#ifndef MAC1010
     if (saved != 0)
         RestoreDC(dc, saved);
     if (dc != 0)
         ReleaseDC(hwnd, dc);
+#endif
     return err;
 }
 
@@ -927,7 +1129,7 @@ long _IT_ParamCreate(WindowNode *window, ITControlList *list, ITElement *element
    then it is unlinked from the document and disposed, and the record freed). STATE: MATCH 100%,
    exe 81 / obj 81, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051ec5c
-long _IT_ParamDispose(WindowNode *window, ITControlList *list, ITInsert *insert)
+void _IT_ParamDispose(WindowNode *window, ITControlList *list, ITInsert *insert)
 {
     long err;
     ITElement *after;
@@ -940,8 +1142,9 @@ long _IT_ParamDispose(WindowNode *window, ITControlList *list, ITInsert *insert)
     link = 0;
     after = 0;
     if (insert->element != 0) {
-        after = insert->element->next;
-        if (after == 0)
+        if (insert->element->next != 0)
+            after = insert->element->next;
+        else
             after = PT_ParseTreeGetNext(window->source.root, insert->element);
         limit = after;
         i = window->controls->inserts;
@@ -968,7 +1171,6 @@ long _IT_ParamDispose(WindowNode *window, ITControlList *list, ITInsert *insert)
     }
     MemoryDeallocate(insert);
     insert = 0;
-    return 0;
 }
 
 static inline unsigned char IsElement(ITElement *e)
@@ -985,7 +1187,7 @@ static inline unsigned char IsElement(ITElement *e)
    yes (647 bytes). OPEN: none; `link' / `child' are dead locals the exe's entry proves (names
    invented), the fourth argument is never read; notes/ittoolkit.md */
 // FUNCTION: EVNOVA 0x0051ed23
-long _IT_ParamModify(WindowNode *window, ULong index, const char *value, long unused)
+long _IT_ParamModify(WindowNode *window, ULong index, const char *value, ParamWideArg unused)
 {
     long err;
     ITInsert **link;
@@ -999,7 +1201,11 @@ long _IT_ParamModify(WindowNode *window, ULong index, const char *value, long un
     ITElement *element;
     void **text;
     void *saved;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    ITRect clip = {0, 0, 0, 0};
+#else
     ITRect clip;
+#endif
     ULong order;
 
     err = 0;
@@ -1011,7 +1217,9 @@ long _IT_ParamModify(WindowNode *window, ULong index, const char *value, long un
     insert = 0;
     text = 0;
     saved = 0;
+#ifndef MAC1010
     clip = gIT_SetInsertTextZeroRect;
+#endif
     for (insert = window->controls->inserts; insert != 0 && index--; insert = insert->next)
         ;
     if (insert == 0) {
@@ -1028,8 +1236,9 @@ long _IT_ParamModify(WindowNode *window, ULong index, const char *value, long un
         err = e;
         goto done;
     }
-    after = insert->element->next;
-    if (after == 0)
+    if (insert->element->next != 0)
+        after = insert->element->next;
+    else
         after = PT_ParseTreeGetNext(window->source.root, insert->element);
     limit = after;
     p = window->controls->inserts;
@@ -1048,10 +1257,41 @@ long _IT_ParamModify(WindowNode *window, ULong index, const char *value, long un
     while (insert->element->child != 0)
         PT_ParseTreeRemove(window->source.root, insert->element->child, 1, 1);
     if (value != 0) {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+        if (unused && window->source.root->wide) {
+            text = IndirectInitialize(value, UnicodeGetByteCount(value));
+            if (text == 0) {
+                err = kOutOfMemory;
+                goto done;
+            }
+            e = IndirectAddUnicodeTag(text);
+            if (e != 0) {
+                err = e;
+                goto done;
+            }
+        } else if (unused) {
+            ULong length;
+
+            length = UnicodeGetCharCount(value) + 1;
+            text = IndirectAllocate(length);
+            if (text == 0) {
+                err = kOutOfMemory;
+                goto done;
+            }
+            U2CStringCopySafe(*text, value, length, -1);
+            e = IndirectSetSize(text, length - 1);
+            if (e != 0) {
+                err = e;
+                goto done;
+            }
+        } else
+#endif
+        {
         text = IndirectInitialize(value, StringGetLength((unsigned char *)value));
         if (text == 0) {
             err = kOutOfMemory;
             goto done;
+        }
         }
         e = PT_ParseTreeLoad(text, "SCRIPT", "LI BR P", 0, &tree);
         if (e != 0) {
@@ -1059,9 +1299,20 @@ long _IT_ParamModify(WindowNode *window, ULong index, const char *value, long un
             goto done;
         }
         for (element = tree->child; element != 0; element = PT_ParseTreeGetNext(tree, element)) {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+            if (element->name != 0 && element->tag > 0) {
+                if (element->wide) {
+                    if (UnicodeCompare(kParameterW, element->name) != 0 && UnicodeCompare(kParamW, element->name) != 0)
+                        continue;
+                } else {
+                    if (StringCompare("PARAMETER", element->name) != 0 && StringCompare("PARAM", element->name) != 0)
+                        continue;
+                }
+#else
             if (element->name != 0 && IsElement(element)
                 && (StringCompare("PARAMETER", element->name) == 0
                     || StringCompare("PARAM", element->name) == 0)) {
+#endif
                 e = _IT_ParamCreate(window, window->controls, element);
                 if (e != 0) {
                     err = e;
@@ -1096,12 +1347,29 @@ done:
     return err;
 }
 
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+long IT_ViewGetPageElement(WindowNode *window, ITElement **element)
+{
+    long err;
+    ITPage *page;
+
+    *element = 0;
+    err = 0;
+    page = window->page;
+    if (page == 0)
+        err = kNotAWindow;
+    else
+        *element = page->element;
+    return err;
+}
+#endif
+
 /* IT_ViewGetItemCount (how many controls a window has). STATE: MATCH 100%, exe 14 / obj 14, byte-
    identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051efaa
 long IT_ViewGetItemCount(void *windowRef)
 {
-    WindowNode *window = (WindowNode *)windowRef;
+    WindowNode *window = windowRef;
     long n;
     ITControl *c;
     long err;
@@ -1119,9 +1387,14 @@ long IT_ViewGetItemCount(void *windowRef)
 // FUNCTION: EVNOVA 0x0051efcb
 long IT_ViewGetNamedItem(WindowNode *window, const char *name)
 {
-    long index;
     ITControl *c;
+    long index;
     char *value;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    unsigned short *wideValue;
+    unsigned short wideWanted[256];
+    unsigned short wideHave[256];
+#endif
     char wanted[256];
     char have[256];
     WindowNode *w;
@@ -1134,7 +1407,27 @@ long IT_ViewGetNamedItem(WindowNode *window, const char *name)
     index = 0;
     value = 0;
     String2UpperCopySafe(wanted, name, sizeof(wanted));
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    C2UStringCopySafe(wideWanted, wanted, sizeof(wideWanted), -1);
+#endif
     for (c = window->controls->first; c != 0; c = c->next) {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+        if (c->element->wide) {
+            wideValue = HashLookupUnicode(c->element->attributes, kNameW, 0);
+            if (wideValue != 0 && *wideValue != 0) {
+                Unicode2UpperCopySafe(wideHave, wideValue, sizeof(wideHave), -1);
+                if (UnicodeCompare(wideWanted, wideHave) == 0)
+                    break;
+            }
+        } else {
+            value = HashLookup(c->element->attributes, "NAME", 0);
+            if (value != 0 && *value != 0) {
+                String2UpperCopySafe(have, value, sizeof(have));
+                if (StringCompare(wanted, have) == 0)
+                    break;
+            }
+        }
+#else
         if (c->element->tag > 0)
             isTag = true;
         else
@@ -1145,6 +1438,7 @@ long IT_ViewGetNamedItem(WindowNode *window, const char *name)
             if (StringCompare(wanted, have) == 0)
                 break;
         }
+#endif
         index++;
     }
     if (c == 0)

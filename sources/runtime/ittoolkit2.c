@@ -228,7 +228,7 @@ long _IT_ButtonDraw(void *dc, ITImage *image, const ITRect *r, void **faces, lon
     }
     if (faces != 0) {
         count = IndirectGetSize(faces) / sizeof(ITButtonFace);
-        if (count != 0 && (ULong)(value * kFacesPerValue + variant) < count) {
+        if (count != 0 && (value * kFacesPerValue + variant) < count) {
             MemoryCopy(&face, (ITButtonFace *)*faces + value * kFacesPerValue + variant,
                          sizeof(ITButtonFace));
             err = IT_ItemCallbackGetImage(face.name, &picture, &mask, &trans);

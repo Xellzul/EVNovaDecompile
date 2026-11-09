@@ -15,28 +15,28 @@ extern "C" {
 #define kDescMovieFade      0x0004
 
 void CommDialogUpdate(void);
-extern void MissionListDefinition(short lMessage, char lSelect, Rect *lRect, long lCell,
+extern void MissionListDefinition(short lMessage, Boolean lSelect, Rect *lRect, long lCell,
                          short lDataOffset, short lDataLen, ScrollRec **lHandle);
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern long DAT_007355d0;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 #pragma cplusplus on
-extern "C++" {
-extern char reenterMissionDialog;
+EXTERN_CPP_BEGIN
+extern Boolean reenterMissionDialog;
 extern short adviceDisasterRandom;
-extern char willTakeBribe;
-extern char hasDemandedTribute;
-extern char commShipXeno;
+extern Boolean willTakeBribe;
+extern Boolean hasDemandedTribute;
+extern Boolean commShipXeno;
 extern short commDialogMode;
-extern char shipyardEgg;
-}
+extern Boolean shipyardEgg;
+EXTERN_CPP_END
 #pragma cplusplus reset
 extern void DisposeButtons(void);
 extern void CenterWindow(void *front, void *window);
 extern void DoBarDialog(void);
-extern char DoCapturedShipAssignmentDialog(void);
+extern Boolean DoCapturedShipAssignmentDialog(void);
 extern void DoCommDialog(short ship);
 extern void DoEscortDialog(ShipObj *ship);
 extern void DoKeyDialog(void);
@@ -70,37 +70,44 @@ extern void DrawPlunderButtons(short hilited);
 extern void DrawRaceButtons(short hilited);
 void DrawShipyardButtons(short hilited);
 extern void DrawSingleMissionButtons(short hilited);
+extern void DrawOkButton(Rect box, Boolean hilited);
 extern void DrawTextButtons(short hilited);
 extern void DrawTradeButtons(short hilited);
-extern char EVTextInputDialog(unsigned char *prompt, unsigned char *initial,
+extern Boolean EVTextInputDialog(unsigned char *prompt, unsigned char *initial,
                               short maxLen);
-extern char RegScramA3(unsigned int x);
+#ifndef MACBUILD /* inline on mac: sources/mac/include/rt3_ev_nova.h */
+extern Boolean RegScramA3(unsigned int x);
 extern void RegScramB3(unsigned char x);
 extern short RegScramC3(unsigned char x);
 extern void *RegScramF3(void);
-extern char DoNewPilotNameDialog(char *wantStrictPlay);
+#endif
+extern Boolean DoNewPilotNameDialog(Boolean *wantStrictPlay);
 void HaggleDialogUpdate(void);
 extern void InitButtons(void);
 extern void MissionDialogUpdate(void);
-int OfferBribe(void);
+short DoShipCommPayment(void);
 void OutfitDialogUpdate(void);
 void PlunderDialogUpdate(void);
 extern void PrefsDialogUpdate(void);
 extern void RandomizeNewsDialog(void);
-extern void ScrollMapDialog(short dh, short dv);
-extern void SelectHyperLinkToSelection(void);
-extern void RunModalDialog(DialogPtr dlg, void *eventProc, short *itemHit,
+extern void ScrollMapDisplay(short dh, short dv);
+extern void CueNextHyperRouteDest(void);
+extern void MyModalDialog(DialogPtr dlg, void *eventProc, short *itemHit,
                            short *modifiers);
+#ifndef MACBUILD
 extern void SetDialogGWorld(DialogPtr dlg);
+#endif
+#ifndef MAC1010
 extern void DrawDialog(DialogPtr dlg);
+#endif
 void SetPlunderValues(void);
 void SetupMissionInfoList(void);
 extern void SetupPlayerInfoText(void);
-extern void ShowTextDialog(char allowMap, char redrawMission,
-                           char showMovie);
+extern void ShowTextDialog(Boolean allowMap, Boolean redrawMission,
+                           Boolean showMovie);
 extern void ShipDescDialogUpdate(void);
-void ShipyardDialogUpdate(void);
-extern void ShowDlg1014(void);
+void ShipyardDialogUpdate(); /* unprototyped: the 1.1.1 DoShipyardDialog passes it the dialog */
+extern void DoNewsDialog(void);
 extern short TrackBarButtons(Point where);
 extern short TrackCapAssignButtons(Point where);
 extern short TrackCommDialogButtons(Point where);
@@ -117,31 +124,32 @@ extern short TrackPlunderButtons(Point where);
 extern short TrackRaceButtons(Point where);
 extern short TrackShipyardButtons(Point where);
 extern short TrackSingleMissionButtons(Point where);
+extern Boolean TrackOkButton(Rect box);
 extern short TrackTextButtons(Point where);
 extern short TrackTradeButtons(Point where);
-extern void UpdateBarDialog(void);
-void UpdateCaptureDialog(void);
-void UpdateDlg1014(void);
-void UpdateEscortDialog(void);
-void UpdateKeyDialog(void);
-extern void UpdateMissionDialog(void);
-void UpdateMissionInfoDialog(void);
-void UpdatePlayerInfoDialog(void);
-void UpdateRaceDialog(void);
-void UpdateStellarCommDialog(void);
+extern void BarDialogUpdate(void);
+void CapturedAssignmentDialogUpdate(void);
+void NewsDialogUpdate(void);
+void EscortDialogUpdate(void);
+void KeyDialogUpdate(void);
+extern void SingleMissionDialogUpdate(void);
+void MissionInfoDialogUpdate(void);
+void PlayerInfoDialogUpdate(void);
+void RaceDialogUpdate(void);
+void PlanetCommDialogUpdate(void);
 extern void DoPlanetCommDialog(short stellar);
-extern void UpdateStellarDialog(void);
-extern void UpdateTextDialog(void);
-void UpdateTradeDialog(void);
+extern void PortDialogUpdate(void);
+extern void TextDialogUpdate(void);
+void TradeDialogUpdate(void);
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern unsigned char adviceString[];
-extern PicHandle barDialogPict;
-extern char barDialogText[];
-extern PicHandle barPortraitPict;
+extern PicHandle barBackgroundPic;
+extern char barDescText[];
+extern PicHandle barPic;
 extern short basePrice[];
-extern char boughtID;
-extern char boughtMap;
+extern Boolean boughtID;
+extern Boolean boughtMap;
 extern RGBColor buttonColor[3];
 extern short buttonFontID;
 extern short buttonFontSize;
@@ -153,97 +161,103 @@ extern GWorldContainer buttonPort;
 extern short mapButtonTable[5];
 extern short shipyardButtonTable[5];
 extern short outfitButtonTable[5];
-extern short portButtonID[];
-extern char canBuy;
-extern char canRefuseMission;
-extern char canScrollTextDown;
-extern char canScrollTextUp;
-extern char canSell;
-extern char canSellEscort;
-extern char canUpgradeEscort;
-extern PicHandle captureDialogPict;
+extern short planetButtonTable[];
+extern Boolean canBuy;
+extern Boolean canRefuseMission;
+extern Boolean canScrollTextDown;
+extern Boolean canScrollTextUp;
+extern Boolean canSell;
+extern Boolean canSellEscort;
+extern Boolean canUpgradeEscort;
+extern PicHandle captureBackgroundPic;
 extern short captureOdds;
 extern PicHandle commBackgroundPic;
 extern unsigned char commResponseString[];
 extern ShipObj *commShip;
 extern PicHandle commShipPic;
 extern short descResourcePictId;
-extern char didBuyShip;
-extern char didOutfit;
+extern Boolean didBuyShip;
+extern Boolean didOutfit;
 extern short dockedPortItems[];
 extern short dockedPortShipTypes[];
-extern unsigned long gAmbientDeadline;
-extern void *gAmbientSound;
-extern long gBribeAsked;
-extern Rect gCellRects[];
-extern unsigned char gCommGovtName[];
-extern float gCommMood;
-extern char gDescText[];
-extern PicHandle gDlg1014Pict;
-extern Rect gIconRects[];
-extern char gItemDescText[];
-extern short gLastClickPos;
-extern short gMissionInfoIndex;
-extern PicHandle gMissionInfoPict;
-extern PicHandle gOutfitDialogPict;
-extern short gOutfitGridPos;
+extern unsigned long ambientNoiseDelay;
+extern void *planetSnd;
+extern long initialHaggleVal;
+extern Rect listScreenRect[];
+extern unsigned char stellarTypeStr[];
+extern float bribeFlux;
+extern char descTextPtr[];
+extern PicHandle newsPic;
+extern Rect listPicScreenRect[];
+extern char dialogDescTextPtr[];
+extern short lastClickItem;
+extern short selMissionInfoListItem;
+extern PicHandle missionInfoBackgroundPic;
+extern PicHandle outfitBackgroundPic;
+extern short selOutfitListItem;
 extern unsigned char gRT3Table3[];
-extern short gSelectedBinding;
-extern short gSelectedOutfit;
-extern short gSelectedShip;
-extern unsigned char gShipCommNames[768][256];
-extern PicHandle gShipDescBackdrop;
-extern PicHandle gShipDescPict;
-extern short gShipGridPos;
-extern short gShipGridScroll;
-extern unsigned char gShipLongNames[768][256];
-extern PicHandle gShipyardDialogPict;
-extern char gSpobInhabited;
+extern short keyDialogSel;
+extern short selOutfitItem;
+extern short selShipyardItem;
+extern unsigned char shipCommNames[768][256];
+extern PicHandle shipDescBackgroundPic;
+extern PicHandle bigShipPic;
+extern short selShipListItem;
+extern short shipyardScroll;
+extern unsigned char shipyardLongNames[768][256];
+extern PicHandle shipyardBackgroundPic;
+extern Boolean canDoMissions;
 extern DialogPtr portDialog;
-extern PicHandle gStellarDialogPict;
-extern GWorldContainer gStellarImage;
-extern unsigned char gTextInputResult[];
-extern char gTextShowString[];
+extern PicHandle portBackgroundPic;
+extern GWorldContainer planetPicContainer;
+extern unsigned char textInputString[];
+extern char textShowString[];
+#ifdef MACBUILD
+#define gTimesFont kFontIDTimes
+#else
 extern short gTimesFont;
+#endif
 extern unsigned char govtShortNames[256][256];
 extern short greenMissionSyst;
-extern PicHandle haggleDialogPict;
+extern PicHandle haggleBackgroundPic;
 extern short haggleMode;
 extern long haggleVal;
-extern char hatesPlayer;
-extern PicHandle keyDialogPict;
+extern Boolean hatesPlayer;
+extern PicHandle keyPic;
 extern short lastRaceWinner;
 extern unsigned long lastTextScrollTime;
 extern unsigned char lcOutfitName[512][256];
 extern unsigned char lcPluralOutfitName[512][256];
-extern char mainScreenBackgroundDirty;
+extern Boolean mainScreenBackgroundDirty;
 extern DialogPtr missionDialog;
-extern short missionListVenue;
+extern short missionsOutside;
 extern unsigned long missionOfferTime;
-extern char multiArrowsOnSingleSystem;
+extern Boolean multiArrowsOnSingleSystem;
 extern short nextPortMission;
 extern DialogPtr outfitDialog;
 extern short outfitScroll;
 extern PicHandle playerInfoBackgroundPic[3];
-extern short playerInfoPage;
+extern short selPlayerInfoMode;
 extern char playerInfoText[3][4096];
-extern PicHandle plunderDialogPict;
-extern char portBuysNoOutfits;
+extern PicHandle plunderBackgroundPic;
+extern Boolean portBuysNoOutfits;
 extern PicHandle previewPic;
 extern short previewPicID;
 extern float priceFluxMult[2];
 extern long raceBetAmount;
 extern short raceCount;
-extern PicHandle raceDialogPict;
+extern PicHandle raceBackgroundPic;
 extern short racePick;
 extern short raceWinner;
-}
+#ifndef MACBUILD
+EXTERN_CPP_END
 #pragma cplusplus reset
 extern RGBColor *redColor;
+#endif
 extern RGBColor redRGB;
 #pragma cplusplus on
-extern "C++" {
-extern char releaseCommEscort;
+EXTERN_CPP_BEGIN
+extern Boolean releaseCommEscort;
 extern short responseRandom;
 extern short salvageAmmoQty;
 extern DialogPtr tradeDialog;
@@ -252,25 +266,25 @@ extern short salvageFuelQty;
 extern short salvageQty;
 extern short salvageType;
 extern short selMissionListItem;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern short selTradeItem;
 extern short shipBuyMode;
 extern unsigned char shipClassStr[];
 extern unsigned char shipGovtStr[];
 extern DialogPtr shipyardDialog;
 extern RGBColor shopGridColor[2];
-extern char showAbortMissionButton;
+extern Boolean showAbortMissionButton;
 extern short singleMissionButtonTable[4];
 extern PicHandle textDialogBackgroundPic[3];
 extern PicHandle tradeBackgroundPic;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern DialogPtr barDialog;
 extern DialogPtr captureDialog;
 extern DialogPtr commDialog;
@@ -287,77 +301,81 @@ extern DialogPtr qtyDialog;
 extern DialogPtr depthDialog;
 extern DialogPtr loadingDialog;
 extern DialogPtr outfitDescDialog;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 extern void EVNoteAlert(const unsigned char *text);
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern PicHandle raceButtonPic[4][4];
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
-extern char EVYesNoDialog(unsigned char *prompt);
+extern Boolean EVYesNoDialog(unsigned char *prompt);
 #pragma cplusplus on
-extern "C++" {
-extern char gQuit;
-extern unsigned long gLastClickTime;
-extern char screenFaded;
-}
+EXTERN_CPP_BEGIN
+extern Boolean gQuit;
+extern unsigned long lastClickTime;
+extern Boolean screenFaded;
+EXTERN_CPP_END
 #pragma cplusplus reset
 
-char Dlg1005EventProc(long unused, EventRecord *ev, short *itemHit);
-char Dlg1014EventProc(long unused, EventRecord *ev, short *itemHit);
+Boolean ShipDescFilter(long unused, EventRecord *ev, short *itemHit);
+Boolean NewsDialogFilter(long unused, EventRecord *ev, short *itemHit);
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern ShortPoint menuTopCorner;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
-extern char BarDialogEvent(long unused, EventRecord *ev, short *itemHit);
-char CommDialogEvent(long unused, EventRecord *ev, short *itemHit);
-extern char EscortDialogEvent(long unused, EventRecord *ev, short *itemHit);
-char HaggleDialogEvent(long unused, EventRecord *ev, short *itemHit);
-extern char MapFilter(DialogPtr dlg, EventRecord *event, short *itemHit);
-char StellarCommDialogEvent(long unused, EventRecord *ev, short *itemHit);
-extern char StellarDialogEvent(long unused, EventRecord *ev, short *itemHit);
-extern char TextDialogEvent(long unused, EventRecord *ev, short *itemHit);
-char KeyDialogEvent(long unused, EventRecord *ev, short *itemHit);
-char MissionInfoFilter(long unused, EventRecord *ev, short *itemHit);
-char OutfitFilter(long unused, EventRecord *ev, short *itemHit);
-char PlayerInfoDialogEvent(long unused, EventRecord *ev, short *itemHit);
-char PlunderDialogEvent(long unused, EventRecord *ev, short *itemHit);
-char RaceDialogEventProc(long unused, EventRecord *ev, short *itemHit);
-char ShipyardFilter(long unused, EventRecord *ev, short *itemHit);
-extern char TradeDialogEvent(long unused, EventRecord *ev, short *itemHit);
+extern Boolean BarFilter(long unused, EventRecord *ev, short *itemHit);
+Boolean CommFilter(long unused, EventRecord *ev, short *itemHit);
+extern Boolean EscortFilter(long unused, EventRecord *ev, short *itemHit);
+Boolean HaggleFilter(long unused, EventRecord *ev, short *itemHit);
+extern Boolean MapFilter(DialogPtr dlg, EventRecord *event, short *itemHit);
+Boolean PlanetCommFilter(long unused, EventRecord *ev, short *itemHit);
+extern Boolean PortFilter(long unused, EventRecord *ev, short *itemHit);
+extern Boolean TextDialogFilter(long unused, EventRecord *ev, short *itemHit);
+#ifdef MACBUILD
+Boolean KeyFilter(DialogPtr dialog, EventRecord *ev, short *itemHit);
+#else
+Boolean KeyFilter(long unused, EventRecord *ev, short *itemHit);
+#endif
+Boolean MissionInfoFilter(long unused, EventRecord *ev, short *itemHit);
+Boolean OutfitFilter(long unused, EventRecord *ev, short *itemHit);
+Boolean PlayerInfoFilter(long unused, EventRecord *ev, short *itemHit);
+Boolean PlunderFilter(long unused, EventRecord *ev, short *itemHit);
+Boolean RaceFilter(long unused, EventRecord *ev, short *itemHit);
+Boolean ShipyardFilter(long unused, EventRecord *ev, short *itemHit);
+extern Boolean TradeFilter(long unused, EventRecord *ev, short *itemHit);
 
 #pragma cplusplus on
-extern "C++" {
-extern TEHandle gMissionTE;
-}
+EXTERN_CPP_BEGIN
+extern TEHandle offerTextHandle;
+EXTERN_CPP_END
 #pragma cplusplus reset
 #define kMissionButtonLabelCount 2
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern unsigned char missionButtonLabel[kMissionButtonLabelCount][256];
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern TEHandle textDialogTextHandle;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
-extern short DoHaggleDialog(char raise, short chance);
+extern short DoHaggleDialog(Boolean raise, short chance);
 extern void ScrollDialogText(DialogPtr dlg, short item, TEHandle hTE,
-                             short dv, char force);
+                             short dv, Boolean force);
 extern void PlayQTMovie(unsigned char *name, unsigned char doubled,
                         unsigned char fade);
 extern long DoQuantityDialog(long maxCount, short mode);
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern ScrollRec **missionList;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 #ifdef __cplusplus

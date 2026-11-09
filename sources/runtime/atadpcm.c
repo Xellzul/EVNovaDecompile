@@ -8,6 +8,11 @@
 #include "burgerchan.h"
 
 #define kMaxStepIndex 88
+#ifdef MAC1010
+#define FromBE32(v) (v)
+#else
+#define FromBE32(v) Swap32(v)
+#endif
 
 static int indexTable[16] = {                    /* 0x005794e8 */
     -1, -1, -1, -1, 2, 4, 6, 8,
@@ -134,6 +139,28 @@ unsigned char ADPCM_Mixer(ULong *data, short **out, ULong frames,
                            ULong step, AdpcmVoice *voice,
                            unsigned short left, unsigned short right)
 {
+#ifdef MAC1010 /* 1.0.10 spelling */
+    long inc;
+    short *dst;
+    long vpdiff;
+    long stepsize;
+    long valprev;
+    long index;
+    ULong *wp;
+    ULong remaining;
+    ULong pos;
+    ULong word;
+    ULong accum;
+    ULong lastAccum;
+    char done;
+    long lastL;
+    long lastR;
+    ULong delta;
+    long r;
+    long shift;
+    long s;
+    long t;
+#else
     long index;
     ULong *wp;
     long vpdiff;
@@ -146,7 +173,7 @@ unsigned char ADPCM_Mixer(ULong *data, short **out, ULong frames,
     ULong accum;
     ULong lastAccum;
     long lastR;
-    unsigned char done;
+    char done;
     short *dst;
     ULong word;
     ULong delta;
@@ -154,6 +181,7 @@ unsigned char ADPCM_Mixer(ULong *data, short **out, ULong frames,
     long inc;
     long s;
     long t;
+#endif
 
     accum = lastAccum = 0;
     done = 0;
@@ -171,14 +199,14 @@ unsigned char ADPCM_Mixer(ULong *data, short **out, ULong frames,
     stepsize = stepsizeTable[index];
     shift = kFirstNibbleShift - (pos & (kNibblesPerWord - 1)) * 4;
     word = *wp++;
-    word = Swap32(word);
+    word = FromBE32(word);
     remaining = voice->total;
     remaining -= pos;
 
     while (remaining != 0) {
         if (shift < 0) {
             word = *wp++;
-            word = Swap32(word);
+            word = FromBE32(word);
             shift = kFirstNibbleShift;
         }
         delta = (word >> shift) & 0xf;
@@ -207,18 +235,25 @@ unsigned char ADPCM_Mixer(ULong *data, short **out, ULong frames,
         delta = (accum >> kRateShift) - (lastAccum >> kRateShift);
         if (delta >= 1) {
             lastAccum = accum;
-            vpdiff = left * valprev >> kLevelShift;
-            r = (right * valprev) >> kLevelShift;
+            vpdiff = valprev * left >> kLevelShift;
+            r = (valprev * right) >> kLevelShift;
             if (dst != 0) {
+#ifdef MAC1010 /* 1.0.10 spelling */
+                delta = kFracOne / delta;
+                for (stepsize = delta; stepsize <= kFracOne; stepsize += delta) {
+#else
                 inc = kFracOne / delta;
                 for (stepsize = inc; stepsize <= kFracOne; stepsize += inc) {
-                    s = (((vpdiff - lastL) * stepsize) >> 8) + lastL + dst[0];
+#endif
+                    s = (((vpdiff - lastL) * stepsize) >> 8) + lastL;
+                    s += dst[0];
                     if (s < -32768)
                         s = -32768;
                     else if (s > 32767)
                         s = 32767;
                     dst[0] = s;
-                    t = (((r - lastR) * stepsize) >> 8) + lastR + dst[1];
+                    t = (((r - lastR) * stepsize) >> 8) + lastR;
+                    t += dst[1];
                     if (t < -32768)
                         t = -32768;
                     else if (t > 32767)
@@ -229,8 +264,13 @@ unsigned char ADPCM_Mixer(ULong *data, short **out, ULong frames,
                         goto finished;
                 }
             } else {
+#ifdef MAC1010 /* 1.0.10 spelling */
+                delta = kFracOne / delta;
+                for (inc = delta; inc <= kFracOne; inc += delta) {
+#else
                 inc = kFracOne / delta;
                 for (stepsize = inc; stepsize <= kFracOne; stepsize += inc) {
+#endif
                     if (--frames == 0)
                         goto finished;
                 }

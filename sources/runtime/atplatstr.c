@@ -18,6 +18,19 @@ static unsigned char gStringUpperReady;               /* 0x00866338 table built 
 /* The engine already binds 0x004eb76d as `StringGetLength'; defined under that name. */
 /* StringGetLength. STATE: MATCH 100%, exe 12 / obj 12, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb76d
+#ifdef MAC1010
+unsigned long StringGetLength(const unsigned char *s)
+{
+    ULong n;
+
+    n = -1;
+    s--;
+    do {
+        n++;
+    } while (*++s != 0);
+    return n;
+}
+#else
 unsigned long StringGetLength(const unsigned char *s)
 {
     ULong n;
@@ -30,10 +43,28 @@ unsigned long StringGetLength(const unsigned char *s)
     } while (*s++ != 0);
     return n;
 }
+#endif
 
 /* StringDuplicate (strdup). STATE: MATCH 100%, exe 31 / obj 31, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004eb784
+#ifdef MAC1010
+char *StringDuplicate(const char *s)
+{
+    char *copy;
+    unsigned char *p;
+    const unsigned char *q;
+
+    copy = MemoryAllocate(StringGetLength(s) + 1);
+    if (copy != 0) {
+        p = copy - 1;
+        q = s - 1;
+        while ((*++p = *++q) != 0)
+            ;
+    }
+    return copy;
+}
+#else
 char *StringDuplicate(const char *s)
 {
     char *copy;
@@ -53,9 +84,23 @@ char *StringDuplicate(const char *s)
     }
     return copy;
 }
+#endif
 
 /* StringCopy. STATE: MATCH 100%, exe 19 / obj 19, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb7c2
+#ifdef MAC1010
+char *StringCopy(char *dst, const char *src)
+{
+    unsigned char *p;
+    const unsigned char *q;
+
+    p = dst - 1;
+    q = src - 1;
+    while ((*++p = *++q) != 0)
+        ;
+    return dst;
+}
+#else
 char *StringCopy(char *dst, const char *src)
 {
     char *start;
@@ -68,10 +113,26 @@ char *StringCopy(char *dst, const char *src)
     dst = start;
     return dst;
 }
+#endif
 
 /* StringCopySafe. STATE: MATCH 100%, exe 29 / obj 29, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb7e6
-char *StringCopySafe(char *dst, const char *src, long size)
+#ifdef MAC1010
+char *StringCopySafe(char *dst, const char *src, ULong size)
+{
+    unsigned char *p;
+    const unsigned char *q;
+
+    p = dst - 1;
+    q = src - 1;
+    while (--size != 0 && (*++p = *++q) != 0)
+        ;
+    if (size == 0)
+        p[1] = 0;
+    return dst;
+}
+#else
+char *StringCopySafe(char *dst, const char *src, ULong size)
 {
     char *start;
     long err;
@@ -85,11 +146,31 @@ char *StringCopySafe(char *dst, const char *src, long size)
     dst = start;
     return dst;
 }
+#endif
 
 /* Appends src to the string in dst, dst holding n bytes in all. The engine
  * binds 0x004eb81d as `StringAppendSafe'. */
 /* StringAppendSafe. STATE: MATCH 100%, exe 39 / obj 39, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb81d
+#ifdef MAC1010
+unsigned char *StringAppendSafe(unsigned char *dst, const unsigned char *src, ULong n)
+{
+    unsigned char *p;
+
+    p = dst - 1;
+    src--;
+    while (*++p != 0 && --n != 0)
+        ;
+    if (n != 0) {
+        p--;
+        while (--n != 0 && (*++p = *++src) != 0)
+            ;
+        if (n == 0)
+            p[1] = 0;
+    }
+    return dst;
+}
+#else
 unsigned char *StringAppendSafe(unsigned char *dst, const unsigned char *src, unsigned long n)
 {
     unsigned char *start;
@@ -109,9 +190,27 @@ unsigned char *StringAppendSafe(unsigned char *dst, const unsigned char *src, un
     dst = start;
     return dst;
 }
+#endif
 
 /* StringCompare. STATE: MATCH 100%, exe 26 / obj 26, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb866
+#ifdef MAC1010
+long StringCompare(const char *a, const char *b)
+{
+    ULong ca;
+    ULong cb;
+    const unsigned char *s1;
+    const unsigned char *s2;
+
+    s1 = a - 1;
+    s2 = b - 1;
+    while ((ca = *++s1) == (cb = *++s2)) {
+        if (ca == 0)
+            return 0;
+    }
+    return ca < cb ? (signed char)-1 : (signed char)1;
+}
+#else
 long StringCompare(const char *a, const char *b)
 {
     ULong ca;
@@ -129,10 +228,30 @@ long StringCompare(const char *a, const char *b)
     }
     return ca < cb ? (signed char)-1 : (signed char)1;
 }
+#endif
 
 /* StringCompareSafe (a strncmp answering -1, 0 or 1). STATE: MATCH 100%, exe 33 / obj 33,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb89c
+#ifdef MAC1010
+long StringCompareSafe(const char *a, const char *b, ULong n)
+{
+    ULong ca;
+    ULong cb;
+    const unsigned char *s1;
+    const unsigned char *s2;
+
+    s1 = a - 1;
+    s2 = b - 1;
+    while (n-- && (ca = *++s1) == (cb = *++s2)) {
+        if (ca == 0)
+            return 0;
+    }
+    if (n == -1)
+        return 0;
+    return ca < cb ? (signed char)-1 : (signed char)1;
+}
+#else
 long StringCompareSafe(const char *a, const char *b, ULong n)
 {
     const unsigned char *s1;
@@ -148,16 +267,43 @@ long StringCompareSafe(const char *a, const char *b, ULong n)
         if (ca == 0)
             return 0;
     }
-    if (n == (ULong)-1)
+    if (n == -1)
         return 0;
     return ca < cb ? (signed char)-1 : (signed char)1;
 }
+#endif
 
+#ifdef MAC1010
+static
+#endif
 char *gStringBlank = "";                         /* 0x005771bc the exhausted-token mark */
 
 /* StringTokenize (a strtok on one delimiter, its state in *next). STATE: MATCH 100%, exe 36 /
    obj 36, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb8e2
+#ifdef MAC1010
+char *StringTokenize(char *s, int delim, char **next)
+{
+    unsigned char c;
+    unsigned char d;
+    unsigned char *p;
+
+    d = (char)delim;
+    if (*next != 0)
+        s = *next;
+    *next = gStringBlank;
+    if (*s == 0)
+        return 0;
+    p = s - 1;
+    while ((c = *++p) != 0 && c != d)
+        ;
+    if (c != 0) {
+        *p = 0;
+        *next = p + 1;
+    }
+    return s;
+}
+#else
 char *StringTokenize(char *s, int delim, char **next)
 {
     char c;
@@ -182,10 +328,33 @@ char *StringTokenize(char *s, int delim, char **next)
     }
     return s;
 }
+#endif
 
 /* StringFindString (a strstr; an empty `sub' never matches). STATE: MATCH 100%, exe 33 /
    obj 33, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb92e
+#ifdef MAC1010
+char *StringFindString(const char *s, const char *sub)
+{
+    ULong first;
+    const unsigned char *p;
+    const unsigned char *q;
+
+    first = *(const unsigned char *)sub;
+    s--;
+    while (*(const unsigned char *)++s != 0) {
+        if (*(const unsigned char *)s == first) {
+            p = sub;
+            q = s;
+            while (*++p != 0 && *p == *++q)
+                ;
+            if (*p == 0)
+                return (char *)s;
+        }
+    }
+    return 0;
+}
+#else
 char *StringFindString(const char *s, const char *sub)
 {
     long err;
@@ -208,9 +377,28 @@ char *StringFindString(const char *s, const char *sub)
     }
     return 0;
 }
+#endif
 
 /* StringFindDelimiter. STATE: MATCH 100%, exe 20 / obj 20, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb96d
+#ifdef MAC1010
+char *StringFindDelimiter(const char *s, const char *set)
+{
+    const unsigned char *b;
+    const unsigned char *p;
+
+    s--;
+    b = set - 1;
+    while (*(const unsigned char *)++s != 0) {
+        p = b;
+        while (*++p != 0) {
+            if (*(const unsigned char *)s == *p)
+                return (char *)s;
+        }
+    }
+    return 0;
+}
+#else
 char *StringFindDelimiter(const char *s, const char *set)
 {
     long err;
@@ -226,6 +414,7 @@ char *StringFindDelimiter(const char *s, const char *set)
     }
     return 0;
 }
+#endif
 
 #define kTopDecimal 1000000000UL
 
@@ -248,11 +437,50 @@ char *StringFromNumber(char *out, ULong value)
             value = value % place;
             started = 1;
         }
-        place = place / 10;
+        place /= 10;
     }
     *out = 0;
     return start;
 }
+
+#ifdef MAC1010
+static char kHexUpper[17];
+
+ULong StringFromBytes(const void *data, ULong size, ULong offset, char *hex, char *ascii)
+{
+    const unsigned char *p;
+    ULong i, j;
+    char c;
+
+    if (hex != 0) {
+        *hex = 0;
+        p = (const unsigned char *)data + offset;
+        j = 0;
+        for (i = offset; i < offset + 16; i++, p++) {
+            hex[j++] = i < size ? kHexUpper[*p >> 4] : ':';
+            hex[j++] = i < size ? kHexUpper[*p & 0x0f] : ':';
+            if ((j + 1) % 9 == 0)
+                hex[j++] = ' ';
+            hex[j] = 0;
+        }
+    }
+    if (ascii != 0) {
+        *ascii = 0;
+        p = (const unsigned char *)data + offset;
+        for (j = 0; j < 16; j++, p++) {
+            c = ':';
+            if (offset + j < size) {
+                c = *p;
+                if (c < ' ' || c > '~')
+                    c = '*';
+            }
+            ascii[j] = c;
+            ascii[j + 1] = 0;
+        }
+    }
+    return offset + 16;
+}
+#endif
 
 /* StringToNumber (the leading decimal digits of a string). STATE: MATCH 100%, exe 20 / obj 20, byte-identical yes.
    OPEN: none */
@@ -265,11 +493,93 @@ ULong StringToNumber(const char *s)
     err = 0;
     value = 0;
     while (*s >= '0' && *s <= '9') {
-        value = value * 10 + (*s - '0');
+        value = value * 10 + (*(char *)s - '0');
         s++;
     }
     return value;
 }
+
+#ifdef MAC1010
+unsigned char *StringP2CCopy(unsigned char *dst, const unsigned char *src)
+{
+    long n;
+    unsigned char *p;
+
+    n = *src + 1;
+    p = dst - 1;
+    while (--n != 0)
+        *++p = *++src;
+    p[1] = 0;
+    return dst;
+}
+
+unsigned char *StringC2PCopy(unsigned char *dst, const char *src)
+{
+    unsigned char *p;
+    ULong n;
+    unsigned char c;
+
+    src--;
+    p = dst;
+    n = -1;
+    while (++n < 0xff && (c = *++src) != 0)
+        *++p = c;
+    *dst = n;
+    return dst;
+}
+
+unsigned char *StringP2C(unsigned char *s)
+{
+    long n;
+    unsigned char *p;
+
+    n = *s + 1;
+    p = s;
+    while (--n != 0) {
+        *p = p[1];
+        p++;
+    }
+    *p = 0;
+    return s;
+}
+
+char *StringC2P(char *s)
+{
+    long c;
+    char *p;
+    ULong n;
+    long next;
+
+    c = *s;
+    if (c == 0)
+        return s;
+    p = s + 1;
+    n = 0;
+    while (n++ < 0xfe && *(unsigned char *)p != 0) {
+        next = *(unsigned char *)p;
+        *p = c;
+        c = next;
+        p++;
+    }
+    *p = c;
+    *s = n;
+    return s;
+}
+
+unsigned char *StringPascalAppend(unsigned char *dst, const unsigned char *src)
+{
+    long n;
+    long room;
+
+    room = 0xff - dst[0];
+    n = room;
+    if (src[0] + dst[0] <= 0xff)
+        n = src[0];
+    MemoryCopy(dst + dst[0] + 1, src + 1, n);
+    dst[0] += n;
+    return dst;
+}
+#endif
 
 /* String2UpperCopySafe. STATE: MATCH 100%, exe 52 / obj 52, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eba1b
@@ -295,6 +605,15 @@ char *String2UpperCopySafe(char *dst, const char *src, ULong n)
         }
         gStringUpperReady = 1;
     }
+#ifdef MAC1010 /* 1.0.10 spelling */
+    start = dst - 1;
+    src--;
+    while (--n != 0 && (*++start = gStringUpperFold[(unsigned char)*++src]) != 0)
+        ;
+    if (n == 0)
+        *++start = 0;
+    return dst;
+#else
     start = dst;
     while (--n != 0 && (*dst++ = gStringUpperFold[(unsigned char)*src++]) != 0)
         ;
@@ -302,6 +621,7 @@ char *String2UpperCopySafe(char *dst, const char *src, ULong n)
         *dst = 0;
     dst = start;
     return dst;
+#endif
 }
 
 /* String2LowerCopySafe (the lower-casing strncpy, String2UpperCopySafe's twin). STATE: MATCH 100%, exe 52
@@ -325,10 +645,19 @@ char *String2LowerCopySafe(char *dst, const char *src, ULong n)
                 c = i + kFoldDelta;
             else
                 c = i;
-            gStringLowerFold[i] = (unsigned char)c;
+            gStringLowerFold[i] = c;
         }
         gStringLowerReady = 1;
     }
+#ifdef MAC1010 /* 1.0.10 spelling */
+    start = dst - 1;
+    src--;
+    while (--n != 0 && (*++start = gStringLowerFold[(unsigned char)*++src]) != 0)
+        ;
+    if (n == 0)
+        *++start = 0;
+    return dst;
+#else
     start = dst;
     while (--n != 0 && (*dst++ = gStringLowerFold[(unsigned char)*src++]) != 0)
         ;
@@ -336,6 +665,7 @@ char *String2LowerCopySafe(char *dst, const char *src, ULong n)
         *dst = 0;
     dst = start;
     return dst;
+#endif
 }
 
 /* String2Upper (upper-case a C string in place). STATE: MATCH 100%, byte-identical yes.
@@ -387,9 +717,20 @@ typedef long long LongLong;
 #define kScratchSize    256
 #define kPointerDigits  8
 
+/* 1.0.10 spells the field copy's text unsigned and unqualified, and holds the conversion character in a long */
+#ifdef MAC1010
+#define FmtChar unsigned char
+#define FMT_CONST
+#define FmtConv ULong
+#else
+#define FmtChar char
+#define FMT_CONST const
+#define FmtConv unsigned char
+#endif
+
 void _StringFormatNumber(char *buf, ULongLong value, ULong base, const char *digits,
                   ULong flags, ULong width, ULong precision);
-char *_StringFormatString(char *out, const char *src, ULong *size, ULong flags,
+char *_StringFormatString(FmtChar *out, FMT_CONST FmtChar *src, ULong *size, ULong flags,
                    ULong width, ULong precision);
 
 static char kHexUpper[] = "0123456789ABCDEF";
@@ -426,18 +767,16 @@ static char kSpace[] = " ";
 char *StringFormatVarg(char *out, ULong size, const char *format, va_list args)
 {
     const unsigned char *fmt;
-    long lengthMod;
+    ULong lengthMod;
     ULong precision;
     ULong width;
     char *outPtr;
     ULong flags;
-    unsigned char conv;
+    FmtConv conv;
     char buf[kScratchSize];
     LongLong sval;
     ULongLong uval;
     long i;
-    unsigned char c;
-    unsigned char m;
     const char *s;
     const unsigned char *p;
     void *ptr;
@@ -448,11 +787,9 @@ char *StringFormatVarg(char *out, ULong size, const char *format, va_list args)
     outPtr = out;
     fmt = (const unsigned char *)format;
     size = size - 1;
-    while (size != 0 && (c = *fmt) != 0) {
-        if (c != '%') {
-            *outPtr = c;
-            fmt = fmt + 1;
-            outPtr = outPtr + 1;
+    while (size != 0 && *fmt != 0) {
+        if (*fmt != '%') {
+            *outPtr++ = *fmt++;
             size = size - 1;
             continue;
         }
@@ -500,8 +837,7 @@ char *StringFormatVarg(char *out, ULong size, const char *format, va_list args)
         } else if (fmt[i] >= '0' && fmt[i] <= '9') {
             width = 0;
             while (fmt[i] >= '0' && fmt[i] <= '9') {
-                width = width * 10 + (fmt[i] - '0');
-                i = i + 1;
+                width = width * 10 + (fmt[i++] - '0');
             }
         }
         if (fmt[i] == '.') {
@@ -512,23 +848,19 @@ char *StringFormatVarg(char *out, ULong size, const char *format, va_list args)
             } else if (fmt[i] >= '0' && fmt[i] <= '9') {
                 precision = 0;
                 while (fmt[i] >= '0' && fmt[i] <= '9') {
-                    precision = precision * 10 + (fmt[i] - '0');
-                    i = i + 1;
+                    precision = precision * 10 + (fmt[i++] - '0');
                 }
             } else {
                 precision = 0;
             }
         }
 
-        m = fmt[i];
-        switch (m) {
+        switch (fmt[i]) {
         case 'h':
-            lengthMod = m;
-            i = i + 1;
+            lengthMod = fmt[i++];
             break;
         case 'q':
-            lengthMod = m;
-            i = i + 1;
+            lengthMod = fmt[i++];
             break;
         case 'L':
             lengthMod = 'q';
@@ -539,8 +871,7 @@ char *StringFormatVarg(char *out, ULong size, const char *format, va_list args)
                 lengthMod = 'q';
                 i = i + 2;
             } else {
-                lengthMod = m;
-                i = i + 1;
+                lengthMod = fmt[i++];
             }
             break;
         }
@@ -583,8 +914,12 @@ char *StringFormatVarg(char *out, ULong size, const char *format, va_list args)
             precision = width = kPointerDigits;
             ptr = va_arg(args, void *);
             uval = (ULong)ptr;
+#ifdef MAC1010 /* 1.0.10 spelling */
+            _StringFormatNumber(buf, uval, 16, kHexUpper, flags, width, precision);
+#else
             _StringFormatNumber(buf, uval, 16, kHexUpper, flags, kPointerDigits,
                          precision == kNoWidth ? 1 : precision);
+#endif
             outPtr = _StringFormatString(outPtr, buf, &size, flags, kNoWidth, kNoWidth);
             fmt = fmt + (i + 1);
             continue;
@@ -622,7 +957,7 @@ char *StringFormatVarg(char *out, ULong size, const char *format, va_list args)
             if ((flags & kFlagPascal) != 0) {
                 p = va_arg(args, const unsigned char *);
                 if (p == 0)
-                    p = (const unsigned char *)"\p<NULL>";
+                    p = "\p<NULL>";
                 for (k = 0; k < p[0]; k = k + 1)
                     buf[k] = p[k + 1];
                 buf[k] = 0;
@@ -668,35 +1003,54 @@ void _StringFormatNumber(char *buf, ULongLong value, ULong base, const char *dig
                   ULong flags, ULong width, ULong precision)
 {
     ULongLong v;
+#ifdef MAC1010 /* 1.0.10 spelling: base held in two 64-bit copies */
+    ULongLong scan;
+    ULongLong radix;
+#endif
     ULong n;
     long err;
 
     err = 0;
     StringGetLength((const unsigned char *)digits);
-    while (*buf != 0)
+    while (*(unsigned char *)buf != 0)
         buf++;
     n = 1;
     v = value;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    radix = base;
+    scan = base;
+    while ((LongLong)(v - scan) >= 0) {
+        n++;
+        v /= scan;
+    }
+#else
     while ((LongLong)(v - base) >= 0) {
         n++;
         v /= base;
     }
+#endif
     if (n < precision)
         n = precision;
     if (width == kNoWidth)
         width = n;
     else if (n > width)
         width = n;
-    if (precision == 0 && (value ? 1 : 0) == 0 && (flags & kFlagSpace) != 0) {
+    if (precision == 0 && !(value ? 1 : 0) && (flags & kFlagSpace) != 0) {
         buf[0] = ' ';
         buf[1] = 0;
         return;
     }
     buf[n] = 0;
     while (n--) {
+#ifdef MAC1010 /* 1.0.10 spelling */
+        v = value % radix;
+        buf[--width] = digits[v];
+        value /= radix;
+#else
         v = value % base;
-        buf[--width] = digits[(ULong)v];
+        buf[--width] = digits[v];
         value /= base;
+#endif
     }
     while (width != 0)
         buf[--width] = (flags & kFlagZero) != 0 ? '0' : ' ';
@@ -704,7 +1058,7 @@ void _StringFormatNumber(char *buf, ULongLong value, ULong base, const char *dig
 
 /* _StringFormatString. STATE: MATCH 100%, exe 87 / obj 87, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004ec35b
-char *_StringFormatString(char *out, const char *src, ULong *size, ULong flags,
+char *_StringFormatString(FmtChar *out, FMT_CONST FmtChar *src, ULong *size, ULong flags,
                    ULong width, ULong precision)
 {
     if (width == kNoWidth)

@@ -9,19 +9,41 @@
 #include "burger.h"
 #include "ambrosia.h"
 #include "burgerplat.h"
+#ifdef MAC1010
+#if TARGET_API_MAC_CARBON
+#define memset(p, c, n) BlockZero(p, n)
+#else
+#define memset(p, c, n) MemoryClear(p, n)
+#endif
+#define memmove(d, s, n) BlockMoveData(s, d, n)
+/* MSL's strcpy, which the exe has inline */
+static inline char *MslCopyString(char *dst, const char *src)
+{
+    unsigned char *q;
+    const unsigned char *p;
+
+    q = dst - 1;
+    p = src - 1;
+    while ((*++q = *++p) != 0)
+        ;
+    return dst;
+}
+#define CopyString MslCopyString
+#else
 #include "win32.h"
+#endif
 
 #define kStateClosing   7
 
 #define kEventReceived      12
 #define kStreamConnected    4
 
-void BufferedStreamCallback(NetSocket *s, void *ref, unsigned short event);
-void BufferedGatherData(NetSocket *s, NetFramed *w, NetChunk **cur, MutexList *queue, MutexList *out, unsigned char flush);
-ULong _BufferedFrameLength(NetFramed *w, NetChunk *chunk, unsigned char second);
-long _BufferedFindLine(const char *buf, ULong n);
-long _BufferedFindCRLF(const char *buf, ULong n);
-long _BufferedFindNUL(const char *buf, ULong n);
+AT_STATIC void BufferedStreamCallback(NetSocket *s, void *ref, unsigned short event);
+AT_STATIC void BufferedGatherData(NetSocket *s, NetFramed *w, NetChunk **cur, MutexList *queue, MutexList *out, unsigned char flush);
+AT_STATIC ULong _BufferedFrameLength(NetFramed *w, NetChunk *chunk, unsigned char second);
+AT_STATIC long _BufferedFindLine(const char *buf, ULong n);
+AT_STATIC long _BufferedFindCRLF(const char *buf, ULong n);
+AT_STATIC long _BufferedFindNUL(const char *buf, ULong n);
 long _DatagramConnResetControl(void *ref, unsigned char enable);
 ULong __stdcall _DatagramRecvThread(void *param);
 ULong __stdcall _DatagramSendThread(void *param);
@@ -54,7 +76,7 @@ ULong __stdcall _StreamSendThread(void *param);
 /* StreamCreateBuffered (a framed TCP socket: the frame state, then the stream with the frame proc).
    STATE: MATCH 100%, exe 100 / obj 100, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052961c
-NetStream *StreamCreateBuffered(void *unused, void *ref, NetProc proc, long frameMode,
+NetStream *StreamCreateBuffered(NetStackID stack, void *ref, NetProc proc, long frameMode,
                         MutexList *sentList, MutexList *freeList, MutexList *outList,
                         MutexList *outList2)
 {
@@ -89,7 +111,7 @@ NetStream *StreamCreateBuffered(void *unused, void *ref, NetProc proc, long fram
         err = e;
         goto done;
     }
-    s = StreamCreate(unused, w, BufferedStreamCallback, sentList, freeList, &w->queue, &w->queue2);
+    s = StreamCreate(stack, w, BufferedStreamCallback, sentList, freeList, &w->queue, &w->queue2);
     if (s == 0)
         err = kOutOfMemory;
 done:
@@ -121,7 +143,7 @@ unsigned short BufferedStreamStatus(NetSocket *s, unsigned short state)
     ref = 0;
     w = 0;
     EndpointGetCallback(s, &proc, &ref);
-    if (proc == BufferedStreamCallback && (w = (NetFramed *)ref) != 0 &&
+    if (proc == BufferedStreamCallback && (w = ref) != 0 &&
         AtomicMaskTest(&w->flags, kFlagNoBuffers))
         state = kStreamConnected;
     return state;
@@ -131,7 +153,7 @@ unsigned short BufferedStreamStatus(NetSocket *s, unsigned short state)
    and failed until the receive buffers are back, frees itself on dispose). STATE: MATCH 100%,
    exe 323 / obj 323, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00529768
-void BufferedStreamCallback(NetSocket *s, void *ref, unsigned short event)
+AT_STATIC void BufferedStreamCallback(NetSocket *s, void *ref, unsigned short event)
 {
     NetFramed *w = ref;
     long err;
@@ -234,20 +256,30 @@ static inline void MoveBytes(void *dst, const void *src, ULong n)
    ignores QueueIsEmpty's answer, as in the exe). STATE: MATCH 100%, exe 276 / obj 276,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00529a96
-void BufferedGatherData(NetSocket *s, NetFramed *w, NetChunk **cur, MutexList *queue,
+AT_STATIC void BufferedGatherData(NetSocket *s, NetFramed *w, NetChunk **cur, MutexList *queue,
                   MutexList *out, unsigned char flush)
 {
-    NetChunk *chunk;
     NetChunk *piece;
     ULong n;
     NetChunk *spare;
     ULong tail;
-    ULong event;
+    unsigned short event;
     unsigned char second;
     ULong len;
 
-    second = cur == &w->partial2 ? true : false;
+    second = AsByte(cur == &w->partial2);
+#ifdef MAC1010 /* 1.0.10 spelling */
+    {
+        long e;
+
+        e = kEventReceived2;
+        if (!second)
+            e = kEventReceived;
+        event = e;
+    }
+#else
     event = !second ? kEventReceived : kEventReceived2;
+#endif
     len = 0;
     if (*cur == 0)
         *cur = (NetChunk *)NetworkQueuePoll(queue);
@@ -273,16 +305,12 @@ void BufferedGatherData(NetSocket *s, NetFramed *w, NetChunk **cur, MutexList *q
             }
             if (piece != 0) {
                 AtomicMaskClear(&w->flags, kFlagNoBuffers);
-                piece->length = n;
-                MoveBytes(piece->data, (*cur)->data, piece->length);
+                MoveBytes(piece->data, (*cur)->data, piece->length = n);
                 QueueInsert(out, &piece->link);
                 FNOTIFY(w, s, event);
-                chunk = *cur;
-                chunk->length -= n;
-                MoveBytes((*cur)->data, (*cur)->data + n, chunk->length);
+                MoveBytes((*cur)->data, (*cur)->data + n, (*cur)->length -= n);
             } else if (spare != 0) {
-                tail = (*cur)->length;
-                tail -= n;
+                tail = (*cur)->length - n;
                 MoveBytes(spare->data + tail, spare->data, spare->length);
                 MoveBytes(spare->data, (*cur)->data + n, tail);
                 (*cur)->length = n;
@@ -327,11 +355,11 @@ void BufferedGatherData(NetSocket *s, NetFramed *w, NetChunk **cur, MutexList *q
    a length prefix is read in host order and counts itself). STATE: MATCH 100%, exe 78 /
    obj 78, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00529d86
-ULong _BufferedFrameLength(NetFramed *w, NetChunk *chunk, unsigned char second)
+AT_STATIC ULong _BufferedFrameLength(NetFramed *w, NetChunk *chunk, unsigned char second)
 {
     long err;
     ULong n;
-    long mode;
+    ULong mode;
 
     err = 0;
     n = chunk->size;
@@ -345,12 +373,12 @@ ULong _BufferedFrameLength(NetFramed *w, NetChunk *chunk, unsigned char second)
     } else if (mode == kFrameChunk) {
         n = chunk->size;
     } else if (mode == kFrameLength) {
-        if (chunk->length >= kLengthBytes) {
+        if (chunk->length < kLengthBytes) {
+            n = kLengthBytes;
+        } else {
             memmove(&n, chunk->data, kLengthBytes);
             if (n < kLengthBytes)
                 n = kLengthBytes;
-        } else {
-            n = kLengthBytes;
         }
     } else if (mode != 0) {
         n = ((FrameProc)mode)(w->unk0, w->ref, chunk, second);
@@ -363,7 +391,7 @@ ULong _BufferedFrameLength(NetFramed *w, NetChunk *chunk, unsigned char second)
 /* _BufferedFindLine (the offset past the first line end: CR LF, CR or LF; -1 for none).
    STATE: MATCH 100%, exe 28 / obj 28, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00529e55
-long _BufferedFindLine(const char *buf, ULong n)
+AT_STATIC long _BufferedFindLine(const char *buf, ULong n)
 {
     ULong i;
 
@@ -384,7 +412,7 @@ long _BufferedFindLine(const char *buf, ULong n)
 /* _BufferedFindCRLF (the offset past the first CR LF; a CR ending the buffer counts; -1 for
    none). STATE: MATCH 100%, exe 23 / obj 23, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00529e92
-long _BufferedFindCRLF(const char *buf, ULong n)
+AT_STATIC long _BufferedFindCRLF(const char *buf, ULong n)
 {
     ULong i;
 
@@ -402,7 +430,7 @@ long _BufferedFindCRLF(const char *buf, ULong n)
 /* _BufferedFindNUL (a NUL-framed message: always -1, the scan's index is discarded as in the
    exe). STATE: MATCH 100%, exe 10 / obj 10, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00529ec5
-long _BufferedFindNUL(const char *buf, ULong n)
+AT_STATIC long _BufferedFindNUL(const char *buf, ULong n)
 {
     ULong i;
 
@@ -418,7 +446,7 @@ long _BufferedFindNUL(const char *buf, ULong n)
    its own). STATE: MATCH 100%, exe 123 / obj 123, byte-identical yes. OPEN: the answer is
    read from the caller's own lookup record, not from the node that came back, as in the exe */
 // FUNCTION: EVNOVA 0x00529ede
-long SimpleResolve(void *unused, const char *host, NetAddress *out)
+long SimpleResolve(NetStackID stack, const char *host, NetAddress *out)
 {
     NetLookup lookup;
     MutexList doneList;
@@ -441,7 +469,7 @@ long SimpleResolve(void *unused, const char *host, NetAddress *out)
         err = e;
         goto done;
     }
-    r = ResolverCreate(unused, 0, 0, &doneList, &freeList);
+    r = ResolverCreate(stack, 0, 0, &doneList, &freeList);
     if (r == 0) {
         err = kOutOfMemory;
         goto done;
@@ -485,10 +513,10 @@ long SimpleSend(NetSocket *s, const NetAddress *to, void **h)
     NetProc proc;
     void *ref;
     ULong size;
-    ULong total;
     ULong n;
     ULong len;
     long err;
+    ULong total;
     unsigned short kind;
 
     err = 0;
@@ -520,9 +548,7 @@ long SimpleSend(NetSocket *s, const NetAddress *to, void **h)
             }
         }
         packet = (NetPacket *)node;
-        if (size >= packet->capacity)
-            size = packet->capacity;
-        packet->length = size;
+        packet->length = size < packet->capacity ? size : packet->capacity;
         MoveBytes(packet->data, *h, packet->length);
         AddressDuplicate(&packet->from, to);
         err = DatagramSend(s, packet);
@@ -532,7 +558,7 @@ long SimpleSend(NetSocket *s, const NetAddress *to, void **h)
             err = e;
         goto done;
     }
-    StreamGetQueues((NetStream *)s, 0, &freeList, 0, 0);
+    StreamGetQueues(s, 0, &freeList, 0, 0);
     for (total = 0; total < size; total += n) {
         node = (NetChunk *)NetworkQueuePoll(freeList);
         if (node == 0) {
@@ -557,9 +583,7 @@ long SimpleSend(NetSocket *s, const NetAddress *to, void **h)
         list = list->next;
         memset(chunk, 0, kNodeBytes);
         len = size - total;
-        if (len >= chunk->size)
-            len = chunk->size;
-        n = chunk->length = len;
+        n = chunk->length = len < chunk->size ? len : chunk->size;
         count = chunk->length;
         from = (char *)*h + total;
         if (count != 0)
@@ -631,6 +655,7 @@ long _DatagramConnResetControl(void *ref, unsigned char enable);
    socket is returned even when a step failed). STATE: MATCH 100%, exe 118 / obj 118,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052a2ae
+#ifndef MAC1010
 NetSocket *DatagramCreate(void *unused, void *ref, NetProc proc, MutexList *sentList,
                         MutexList *freeList, MutexList *recvList, MutexList *recvList2)
 {
@@ -694,10 +719,12 @@ NetSocket *DatagramCreate(void *unused, void *ref, NetProc proc, MutexList *sent
 done:
     return s;
 }
+#endif
 
 /* DatagramTickle (receive buffers were given back: wake the receiver if it waited). STATE:
    MATCH 100%, exe 31 / obj 31, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052a421
+#ifndef MAC1010
 void DatagramTickle(NetSocket *s)
 {
     long state;
@@ -713,16 +740,18 @@ void DatagramTickle(NetSocket *s)
         _PlatformResumeThread(s->thread2);
     }
 }
+#endif
 
 /* DatagramDispose (dispose of a socket: close it, stop its threads, return its packets).
    STATE: MATCH 100%, exe 87 / obj 87, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052a474
+#ifndef MAC1010
 void DatagramDispose(void *ref)
 {
     NetSocket *s;
     long err;
 
-    s = (NetSocket *)ref;
+    s = ref;
     err = 0;
     DatagramClose(ref, 0);
     NetworkMakeCallback(s->proc, s->ref, s, kEventDisposed);
@@ -744,10 +773,12 @@ void DatagramDispose(void *ref)
     _EndpointUnregister(s, kListDatagram);
     MemoryDeallocate(s);
 }
+#endif
 
 /* DatagramControl (a UDP socket option: report resets, forget the last reset, the TTL).
    STATE: MATCH 100%, exe 86 / obj 86, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052a570
+#ifndef MAC1010
 long DatagramControl(void *ref, void *out, ULong option, ULong value)
 {
     NetSocket *s;
@@ -756,7 +787,7 @@ long DatagramControl(void *ref, void *out, ULong option, ULong value)
     int length;
     long err, e;
 
-    s = (NetSocket *)ref;
+    s = ref;
     err = 0;
     switch (option) {
     case kOptionReportReset:
@@ -768,7 +799,7 @@ long DatagramControl(void *ref, void *out, ULong option, ULong value)
         }
         break;
     case kOptionNoAddress:
-        address = (NetAddress *)out;
+        address = out;
         AddressComposeEmpty(address);
         break;
     case kOptionTtl:
@@ -791,11 +822,13 @@ long DatagramControl(void *ref, void *out, ULong option, ULong value)
     }
     return err;
 }
+#endif
 
 /* DatagramOpen (open a UDP socket: create, SO_REUSEADDR, bind to an address or any, the
    reset option, the local address; then wake the receiver). STATE: MATCH 100%, exe 136 /
    obj 136, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052a65d
+#ifndef MAC1010
 long DatagramOpen(void *ref, NetAddress *address)
 {
     NetSocket *s;
@@ -804,7 +837,7 @@ long DatagramOpen(void *ref, NetAddress *address)
     int on;
     long err, e;
 
-    s = (NetSocket *)ref;
+    s = ref;
     err = 0;
     if ((s->socket = socket(AF_INET, SOCK_DGRAM, kIpprotoUdp)) < 0) {
         err = _EndpointGetError(ref);
@@ -852,11 +885,13 @@ done:
         DatagramClose(ref, 0);
     return err;
 }
+#endif
 
 /* DatagramSend (queue a packet to send and wake the sender; a closed socket hands it
    straight back as sent). STATE: MATCH 100%, exe 52 / obj 52, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0052a7f3
+#ifndef MAC1010
 long DatagramSend(void *ref, NetPacket *packet)
 {
     char token[16];
@@ -864,7 +899,7 @@ long DatagramSend(void *ref, NetPacket *packet)
     long err;
     long state;
 
-    s = (NetSocket *)ref;
+    s = ref;
     err = 0;
     state = s->state;
     if (state == 0) {
@@ -884,17 +919,19 @@ long DatagramSend(void *ref, NetPacket *packet)
     }
     return err;
 }
+#endif
 
 /* DatagramClose (close a socket). STATE: MATCH 100%, exe 40 / obj 40, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0052a87e
+#ifndef MAC1010
 void DatagramClose(void *ref, long unused)
 {
     NetSocket *s;
     long err;
     long state;
 
-    s = (NetSocket *)ref;
+    s = ref;
     err = 0;
     SystemCheckCallback();
     if (s->socket >= 0) {
@@ -911,16 +948,18 @@ void DatagramClose(void *ref, long unused)
     s->state = 0;
     NetworkMakeCallback(s->proc, s->ref, s, kEventClosed);
 }
+#endif
 
 /* DatagramGetAddress (a UDP socket's local address; cleared when it is not open). STATE: MATCH
    100%, exe 22 / obj 22, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052a8f2
+#ifndef MAC1010
 long DatagramGetAddress(void *ref, NetAddress *out)
 {
     NetSocket *s;
     long err;
 
-    s = (NetSocket *)ref;
+    s = ref;
     err = 0;
     switch (s->state) {
     case 0:
@@ -933,18 +972,20 @@ long DatagramGetAddress(void *ref, NetAddress *out)
         AddressDuplicate(out, &s->local);
     return err;
 }
+#endif
 
 /* _DatagramConnResetControl (SIO_UDP_CONNRESET through WSAIoctl, looked up once; on Windows 9x only
    turning it off succeeds; the input buffer is the one-byte argument with a length of 1).
    STATE: MATCH 100%, exe 51 / obj 51, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052a926
+#ifndef MAC1010
 long _DatagramConnResetControl(void *ref, unsigned char enable)
 {
     NetSocket *s;
     ULong returned;
     long err;
 
-    s = (NetSocket *)ref;
+    s = ref;
     err = 0;
     returned = 0;
     if ((GetVersion() & kWin32sOr9x) != 0) {
@@ -964,11 +1005,13 @@ long _DatagramConnResetControl(void *ref, unsigned char enable)
 done:
     return err;
 }
+#endif
 
 /* _DatagramReceive (receive one datagram into a free packet: to recvList when it has bytes,
    back to freeList when empty; a connection reset records the sender once). STATE: MATCH
    100%, exe 132 / obj 132, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052a9bd
+#ifndef MAC1010
 long _DatagramReceive(void *ref)
 {
     NetSocket *s;
@@ -977,7 +1020,7 @@ long _DatagramReceive(void *ref)
     int fromLength;
     long got;
 
-    s = (NetSocket *)ref;
+    s = ref;
     err = 0;
     packet = 0;
     packet = (NetPacket *)NetworkQueuePoll(s->freeList);
@@ -1022,10 +1065,12 @@ done:
         QueueInsert(s->freeList, &packet->link);
     return err;
 }
+#endif
 
 /* _DatagramRecvThread (the receiver thread: receive while open and buffered, else suspend itself).
    STATE: MATCH 100%, exe 31 / obj 31, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052ab29
+#ifndef MAC1010
 ULong __stdcall _DatagramRecvThread(void *param)
 {
     NetSocket *s;
@@ -1046,11 +1091,13 @@ ULong __stdcall _DatagramRecvThread(void *param)
     s->done2 = 1;
     return 0;
 }
+#endif
 
 /* _DatagramSendThread (the sender thread: send the queue while open, hand each packet back as
    sent; a closed socket hands back the rest unsent). STATE: MATCH 100%, exe 86 / obj 86,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052ab7c
+#ifndef MAC1010
 ULong __stdcall _DatagramSendThread(void *param)
 {
     char token[16];
@@ -1086,6 +1133,7 @@ ULong __stdcall _DatagramSendThread(void *param)
     s->done = 1;
     return 0;
 }
+#endif
 
 /* The TCP stream socket (NetStream, 0x378 bytes). States: 0 closed, 1 listening, 2 a
    connection waiting to be taken, 3 connecting, 4 connected, 5 sending shut down, 6 the
@@ -1134,6 +1182,7 @@ long _StreamReceive(void *ref);
    is returned even when a step failed). STATE: MATCH 100%, exe 129 / obj 129, byte-identical
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052ac84
+#ifndef MAC1010
 NetStream *StreamCreate(void *unused, void *ref, NetProc proc, MutexList *sentList,
                         MutexList *freeList, MutexList *recvList, MutexList *recvList2)
 {
@@ -1201,10 +1250,12 @@ NetStream *StreamCreate(void *unused, void *ref, NetProc proc, MutexList *sentLi
 done:
     return s;
 }
+#endif
 
 /* StreamTickle (receive buffers were given back: wake the receiver if it waited). STATE:
    MATCH 100%, exe 31 / obj 31, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052ae20
+#ifndef MAC1010
 void StreamTickle(NetStream *s)
 {
     long state;
@@ -1220,10 +1271,12 @@ void StreamTickle(NetStream *s)
         _PlatformResumeThread(s->thread2);
     }
 }
+#endif
 
 /* StreamDispose (dispose of a TCP socket). STATE: MATCH 100%, exe 96 / obj 96,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052ae7f
+#ifndef MAC1010
 void StreamDispose(NetSocket *sock)
 {
     NetStream *s;
@@ -1253,19 +1306,21 @@ void StreamDispose(NetSocket *sock)
     _EndpointUnregister((NetSocket *)s, kListStream);
     MemoryDeallocate(s);
 }
+#endif
 
 /* StreamAcceptServer (take a listener's waiting connection: onto the listener itself, onto
    another socket, or, with none, refuse it; refusing leaves the listener's accepted socket 0,
    not -1). STATE: MATCH 100%, exe 115 / obj 115, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052af98
+#ifndef MAC1010
 long StreamAcceptServer(void *ref, void *other)
 {
     NetStream *listener;
     NetStream *s;
     long err;
 
-    listener = (NetStream *)ref;
-    s = (NetStream *)other;
+    listener = ref;
+    s = other;
     err = 0;
     if (listener == s) {
         if (closesocket(listener->socket) < 0)
@@ -1307,11 +1362,13 @@ refuse:
 done:
     return err;
 }
+#endif
 
 /* StreamOpenClient (connect: bind to local or any, then let the sender thread connect; with a
    timeout, wait for it). STATE: MATCH 100%, exe 108 / obj 108, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0052b104
+#ifndef MAC1010
 long StreamOpenClient(void *ref, NetAddress *local, const NetAddress *remote, ULong timeout)
 {
     NetStream *s;
@@ -1319,7 +1376,7 @@ long StreamOpenClient(void *ref, NetAddress *local, const NetAddress *remote, UL
     long wait;
     long err, e;
 
-    s = (NetStream *)ref;
+    s = ref;
     err = 0;
     if ((s->socket = socket(AF_INET, kSockStream, kIpprotoTcp)) < 0) {
         err = _EndpointGetError(ref);
@@ -1366,11 +1423,13 @@ long StreamOpenClient(void *ref, NetAddress *local, const NetAddress *remote, UL
 done:
     return err;
 }
+#endif
 
 /* StreamSend (queue bytes to send and wake the sender; a closed or failed socket hands the
    chunk straight back). STATE: MATCH 100%, exe 54 / obj 54, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0052b25b
+#ifndef MAC1010
 long StreamSend(void *ref, NetChunk *chunk)
 {
     char token[16];
@@ -1378,7 +1437,7 @@ long StreamSend(void *ref, NetChunk *chunk)
     long err;
     long state;
 
-    s = (NetStream *)ref;
+    s = ref;
     err = 0;
     state = s->state;
     if (state == 0 || state == kStreamFailed) {
@@ -1398,11 +1457,13 @@ long StreamSend(void *ref, NetChunk *chunk)
     }
     return err;
 }
+#endif
 
 /* StreamClose (close a TCP socket: SO_LINGER on, 5 s when graceful else 0; a waiting
    accepted socket is closed too). STATE: MATCH 100%, exe 78 / obj 78, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0052b2e8
+#ifndef MAC1010
 void StreamClose(NetSocket *sock, unsigned char graceful)
 {
     Linger linger;
@@ -1439,17 +1500,19 @@ void StreamClose(NetSocket *sock, unsigned char graceful)
     s->state = 0;
     SNOTIFY(s, kEventClosed);
 }
+#endif
 
 /* StreamGetAddress (a TCP socket's local and remote addresses; cleared when closed). STATE:
    MATCH 100%, exe 40 / obj 40, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052b3d9
+#ifndef MAC1010
 long StreamGetAddress(void *ref, NetAddress *local, NetAddress *remote)
 {
     NetStream *s;
     long err;
     long state;
 
-    s = (NetStream *)ref;
+    s = ref;
     err = 0;
     state = s->state;
     if (state == 0)
@@ -1465,10 +1528,12 @@ long StreamGetAddress(void *ref, NetAddress *local, NetAddress *remote)
     }
     return err;
 }
+#endif
 
 /* _StreamConnected (the connection is up: read the local address, wake everyone). STATE: MATCH 100%, exe 65 / obj 65, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0052b434
+#ifndef MAC1010
 long _StreamConnected(NetSocket *sock)
 {
     NetStream *s;
@@ -1503,10 +1568,12 @@ long _StreamConnected(NetSocket *sock)
     }
     return err;
 }
+#endif
 
 /* _StreamHasPending (a listener has a connection waiting). STATE: MATCH 100%, exe 18 / obj 18,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052b4ef
+#ifndef MAC1010
 long _StreamHasPending(NetStream *s)
 {
     long err;
@@ -1522,10 +1589,12 @@ long _StreamHasPending(NetStream *s)
     }
     return err;
 }
+#endif
 
 /* _StreamPeerClosed (the peer closed, the connection failed, or it was aborted: the state under
    the lock, then the event). STATE: MATCH 100%, exe 54 / obj 54, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052b520
+#ifndef MAC1010
 void _StreamPeerClosed(NetStream *s, unsigned short event)
 {
     char token[16];
@@ -1553,10 +1622,12 @@ void _StreamPeerClosed(NetStream *s, unsigned short event)
         break;
     }
 }
+#endif
 
 /* _StreamReceive (receive into one free chunk). STATE: MATCH 100%, exe 112 / obj 112,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052b5ae
+#ifndef MAC1010
 long _StreamReceive(void *ref)
 {
     NetStream *s;
@@ -1566,7 +1637,7 @@ long _StreamReceive(void *ref)
     unsigned char failed;
     long code;
 
-    s = (NetStream *)ref;
+    s = ref;
     err = 0;
     chunk = 0;
     chunk = (NetChunk *)NetworkQueuePoll(s->freeList);
@@ -1616,10 +1687,12 @@ done:
         QueueInsert(s->freeList, &chunk->link);
     return err;
 }
+#endif
 
 /* _StreamRecvThread (the receiver thread: accept while listening, receive while connected).
    STATE: MATCH 100%, exe 86 / obj 86, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0052b6c0
+#ifndef MAC1010
 ULong __stdcall _StreamRecvThread(void *param)
 {
     char token[16];
@@ -1670,12 +1743,14 @@ ULong __stdcall _StreamRecvThread(void *param)
     s->done2 = 1;
     return 0;
 }
+#endif
 
 /* _StreamSendThread (the sender thread: connect, then send the queue while connected or while
    the peer has only closed its side; shut sending down on request; a refused connect drops
    the socket handle without closing it). STATE: MATCH 100%, exe 151 / obj 151,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052b7c1
+#ifndef MAC1010
 ULong __stdcall _StreamSendThread(void *param)
 {
     char token[16];
@@ -1740,4 +1815,5 @@ ULong __stdcall _StreamSendThread(void *param)
     s->done = 1;
     return 0;
 }
+#endif
 

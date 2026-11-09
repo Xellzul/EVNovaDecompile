@@ -25,40 +25,59 @@ enum { kShipyardDoneButton, kShipyardBuyButton, kShipyardInfoButton, kShipyardUp
        kShipyardDownButton };
 enum { kOutfitDoneButton, kOutfitBuyButton, kOutfitSellButton, kOutfitUpButton,
        kOutfitDownButton };
+#ifdef MAC1010 /* 1.0.10 spelling: plain numbers at the sites */
+#define kMapDoneButton 0
+#define kMapZoomOutButton 1
+#define kMapZoomInButton 2
+#define kMapClearRouteButton 3
+#define kMapInfluenceButton 4
+#define kMapSearchButton 5
+#define kShipyardDoneButton 0
+#define kShipyardBuyButton 1
+#define kShipyardInfoButton 2
+#define kShipyardUpButton 3
+#define kShipyardDownButton 4
+#define kOutfitDoneButton 0
+#define kOutfitBuyButton 1
+#define kOutfitSellButton 2
+#define kOutfitUpButton 3
+#define kOutfitDownButton 4
+#endif
 
 /* TrackMapButtons. STATE: MATCH 100%, exe 247 / obj 247, byte-identical.
    The GetDialogItem sites index `box' with the slot enum (-enum min), which keeps their
    addresses out of the CSE class the PtInRect sites share. OPEN: none. see notes */
 // FUNCTION: EVNOVA 0x0049eef0
+// MAC: _TrackMapButtons i386 0x0002aafa ppc 0x0002f048
 short TrackMapButtons(Point where)
 {
-    Rect box[6];
     short drawnButton;
-    short overButton;
-    Point mouse;
-    void *item;
-    short itemType;
     short downButton;
+    short overButton;
+    Rect box[6];
+    short itemType;
+    Handle item;
+    Point mouse;
 
-    RGBForeColor(blackColor);
-    GetDialogItem(mapDialog, 1, &itemType, &item, &box[kMapDoneButton]);
-    GetDialogItem(mapDialog, 4, &itemType, &item, &box[kMapZoomOutButton]);
-    GetDialogItem(mapDialog, 5, &itemType, &item, &box[kMapZoomInButton]);
-    GetDialogItem(mapDialog, 8, &itemType, &item, &box[kMapClearRouteButton]);
-    GetDialogItem(mapDialog, 9, &itemType, &item, &box[kMapInfluenceButton]);
-    GetDialogItem(mapDialog, 0xa, &itemType, &item, &box[kMapSearchButton]);
+    ForeColor(blackColor);
+    GetDialogItem(mapDialog, 1, &itemType, (void **)&item, &box[kMapDoneButton]);
+    GetDialogItem(mapDialog, 4, &itemType, (void **)&item, &box[kMapZoomOutButton]);
+    GetDialogItem(mapDialog, 5, &itemType, (void **)&item, &box[kMapZoomInButton]);
+    GetDialogItem(mapDialog, 8, &itemType, (void **)&item, &box[kMapClearRouteButton]);
+    GetDialogItem(mapDialog, 9, &itemType, (void **)&item, &box[kMapInfluenceButton]);
+    GetDialogItem(mapDialog, 0xa, &itemType, (void **)&item, &box[kMapSearchButton]);
     drawnButton = -1;
-    if (PtInRect(where.h, where.v, &box[0]) != 0)
+    if (PtInRectPoint(where, &box[0]) != 0)
         drawnButton = 0;
-    if (PtInRect(where.h, where.v, &box[1]) != 0 && canZoomOut != 0)
+    if (PtInRectPoint(where, &box[1]) != 0 && canZoomOut != 0)
         drawnButton = 1;
-    if (PtInRect(where.h, where.v, &box[2]) != 0 && canZoomIn != 0)
+    if (PtInRectPoint(where, &box[2]) != 0 && canZoomIn != 0)
         drawnButton = 2;
-    if (PtInRect(where.h, where.v, &box[3]) != 0 && showClearRouteButton != 0)
+    if (PtInRectPoint(where, &box[3]) != 0 && showClearRouteButton != 0)
         drawnButton = 3;
-    if (PtInRect(where.h, where.v, &box[4]) != 0)
+    if (PtInRectPoint(where, &box[4]) != 0)
         drawnButton = 4;
-    if (PtInRect(where.h, where.v, &box[5]) != 0)
+    if (PtInRectPoint(where, &box[5]) != 0)
         drawnButton = 5;
     downButton = drawnButton;
     if (drawnButton != -1) {
@@ -68,17 +87,17 @@ short TrackMapButtons(Point where)
             BusyIdle();
             GetMouse(&mouse);
             overButton = -1;
-            if (PtInRect(mouse.h, mouse.v, &box[0]) != 0)
+            if (PtInRectPoint(mouse, &box[0]) != 0)
                 overButton = 0;
-            if (PtInRect(mouse.h, mouse.v, &box[1]) != 0 && canZoomOut != 0)
+            if (PtInRectPoint(mouse, &box[1]) != 0 && canZoomOut != 0)
                 overButton = 1;
-            if (PtInRect(mouse.h, mouse.v, &box[2]) != 0 && canZoomIn != 0)
+            if (PtInRectPoint(mouse, &box[2]) != 0 && canZoomIn != 0)
                 overButton = 2;
-            if (PtInRect(mouse.h, mouse.v, &box[3]) != 0 && showClearRouteButton != 0)
+            if (PtInRectPoint(mouse, &box[3]) != 0 && showClearRouteButton != 0)
                 overButton = 3;
-            if (PtInRect(mouse.h, mouse.v, &box[4]) != 0)
+            if (PtInRectPoint(mouse, &box[4]) != 0)
                 overButton = 4;
-            if (PtInRect(mouse.h, mouse.v, &box[5]) != 0)
+            if (PtInRectPoint(mouse, &box[5]) != 0)
                 overButton = 5;
             if (overButton != drawnButton && overButton != downButton)
                 overButton = -1;
@@ -94,22 +113,22 @@ short TrackMapButtons(Point where)
 
 /* DrawMapButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049f1f0
+// MAC: _DrawMapButtons i386 0x0002a86e ppc 0x0002ee28
 void DrawMapButtons(short hilited)
 {
-    int i;
-    Rect *walk;
+    short i;
     Rect box[6];
-    char enabled[6];
-    void *item;
+    Boolean enabled[6];
+    Handle item;
     short itemType;
 
-    RGBForeColor(blackColor);
-    GetDialogItem(mapDialog, 1, &itemType, &item, &box[0]);
-    GetDialogItem(mapDialog, 4, &itemType, &item, &box[1]);
-    GetDialogItem(mapDialog, 5, &itemType, &item, &box[2]);
-    GetDialogItem(mapDialog, 8, &itemType, &item, &box[3]);
-    GetDialogItem(mapDialog, 9, &itemType, &item, &box[4]);
-    GetDialogItem(mapDialog, 0xa, &itemType, &item, &box[5]);
+    ForeColor(blackColor);
+    GetDialogItem(mapDialog, 1, &itemType, (void **)&item, &box[0]);
+    GetDialogItem(mapDialog, 4, &itemType, (void **)&item, &box[1]);
+    GetDialogItem(mapDialog, 5, &itemType, (void **)&item, &box[2]);
+    GetDialogItem(mapDialog, 8, &itemType, (void **)&item, &box[3]);
+    GetDialogItem(mapDialog, 9, &itemType, (void **)&item, &box[4]);
+    GetDialogItem(mapDialog, 0xa, &itemType, (void **)&item, &box[5]);
     enabled[0] = 1;
     enabled[1] = canZoomOut;
     enabled[2] = canZoomIn;
@@ -120,26 +139,23 @@ void DrawMapButtons(short hilited)
     mapButtonTable[1] = 0x10;
     mapButtonTable[2] = 0x11;
     mapButtonTable[3] = 0x30;
-    if (gShowInfluence != 0)
+    if (settings.showMapBorders != 0)
         mapButtonTable[4] = 0x38;
     else
         mapButtonTable[4] = 0x37;
     mapButtonTable[5] = 0x3b;
-    i = 0;
-    walk = box;
-    do {
-        if (enabled[(short)i] == 0)
-            DrawButton(GetDialogPort(mapDialog), walk,
-                       buttonLabel[mapButtonTable[(short)i]], -1, 0, 0);
-        else if ((short)i == hilited)
-            DrawButton(GetDialogPort(mapDialog), walk,
-                       buttonLabel[mapButtonTable[(short)i]], 0, 1, 0);
-        else
-            DrawButton(GetDialogPort(mapDialog), walk,
-                       buttonLabel[mapButtonTable[(short)i]], 0, 0, 0);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i < 6);
+    for (i = 0; i < 6; i++) {
+        if (enabled[i] != 0) {
+            if (i == hilited)
+                DrawButton(GetDialogPort(mapDialog), &box[i],
+                           buttonLabel[mapButtonTable[i]], 0, 1, 0);
+            else
+                DrawButton(GetDialogPort(mapDialog), &box[i],
+                           buttonLabel[mapButtonTable[i]], 0, 0, 0);
+        } else
+            DrawButton(GetDialogPort(mapDialog), &box[i],
+                       buttonLabel[mapButtonTable[i]], -1, 0, 0);
+    }
 }
 
 /* TrackShipyardButtons. STATE: MATCH 100%, exe 245 / obj 245, byte-identical.
@@ -147,49 +163,41 @@ void DrawMapButtons(short hilited)
    siblings the buy button's Rect is taken once into `buyBox' ahead of the first pass.
    OPEN: none. see notes */
 // FUNCTION: EVNOVA 0x0049f3f0
+// MAC: _TrackShipyardButtons i386 0x0002a54e ppc 0x0002eb08
 short TrackShipyardButtons(Point where)
 {
-    Rect *buyBox;
     short drawnButton;
+    short downButton;
     short overButton;
-    int downV;
-    int downH;
-    int i;
+    short i;
     short count;
     Rect box[5];
-    Point mouse;
-    void *item;
     short itemType;
-    short downButton;
+    Handle item;
+    Point mouse;
 
-    RGBForeColor(blackColor);
-    GetDialogItem(shipyardDialog, 7, &itemType, &item, &box[kShipyardDoneButton]);
-    GetDialogItem(shipyardDialog, 1, &itemType, &item, &box[kShipyardBuyButton]);
-    GetDialogItem(shipyardDialog, 0xa, &itemType, &item, &box[kShipyardInfoButton]);
-    GetDialogItem(shipyardDialog, 0xc, &itemType, &item, &box[kShipyardUpButton]);
-    GetDialogItem(shipyardDialog, 0xd, &itemType, &item, &box[kShipyardDownButton]);
-    buyBox = &box[1];
+    ForeColor(blackColor);
+    GetDialogItem(shipyardDialog, 7, &itemType, (void **)&item, &box[kShipyardDoneButton]);
+    GetDialogItem(shipyardDialog, 1, &itemType, (void **)&item, &box[kShipyardBuyButton]);
+    GetDialogItem(shipyardDialog, 0xa, &itemType, (void **)&item, &box[kShipyardInfoButton]);
+    GetDialogItem(shipyardDialog, 0xc, &itemType, (void **)&item, &box[kShipyardUpButton]);
+    GetDialogItem(shipyardDialog, 0xd, &itemType, (void **)&item, &box[kShipyardDownButton]);
     drawnButton = -1;
-    downV = where.v;
-    downH = where.h;
-    if (PtInRect(downH, downV, buyBox) != 0 && canBuy != 0)
+    if (PtInRectPoint(where, &box[1]) != 0 && canBuy != 0)
         drawnButton = 1;
-    if (PtInRect(downH, downV, &box[0]) != 0)
+    if (PtInRectPoint(where, &box[0]) != 0)
         drawnButton = 0;
-    if (PtInRect(downH, downV, &box[2]) != 0 && gSelectedShip != -1)
+    if (PtInRectPoint(where, &box[2]) != 0 && selShipyardItem != -1)
         drawnButton = 2;
-    if (PtInRect(downH, downV, &box[3]) != 0
-            && gShipGridScroll >= kGridScrollStep)
+    if (PtInRectPoint(where, &box[3]) != 0
+            && shipyardScroll >= kGridScrollStep)
         drawnButton = 3;
-    if (PtInRect(downH, downV, &box[4]) != 0) {
+    if (PtInRectPoint(where, &box[4]) != 0) {
         count = 0;
-        i = 0;
-        do {
-            if (dockedPortShipTypes[(short)i] != -1)
+        for (i = 0; i < kMaxShipTypes; i++)
+            if (dockedPortShipTypes[i] != -1)
                 count++;
-            i = i + 1;
-        } while ((short)i < kMaxShipTypes);
-        if (gShipGridScroll < count - kGridPageCells)
+        if (shipyardScroll < count - kGridPageCells)
             drawnButton = 4;
     }
     downButton = drawnButton;
@@ -200,24 +208,21 @@ short TrackShipyardButtons(Point where)
             BusyIdle();
             GetMouse(&mouse);
             overButton = -1;
-            if (PtInRect(mouse.h, mouse.v, buyBox) != 0 && canBuy != 0)
+            if (PtInRectPoint(mouse, &box[1]) != 0 && canBuy != 0)
                 overButton = 1;
-            if (PtInRect(mouse.h, mouse.v, &box[0]) != 0)
+            if (PtInRectPoint(mouse, &box[0]) != 0)
                 overButton = 0;
-            if (PtInRect(mouse.h, mouse.v, &box[2]) != 0 && gSelectedShip != -1)
+            if (PtInRectPoint(mouse, &box[2]) != 0 && selShipyardItem != -1)
                 overButton = 2;
-            if (PtInRect(mouse.h, mouse.v, &box[3]) != 0
-                    && gShipGridScroll >= kGridScrollStep)
+            if (PtInRectPoint(mouse, &box[3]) != 0
+                    && shipyardScroll >= kGridScrollStep)
                 overButton = 3;
-            if (PtInRect(mouse.h, mouse.v, &box[4]) != 0) {
+            if (PtInRectPoint(mouse, &box[4]) != 0) {
                 count = 0;
-                i = 0;
-                do {
-                    if (dockedPortShipTypes[(short)i] != -1)
+                for (i = 0; i < kMaxShipTypes; i++)
+                    if (dockedPortShipTypes[i] != -1)
                         count++;
-                    i = i + 1;
-                } while ((short)i < kMaxShipTypes);
-                if (gShipGridScroll < count - kGridPageCells)
+                if (shipyardScroll < count - kGridPageCells)
                     overButton = 4;
             }
             if (overButton != drawnButton && overButton != downButton)
@@ -234,21 +239,21 @@ short TrackShipyardButtons(Point where)
 
 /* DrawShipyardButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049f6f0
+// MAC: _DrawShipyardButtons i386 0x0002a2e2 ppc 0x0002e8b8
 void DrawShipyardButtons(short hilited)
 {
-    int i;
-    Rect *walk;
+    short i;
     Rect box[5];
-    char enabled[5];
-    void *item;
+    Boolean enabled[5];
+    Handle item;
     short itemType;
     short count;
 
-    GetDialogItem(shipyardDialog, 7, &itemType, &item, &box[0]);
-    GetDialogItem(shipyardDialog, 1, &itemType, &item, &box[1]);
-    GetDialogItem(shipyardDialog, 0xa, &itemType, &item, &box[2]);
-    GetDialogItem(shipyardDialog, 0xc, &itemType, &item, &box[3]);
-    GetDialogItem(shipyardDialog, 0xd, &itemType, &item, &box[4]);
+    GetDialogItem(shipyardDialog, 7, &itemType, (void **)&item, &box[0]);
+    GetDialogItem(shipyardDialog, 1, &itemType, (void **)&item, &box[1]);
+    GetDialogItem(shipyardDialog, 0xa, &itemType, (void **)&item, &box[2]);
+    GetDialogItem(shipyardDialog, 0xc, &itemType, (void **)&item, &box[3]);
+    GetDialogItem(shipyardDialog, 0xd, &itemType, (void **)&item, &box[4]);
     shipyardButtonTable[0] = 4;
     if (shipBuyMode == 0)
         shipyardButtonTable[1] = 3;
@@ -259,69 +264,60 @@ void DrawShipyardButtons(short hilited)
     shipyardButtonTable[4] = 0x13;
     enabled[0] = 1;
     enabled[1] = canBuy;
-    enabled[2] = gSelectedShip != -1;
-    enabled[3] = gShipGridScroll >= kGridScrollStep;
+    enabled[2] = selShipyardItem != -1;
+    enabled[3] = shipyardScroll >= kGridScrollStep;
     count = 0;
-    i = 0;
-    do {
-        if (dockedPortShipTypes[(short)i] != -1)
+    for (i = 0; i < kMaxShipTypes; i++)
+        if (dockedPortShipTypes[i] != -1)
             count++;
-        i = i + 1;
-    } while ((short)i < kMaxShipTypes);
-    enabled[4] = gShipGridScroll < count - kGridPageCells;
-    i = 0;
-    walk = box;
-    do {
-        if (enabled[(short)i] == 0)
-            DrawButton(GetDialogPort(shipyardDialog), walk,
-                       buttonLabel[shipyardButtonTable[(short)i]], -1, 0, 0);
-        else if ((short)i == hilited)
-            DrawButton(GetDialogPort(shipyardDialog), walk,
-                       buttonLabel[shipyardButtonTable[(short)i]], 0, 1, 0);
-        else
-            DrawButton(GetDialogPort(shipyardDialog), walk,
-                       buttonLabel[shipyardButtonTable[(short)i]], 0, 0, 0);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i < 5);
+    enabled[4] = shipyardScroll < count - kGridPageCells;
+    for (i = 0; i < 5; i++) {
+        if (enabled[i] != 0) {
+            if (i == hilited)
+                DrawButton(GetDialogPort(shipyardDialog), &box[i],
+                           buttonLabel[shipyardButtonTable[i]], 0, 1, 0);
+            else
+                DrawButton(GetDialogPort(shipyardDialog), &box[i],
+                           buttonLabel[shipyardButtonTable[i]], 0, 0, 0);
+        } else
+            DrawButton(GetDialogPort(shipyardDialog), &box[i],
+                       buttonLabel[shipyardButtonTable[i]], -1, 0, 0);
+    }
 }
 
 /* TrackOutfitButtons. STATE: MATCH 100%, exe 225 / obj 225, byte-identical.
    Same shape as TrackMapButtons: one `Rect box[5]', the slot enum at the GetDialogItem
    sites (-enum min). OPEN: none. see notes */
 // FUNCTION: EVNOVA 0x0049f8f0
+// MAC: _TrackOutfitButtons i386 0x0002a029 ppc 0x0002e628
 short TrackOutfitButtons(Point where)
 {
-    short downButton;
     short drawnButton;
+    short downButton;
     short overButton;
-    int downV;
-    int downH;
     short count;
-    int i;
+    short i;
     Rect box[5];
-    Point mouse;
-    void *item;
     short itemType;
+    Handle item;
+    Point mouse;
 
-    RGBForeColor(blackColor);
-    GetDialogItem(outfitDialog, 1, &itemType, &item, &box[kOutfitDoneButton]);
-    GetDialogItem(outfitDialog, 7, &itemType, &item, &box[kOutfitBuyButton]);
-    GetDialogItem(outfitDialog, 4, &itemType, &item, &box[kOutfitSellButton]);
-    GetDialogItem(outfitDialog, 0xa, &itemType, &item, &box[kOutfitUpButton]);
-    GetDialogItem(outfitDialog, 0xb, &itemType, &item, &box[kOutfitDownButton]);
+    ForeColor(blackColor);
+    GetDialogItem(outfitDialog, 1, &itemType, (void **)&item, &box[kOutfitDoneButton]);
+    GetDialogItem(outfitDialog, 7, &itemType, (void **)&item, &box[kOutfitBuyButton]);
+    GetDialogItem(outfitDialog, 4, &itemType, (void **)&item, &box[kOutfitSellButton]);
+    GetDialogItem(outfitDialog, 0xa, &itemType, (void **)&item, &box[kOutfitUpButton]);
+    GetDialogItem(outfitDialog, 0xb, &itemType, (void **)&item, &box[kOutfitDownButton]);
     drawnButton = -1;
-    downV = where.v;
-    downH = where.h;
-    if (PtInRect(downH, downV, &box[0]) != 0)
+    if (PtInRectPoint(where, &box[0]) != 0)
         drawnButton = 0;
-    if (PtInRect(downH, downV, &box[1]) != 0)
+    if (PtInRectPoint(where, &box[1]) != 0)
         drawnButton = 1;
-    if (PtInRect(downH, downV, &box[2]) != 0)
+    if (PtInRectPoint(where, &box[2]) != 0)
         drawnButton = 2;
-    if (PtInRect(downH, downV, &box[3]) != 0)
+    if (PtInRectPoint(where, &box[3]) != 0)
         drawnButton = 3;
-    if (PtInRect(downH, downV, &box[4]) != 0)
+    if (PtInRectPoint(where, &box[4]) != 0)
         drawnButton = 4;
     downButton = drawnButton;
     if (drawnButton != -1) {
@@ -331,23 +327,20 @@ short TrackOutfitButtons(Point where)
             BusyIdle();
             GetMouse(&mouse);
             overButton = -1;
-            if (PtInRect(mouse.h, mouse.v, &box[0]) != 0)
+            if (PtInRectPoint(mouse, &box[0]) != 0)
                 overButton = 0;
-            if (PtInRect(mouse.h, mouse.v, &box[1]) != 0 && canBuy != 0)
+            if (PtInRectPoint(mouse, &box[1]) != 0 && canBuy != 0)
                 overButton = 1;
-            if (PtInRect(mouse.h, mouse.v, &box[2]) != 0 && canSell != 0)
+            if (PtInRectPoint(mouse, &box[2]) != 0 && canSell != 0)
                 overButton = 2;
-            if (PtInRect(mouse.h, mouse.v, &box[3]) != 0
+            if (PtInRectPoint(mouse, &box[3]) != 0
                     && outfitScroll >= kGridScrollStep)
                 overButton = 3;
-            if (PtInRect(mouse.h, mouse.v, &box[4]) != 0) {
+            if (PtInRectPoint(mouse, &box[4]) != 0) {
                 count = 0;
-                i = 0;
-                do {
-                    if (dockedPortItems[(short)i] != -1)
+                for (i = 0; i < kMaxOutfits; i++)
+                    if (dockedPortItems[i] != -1)
                         count++;
-                    i = i + 1;
-                } while ((short)i < kMaxOutfits);
                 if (outfitScroll < count - kGridPageCells)
                     overButton = 4;
             }
@@ -365,28 +358,25 @@ short TrackOutfitButtons(Point where)
 
 /* DrawOutfitButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049fbb0
+// MAC: _DrawOutfitButtons i386 0x00029d6a ppc 0x0002e398
 void DrawOutfitButtons(short hilited)
 {
-    int i;
-    Rect *walk;
+    short i;
     Rect box[5];
-    char shown[5];
-    char enabled[5];
+    Boolean enabled[5];
+    Boolean shown[5];
     short itemType;
-    void *item;
+    Handle item;
     short count;
 
-    RGBForeColor(blackColor);
-    GetDialogItem(outfitDialog, 1, &itemType, &item, &box[0]);
-    GetDialogItem(outfitDialog, 7, &itemType, &item, &box[1]);
-    GetDialogItem(outfitDialog, 4, &itemType, &item, &box[2]);
-    GetDialogItem(outfitDialog, 0xa, &itemType, &item, &box[3]);
-    GetDialogItem(outfitDialog, 0xb, &itemType, &item, &box[4]);
-    enabled[0] = 1;
-    enabled[1] = 1;
-    enabled[2] = 1;
-    enabled[3] = 1;
-    enabled[4] = 1;
+    ForeColor(blackColor);
+    GetDialogItem(outfitDialog, 1, &itemType, (void **)&item, &box[0]);
+    GetDialogItem(outfitDialog, 7, &itemType, (void **)&item, &box[1]);
+    GetDialogItem(outfitDialog, 4, &itemType, (void **)&item, &box[2]);
+    GetDialogItem(outfitDialog, 0xa, &itemType, (void **)&item, &box[3]);
+    GetDialogItem(outfitDialog, 0xb, &itemType, (void **)&item, &box[4]);
+    for (i = 0; i <= 4; i++)
+        enabled[i] = 1;
     if (canBuy == 0)
         enabled[1] = 0;
     if (canSell == 0)
@@ -394,12 +384,9 @@ void DrawOutfitButtons(short hilited)
     if (outfitScroll < kGridScrollStep)
         enabled[3] = 0;
     count = 0;
-    i = 0;
-    do {
-        if (dockedPortItems[(short)i] != -1)
+    for (i = 0; i < kMaxOutfits; i++)
+        if (dockedPortItems[i] != -1)
             count++;
-        i = i + 1;
-    } while ((short)i < kMaxOutfits);
     if (outfitScroll >= count - kGridPageCells)
         enabled[4] = 0;
     outfitButtonTable[0] = 4;
@@ -415,21 +402,18 @@ void DrawOutfitButtons(short hilited)
         shown[1] = 0;
     else
         shown[1] = 1;
-    i = 0;
-    walk = box;
-    do {
-        if (shown[(short)i] != 0) {
-            if (enabled[(short)i] == 0)
-                DrawButton(GetDialogPort(outfitDialog), walk,
-                           buttonLabel[outfitButtonTable[(short)i]], -1, 0, 0);
-            else if ((short)i == hilited)
-                DrawButton(GetDialogPort(outfitDialog), walk,
-                           buttonLabel[outfitButtonTable[(short)i]], 0, 1, 0);
-            else
-                DrawButton(GetDialogPort(outfitDialog), walk,
-                           buttonLabel[outfitButtonTable[(short)i]], 0, 0, 0);
+    for (i = 0; i <= 4; i++) {
+        if (shown[i] != 0) {
+            if (enabled[i] != 0) {
+                if (i == hilited)
+                    DrawButton(GetDialogPort(outfitDialog), &box[i],
+                               buttonLabel[outfitButtonTable[i]], 0, 1, 0);
+                else
+                    DrawButton(GetDialogPort(outfitDialog), &box[i],
+                               buttonLabel[outfitButtonTable[i]], 0, 0, 0);
+            } else
+                DrawButton(GetDialogPort(outfitDialog), &box[i],
+                           buttonLabel[outfitButtonTable[i]], -1, 0, 0);
         }
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i <= 4);
+    }
 }

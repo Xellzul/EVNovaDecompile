@@ -7,6 +7,7 @@
 
 /* CenterRect (mac _CenterRect). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047b710
+// MAC: _CenterRect i386 0x000c93dd ppc 0x000d53ac
 void CenterRect(Rect *rectA, Rect *rectB)
 {
     short width = (rectA->right - rectA->left);

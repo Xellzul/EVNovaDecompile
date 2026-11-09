@@ -38,13 +38,13 @@ void StripLeadingAndTrailingWhiteSpace(char *text)
     if (c != 0) {
         out = end;
         do {
-            *out++ = (char)c;
+            *out++ = c;
             if (c != ' ' && c != '\t')
                 end = out;
             c = (Word8)*text++;
         } while (c != 0);
     }
-    *end = (char)c;
+    *end = c;
 }
 
 /* GetFileExtension (BurgerLib StStringManager): past the last '.', or the terminator when
@@ -160,7 +160,7 @@ char *NumberToAscii(char *dst, ULong value, ULong flags)
         --digits;
     }
 
-    *dst = (char)(value + '0');
+    *dst = (value + '0');
     if ((flags & kNoTerminator) == 0)
         dst[1] = 0;
     return dst + 1;
@@ -325,7 +325,7 @@ float ToFloat(const char *pInput, const char **pDest)
     iValue = 0;
     for (i = 0; i < uDigits; ++i)
         iValue = iValue * 10 + Buffer[i];
-    Result = (float)iValue;
+    Result = iValue;
 
     if (iExp > 0) {
         iPlaces = iExp;
@@ -508,7 +508,7 @@ double ToDouble(const char *pInput, const char **pDest)
         else
             iLow = iLow * 10 + Buffer[i];
     }
-    Result = (double)iHigh * 1.0e9 + (double)iLow;
+    Result = iHigh * 1.0e9 + iLow;
 
     if (iExp > 0) {
         iPlaces = iExp;
@@ -591,7 +591,7 @@ void CStr2PStr(char *dst, const char *src)
             break;
         c = next;
     }
-    dst[0] = (unsigned char)len;
+    dst[0] = len;
 }
 
 /* Pascal string to C string: the length byte leads, the terminator is ours. */

@@ -10,7 +10,9 @@
 #include "spriteworld.h"
 #include "game.h"
 
+#ifndef MACBUILD
 unsigned char DAT_007cdab8[4112];
+#endif
 unsigned long alpha;
 unsigned long alphaR;
 unsigned long alphaG;
@@ -24,10 +26,13 @@ short scaleG;
 short scaleB;
 unsigned long biasColor;
 unsigned char *alphaTable[5][256];
+#ifndef MACBUILD
 unsigned char DAT_007cfef4[1547];
+#endif
 
 /* Dispose8BitAlphaTable (mac _Dispose8BitAlphaTable). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00474300
+// MAC: _Dispose8BitAlphaTable i386 0x000c1cb6 ppc 0x000cde30
 void Dispose8BitAlphaTable(void)
 {
     short i, j;
@@ -37,13 +42,17 @@ void Dispose8BitAlphaTable(void)
             DeallocAPointer(alphaTable[i][j]);
 }
 
+#ifndef MACBUILD
 /* CrtInitHook3. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00474340
 void CrtInitHook3(void)
 {
 }
+#endif
 
 /* The exe ends this object with a C++ static initializer, reached through .CRT$XCU; its body
    is the function above.  An empty constructor makes the compiler emit the hook. */
+#ifndef MACBUILD
 struct CrtHook { CrtHook() {} };
 static CrtHook crtHook;
+#endif

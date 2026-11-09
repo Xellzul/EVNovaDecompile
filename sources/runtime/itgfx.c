@@ -712,7 +712,7 @@ char *_DT_GetFontByNameList(void *dc, const char *faces, char *out)
             if (found)
                 break;
         }
-        String2UpperCopySafe(name, name, (ULong)-1);
+        String2UpperCopySafe(name, name, -1);
         if (ATStrCmp(name, "SYSTEM") == 0 &&
             _DT_GetFontByNameList(dc, "Charcoal,Lucida_Grande,Chicago", out) != 0)
             return out;
@@ -1808,14 +1808,14 @@ ITDib *DT_CreateMacPixMap(void *dc, const ITRect *bounds, ULong format, const RG
         }
     } else if (depth == 16 && screenKey != format) {
         dib->header.biCompression = BI_BITFIELDS;
-        DIB_COLORS(dib)[0] = (ULong)mask[1] << shift[1];
-        DIB_COLORS(dib)[1] = (ULong)mask[2] << shift[2];
-        DIB_COLORS(dib)[2] = (ULong)mask[3] << shift[3];
+        DIB_COLORS(dib)[0] = mask[1] << shift[1];
+        DIB_COLORS(dib)[1] = mask[2] << shift[2];
+        DIB_COLORS(dib)[2] = mask[3] << shift[3];
     } else if (depth == 32 && screenKey != format) {
         dib->header.biCompression = BI_BITFIELDS;
-        DIB_COLORS(dib)[0] = (ULong)mask[1] << shift[1];
-        DIB_COLORS(dib)[1] = (ULong)mask[2] << shift[2];
-        DIB_COLORS(dib)[2] = (ULong)mask[3] << shift[3];
+        DIB_COLORS(dib)[0] = mask[1] << shift[1];
+        DIB_COLORS(dib)[1] = mask[2] << shift[2];
+        DIB_COLORS(dib)[2] = mask[3] << shift[3];
     }
     if (dc != 0 && gGDIDIBSectionFunc != 0 && dib->header.biCompression == 0) {
         if ((dib->dc = CreateCompatibleDC(dc)) == 0) {
@@ -1981,7 +1981,7 @@ long DT_DrawDib(void *dc, const ITRect *dst, ITDib *src, ITDib *mask,
             break;
         case kTransferKey:
             if (src->header.biBitCount == 8 && src->header.biClrUsed != 0) {
-                (void)0;
+                0;
             }
             break;
         case 1:
@@ -2789,7 +2789,7 @@ long DT_SurfaceCheck(ITImage *image, unsigned char *rebuilt)
         depth = GetDeviceCaps(dc, BITSPIXEL);
         if (pixels->depth != depth || DT_IsRectEqual(&pixels->bounds, &rect) == 0)
             changed = 1;
-        if (pixels->depth != (ULong)GetDeviceCaps((void *)pixels->drawDC, BITSPIXEL))
+        if (pixels->depth != GetDeviceCaps((void *)pixels->drawDC, BITSPIXEL))
             changed = 1;
         if (pixels->depth != pixels->dib->header.biBitCount ||
             pixels->dib->header.biWidth != rect.right - rect.left ||

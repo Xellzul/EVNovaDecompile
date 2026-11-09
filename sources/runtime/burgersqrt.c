@@ -10,5 +10,5 @@ extern double sqrt(double x);
 // FUNCTION: EVNOVA 0x004eed20
 float FUN_004eed20(float x)
 {
-    return (float)(sqrt)((double)(x));
+    return (sqrt)((x));
 }

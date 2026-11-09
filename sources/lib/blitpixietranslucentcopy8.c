@@ -10,6 +10,7 @@
 
 /* BlitPixieTranslucentCopy8 (mac _BlitPixieTranslucentCopy8). STATE: MATCH, byte-identical. OPEN: none. */
 // FUNCTION: EVNOVA 0x00473c20
+// MAC: _BlitPixieTranslucentCopy8 i386 0x000c1832 ppc 0x000cd8a4
 void BlitPixieTranslucentCopy8(unsigned char *dstPixels, unsigned char *srcPixels,
                                long count)
 {
@@ -23,8 +24,7 @@ void BlitPixieTranslucentCopy8(unsigned char *dstPixels, unsigned char *srcPixel
     s = srcPixels;
     d = dstPixels;
     for (i = 0; i < count; i++) {
-        *d = alphaTable[alpha][*s][*d];
-        s++;
+        *d = alphaTable[alpha][*s++][*d];
         d++;
     }
 }

@@ -7,21 +7,32 @@
 #include "burgertypes.h"
 #include "burgerplat.h"
 #include "burger.h"
+#ifndef MAC1010
 #include "win32.h"
+#endif
 #include "ambrosia.h"
 
+#ifdef MAC1010
+#if TARGET_API_MAC_CARBON
+#define memset(p, c, n) BlockZero(p, n)
+#else
+#define memset(p, c, n) MemoryClear(p, n)
+#endif
+#define memmove(d, s, n) BlockMoveData(s, d, n)
+#else
 extern void *memset(void *dst, int c, unsigned int n);
+#endif
 
 long gGDIDIBSectionFunc;                               /* 0x00870dd0, 8 B bound */
-unsigned char gDT_Open;                      /* 0x00870e0a, 1 B, the palettes-built guard */
+AT_EXTERN unsigned char gDT_Open;            /* 0x00870e0a, 1 B, the palettes-built guard */
 
 #define kCubeLevels     6
 #define kRampSteps      10
 #define kRampCount      4
 #define kOpaque         0xff
 
-ITPalette gDT_DefaultPalette;                          /* 0x0087097c system: count, then the entries */
 ITPalette gDT_AlphaPalette;                          /* 0x008701c4 greyscale: count, then the entries */
+ITPalette gDT_DefaultPalette;                          /* 0x0087097c system: count, then the entries */
 void *gMsimgTransparentBlit;                              /* 0x008706fc TransparentBlt */
 
 /* 0x00576d00: per channel width, the factor that widens it to 16 bits (low word). */
@@ -35,6 +46,13 @@ ITColor gDT_ColorLtGray = { 0xff, 0xc0, 0xc0, 0xc0 }; /* 0x00576d28 */
 ITColor gDT_ColorMdGray = { 0xff, 0x80, 0x80, 0x80 }; /* 0x00576d2c */
 ITColor gDT_ColorDkGray = { 0xff, 0x40, 0x40, 0x40 }; /* 0x00576d30 */
 ITColor gDT_ColorBlack = { 0xff, 0x00, 0x00, 0x00 }; /* 0x00576d34 default text colour, black */
+#ifdef MAC1010      /* QuickDraw patterns */
+unsigned char gDT_PatternWhite[8] = { 0 };
+unsigned char gDT_PatternLtGray[8] = { 0x88, 0x22, 0x88, 0x22, 0x88, 0x22, 0x88, 0x22 };
+unsigned char gDT_PatternMdGray[8] = { 0xaa, 0x55, 0xaa, 0x55, 0xaa, 0x55, 0xaa, 0x55 };
+unsigned char gDT_PatternDkGray[8] = { 0x77, 0xdd, 0x77, 0xdd, 0x77, 0xdd, 0x77, 0xdd };
+unsigned char gDT_PatternBlack[8] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+#else
 unsigned char gDT_PatternWhite[16] = {              /* 0x00576d38 the white pattern */
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
@@ -52,6 +70,7 @@ unsigned char gDT_PatternDkGray[16] = {              /* 0x00576d68 the dark grey
     0x88, 0x88, 0x22, 0x22, 0x88, 0x88, 0x22, 0x22
 };
 unsigned char gDT_PatternBlack[16] = { 0 };          /* 0x00576d78 the solid pattern */
+#endif
 
 /* DT_Open. STATE: MATCH 100%, exe 137 / obj 137, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004db31b
@@ -115,15 +134,22 @@ long DT_Open(void)
     gDT_AlphaPalette.count = kPaletteEntries;
     for (i = 0; i < kPaletteEntries; i = i + 1) {
         gDT_AlphaPalette.entry[i].alpha = kOpaque;
+#ifdef MAC1010
+        gDT_AlphaPalette.entry[i].red = gDT_AlphaPalette.entry[i].green =
+            gDT_AlphaPalette.entry[i].blue = ~i;
+#else
         gDT_AlphaPalette.entry[i].blue = i;
         gDT_AlphaPalette.entry[i].green = gDT_AlphaPalette.entry[i].blue;
         gDT_AlphaPalette.entry[i].red = gDT_AlphaPalette.entry[i].green;
+#endif
     }
 
+#ifndef MAC1010
     gMsimgTransparentBlit = GetProcAddress(GetModuleHandleA("MSIMG32.DLL"),
                                   "TransparentBlt");
     gGDIDIBSectionFunc = (long)GetProcAddress(GetModuleHandleA("GDI32.DLL"),
                                         "CreateDIBSection");
+#endif
     gDT_Open = 1;
 done:
     return err;
@@ -137,7 +163,9 @@ void DT_Close(void)
     long err;
 
     err = 0;
+#ifndef MAC1010
     gGDIDIBSectionFunc = 0;
+#endif
     gDT_Open = 0;
 }
 
@@ -152,7 +180,13 @@ unsigned char DT_IsOpen(void)
 static const double DAT_00576dd8[2] = { 1.0 / 255.0, 255.0 };    /* 0x00576dd8, unreferenced */
 
 #define kPortSize           sizeof(ITPort)
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+#define kDeviceSize         0x3c
+#elif defined(MAC1010)
+#define kDeviceSize         0x34
+#else
 #define kDeviceSize         0x7c
+#endif
 #define kPixelsSize         sizeof(ITPixels)
 #define kSniffHead          0x10
 #define kSniffPict          0x264
@@ -318,7 +352,7 @@ long _DT_SurfaceDispose(ITImage *image, unsigned char fromPort, unsigned char fr
 // FUNCTION: EVNOVA 0x004db7cb
 ITPort *_DT_SurfaceGetContext(void *imageRef)
 {
-    ITImage *image = (ITImage *)imageRef;
+    ITImage *image = imageRef;
     long err;
 
     err = 0;
@@ -330,7 +364,7 @@ ITPort *_DT_SurfaceGetContext(void *imageRef)
 // FUNCTION: EVNOVA 0x004db7d9
 ITPixels *_DT_SurfaceGetImage(void *imageRef)
 {
-    ITImage *image = (ITImage *)imageRef;
+    ITImage *image = imageRef;
     long err;
 
     err = 0;
@@ -342,7 +376,7 @@ ITPixels *_DT_SurfaceGetImage(void *imageRef)
 // FUNCTION: EVNOVA 0x004db7e7
 ITPixels *_DT_SurfaceGetAlpha(void *imageRef)
 {
-    ITImage *image = (ITImage *)imageRef;
+    ITImage *image = imageRef;
     long err;
 
     err = 0;
@@ -378,8 +412,8 @@ ITPixels *_DT_ImageGetAlpha(ITImage *image)
 ULong DT_ImageFileFormat(void **handle)
 {
     unsigned char pict[kSniffPict];
-    unsigned char ppat[kSniffPpat];
-    unsigned char tga[kSniffTga];
+    unsigned char ppat[kSniffPpat + 2];
+    unsigned char tga[kSniffTga + 2];
     unsigned char head[kSniffHead];
     long err;
     ULong type;
@@ -406,6 +440,15 @@ ULong DT_ImageFileFormat(void **handle)
         if (PICT_CheckFileType(pict, kSniffPict) != 0)
             return 'PICT';
     }
+#ifdef MAC1010
+    else if (IndirectGetSize(handle) >= kSniffHead) {
+        void *data = *handle;
+        void *copy = data;
+        memmove(head, data, kSniffHead);
+        if (PICT_CheckFileType(head, kSniffHead) != 0)
+            return 'PICT';
+    }
+#endif
     if (IndirectGetSize(handle) >= kSniffPpat) {
         void *data = *handle;
         void *copy = data;
@@ -451,8 +494,10 @@ long DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTr
     {
         long e = BMP_Decode(&stream, imageOut, maskOut, trans, bg);
 
-        if (e != 0)
+        if (e != 0) {
             err = e;
+            goto done;
+        }
         break;
     }
     case 'GIF ':
@@ -460,8 +505,10 @@ long DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTr
     {
         long e = GIF_Decode(&stream, imageOut, maskOut, trans, bg);
 
-        if (e != 0)
+        if (e != 0) {
             err = e;
+            goto done;
+        }
         break;
     }
     case 'JFIF':
@@ -469,16 +516,20 @@ long DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTr
     {
         long e = JPEG_Decode(&stream, imageOut, maskOut, trans, bg);
 
-        if (e != 0)
+        if (e != 0) {
             err = e;
+            goto done;
+        }
         break;
     }
     case 'PICT':
     {
         long e = PICT_Decode(&stream, imageOut, maskOut, trans, bg);
 
-        if (e != 0)
+        if (e != 0) {
             err = e;
+            goto done;
+        }
         break;
     }
     case 'PNG ':
@@ -486,16 +537,20 @@ long DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTr
     {
         long e = PNG_Decode(&stream, imageOut, maskOut, trans, bg);
 
-        if (e != 0)
+        if (e != 0) {
             err = e;
+            goto done;
+        }
         break;
     }
     case 'ppat':
     {
         long e = PPAT_Decode(&stream, imageOut, maskOut, trans, bg);
 
-        if (e != 0)
+        if (e != 0) {
             err = e;
+            goto done;
+        }
         break;
     }
     case 'TGA ':
@@ -503,8 +558,10 @@ long DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTr
     {
         long e = TGA_Decode(&stream, imageOut, maskOut, trans, bg);
 
-        if (e != 0)
+        if (e != 0) {
             err = e;
+            goto done;
+        }
         break;
     }
     case 0:
@@ -512,7 +569,16 @@ long DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTr
         goto done;
     default:
         err = kUnknownFormat;
+        goto done;
     }
+#ifdef MAC1010
+    if (trans != NULL && trans->mode == kTransparentKey) {
+        ITPixels *pixels = _DT_ImageGetImage(*imageOut);
+
+        _DT_MacCTabMakeUnique((*(PixMapHandle)pixels->dib)->pmTable, trans->key.alpha);
+        pixels->info[0] = (*(*(PixMapHandle)pixels->dib)->pmTable)->ctSeed;
+    }
+#endif
 done:
     return err;
 }
@@ -546,7 +612,7 @@ unsigned char DT_ImageGetInfo(void *imageRef, ITImage *other, ITPixelInfo *info)
     unsigned char isLocked;
     ULong i;
 
-    image = (ITImage *)imageRef;
+    image = imageRef;
     pixels = _DT_ImageGetImage(image);
     otherPixels = _DT_ImageGetAlpha(other);
     err = 0;
@@ -603,8 +669,14 @@ long DT_ImageLock(ITImage *image, ITImage *other, ITPixelInfo *info, unsigned ch
     if (rebuilt != 0)
         *rebuilt = 0;
     e = _DT_ImageLock(image, other, rebuilt);
-    if (e != 0)
-        goto fail;
+    if (e != 0) {
+        err = e;
+        goto done;
+    }
+#ifdef MAC1010
+    if ((pixels->flags & kPixelsInBitmap) != 0)
+        pixels->flags &= ~kPixelsInBitmap;
+#else
     if ((pixels->flags & kPixelsInBitmap) != 0) {
         e = DT_SyncDib(pixels->dib, 0, 1);
         if (e != 0) {
@@ -614,6 +686,7 @@ fail:
         }
         pixels->flags &= ~kPixelsInBitmap;
     }
+#endif
     pixels->flags |= kPixelsBitsChanged;
     if (info != 0)
         DT_ImageGetInfo(image, other, info);
@@ -651,11 +724,13 @@ void *DT_PeekAtSysContext(ITImage *image)
     if (port->link.owner2->pixelsSelf != 0) {
         pixels = _DT_SurfaceGetImage(port->link.owner2);
         if (pixels->locks != 0 || (pixels->flags & kPixelsBitsChanged) != 0) {
+#ifndef MAC1010
             e = DT_SyncDib(pixels->dib, 1, 0);
             if (e != 0) {
                 err = e;
                 goto done;
             }
+#endif
             pixels->flags &= ~kPixelsBitsChanged;
         }
         pixels->flags |= kPixelsInBitmap;
@@ -697,7 +772,27 @@ typedef void (*ITSpanTiled)(ITPixels *dst, ITPixels *src, ITPixels *mask, unsign
 
 static ITPoint gDT_TileOrigin;                        /* 0x00865b08 the default tiling origin */
 
+#ifdef MAC1010 /* big-endian: the low byte is the last */
+#define STORE_BYTES(p, v)                                                       \
+    for (i = dst->bytesPerPixel; i != 0; ) {                                    \
+        (p)[--i] = (v);                                          \
+        v >>= 8;                                                                \
+    }
+#else
+#define STORE_BYTES(p, v)                                                       \
+    for (i = 0; i < dst->bytesPerPixel; ) {                                     \
+        (p)[i++] = (v);                                          \
+        v >>= 8;                                                                \
+    }
+#endif
+
 /* ---- one pixel, any format ---- */
+
+#ifdef MAC1010
+#define CASE_3(rv, rq)  case 3: rv = rq[0] << 16 | rq[1] << 8; rv |= rq[2]; break;
+#else
+#define CASE_3(rv, rq)  case 3: rv = rq[0]; rv |= rq[1] << 8; rv |= rq[2] << 16; break;
+#endif
 
 #define READ_PIXEL(pix, p, clut, out)                                           \
     {                                                                           \
@@ -708,7 +803,7 @@ static ITPoint gDT_TileOrigin;                        /* 0x00865b08 the default 
         switch (rp->bytesPerPixel) {                                            \
         case 1: rv = rc[*rq]; break;                                            \
         case 2: rv = *(unsigned short *)rq; break;                              \
-        case 3: rv = rq[0]; rv |= rq[1] << 8; rv |= rq[2] << 16; break;         \
+        CASE_3(rv, rq)                                                          \
         case 4: rv = *(ULong *)rq; break;                                       \
         }                                                                       \
         out = rv;                                                               \
@@ -716,8 +811,7 @@ static ITPoint gDT_TileOrigin;                        /* 0x00865b08 the default 
 
 /* channel n (0 alpha, 1 red, 2 green, 3 blue) of a pixel, widened to 8 bits, into x */
 #define CHANNEL_INTO(x, pix, v, n)                                              \
-    x = (v) >> (pix)->shift[n];                                                 \
-    x &= (pix)->mask[n];                                                        \
+    x = (v) >> (pix)->shift[n] & (pix)->mask[n];                                \
     x = (unsigned short)x * (pix)->scale[n] >> 8;
 
 /* an 8-bit channel narrowed into its place in the pixel */
@@ -741,40 +835,17 @@ static ITPoint gDT_TileOrigin;                        /* 0x00865b08 the default 
         *(p) = inverse[dv];                                                     \
     } else {                                                                    \
         dv = (alpha) | FIELD(dst, r, 1) | FIELD(dst, g, 2) | FIELD(dst, b, 3);  \
-        for (i = 0; i < dst->bytesPerPixel; ) {                                 \
-            (p)[i++] = (unsigned char)dv;                                       \
-            dv >>= 8;                                                           \
-        }                                                                       \
+        STORE_BYTES(p, dv)                                                      \
     }
 
 /* the destination channel moved toward the source by a / 256 */
 #define BLEND_CHANNEL(dc, sc)                                                   \
-    sc -= dc;                                                                   \
-    dc += (short)a * (short)sc / 256;
-
-/* the same, the source channel kept (the 555 / 565 fast paths) */
-#define BLEND_CHANNEL_KEEP(dc, sc)                                              \
     dc += (short)a * (short)(sc - dc) / 256;
 
-#define BLEND_RGB_KEEP()                                                        \
-    BLEND_CHANNEL_KEEP(dr, r)                                                   \
-    BLEND_CHANNEL_KEEP(dg, g)                                                   \
-    BLEND_CHANNEL_KEEP(db, b)
-
-/* the blue (and, in the Tiled Opaque and the MaskBlend Keep spans, the red) source channel reaches
-   its blend through a copy that coalesces away: the eliminated mov's weight is added to the
-   channel's spill cost without an instruction, which is what puts the exe's spills in its order */
 #define BLEND_RGB()                                                             \
     BLEND_CHANNEL(dr, r)                                                        \
     BLEND_CHANNEL(dg, g)                                                        \
-    sb = b;                                                                     \
-    BLEND_CHANNEL(db, sb)
-#define BLEND_RGB_SR()                                                          \
-    sr = r;                                                                     \
-    BLEND_CHANNEL(dr, sr)                                                       \
-    BLEND_CHANNEL(dg, g)                                                        \
-    sb = b;                                                                     \
-    BLEND_CHANNEL(db, sb)
+    BLEND_CHANNEL(db, b)
 
 /* a coverage of 0..255 taken to 0..256 */
 #define FULL_SCALE(a)       ((a) + ((a) >> 7 & 1))
@@ -809,9 +880,15 @@ static ITPoint gDT_TileOrigin;                        /* 0x00865b08 the default 
         WRITE_PIXEL(d, dr, dg, db, alpha);                                      \
     }
 
+#ifdef MAC1010 /* 1.0.10 spelling */
+#define COV_UNIFORM         a = (short)extra;
+#else
+#define COV_UNIFORM         a = extra;
+#endif
+
 #define PIXEL_BLEND(dalpha, alpha, blend)                                       \
     READ_PIXEL(src, s, srcClut, v);                                             \
-    a = extra;                                                                  \
+    COV_UNIFORM                                                                 \
     SOURCE_RGB();                                                               \
     READ_PIXEL(dst, d, dstClut, dv);                                            \
     dalpha                                                                      \
@@ -843,19 +920,16 @@ skip:
 
 #define PIXEL_COPY_SET          PIXEL_SET(COV_OPAQUE)
 #define PIXEL_MASK_OPAQUE       PIXEL_COVER(COV_MASK, DA_OPAQUE, alphaBits, BLEND_RGB)
-#define PIXEL_MASK_OPAQUE_T     PIXEL_COVER(COV_MASK, DA_OPAQUE, alphaBits, BLEND_RGB_SR)
-#define PIXEL_MASK_KEEP         PIXEL_COVER(COV_MASK, DA_KEEP, DEST_ALPHA, BLEND_RGB)
+#define PIXEL_MASK_KEEP        PIXEL_COVER(COV_MASK, DA_KEEP, DEST_ALPHA, BLEND_RGB)
 #define PIXEL_MASK_SET          PIXEL_SET(COV_MASK)
 #define PIXEL_ALPHA_OPAQUE      PIXEL_COVER(COV_ALPHA, DA_OPAQUE, alphaBits, BLEND_RGB)
-#define PIXEL_ALPHA_OPAQUE_T    PIXEL_COVER(COV_ALPHA, DA_OPAQUE, alphaBits, BLEND_RGB_SR)
 #define PIXEL_ALPHA_KEEP        PIXEL_COVER(COV_ALPHA, DA_KEEP, DEST_ALPHA, BLEND_RGB)
 #define PIXEL_ALPHA_SET         PIXEL_SET(COV_ALPHA)
 #define PIXEL_BLEND_OPAQUE      PIXEL_BLEND(DA_OPAQUE, alphaBits, BLEND_RGB)
-#define PIXEL_BLEND_OPAQUE_T    PIXEL_BLEND(DA_OPAQUE, alphaBits, BLEND_RGB_SR)
 #define PIXEL_BLEND_KEEP        PIXEL_BLEND(DA_KEEP, DEST_ALPHA, BLEND_RGB)
 #define PIXEL_BLEND_SET         PIXEL_SET(COV_EXTRA)
 #define PIXEL_MASKBLEND_OPAQUE  PIXEL_COVER(COV_MASKBLEND, DA_OPAQUE, alphaBits, BLEND_RGB)
-#define PIXEL_MASKBLEND_KEEP    PIXEL_COVER(COV_MASKBLEND, DA_KEEP, DEST_ALPHA, BLEND_RGB_SR)
+#define PIXEL_MASKBLEND_KEEP    PIXEL_COVER(COV_MASKBLEND, DA_KEEP, DEST_ALPHA, BLEND_RGB)
 #define PIXEL_MASKBLEND_SET     PIXEL_SET(COV_MASKBLEND)
 #define PIXEL_KEY_OPAQUE        PIXEL_KEY(alphaBits)
 #define PIXEL_KEY_KEEP          PIXEL_KEY(DEST_ALPHA)
@@ -867,17 +941,19 @@ skip:
 #define PIXEL_COPY_16       v = *(unsigned short *)s; dv = v; a = 0xff; v |= alphaBits; *(unsigned short *)d = v;
 #define PIXEL_COPY_24                                                           \
     v = *(ULong *)s; dv = v; a = 0xff; v = v | alphaBits;                       \
-    for (i = 0; i < dst->bytesPerPixel; ) {                                     \
-        d[i++] = (unsigned char)v;                                              \
-        v >>= 8;                                                                \
-    }
+    STORE_BYTES(d, v)
 #define PIXEL_COPY_32       v = *(ULong *)s; dv = v; a = 0xff; v |= alphaBits; *(ULong *)d = v;
 
 #define PIXEL_KEY_8         v = *s; a = 0xff; if (*s != extra) { dv = v; *d = (unsigned char)v; }
 #define KEY_SETUP_15        keyMask = 0x7fff;
 #define KEY_SETUP_16        keyMask = 0xffff;
+#ifdef MAC1010 /* big-endian: the colour is the low three bytes */
+#define KEY_SETUP_24        keyMask = 0x00ffffff;
+#define KEY_SETUP_32        keyMask = 0x00ffffff;
+#else
 #define KEY_SETUP_24        keyMask = 0xffffff00;
 #define KEY_SETUP_32        keyMask = 0xffffff00;
+#endif
 
 #define PIXEL_KEY_16                                                            \
     v = *(unsigned short *)s; a = 0xff;                                         \
@@ -889,10 +965,7 @@ skip:
     v = *(ULong *)s; a = 0xff;                                                  \
     if ((v & keyMask) != extra) {                                               \
         v |= alphaBits;                                                         \
-        for (i = 0; i < dst->bytesPerPixel; ) {                                 \
-            d[i++] = v;                                                         \
-            v >>= 8;                                                            \
-        }                                                                       \
+        STORE_BYTES(d, v)                                                       \
     }
 #define PIXEL_KEY_32                                                            \
     v = *(ULong *)s; a = 0xff;                                                  \
@@ -921,6 +994,18 @@ skip:
 #define WIDEN5(x)           ((x) << 3 | (x) >> 2)
 #define WIDEN6(x)           ((x) << 2 | (x) >> 4)
 
+#ifdef MAC1010 /* big-endian: red is the high channel */
+#define UNPACK_ARGB(p, c1, c2, c3, K)                                           \
+    K(p) c1 = (p) >> 24 & 0xff; K(c1) c2 = (p) >> 16 & 0xff; K(c2) c3 = (p) >> 8 & 0xff; K(c3)
+#define UNPACK_555(p, c1, c2, c3, K)                                            \
+    K(p) c1 = (p) >> 10 & 0x1f; c2 = (p) >> 5 & 0x1f; c3 = (p) & 0x1f;                     \
+    c1 = WIDEN5(c1); c2 = WIDEN5(c2); c3 = WIDEN5(c3);
+#define UNPACK_565(p, c1, c2, c3, K)                                            \
+    K(p) c1 = (p) >> 11 & 0x1f; c2 = (p) >> 5 & 0x3f; c3 = (p) & 0x1f;                     \
+    c1 = WIDEN5(c1); c2 = WIDEN6(c2); c3 = WIDEN5(c3);
+#define UNPACK_8888(p, c1, c2, c3, K)                                           \
+    K(p) c1 = (p) >> 16 & 0xff; K(c1) c2 = (p) >> 8 & 0xff; K(c2) c3 = (p) & 0xff; K(c3)
+#else
 #define UNPACK_ARGB(p, c1, c2, c3, K)                                           \
     K(p) c1 = (p) >> 8 & 0xff; K(c1) c2 = (p) >> 16 & 0xff; K(c2) c3 = (p) >> 24 & 0xff; K(c3)
 #define UNPACK_555(p, c1, c2, c3, K)                                            \
@@ -931,10 +1016,25 @@ skip:
     c1 = WIDEN5(c1); c2 = WIDEN6(c2); c3 = WIDEN5(c3);
 #define UNPACK_8888(p, c1, c2, c3, K)                                           \
     K(p) c1 = (p) & 0xff; K(c1) c2 = (p) >> 8 & 0xff; K(c2) c3 = (p) >> 16 & 0xff; K(c3)
+#endif
 
 #define STORE_INDEX                                                             \
     dv = (dr & 0xf0) << 4 | (dg & 0xf0) | (db & 0xf0) >> 4;                     \
     *d = inverse[dv]
+#ifdef MAC1010 /* big-endian: red is the high channel */
+#define STORE_555                                                               \
+    dv = 0x8000 | (dr & 0x1f) << 10 | (dg & 0x1f) << 5 | (db & 0x1f);           \
+    *(unsigned short *)d = dv
+#define STORE_565                                                               \
+    dv = (dr & 0x1f) << 11 | (dg & 0x3f) << 5 | (db & 0x1f);                    \
+    *(unsigned short *)d = dv
+#define STORE_24                                                                \
+    dv = 0xff000000 | (dr & 0xff) << 16 | (dg & 0xff) << 8 | (db & 0xff);       \
+    STORE_BYTES(d, dv)
+#define STORE_32                                                                \
+    dv = 0xff000000 | (dr & 0xff) << 16 | (dg & 0xff) << 8 | (db & 0xff);       \
+    *(ULong *)d = dv
+#else
 #define STORE_555                                                               \
     dv = 0x8000 | (dr & 0x1f) | (dg & 0x1f) << 5 | (db & 0x1f) << 10;           \
     *(unsigned short *)d = dv
@@ -943,46 +1043,45 @@ skip:
     *(unsigned short *)d = dv
 #define STORE_24                                                                \
     dv = 0xff000000 | (dr & 0xff) | (dg & 0xff) << 8 | (db & 0xff) << 16;      \
-    for (i = 0; i < dst->bytesPerPixel; ) {                                     \
-        d[i++] = (unsigned char)dv;                                             \
-        dv >>= 8;                                                               \
-    }
+    STORE_BYTES(d, dv)
 #define STORE_32                                                                \
     dv = 0xff000000 | (dr & 0xff) | (dg & 0xff) << 8 | (db & 0xff) << 16;      \
     *(ULong *)d = dv
+#endif
 
-#define PIXEL_MASK_8        PIXEL_MASK_FIXED(srcClut[*s], dstClut[*d], UNPACK_ARGB, BLEND_RGB_KEEP, STORE_INDEX)
-#define PIXEL_MASK_15       PIXEL_MASK_FIXED(*(unsigned short *)s, *(unsigned short *)d, UNPACK_555, BLEND_RGB_KEEP, STORE_555)
-#define PIXEL_MASK_16       PIXEL_MASK_FIXED(*(unsigned short *)s, *(unsigned short *)d, UNPACK_565, BLEND_RGB_KEEP, STORE_565)
+#define PIXEL_MASK_8        PIXEL_MASK_FIXED(srcClut[*s], dstClut[*d], UNPACK_ARGB, BLEND_RGB, STORE_INDEX)
+#define PIXEL_MASK_15       PIXEL_MASK_FIXED(*(unsigned short *)s, *(unsigned short *)d, UNPACK_555, BLEND_RGB, STORE_555)
+#define PIXEL_MASK_16       PIXEL_MASK_FIXED(*(unsigned short *)s, *(unsigned short *)d, UNPACK_565, BLEND_RGB, STORE_565)
 #define PIXEL_MASK_24       PIXEL_MASK_FIXED(*(ULong *)s, *(ULong *)d, UNPACK_ARGB, BLEND_RGB, STORE_24)
 #define PIXEL_MASK_32       PIXEL_MASK_FIXED(*(ULong *)s, *(ULong *)d, UNPACK_8888, BLEND_RGB, STORE_32)
 
 /* ---- the three frames ---- */
 
 #define SPAN_LOCALS_R                                                           \
-    ULong sb, sr, alpha, b, g, da, r;                                           \
     unsigned char *s, *m, *d;                                                   \
     long err;                                                                   \
-    ULong x, y, keyMask, alphaBits, v, dv, i;                                   \
-    ULong a, dr, dg, db, wv;
+    ULong alpha, da, x, y, i, keyMask, alphaBits, v, dv;                        \
+    ULong a, r, g, b, dr, dg, db, wv;
+#ifdef MAC1010 /* 1.0.10 spelling */
+#define SPAN_LOCALS_R15     SPAN_LOCALS_R
+#else
 #define SPAN_LOCALS_R15                                                         \
     ULong alpha, b, g, da, r;                                                   \
     unsigned char *d, *s, *m;                                                   \
     long err;                                                                   \
     ULong x, y, keyMask, alphaBits, v, dv, i;                                   \
     ULong a, dr, dg, db, wv;
+#endif
 #define SPAN_LOCALS_S                                                           \
-    ULong sb, sr, b, g, r;                                                      \
-    long err;                                                                   \
     unsigned char *s, *m, *d;                                                   \
-    ULong x, y, keyMask, alphaBits, ye, xe, v, dv, i;                           \
-    ULong a, da, dr, dg, db, wv;
+    long err;                                                                   \
+    ULong da, x, y, i, keyMask, alphaBits, ye, xe, v, dv;                       \
+    ULong a, r, g, b, dr, dg, db, alpha, wv;
 #define SPAN_LOCALS_T                                                           \
-    ULong sb, sr, b, g, r;                                                      \
     unsigned char *s, *m, *d;                                                   \
     long err;                                                                   \
-    ULong x, y, keyMask, alphaBits, v, dv, i;                                   \
-    ULong da, dr, dg, db, wv, ty, tx, a;
+    ULong da, x, y, i, keyMask, alphaBits, ty, tx, v, dv;                       \
+    ULong a, r, g, b, dr, dg, db, alpha, wv;
 
 #define NO_SETUP
 #define NO_ALPHA
@@ -1124,258 +1223,268 @@ skip:
 
 /* The 76 spans (Span<frame><operation><alpha or same-format depth>). STATE: MATCH byte-identical,
    75 of 78: every span but Rows Mask8 (77, colour: the exe pushes r and the blue group in the first
-   simplify scan, and every dest group last). OPEN: that one; the sr / sb blend copies and the
-   per-span list SPAN_LOCALS_R15 are the levers; one block for the family (notes/itblit.md) */
+   simplify scan, and every dest group last). OPEN: that one; the per-span list SPAN_LOCALS_R15
+   is the lever; one block for the family (notes/itblit.md) */
 // FUNCTION: EVNOVA 0x004dbd6a
-void _DT_ImageBlitNoneIgnore(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneIgnore(ROWS_PARAMS)
 ROWS_BODY(PIXEL_COPY_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dbfcc
-void _DT_ImageBlitNoneIgnore_8(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneIgnore_8(ROWS_PARAMS)
 ROWS_BODY(PIXEL_COPY_8, 1, 1, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dc069
-void _DT_ImageBlitNoneIgnore_15(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneIgnore_15(ROWS_PARAMS)
 ROWS_BODY(PIXEL_COPY_16, 2, 2, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dc110
-void _DT_ImageBlitNoneIgnore_16(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneIgnore_16(ROWS_PARAMS)
 ROWS_BODY(PIXEL_COPY_16, 2, 2, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dc1b7
-void _DT_ImageBlitNoneIgnore_24(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneIgnore_24(ROWS_PARAMS)
 ROWS_BODY(PIXEL_COPY_24, 3, 3, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dc26f
-void _DT_ImageBlitNoneIgnore_32(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneIgnore_32(ROWS_PARAMS)
 ROWS_BODY(PIXEL_COPY_32, 4, 4, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dc314
-void _DT_ImageBlitCopyIgnore(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitCopyIgnore(ROWS_PARAMS)
 ROWS_BODY(PIXEL_COPY_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dc55c
-void _DT_ImageScaleNoneIgnore(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleNoneIgnore(SCALED_PARAMS)
 SCALED_BODY(PIXEL_COPY_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dc80e
-void _DT_ImageScaleNoneIgnore_8(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleNoneIgnore_8(SCALED_PARAMS)
 SCALED_BODY(PIXEL_COPY_8, 1, 1, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dc8f6
-void _DT_ImageScaleNoneIgnore_15(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleNoneIgnore_15(SCALED_PARAMS)
 SCALED_BODY(PIXEL_COPY_16, 2, 2, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dc9f8
-void _DT_ImageScaleNoneIgnore_16(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleNoneIgnore_16(SCALED_PARAMS)
 SCALED_BODY(PIXEL_COPY_16, 2, 2, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dcafa
-void _DT_ImageScaleNoneIgnore_24(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleNoneIgnore_24(SCALED_PARAMS)
 SCALED_BODY(PIXEL_COPY_24, 3, 3, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dcc0d
-void _DT_ImageScaleNoneIgnore_32(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleNoneIgnore_32(SCALED_PARAMS)
 SCALED_BODY(PIXEL_COPY_32, 4, 4, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dcd0d
-void _DT_ImageScaleCopyIgnore(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleCopyIgnore(SCALED_PARAMS)
 SCALED_BODY(PIXEL_COPY_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dcfa9
-void _DT_ImageTileNoneIgnore(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileNoneIgnore(TILED_PARAMS)
 TILED_BODY(PIXEL_COPY_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dd278
-void _DT_ImageTileNoneIgnore_8(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileNoneIgnore_8(TILED_PARAMS)
 TILED_BODY(PIXEL_COPY_8, 1, 1, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dd37e
-void _DT_ImageTileNoneIgnore_15(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileNoneIgnore_15(TILED_PARAMS)
 TILED_BODY(PIXEL_COPY_16, 2, 2, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dd489
-void _DT_ImageTileNoneIgnore_16(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileNoneIgnore_16(TILED_PARAMS)
 TILED_BODY(PIXEL_COPY_16, 2, 2, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dd594
-void _DT_ImageTileNoneIgnore_24(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileNoneIgnore_24(TILED_PARAMS)
 TILED_BODY(PIXEL_COPY_24, 3, 3, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dd6b4
-void _DT_ImageTileNoneIgnore_32(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileNoneIgnore_32(TILED_PARAMS)
 TILED_BODY(PIXEL_COPY_32, 4, 4, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dd7bd
-void _DT_ImageTileCopyIgnore(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileCopyIgnore(TILED_PARAMS)
 TILED_BODY(PIXEL_COPY_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dda76
-void _DT_ImageBlitNoneBitmap(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneBitmap(ROWS_PARAMS)
 ROWS_BODY(PIXEL_MASK_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dde59
-void _DT_ImageBlitNoneBitmap_8(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneBitmap_8(ROWS_PARAMS)
 ROWS_BODY(PIXEL_MASK_8, 1, 1, ALPHA_MASK, NO_SETUP)
 // FUNCTION: EVNOVA 0x004de038
-void _DT_ImageBlitNoneBitmap_15(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneBitmap_15(ROWS_PARAMS)
 ROWS_BODY_L(SPAN_LOCALS_R15, PIXEL_MASK_15, 2, 2, ALPHA_MASK, NO_SETUP)
 // FUNCTION: EVNOVA 0x004de233
-void _DT_ImageBlitNoneBitmap_16(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneBitmap_16(ROWS_PARAMS)
 ROWS_BODY_L(SPAN_LOCALS_R15, PIXEL_MASK_16, 2, 2, ALPHA_MASK, NO_SETUP)
 // FUNCTION: EVNOVA 0x004de429
-void _DT_ImageBlitNoneBitmap_24(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneBitmap_24(ROWS_PARAMS)
 ROWS_BODY(PIXEL_MASK_24, 3, 3, ALPHA_MASK, NO_SETUP)
 // FUNCTION: EVNOVA 0x004de603
-void _DT_ImageBlitNoneBitmap_32(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneBitmap_32(ROWS_PARAMS)
 ROWS_BODY(PIXEL_MASK_32, 4, 4, ALPHA_MASK, NO_SETUP)
 // FUNCTION: EVNOVA 0x004de7c7
-void _DT_ImageScaleNoneBitmap(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleNoneBitmap(SCALED_PARAMS)
 SCALED_BODY(PIXEL_MASK_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dec1b
-void _DT_ImageTileNoneBitmap(TILED_PARAMS)
-TILED_BODY(PIXEL_MASK_OPAQUE_T, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
+AT_STATIC void _DT_ImageTileNoneBitmap(TILED_PARAMS)
+TILED_BODY(PIXEL_MASK_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004df096
-void _DT_ImageBlitSaveBitmap(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitSaveBitmap(ROWS_PARAMS)
 ROWS_BODY(PIXEL_MASK_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004df4bd
-void _DT_ImageScaleSaveBitmap(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleSaveBitmap(SCALED_PARAMS)
 SCALED_BODY(PIXEL_MASK_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004df955
-void _DT_ImageTileSaveBitmap(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileSaveBitmap(TILED_PARAMS)
 TILED_BODY(PIXEL_MASK_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004dfe0d
-void _DT_ImageBlitCopyBitmap(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitCopyBitmap(ROWS_PARAMS)
 ROWS_BODY(PIXEL_MASK_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e006b
-void _DT_ImageScaleCopyBitmap(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleCopyBitmap(SCALED_PARAMS)
 SCALED_BODY(PIXEL_MASK_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e0326
-void _DT_ImageTileCopyBitmap(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileCopyBitmap(TILED_PARAMS)
 TILED_BODY(PIXEL_MASK_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e05f5
-void _DT_ImageBlitNoneInline(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneInline(ROWS_PARAMS)
 ROWS_BODY(PIXEL_ALPHA_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e09f8
-void _DT_ImageScaleNoneInline(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleNoneInline(SCALED_PARAMS)
 SCALED_BODY(PIXEL_ALPHA_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e0e6c
-void _DT_ImageTileNoneInline(TILED_PARAMS)
-TILED_BODY(PIXEL_ALPHA_OPAQUE_T, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
+AT_STATIC void _DT_ImageTileNoneInline(TILED_PARAMS)
+TILED_BODY(PIXEL_ALPHA_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e1307
-void _DT_ImageBlitSaveInline(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitSaveInline(ROWS_PARAMS)
 ROWS_BODY(PIXEL_ALPHA_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e174c
-void _DT_ImageScaleSaveInline(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleSaveInline(SCALED_PARAMS)
 SCALED_BODY(PIXEL_ALPHA_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e1c02
-void _DT_ImageTileSaveInline(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileSaveInline(TILED_PARAMS)
 TILED_BODY(PIXEL_ALPHA_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e20d8
-void _DT_ImageBlitCopyInline(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitCopyInline(ROWS_PARAMS)
 ROWS_BODY(PIXEL_ALPHA_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e2356
-void _DT_ImageScaleCopyInline(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleCopyInline(SCALED_PARAMS)
 SCALED_BODY(PIXEL_ALPHA_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e2631
-void _DT_ImageTileCopyInline(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileCopyInline(TILED_PARAMS)
 TILED_BODY(PIXEL_ALPHA_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e2920
-void _DT_ImageBlitNoneUniform(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneUniform(ROWS_PARAMS)
 ROWS_BODY(PIXEL_BLEND_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e2cf8
-void _DT_ImageScaleNoneUniform(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleNoneUniform(SCALED_PARAMS)
 SCALED_BODY(PIXEL_BLEND_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e3141
-void _DT_ImageTileNoneUniform(TILED_PARAMS)
-TILED_BODY(PIXEL_BLEND_OPAQUE_T, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
+AT_STATIC void _DT_ImageTileNoneUniform(TILED_PARAMS)
+TILED_BODY(PIXEL_BLEND_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e35ad
-void _DT_ImageBlitSaveUniform(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitSaveUniform(ROWS_PARAMS)
 ROWS_BODY(PIXEL_BLEND_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e39aa
-void _DT_ImageScaleSaveUniform(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleSaveUniform(SCALED_PARAMS)
 SCALED_BODY(PIXEL_BLEND_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e3e1b
-void _DT_ImageTileSaveUniform(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileSaveUniform(TILED_PARAMS)
 TILED_BODY(PIXEL_BLEND_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e42af
-void _DT_ImageBlitCopyUniform(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitCopyUniform(ROWS_PARAMS)
 ROWS_BODY(PIXEL_BLEND_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e44f4
-void _DT_ImageScaleCopyUniform(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleCopyUniform(SCALED_PARAMS)
 SCALED_BODY(PIXEL_BLEND_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e4796
-void _DT_ImageTileCopyUniform(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileCopyUniform(TILED_PARAMS)
 TILED_BODY(PIXEL_BLEND_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e4a4c
-void _DT_ImageBlitNoneCombined(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneCombined(ROWS_PARAMS)
 ROWS_BODY(PIXEL_MASKBLEND_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e4e5b
-void _DT_ImageScaleNoneCombined(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleNoneCombined(SCALED_PARAMS)
 SCALED_BODY(PIXEL_MASKBLEND_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e52db
-void _DT_ImageTileNoneCombined(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileNoneCombined(TILED_PARAMS)
 TILED_BODY(PIXEL_MASKBLEND_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e577e
-void _DT_ImageBlitSaveCombined(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitSaveCombined(ROWS_PARAMS)
 ROWS_BODY(PIXEL_MASKBLEND_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e5bc3
-void _DT_ImageScaleSaveCombined(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleSaveCombined(SCALED_PARAMS)
 SCALED_BODY(PIXEL_MASKBLEND_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e6079
-void _DT_ImageTileSaveCombined(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileSaveCombined(TILED_PARAMS)
 TILED_BODY(PIXEL_MASKBLEND_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e654f
-void _DT_ImageBlitCopyCombined(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitCopyCombined(ROWS_PARAMS)
 ROWS_BODY(PIXEL_MASKBLEND_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e67df
-void _DT_ImageScaleCopyCombined(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleCopyCombined(SCALED_PARAMS)
 SCALED_BODY(PIXEL_MASKBLEND_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e6acb
-void _DT_ImageTileCopyCombined(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileCopyCombined(TILED_PARAMS)
 TILED_BODY(PIXEL_MASKBLEND_SET, ANY_DST, ANY_SRC, NO_ALPHA, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e6dcb
-void _DT_ImageBlitNoneColorKey(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneColorKey(ROWS_PARAMS)
 ROWS_BODY(PIXEL_KEY_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, KEY_SETUP)
 // FUNCTION: EVNOVA 0x004e708a
-void _DT_ImageBlitNoneColorKey_8(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneColorKey_8(ROWS_PARAMS)
 ROWS_BODY(PIXEL_KEY_8, 1, 1, ALPHA_BITS, NO_SETUP)
 // FUNCTION: EVNOVA 0x004e7135
-void _DT_ImageBlitNoneColorKey_15(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneColorKey_15(ROWS_PARAMS)
 ROWS_BODY(PIXEL_KEY_16, 2, 2, ALPHA_BITS, KEY_SETUP_15)
 // FUNCTION: EVNOVA 0x004e71f4
-void _DT_ImageBlitNoneColorKey_16(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneColorKey_16(ROWS_PARAMS)
 ROWS_BODY(PIXEL_KEY_16, 2, 2, ALPHA_BITS, KEY_SETUP_16)
 // FUNCTION: EVNOVA 0x004e72b3
-void _DT_ImageBlitNoneColorKey_24(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneColorKey_24(ROWS_PARAMS)
 ROWS_BODY(PIXEL_KEY_24, 3, 3, ALPHA_BITS, KEY_SETUP_24)
 // FUNCTION: EVNOVA 0x004e7389
-void _DT_ImageBlitNoneColorKey_32(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitNoneColorKey_32(ROWS_PARAMS)
 ROWS_BODY(PIXEL_KEY_32, 4, 4, ALPHA_BITS, KEY_SETUP_32)
 // FUNCTION: EVNOVA 0x004e7446
-void _DT_ImageScaleNoneColorKey(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleNoneColorKey(SCALED_PARAMS)
 SCALED_BODY(PIXEL_KEY_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, KEY_SETUP)
 // FUNCTION: EVNOVA 0x004e7767
-void _DT_ImageTileNoneColorKey(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileNoneColorKey(TILED_PARAMS)
 TILED_BODY(PIXEL_KEY_OPAQUE, ANY_DST, ANY_SRC, ALPHA_BITS, KEY_SETUP)
 // FUNCTION: EVNOVA 0x004e7a99
-void _DT_ImageBlitSaveColorKey(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitSaveColorKey(ROWS_PARAMS)
 ROWS_BODY(PIXEL_KEY_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, KEY_SETUP)
 // FUNCTION: EVNOVA 0x004e7d39
-void _DT_ImageScaleSaveColorKey(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleSaveColorKey(SCALED_PARAMS)
 SCALED_BODY(PIXEL_KEY_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, KEY_SETUP)
 // FUNCTION: EVNOVA 0x004e803f
-void _DT_ImageTileSaveColorKey(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileSaveColorKey(TILED_PARAMS)
 TILED_BODY(PIXEL_KEY_KEEP, ANY_DST, ANY_SRC, NO_ALPHA, KEY_SETUP)
 // FUNCTION: EVNOVA 0x004e8356
-void _DT_ImageBlitCopyColorKey(ROWS_PARAMS)
+AT_STATIC void _DT_ImageBlitCopyColorKey(ROWS_PARAMS)
 ROWS_BODY(PIXEL_KEY_SET, ANY_DST, ANY_SRC, NO_ALPHA, KEY_SETUP)
 // FUNCTION: EVNOVA 0x004e85c2
-void _DT_ImageScaleCopyColorKey(SCALED_PARAMS)
+AT_STATIC void _DT_ImageScaleCopyColorKey(SCALED_PARAMS)
 SCALED_BODY(PIXEL_KEY_SET, ANY_DST, ANY_SRC, NO_ALPHA, KEY_SETUP)
 // FUNCTION: EVNOVA 0x004e8882
-void _DT_ImageTileCopyColorKey(TILED_PARAMS)
+AT_STATIC void _DT_ImageTileCopyColorKey(TILED_PARAMS)
 TILED_BODY(PIXEL_KEY_SET, ANY_DST, ANY_SRC, NO_ALPHA, KEY_SETUP)
 
 /* ---- the dispatch tables ---- */
 
 /* 0x00576de8: a depth's same-format column (0 none; 1 is the Set column) */
+#ifdef MAC1010
+static ULong gSpanColumn[40] = {
+    0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 3,
+    3, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0,
+    6
+};
+#else
 static const ULong gSpanColumn[33] = {
     0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 3,
     4, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0,
     6
 };
+#endif
 
 /* 0x00576e6c: seven zero words the exe keeps between the column table and the tables below */
+#ifndef MAC1010
 static const ULong gSpanSpare[7] = { 0 };
+#endif
 
 #define SAME_FORMAT_COLUMNS(none, copy)                                       \
     none, copy, none##_8, none##_15, none##_16, none##_24, none##_32
 
 /* 0x00576e88 .. 0x00576ef8 */
-static const ITSpanRows gRowsCopy[7] = { SAME_FORMAT_COLUMNS(_DT_ImageBlitNoneIgnore, _DT_ImageBlitCopyIgnore) };
-static const ITSpanTiled gTiledCopy[7] = { SAME_FORMAT_COLUMNS(_DT_ImageTileNoneIgnore, _DT_ImageTileCopyIgnore) };
-static const ITSpanScaled gScaledCopy[7] = { SAME_FORMAT_COLUMNS(_DT_ImageScaleNoneIgnore, _DT_ImageScaleCopyIgnore) };
-static const ITSpanRows gRowsMask[7] = { SAME_FORMAT_COLUMNS(_DT_ImageBlitNoneBitmap, _DT_ImageBlitCopyBitmap) };
-static const ITSpanRows gRowsKey[7] = { SAME_FORMAT_COLUMNS(_DT_ImageBlitNoneColorKey, _DT_ImageBlitCopyColorKey) };
+static ITSpanRows gRowsCopy[7] = { SAME_FORMAT_COLUMNS(_DT_ImageBlitNoneIgnore, _DT_ImageBlitCopyIgnore) };
+static ITSpanTiled gTiledCopy[7] = { SAME_FORMAT_COLUMNS(_DT_ImageTileNoneIgnore, _DT_ImageTileCopyIgnore) };
+static ITSpanScaled gScaledCopy[7] = { SAME_FORMAT_COLUMNS(_DT_ImageScaleNoneIgnore, _DT_ImageScaleCopyIgnore) };
+static ITSpanRows gRowsMask[7] = { SAME_FORMAT_COLUMNS(_DT_ImageBlitNoneBitmap, _DT_ImageBlitCopyBitmap) };
+static ITSpanRows gRowsKey[7] = { SAME_FORMAT_COLUMNS(_DT_ImageBlitNoneColorKey, _DT_ImageBlitCopyColorKey) };
 
 /* the column for a source over a destination: its same-format fast path, else 0 */
 #define SPAN_COLUMN(src, dst)                                                   \
@@ -1393,9 +1502,9 @@ static const ITSpanRows gRowsKey[7] = { SAME_FORMAT_COLUMNS(_DT_ImageBlitNoneCol
 
 /* a key colour in the source's own format */
 #define KEY_INTO(v, pix, t)                                                     \
-    v = ((t)->key.green >> (8 - (pix)->bits[2])) << (pix)->shift[2];            \
-    v |= ((t)->key.red >> (8 - (pix)->bits[1])) << (pix)->shift[1];             \
-    v |= ((t)->key.blue >> (8 - (pix)->bits[3])) << (pix)->shift[3];
+    v = ((t)->key.red >> (8 - (pix)->bits[1])) << (pix)->shift[1]               \
+      | ((t)->key.green >> (8 - (pix)->bits[2])) << (pix)->shift[2]             \
+      | ((t)->key.blue >> (8 - (pix)->bits[3])) << (pix)->shift[3];
 
 /* DT_ImageCopy (draw src, through its mask or a transparency, from srcRect into dstRect of
    dst; stretched when the two sizes differ; `copy' carries the source's coverage into the
@@ -1411,9 +1520,15 @@ long DT_ImageCopy(ITImage *dst, const ITRect *dstRect, unsigned char copy, ITIma
     ITRect dr;
     ITRect sr;
     long e;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    ULong height;
+    long dstWidth, dstHeight;
+    ULong width;
+#else
     ULong kind;
     unsigned int dstWidth, dstHeight, srcWidth, srcHeight;
     ULong height, width;
+#endif
     unsigned char *srcColumn;
     ITPixels *maskPixels;
     long err;
@@ -1430,6 +1545,9 @@ long DT_ImageCopy(ITImage *dst, const ITRect *dstRect, unsigned char copy, ITIma
     unsigned char dstLocked;
     unsigned char srcLocked;
     unsigned char *maskRow;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    ULong kind;
+#endif
 
     dstPixels = _DT_ImageGetImage(dst);
     srcPixels = _DT_ImageGetImage(src);
@@ -1483,10 +1601,13 @@ long DT_ImageCopy(ITImage *dst, const ITRect *dstRect, unsigned char copy, ITIma
     kind = kBlitCopy;
 chosen:
 
-    if ((copy && maskPixels != NULL) ||
-        (copy && trans != NULL && trans->mode == kBlitCopy) ||
-        (copy && trans != NULL && trans->mode == kBlitAlpha) ||
-        (copy && trans == NULL && srcPixels->bits[0] != 0))
+    if (copy && maskPixels != NULL)
+        alpha = kAlphaSet;
+    else if (copy && trans != NULL && trans->mode == kBlitCopy)
+        alpha = kAlphaSet;
+    else if (copy && trans != NULL && trans->mode == kBlitAlpha)
+        alpha = kAlphaSet;
+    else if (copy && trans == NULL && srcPixels->bits[0] != 0)
         alpha = kAlphaSet;
     else if (!copy && dstPixels->bits[0] != 0)
         alpha = kAlphaKeep;
@@ -1567,6 +1688,22 @@ chosen:
     }
 
     /* the error terms start mid-pixel, advanced to the clipped first row and column */
+#ifdef MAC1010 /* 1.0.10 spelling */
+    dstHeight = dstRect->bottom - dstRect->top;
+    if (dstHeight != srcRect->bottom - srcRect->top) {
+        yDen = srcRect->bottom - srcRect->top;
+        yErr = (yDen >> 1) + yDen * (dr.top - dstRect->top);
+        yErr %= dstHeight;
+        scaled = 1;
+    }
+    dstWidth = dstRect->right - dstRect->left;
+    if (dstWidth != srcRect->right - srcRect->left) {
+        xDen = srcRect->right - srcRect->left;
+        xErr = (xDen >> 1) + xDen * (dr.left - dstRect->left);
+        xErr %= dstWidth;
+        scaled = 1;
+    }
+#else
     srcHeight = srcRect->bottom - srcRect->top;
     dstHeight = dstRect->bottom - dstRect->top;
     if (dstHeight != srcHeight) {
@@ -1585,6 +1722,7 @@ chosen:
         xErr %= dstWidth;
         scaled = 1;
     }
+#endif
 
     dstRow = (unsigned char *)dstPixels->baseAddr +
              (dr.left - dstPixels->bounds.left) * dstPixels->bytesPerPixel +
@@ -1699,7 +1837,6 @@ long DT_ImageTile(ITImage *dst, const ITRect *dstRect, const ITPoint *origin, un
     long e;
     long phase;
     long column;
-    ULong kind;
     unsigned char *dstRow;
     ITPixels *maskPixels;
     ULong height, width;
@@ -1715,6 +1852,7 @@ long DT_ImageTile(ITImage *dst, const ITRect *dstRect, const ITPoint *origin, un
     unsigned char dstLocked;
     unsigned char srcLocked;
     unsigned char *maskRow;
+    ULong kind;
 
     dstPixels = _DT_ImageGetImage(dst);
     srcPixels = _DT_ImageGetImage(src);
@@ -1758,7 +1896,9 @@ long DT_ImageTile(ITImage *dst, const ITRect *dstRect, const ITPoint *origin, un
     }
 
     /* BUG: the second arm tests trans != NULL and trans == NULL, so `copy' with a transparency never sets alpha */
-    if ((copy && maskPixels != NULL) || (copy && trans != NULL && trans == NULL))
+    if (copy && maskPixels != NULL)
+        alpha = kAlphaSet;
+    else if (copy && trans != NULL && trans == NULL)
         alpha = kAlphaSet;
     else if (!copy && dstPixels->bits[0] != 0)
         alpha = kAlphaKeep;
@@ -1883,10 +2023,13 @@ done:
 #define kFormatArgb8888     0x8888
 #define kFormatRgba4444     0x80004444
 #define kFormatRgba8888     0x80008888
-#define kFormatReversed     0x80000000
+#define kFormatReversed     (long)0x80000000
 #define kImageLocked        -7305
 #define kMinTileSide        128
 
+#ifdef MAC1010
+static
+#endif
 ULong gDT_NextIndexedKey = 0x888a;                     /* 0x00576fc8 next indexed-format key */
 
 /* _DT_PaletteToInverse (the inverse table: every 4-4-4 colour to its nearest palette index). STATE: MATCH
@@ -1958,6 +2101,80 @@ long _DT_ImageCalcFormat(ULong format, unsigned char *flag, unsigned char *bits,
         g = (format >> 4) & 0xf;
         b = format & 0xf;
     }
+#ifdef MAC1010
+    switch (format) {
+    case 8:
+        bytes = 1;
+        bits[0] = 8;
+        bits[1] = 8;
+        bits[2] = 8;
+        bits[3] = 8;
+        shift[0] = 24;
+        shift[1] = 16;
+        shift[2] = 8;
+        shift[3] = 0;
+        break;
+    case 15:
+    case 16:
+        a = format - 15;
+        r = g = b = 5;
+    case kFormatRgb555:
+    case kFormatArgb1555:
+    case kFormatArgb4444:
+        bytes = 2;
+        aShift = r + (rShift = g + (gShift = b + (bShift = 0)));
+        bits[0] = a;
+        bits[1] = r;
+        bits[2] = g;
+        bits[3] = b;
+        shift[0] = aShift;
+        shift[1] = rShift;
+        shift[2] = gShift;
+        shift[3] = bShift;
+        break;
+    case kFormatRgba4444:
+        bytes = 2;
+        rShift = g + (gShift = b + (bShift = a + (aShift = 0)));
+        bits[0] = a;
+        bits[1] = r;
+        bits[2] = g;
+        bits[3] = b;
+        shift[0] = aShift;
+        shift[1] = rShift;
+        shift[2] = gShift;
+        shift[3] = bShift;
+        break;
+    case 24:
+    case 32:
+        a = format - 24;
+        r = g = b = 8;
+    case kFormatRgb888:
+    case kFormatArgb8888:
+        bytes = 4;
+        aShift = r + (rShift = g + (gShift = b + (bShift = 0)));
+        bits[0] = a;
+        bits[1] = r;
+        bits[2] = g;
+        bits[3] = b;
+        shift[0] = aShift;
+        shift[1] = rShift;
+        shift[2] = gShift;
+        shift[3] = bShift;
+        break;
+    case kFormatRgba8888:
+        bytes = 4;
+        rShift = g + (gShift = b + (bShift = a + (aShift = 0)));
+        bits[0] = a;
+        bits[1] = r;
+        bits[2] = g;
+        bits[3] = b;
+        shift[0] = aShift;
+        shift[1] = rShift;
+        shift[2] = gShift;
+        shift[3] = bShift;
+        break;
+    }
+#else
     switch (format) {
     case 8:
         bytes = 1;
@@ -2046,13 +2263,18 @@ long _DT_ImageCalcFormat(ULong format, unsigned char *flag, unsigned char *bits,
         shift[3] = bShift;
         break;
     }
+#endif
     /* BUG: an unknown key leaves bits[] unwritten, so its masks and scales come from
        whatever the caller's buffer held */
     for (i = 0; i < 4; i++) {
         mask[i] = (1 << bits[i]) - 1;
         scale[i] = gDT_Mults[bits[i]];
     }
+#ifdef MAC1010
+    *flag = bytes - 4;
+#else
     *flag = 0;
+#endif
     return bytes;
 }
 
@@ -2065,13 +2287,17 @@ ULong _DT_ImageCalcStamp(const ITPixels *info)
     ULong key;
 
     if (info->depth == kIndexedDepth) {
-        key = gDT_NextIndexedKey;
-        gDT_NextIndexedKey++;
+        return gDT_NextIndexedKey++;
     } else {
-        key = (ULong)info->bits[0] << 12 | (ULong)info->bits[1] << 8 |
-              (ULong)info->bits[2] << 4 | info->bits[3];
+        key = info->bits[0] << 12 | info->bits[1] << 8 |
+              info->bits[2] << 4 | info->bits[3];
+#ifdef MAC1010 /* 1.0.10 real: 0x100d6298 compares shifts 0x26 > 0x27 > 0x28 > 0x25, big-endian */
+        if (info->shift[1] > info->shift[2] && info->shift[2] > info->shift[3] &&
+            info->shift[3] > info->shift[0])
+#else
         if (info->shift[0] > info->shift[3] && info->shift[3] > info->shift[2] &&
             info->shift[2] > info->shift[1])
+#endif
             key |= kFormatReversed;
     }
     return key;
@@ -2120,27 +2346,40 @@ void _DT_SurfaceReplace(ITImage *a, ITImage *b)
     memmove(&savedPixels, pixA, sizeof(savedPixels));
     memmove(&pixA->bytesPerPixel, &pixB->bytesPerPixel, kPixelsState);
     memmove(&pixB->bytesPerPixel, &savedPixels.bytesPerPixel, kPixelsState);
-    portA->dc = portB->dc;
-    pixA->drawDC = (long)portA->dc;
-    portB->dc = savedPort.dc;
-    pixB->drawDC = (long)portB->dc;
+    pixA->drawDC = (long)(portA->dc = portB->dc);
+    pixB->drawDC = (long)(portB->dc = savedPort.dc);
 }
 
 /* DT_ImageResize (re-frame an image and its mask to new bounds: a moved frame of the same size
    is taken as it is, else each is redrawn into a fresh image of its format and the pixel maps
    swapped). STATE: MATCH 100%, exe 133 / obj 133, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004ea528
+#ifdef MAC1010
+/* a new image's GWorld takes the temporary-memory setting of the image it replaces */
+extern unsigned char gDT_TempMem;
+#define kPixelsTempMem 0x80000000
+#define TempMemSave(v)      ((v) = gDT_TempMem)
+#define TempMemLike(p)      (gDT_TempMem = (p)->flags & kPixelsTempMem)
+#define TempMemRestore(v)   (gDT_TempMem = (v))
+#else
+#define TempMemSave(v)
+#define TempMemLike(p)
+#define TempMemRestore(v)
+#endif
+
 long DT_ImageResize(ITImage *image, ITImage *mask, const ITRect *bounds)
 {
     ITPixels *pixels;
     ITPixels *maskPixels;
-    ITImage *fresh;
     ULong format;
     long err;
     long e;
+    unsigned char saved;
+    ITImage *fresh;
 
     pixels = _DT_ImageGetImage(image);
     maskPixels = _DT_ImageGetAlpha(mask);
+    TempMemSave(saved);
     err = 0;
     fresh = NULL;
     if (maskPixels != NULL)
@@ -2150,21 +2389,28 @@ long DT_ImageResize(ITImage *image, ITImage *mask, const ITRect *bounds)
     } else if (bounds->right - bounds->left == pixels->bounds.right - pixels->bounds.left &&
                bounds->bottom - bounds->top == pixels->bounds.bottom - pixels->bounds.top) {
         pixels->bounds = *bounds;
+#ifdef MAC1010
+        if (pixels->dib != NULL)
+            CopyDT_2SysRect(&(*(PixMapHandle)pixels->dib)->bounds, bounds);
+#endif
     } else {
         format = pixels->bytesPerPixel == 1 ? kIndexedDepth :
                  pixels->bits[0] << 12 | pixels->bits[1] << 8 | pixels->bits[2] << 4 |
                  pixels->bits[3];
+        TempMemLike(pixels);
         fresh = DT_ImageCreate(bounds, format, &pixels->palette);
-        if (fresh == NULL)
-            goto nomem;
+        if (fresh == NULL) {
+            err = kOutOfMemory;
+            goto done;
+        }
         DT_ImageCopy(fresh, NULL, 1, image, NULL, NULL, NULL);
         _DT_ImageReplace(image, fresh);
         if (maskPixels != NULL) {
             DT_ImageDispose(fresh);
             fresh = NULL;
+            TempMemLike(maskPixels);
             fresh = DT_ImageCreate(bounds, kIndexedDepth, &gDT_AlphaPalette);
             if (fresh == NULL) {
-nomem:
                 err = kOutOfMemory;
                 goto done;
             }
@@ -2179,6 +2425,7 @@ nomem:
 done:
     if (fresh != NULL)
         DT_ImageDispose(fresh);
+    TempMemRestore(saved);
     return err;
 }
 
@@ -2191,15 +2438,17 @@ long DT_ImagePreflightTile(ITImage *image, ITImage *mask)
     ITPixels *pixels;
     ITPixels *maskPixels;
     long err;
-    ITImage *fresh;
     ITRect bounds;
     ULong format;
     long e;
     long nx;
     long ny;
+    unsigned char saved;
+    ITImage *fresh;
 
     pixels = _DT_ImageGetImage(image);
     maskPixels = _DT_ImageGetAlpha(mask);
+    TempMemSave(saved);
     err = 0;
     fresh = NULL;
     if (pixels->locks != 0) {
@@ -2217,9 +2466,12 @@ long DT_ImagePreflightTile(ITImage *image, ITImage *mask)
         format = pixels->bytesPerPixel == 1 ? kIndexedDepth :
                  pixels->bits[0] << 12 | pixels->bits[1] << 8 | pixels->bits[2] << 4 |
                  pixels->bits[3];
+        TempMemLike(pixels);
         fresh = DT_ImageCreate(&bounds, format, &pixels->palette);
-        if (fresh == NULL)
-            goto nomem;
+        if (fresh == NULL) {
+            err = kOutOfMemory;
+            goto done;
+        }
         e = DT_ImageTile(fresh, NULL, NULL, 0, image, NULL, NULL);
         if (e != 0) {
             err = e;
@@ -2229,9 +2481,9 @@ long DT_ImagePreflightTile(ITImage *image, ITImage *mask)
         if (maskPixels != NULL) {
             DT_ImageDispose(fresh);
             fresh = NULL;
+            TempMemLike(maskPixels);
             fresh = DT_ImageCreate(&bounds, kIndexedDepth, &gDT_AlphaPalette);
             if (fresh == NULL) {
-nomem:
                 err = kOutOfMemory;
                 goto done;
             }
@@ -2246,6 +2498,7 @@ nomem:
 done:
     if (fresh != NULL)
         DT_ImageDispose(fresh);
+    TempMemRestore(saved);
     return err;
 }
 
@@ -2320,12 +2573,12 @@ void DT_ImageSetRawColors(ITImage *image, ITImage *mask, ULong row, const ITColo
     long err;
     long e;
     unsigned char *maskRow;
-    unsigned char locked;
-    ULong width;
     unsigned char *dst;
-    ULong value;
     ULong i;
+    ULong width;
+    unsigned char locked;
     ULong b;
+    ULong value;
 
     pixels = _DT_ImageGetImage(image);
     maskPixels = _DT_ImageGetAlpha(mask);
@@ -2342,6 +2595,18 @@ void DT_ImageSetRawColors(ITImage *image, ITImage *mask, ULong row, const ITColo
     dst = (unsigned char *)(row * pixels->rowBytes + pixels->baseAddr);
     if (maskPixels != 0)
         maskRow = (unsigned char *)(row * maskPixels->rowBytes + maskPixels->baseAddr);
+#ifdef MAC1010
+    for (i = 0; i < width; i++, dst += pixels->bytesPerPixel) {
+        value = pixels->mask[0] << pixels->shift[0] |
+                (src[i].red >> (8 - pixels->bits[1])) << pixels->shift[1] |
+                (src[i].green >> (8 - pixels->bits[2])) << pixels->shift[2] |
+                (src[i].blue >> (8 - pixels->bits[3])) << pixels->shift[3];
+        for (b = pixels->bytesPerPixel; b != 0; value >>= 8)
+            dst[--b] = value;
+        if (maskRow != 0)
+            maskRow[i] = src[i].alpha;
+    }
+#else
     for (i = 0; i < width; i++, dst += pixels->bytesPerPixel) {
         value = (src[i].green >> (8 - pixels->bits[2])) << pixels->shift[2];
         value |= (src[i].red >> (8 - pixels->bits[1])) << pixels->shift[1] |
@@ -2352,6 +2617,7 @@ void DT_ImageSetRawColors(ITImage *image, ITImage *mask, ULong row, const ITColo
         if (maskRow != 0)
             maskRow[i] = src[i].alpha;
     }
+#endif
     if (locked != 0)
         DT_ImageUnlock(image, mask);
 }

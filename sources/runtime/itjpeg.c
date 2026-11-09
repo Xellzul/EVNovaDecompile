@@ -75,8 +75,8 @@ fill_input_buffer (j_decompress_ptr cinfo)
       ERREXIT(cinfo, JERR_INPUT_EMPTY);
     WARNMS(cinfo, JWRN_JPEG_EOF);
     /* Insert a fake EOI marker */
-    src->buffer[0] = (JOCTET) 0xFF;
-    src->buffer[1] = (JOCTET) JPEG_EOI;
+    src->buffer[0] =  0xFF;
+    src->buffer[1] =  JPEG_EOI;
     nbytes = 2;
   }
   src->pub.next_input_byte = src->buffer;
@@ -101,8 +101,8 @@ skip_input_data (j_decompress_ptr cinfo, long num_bytes)
 
   if (num_bytes > 0) {
     while (num_bytes > (long) src->pub.bytes_in_buffer) {
-      num_bytes -= (long) src->pub.bytes_in_buffer;
-      (void) fill_input_buffer(cinfo);
+      num_bytes -=  src->pub.bytes_in_buffer;
+       fill_input_buffer(cinfo);
     }
     src->pub.next_input_byte += (size_t) num_bytes;
     src->pub.bytes_in_buffer -= (size_t) num_bytes;
@@ -153,8 +153,16 @@ output_message (j_common_ptr cinfo)
 METHODDEF(void)
 emit_message (j_common_ptr cinfo, int msg_level)
 {
-  struct jpeg_error_mgr * err = cinfo->err;
-  boolean show = FALSE;
+  struct jpeg_error_mgr * err;
+  unsigned char show;
+
+#ifdef MAC1010 /* 1.0.10 spelling */
+  show = FALSE;
+  err = cinfo->err;
+#else
+  err = cinfo->err;
+  show = FALSE;
+#endif
 
   if (msg_level < 0 && err->num_warnings == 0)
     show = TRUE;
@@ -173,14 +181,23 @@ format_message (j_common_ptr cinfo, char * buffer)
   long e = 0;
   const char * msgtext = NULL;
   int msg_code = err->msg_code;
+  const char * const * addon;
 
   if (msg_code > 0 && msg_code <= err->last_jpeg_message) {
     msgtext = err->jpeg_message_table[msg_code];
+#ifdef MAC1010 /* 1.0.10 spelling */
+  } else if ((addon = err->addon_message_table) != NULL &&
+	     msg_code >= err->first_addon_message &&
+	     msg_code <= err->last_addon_message) {
+    msgtext = addon[msg_code - err->first_addon_message];
+  }
+#else
   } else if (err->addon_message_table != NULL &&
 	     msg_code >= err->first_addon_message &&
 	     msg_code <= err->last_addon_message) {
     msgtext = err->addon_message_table[msg_code - err->first_addon_message];
   }
+#endif
 
   if (msgtext == NULL) {
     err->msg_parm.i[0] = msg_code;
@@ -226,7 +243,7 @@ jpeg_std_error (struct jpeg_error_mgr * err)
   err->msg_code = 0;
 
   err->jpeg_message_table = jpeg_std_message_table;
-  err->last_jpeg_message = (int) JMSG_LASTMSGCODE - 1;
+  err->last_jpeg_message =  JMSG_LASTMSGCODE - 1;
 
   err->addon_message_table = NULL;
   err->first_addon_message = 0;
@@ -240,7 +257,7 @@ jpeg_std_error (struct jpeg_error_mgr * err)
 // FUNCTION: EVNOVA 0x005145ed
 unsigned char JPEG_CheckFileType(const void *buffer, ULong size)
 {
-    const unsigned char *data = (const unsigned char *)buffer;
+    const unsigned char *data = buffer;
 
     if (size >= kJfifMinSize && data[0] == 0xff && data[2] == 0xff && data[6] == 'J' &&
         data[7] == 'F' && data[8] == 'I' && data[9] == 'F' && data[10] == 0)
@@ -277,7 +294,11 @@ long JPEG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     locked = 0;
     *imageOut = NULL;
     if (maskOut != NULL)
+#ifdef MAC1010      /* 1.0.10 spelling */
+        *maskOut = NULL;
+#else
         *maskOut = mask;
+#endif
     if (trans != NULL)
         DT_AlphaInfoDefaults(trans);
     if (bg != NULL)
@@ -288,8 +309,13 @@ long JPEG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     e = setjmp(jerr.setjmp_buffer);
     if (e != 0) {
         if (e == JERR_OUT_OF_MEMORY) {
+#ifdef MAC1010      /* 1.0.10 spelling */
+            err = kOutOfMemory;
+            goto done;
+#else
             err = e;
             goto nomem;
+#endif
         }
         err = e;
         err = kStreamOverrun;
@@ -298,14 +324,13 @@ long JPEG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     cinfo.err = jpeg_std_error(&jerr.pub);
     jpeg_create_decompress(&cinfo);
 
-    src = (my_src_ptr)MemoryAllocate(sizeof(my_source_mgr));
+    src = MemoryAllocate(sizeof(my_source_mgr));
     if (src == NULL) {
         err = kOutOfMemory;
         goto done;
     }
     MemoryClear(src, sizeof(my_source_mgr));
-    src->buffer = (JOCTET *)MemoryAllocate(INPUT_BUF_SIZE);
-    if (src->buffer == NULL) {
+    if ((src->buffer = MemoryAllocate(INPUT_BUF_SIZE)) == NULL) {
         err = kOutOfMemory;
         goto done;
     }
@@ -338,13 +363,11 @@ long JPEG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
         bg->format = kFormatJpeg;
         bg->gamma = cinfo.output_gamma;
     }
-    pixels = (ITColor *)MemoryAllocate(cinfo.output_width * sizeof(ITColor));
-    if (pixels == NULL) {
+    if ((pixels = MemoryAllocate(cinfo.output_width * sizeof(ITColor))) == NULL) {
         err = kOutOfMemory;
         goto done;
     }
-    scan = (JSAMPROW)MemoryAllocate(cinfo.output_width * cinfo.output_components);
-    if (scan == NULL) {
+    if ((scan = MemoryAllocate(cinfo.output_width * cinfo.output_components)) == NULL) {
 nomem:
         err = kOutOfMemory;
         goto done;

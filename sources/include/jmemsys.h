@@ -32,8 +32,14 @@ typedef struct backing_store_struct {
   JMETHOD(void, close_backing_store, (j_common_ptr cinfo,
 				      backing_store_ptr info));
 
+#ifdef USE_MAC_MEMMGR
+  short temp_file;
+  FSSpec tempSpec;
+  char temp_name[TEMP_NAME_LENGTH];
+#else
   FILE * temp_file;
   char temp_name[TEMP_NAME_LENGTH];
+#endif
 } backing_store_info;
 
 EXTERN(void) jpeg_open_backing_store JPP((j_common_ptr cinfo,

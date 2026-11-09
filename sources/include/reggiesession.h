@@ -8,6 +8,21 @@
 
 #define kSessionNameLen  0x100
 #define kSessionEntry    0x350
+#ifdef MAC1010
+extern unsigned char (*gReggieSharedProc)(NetSocket *s);
+extern unsigned char (*gReggiePacketProc)(NetSocket *s, const char *data, ULong length,
+                               const NetAddress *from);
+extern unsigned char (*gReggiePrejoinProc)(NetSocket *s, const NetAddress *local,
+                                  const NetAddress *from);
+extern unsigned char (*gReggieSendFailedProc)(NetSocket *s, const NetAddress *from);
+extern long (*gNT_MatchedProc)(NetSocket *s, const NetAddress *peer);
+extern long (*gNT_InvitedProc)(NetSocket *s, const NetAddress *peer);
+#define Net16(v)      (v)
+#define WideNet32(v)  (v)
+#else
+#define Net16(v)      Swap16(v)
+#define WideNet32(v)  ((long long)Swap32(v))
+#endif
 #define kEntryKindInsert 1
 #define kEntryKindLookup 2
 #define kEntryKindMessages 3
@@ -27,10 +42,10 @@ typedef struct LookupRecord {
 
 typedef struct SessionEntry {
     struct SessionEntry *next;                   /* +0x000 */
-    long kind;                                   /* +0x004 */
+    ULong kind;                                  /* +0x004 */
     unsigned long slot;                          /* +0x008 */
     unsigned long counter;                       /* +0x00c */
-    long insertMode;                             /* +0x010 */
+    ULong insertMode;                            /* +0x010 */
     char idText[kSessionNameLen];                /* +0x014 "%lu/%lu" */
     void *request;                               /* +0x114 */
     unsigned long requestedAt;                   /* +0x118 */
@@ -89,8 +104,8 @@ typedef void (*ReggieProc)(struct SessionContext *ctx, void *ref, unsigned long 
 
 typedef struct SessionContext {
     struct SessionContext *next;                 /* +0x000 */
-    long state;                                  /* +0x004 */
-    long mode;                                   /* +0x008 */
+    ULong state;                                 /* +0x004 */
+    ULong mode;                                  /* +0x008 */
     struct NetSocket *socket;                    /* +0x00c */
     NetAddress server;                           /* +0x010 */
     NetAddress probe;                            /* +0x114 */
@@ -139,9 +154,9 @@ typedef struct GlobalEntry {
 extern GlobalEntry *gVersionList;
 
 extern long ReggieBeginVersionDirect(const char *name);
-extern long _ReggieChannelPacket(SessionContext *ctx, SessionEntry *entry);
-extern long ReggieChannelOpen(void *ref, unsigned long *slot);
-extern long ReggieTickle(void *ref);
+AT_STATIC long _ReggieChannelPacket(SessionContext *ctx, SessionEntry *entry);
+AT_STATIC long ReggieChannelOpen(void *ref, unsigned long *slot);
+AT_STATIC long ReggieTickle(void *ref);
 
 /* the named entry whose folded name is NAME's */
 static inline SessionEntry *FindNamed(SessionContext *ctx, const char *name)

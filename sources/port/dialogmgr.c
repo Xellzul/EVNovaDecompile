@@ -4,7 +4,9 @@
 // `-opt ...,nolifetimes' because file-wide it breaks PopUpListSelect and nv_NewDialog.
 /* dialogmgr.c -- the port's Dialog, Control and List Manager (win 0x004cea90..0x004d2950, in exe order). Notes: Research/notes/dialogmgr.md */
 #include "burgerplat.h"
+#ifndef MACBUILD
 #include "win32.h"
+#endif
 #include <stddef.h>
 #include <string.h>   /* strcpy 0x004d6010, strlen 0x004eedb0 */
 #include <stdio.h>
@@ -17,7 +19,10 @@
 #include "sound.h"
 #include "dialogs.h"
 #include "prototypes.h"
+#include "cefix.h"
+#include "endianswap.h"
 
+#ifndef MACBUILD
 /* A control points back at the dialog that owns it so that changing a value
    can mark the dialog dirty. */
 
@@ -153,25 +158,7 @@ static const RGBColor bevelGray2 = { 35000, 35000, 35000 };
 static const RGBColor bevelGray3 = { 25000, 25000, 25000 };
 static const RGBColor bevelGray4 = { 15000, 15000, 15000 };
 
-extern "C" {
-
-static __inline short SwapEndianShort(const unsigned short *p)
-{
-    register unsigned short t;
-
-    t = *p;
-    asm { ror t, 8 }
-    return t;
-}
-
-static __inline long SwapEndianLong(const unsigned long *p)
-{
-    register unsigned long t;
-
-    t = *p;
-    asm { bswap t }
-    return t;
-}
+EXTERN_C_BEGIN
 
 /* A CNTL resource, big-endian as it comes off the rez file. Only min, procID
    and the title survive; bounds/value/max are swapped and dropped. */
@@ -385,7 +372,7 @@ void LoadMenuListItem(ControlRecord *rec, long menuID, unsigned char *promptTitl
             rh = GetIndResource(resType, (i + 1));
             if (rh != NULL) {
                 GetResInfo(rh, &id, &type, name);
-                if ((int)name[1] != '.') {
+                if (name[1] != '.') {
                     slot = list->count++;
                     line = list->item[slot].text;
                     PStr2CStr(line, name);
@@ -413,7 +400,7 @@ void LoadControlResource(ControlRecord *rec, unsigned long resID)
     h = GetResource(kCNTLType, resID);
     if (h == NULL)
         return;
-    LockAHandle((Handle)h);
+    LockAHandle(h);
     t = (CntlTemplate *)*h;
     SwapEndianShort((unsigned short *)&t->bounds.top);
     SwapEndianShort((unsigned short *)&t->bounds.left);
@@ -561,6 +548,9 @@ void ParseDITL(DialogPtr dlg, unsigned char *p)
             p += 1;
         }
 
+#ifdef CEFIX /* F12.86 */
+        CE_ScaleRect(&box);
+#endif
         switch (type) {
         case 0:
             item = nv_AppendDialogItem(0, 0, 0, 1, &box, NULL, 0, dlg);
@@ -742,14 +732,18 @@ DialogPtr GetNewDialog(short dlogID, void *updateProc, void *eventProc)
     dlg->needsUpdate = 1;
     dlg->visible = 1;
     dlogRes = GetResource(kDLOGType, dlogID);
-    LockAHandle((Handle)dlogRes);
+    LockAHandle(dlogRes);
+#ifdef CEFIX /* F12.87 */
+    ditlID = CE_SetDialogTemplateBounds(dlg, (const unsigned short *)*dlogRes);
+#else
     ditlID = nv_SetDialogTemplateBounds(dlg,
                                         (const unsigned short *)*dlogRes);
+#endif
     ditlRes = GetResource(kDITLType, ditlID);
-    LockAHandle((Handle)ditlRes);
+    LockAHandle(ditlRes);
     ParseDITL(dlg, (unsigned char *)*ditlRes);
-    ReleaseResource((Handle)ditlRes);
-    ReleaseResource((Handle)dlogRes);
+    ReleaseResource(ditlRes);
+    ReleaseResource(dlogRes);
     dlg->portRect.top = dlg->bounds.top;
     dlg->portRect.left = dlg->bounds.left;
     dlg->portRect.bottom = dlg->bounds.bottom;
@@ -996,13 +990,22 @@ void SelectDialogItemText(DialogPtr dlg, long item, long start, long end)
     }
 }
 
+#endif
+
 /* GetDialogPortRect. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cfd30
 Rect *GetDialogPortRect(DialogPtr dlg)
 {
+#ifdef MACBUILD
+    GetWindowBounds(GetDialogWindow(dlg), kWindowContentRgn, &gPortRect);
+    OffsetRect(&gPortRect, -gPortRect.left, -gPortRect.top);
+    return &gPortRect;
+#else
     return &dlg->portRect;
+#endif
 }
 
+#ifndef MACBUILD
 /* SetControlValue. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cfd40
 void SetControlValue(ControlPtr ctl, long value)
@@ -1065,7 +1068,9 @@ void InvalDialogRect(DialogPtr dlg, Rect *box)
 // FUNCTION: EVNOVA 0x004cfdd0
 void ModalDialog(void *filterProc, short *itemHitPtr)
 {
+#ifndef MACBUILD
     extern int PtInRect(long h, long v, Rect *r);
+#endif
     char handled;
     long mods;
     unsigned long saved;    /* the tick rate, then the eventProc's itemHit save: one register */
@@ -1447,7 +1452,7 @@ void EditTextKey(ControlRecord *rec, long key, long mods)
     long len;
     long pos;
 
-    GetControlText((ControlPtr)rec, buf);
+    GetControlText(rec, buf);
     len = strlen(buf);
     switch (key) {
     case ASCII_UPARROW:
@@ -1476,7 +1481,7 @@ void EditTextKey(ControlRecord *rec, long key, long mods)
         if (rec->maxValue != rec->minValue) {
             memmove(buf + rec->minValue, buf + rec->maxValue,
                     len - rec->maxValue + 1);
-            SetControlTextKeepSelection((ControlPtr)rec, buf);
+            SetControlTextKeepSelection(rec, buf);
             rec->maxValue = rec->minValue;
         } else if (rec->minValue > 0) {
             if (rec->minValue > len)
@@ -1484,13 +1489,13 @@ void EditTextKey(ControlRecord *rec, long key, long mods)
             if (rec->minValue == len) {
                 len -= 1;
                 buf[len] = 0;
-                SetControlTextKeepSelection((ControlPtr)rec, buf);
+                SetControlTextKeepSelection(rec, buf);
             } else {
                 strcpy(prefix, buf);
                 pos = rec->minValue - 1;
                 prefix[pos] = 0;
                 sprintf(dest, "%s%s", prefix, buf + rec->minValue);
-                SetControlTextKeepSelection((ControlPtr)rec, dest);
+                SetControlTextKeepSelection(rec, dest);
             }
             rec->minValue -= 1;
             rec->maxValue = rec->minValue;
@@ -1500,7 +1505,7 @@ void EditTextKey(ControlRecord *rec, long key, long mods)
         if (rec->maxValue != rec->minValue) {
             memmove(buf + rec->minValue, buf + rec->maxValue,
                     len - rec->maxValue + 1);
-            SetControlTextKeepSelection((ControlPtr)rec, buf);
+            SetControlTextKeepSelection(rec, buf);
             rec->maxValue = rec->minValue;
         } else if (rec->minValue < len) {
             if (rec->minValue < 0)
@@ -1508,12 +1513,12 @@ void EditTextKey(ControlRecord *rec, long key, long mods)
             if (rec->minValue == len - 1) {
                 len -= 1;
                 buf[len] = 0;
-                SetControlTextKeepSelection((ControlPtr)rec, buf);
+                SetControlTextKeepSelection(rec, buf);
             } else {
                 strcpy(prefix2, buf);
                 prefix2[rec->minValue] = 0;
                 sprintf(dest2, "%s%s", prefix2, buf + (rec->minValue + 1));
-                SetControlTextKeepSelection((ControlPtr)rec, dest2);
+                SetControlTextKeepSelection(rec, dest2);
             }
             rec->maxValue = rec->minValue;
         }
@@ -1530,15 +1535,15 @@ void EditTextKey(ControlRecord *rec, long key, long mods)
         }
         if (rec->minValue == 0) {
             sprintf(dest3, "%c%s", key, buf);
-            SetControlTextKeepSelection((ControlPtr)rec, dest3);
+            SetControlTextKeepSelection(rec, dest3);
         } else if (rec->minValue <= len) {
             strcpy(prefix3, buf);
             prefix3[rec->minValue] = 0;
             sprintf(dest3, "%s%c%s", prefix3, key, buf + rec->minValue);
-            SetControlTextKeepSelection((ControlPtr)rec, dest3);
+            SetControlTextKeepSelection(rec, dest3);
         } else {
             sprintf(dest3, "%s%c", buf, key);
-            SetControlTextKeepSelection((ControlPtr)rec, dest3);
+            SetControlTextKeepSelection(rec, dest3);
         }
         rec->minValue += 1;
         rec->maxValue = rec->minValue;
@@ -1879,7 +1884,7 @@ void DrawDialog(DialogPtr dlg)
 
         CopyBits(GetGWCPixMap((GWorldContainer *)dlg),
                  GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
-                 (Rect *)&dlg->portRect, &dlg->bounds, 0, 0);
+                 &dlg->portRect, &dlg->bounds, 0, 0);
         SetPort(savedPort);
         ScreenEndScene();
     }
@@ -1899,14 +1904,14 @@ void nv_UpdateDialogWindow(int all)
             if (dlg->visible != 0)
                 CopyBits(GetGWCPixMap((GWorldContainer *)dlg),
                          GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
-                         (Rect *)&dlg->portRect, &dlg->bounds, 0, 0);
+                         &dlg->portRect, &dlg->bounds, 0, 0);
         }
     } else {
         cur = gCurDialog;
         if (cur->visible != 0)
             CopyBits(GetGWCPixMap((GWorldContainer *)cur),
                      GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
-                     (Rect *)&cur->portRect, &cur->bounds, 0, 0);
+                     &cur->portRect, &cur->bounds, 0, 0);
     }
     ScreenEndScene();
 }
@@ -2331,12 +2336,14 @@ long __stdcall KeyboardHookProc(int code, unsigned long wParam, long lParam)
     long *key;
 
     key = (long *)lParam;
+#ifndef CEFIX /* F27.01 */
     if (code == HC_ACTION) {
         if (*key == VK_LWIN)
             return 1;
         if (*key == VK_RWIN)
             return 1;
     }
+#endif
     return CallNextHookEx(gKeyboardHook, code, wParam, lParam);
 }
 
@@ -2363,7 +2370,7 @@ long __stdcall WinGameWndProc(void *hwnd, unsigned long msg,
         if (Win95ApplsActive != 0)
             RT3_Idle();
         if (Win95ApplsActive != 0)
-            ResumePlay(0);
+            SwitchedIn(0);
         else
             SwitchedOut(0);
         break;
@@ -2497,7 +2504,11 @@ void CreateGameWindow(void *hInstance, long nCmdShow)
 
     FastMemSet(&wc, 0, sizeof(wc));
     wc.style = CS_OWNDC | CS_DBLCLKS;
+#ifdef CEFIX /* F05.01 */
+    wc.lpfnWndProc = CE_WndProc;
+#else
     wc.lpfnWndProc = WinGameWndProc;
+#endif
     wc.hInstance = hInstance;
     wc.lpszClassName = "WinGameClass";
     classAtom = RegisterClassA(&wc);
@@ -2522,4 +2533,5 @@ void CreateGameWindow(void *hInstance, long nCmdShow)
         gKeyboardHook = SetWindowsHookExA(WH_KEYBOARD_LL, KeyboardHookProc, hInstance, 0);
 }
 
-}
+EXTERN_C_END
+#endif

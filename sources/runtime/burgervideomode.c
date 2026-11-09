@@ -931,19 +931,13 @@ void VideoOSGammaDestroy(void)
     }
 }
 
-typedef struct GammaTable_t {
-    float Red[256];
-    float Green[256];
-    float Blue[256];
-} GammaTable_t;
-
 #define kGammaMax 0xffff
 
 static inline unsigned short GammaToWord(float f)
 {
     int v;
 
-    v = (int)(f * (float)kGammaMax);
+    v = (f * kGammaMax);
     if (v < 0)
         v = 0;
     if (v >= 0x10000)

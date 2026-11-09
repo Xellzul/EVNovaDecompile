@@ -331,7 +331,7 @@ void PrefsGetString(PrefsNode *group, const char *key, const char *dflt,
     if (outSize != 0) {
         if (dflt != 0) {
             len = strlen(dflt);
-            if (len >= (ULong)outSize)
+            if (len >= outSize)
                 len = outSize - 1;
             memcpy(out, dflt, len);
         } else {
@@ -373,7 +373,7 @@ void PrefFileSectionPutFloat(PrefsNode *group, const char *key, float value)
     char text[64];
     PrefsNode *node;
 
-    sprintf(text, "%g", (double)value);
+    sprintf(text, "%g", value);
     node = PrefsFindEntry(group, key);
     if (node != 0) {
         DeallocAPointer(node->ValueText);

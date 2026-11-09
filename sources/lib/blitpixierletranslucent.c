@@ -9,11 +9,12 @@
 /* BlitPixieRLETranslucent (mac _BlitPixieRLETranslucent). STATE: MATCH, exe 134 / obj 134.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00472900
+// MAC: _BlitPixieRLETranslucent i386 0x000c1568 ppc 0x000cd4fc
 void BlitPixieRLETranslucent(unsigned char *rleTokens, unsigned char *dstPixel,
         long dstRowBytes)
 {
-    unsigned char *rowStart;
     unsigned long token, opcode, count;
+    unsigned char *rowStart;
     unsigned long redScale, greenScale, blueScale;
 
     alpha = gSWCurrentSpriteBeingDrawn->translucency;
@@ -22,8 +23,12 @@ void BlitPixieRLETranslucent(unsigned char *rleTokens, unsigned char *dstPixel,
     scaleB = gSWCurrentSpriteBeingDrawn->tintBlue;
 
     biasColor = gSWCurrentSpriteBeingDrawn->tintColor;
+#ifdef MACBUILD
+    biasColor = (biasColor & 0xffff) | (biasColor << 16);
+#else
     biasColor = ((biasColor << 16) & 0xffff0000) |
             (biasColor & 0xffff);
+#endif
 
     overBias = 32 - gSWCurrentSpriteBeingDrawn->tintMode;
 
@@ -64,7 +69,11 @@ void BlitPixieRLETranslucent(unsigned char *rleTokens, unsigned char *dstPixel,
         case 2:
             BlitPixieTranslucentCopy(dstPixel, rleTokens, count);
             rleTokens += count;
+#if defined(MACBUILD) && V111
+            (long)rleTokens += (-(long)rleTokens) & 3;
+#else
             rleTokens += (-(long)rleTokens) & 3;
+#endif
             dstPixel += count;
             break;
 

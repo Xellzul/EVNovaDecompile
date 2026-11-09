@@ -21,6 +21,7 @@
 #include "render.h"
 #include "ships.h"
 #include "burger.h"
+#include "cefix.h"
 
 #define kBarDlogID          0x3fd   /* DLOG 1021, with portrait */
 #define kPlainBarDlogID     0x3f5   /* DLOG 1013 */
@@ -29,35 +30,56 @@
 #define kBarVenue           1
 #define kBrokeStrIndex      0x169
 
-PicHandle gDlg1014Pict;
-PicHandle barPortraitPict;
-PicHandle barDialogPict;
-PicHandle raceDialogPict;
+PicHandle newsPic;
+PicHandle barPic;
+PicHandle barBackgroundPic;
+PicHandle raceBackgroundPic;
 PicHandle raceButtonPic[4][4];
 DialogPtr barDialog;
 DialogPtr newsDialog;
 DialogPtr raceDialog;
-char barDialogText[2048];
+char barDescText[2048];
 char newsString[2048];
 char sponsorString[256];
+#ifndef MACBUILD
 unsigned char DAT_007d179c[8];
+#endif
 short racePick;
 short raceWinner;
 short lastRaceWinner;
 short raceCount;
+#ifndef MACBUILD
 unsigned char DAT_007d17ac[8];
+#endif
 long raceBetAmount;
 
-extern "C" {
+EXTERN_C_BEGIN
+
+#ifdef MACBUILD
+static inline void LicenseParity(void)
+{
+    short parity;
+    unsigned long code;
+
+    code = fakeLicenseCode;
+    parity = 0;
+    code ^= (fakeLicenseCode >> 32);
+    while (code != 0) {
+        code &= code - 1;
+        parity = 1 - parity;
+    }
+}
+#endif
 
 /* DoBarDialog (mac _DoBarDialog). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047c8e0
+// MAC: _DoBarDialog i386 0x00048ef5 ppc 0x00051898
 void DoBarDialog(void)
 {
-    char done;
     short itemHit;
     short savedStellar;
     short savedRoute;
+    Boolean done;
     short i;
     short shown;
 
@@ -65,7 +87,7 @@ void DoBarDialog(void)
     savedStellar = shipData->targetStellar;
     savedRoute = shipData->navTargetKind;
     RandomizeNewsDialog();
-    missionListVenue = 1;
+    missionsOutside = 1;
     offeringFromShip = 0;
     if (dockedPortMissions[1][0] == -1)
         nextPortMission = -1;
@@ -73,57 +95,60 @@ void DoBarDialog(void)
         nextPortMission = 0;
     missionOfferTime = ReadTick() + 0xf;
     lastRaceWinner = -1;
-    strncpy(barDialogText, "", 3);
-    LoadDescription(barDialogText, shipData->targetStellar + 10000);
-    barPortraitPict = NULL;
+    strncpy(barDescText, "", 3);
+    LoadDescription(barDescText, shipData->targetStellar + 10000);
+    barPic = NULL;
     if (descResourcePictId >= kFirstResourceID)
-        barPortraitPict = GetPicture(descResourcePictId);
+        barPic = GetPicture(descResourcePictId);
     barDialog = NULL;
-    if (barPortraitPict != NULL)
-        barDialog = GetNewDialog(kBarDlogID, UpdateBarDialog, BarDialogEvent);
+    if (barPic != NULL)
+        barDialog = GetNewDialog(kBarDlogID, BarDialogUpdate, BarFilter);
     else
-        barDialog = GetNewDialog(kPlainBarDlogID, UpdateBarDialog,
-                                 BarDialogEvent);
+        barDialog = GetNewDialog(kPlainBarDlogID, BarDialogUpdate,
+                                 BarFilter);
     if (barDialog == NULL)
         return;
-    if (barPortraitPict != NULL)
-        barDialogPict = GetPicture(kBarPictID);
+    if (barPic != NULL)
+        barBackgroundPic = GetPicture(kBarPictID);
     else
-        barDialogPict = GetPicture(kPlainBarPictID);
+        barBackgroundPic = GetPicture(kPlainBarPictID);
     CenterWindow(FrontWindow(barDialog), FrontWindow(portDialog));
     ShowWindowNoFlash(FrontWindow(barDialog));
     FlushEvents(everyEvent - diskMask, 0);
     SetDialogGWorld(barDialog);
     RedrawDialog(barDialog);
-    UpdateBarDialog();
-    FrontWindow(barDialog);
-    FrontWindow(barDialog);
+    BarDialogUpdate();
+    SelectWindow(FrontWindow(barDialog));
+    BringToFront(FrontWindow(barDialog));
     do {
         if (gQuit)
             done = 1;
-        RunModalDialog(barDialog, BarDialogEvent, &itemHit, 0);
+        MyModalDialog(barDialog, BarFilter, &itemHit, 0);
         if (itemHit == 1)
             done = 1;
         if (itemHit == 2) {
             if (shipData->credits > 0) {
                 DoRaceDialog();
             } else {
-                strcpy(gTextShowString, "");
-                AppendIndString(gTextShowString, kGameStrList,
+                strcpy(textShowString, "");
+                StrcatIndCString(textShowString, kGameStrList,
                                 kBrokeStrIndex);
                 ShowTextDialog(0, 0, 0);
+#ifdef MACBUILD
+                RefreshSAT();
+#endif
             }
-            UpdateStellarDialog();
+            PortDialogUpdate();
             SetDialogGWorld(barDialog);
-            UpdateBarDialog();
+            BarDialogUpdate();
         }
         if (itemHit == 3) {
             SetDialogGWorld(barDialog);
             DrawBarButtons(-1);
-            ShowDlg1014();
-            UpdateStellarDialog();
+            DoNewsDialog();
+            PortDialogUpdate();
             SetDialogGWorld(barDialog);
-            UpdateBarDialog();
+            BarDialogUpdate();
         }
         if (itemHit == 5) {
             if (CanHireEscorts()) {
@@ -133,15 +158,21 @@ void DoBarDialog(void)
                 DoShipyardDialog();
                 ShipStatsToSystemInfo();
                 DrawStatusCargo();
+#ifdef MACBUILD
+                PortDialogUpdate();
+                SetDialogGWorld(barDialog);
+                BarDialogUpdate();
+#else
                 RedrawDialogs(1);
+#endif
             }
         }
         if (itemHit == 6) {
             if (OfferMissionFromPort(kBarVenue)) {
                 SetDialogGWorld(portDialog);
-                UpdateStellarDialog();
+                PortDialogUpdate();
                 SetDialogGWorld(barDialog);
-                UpdateBarDialog();
+                BarDialogUpdate();
             }
         }
         if (itemHit == 8) {
@@ -176,16 +207,19 @@ void DoBarDialog(void)
             }
         }
     } while (done == 0);
-    if (barDialogPict != NULL) {
-        QDReleaseResource(barDialogPict);
-        barDialogPict = NULL;
+    if (barBackgroundPic != NULL) {
+        QDReleaseResource(barBackgroundPic);
+        barBackgroundPic = NULL;
     }
-    if (barPortraitPict != NULL) {
-        QDReleaseResource(barPortraitPict);
-        barPortraitPict = NULL;
+    if (barPic != NULL) {
+        QDReleaseResource(barPic);
+        barPic = NULL;
     }
     DisposeDialogNoFlash(barDialog);
     barDialog = NULL;
+#ifdef MACBUILD
+    RefreshSAT();
+#endif
     ResetMissionOfferVenue();
 }
 
@@ -194,13 +228,6 @@ void DoBarDialog(void)
 
 /* the oops record, this file's own copy; the disaster handler models the same
    0x210-byte record for the fields it needs */
-
-/* The porters' no-op window stubs. The mac twin calls SelectWindow and
-   BringToFront here and the win exe emits neither call, but it DOES still
-   evaluate each one's argument, so they cannot have been deleted from the
-   source -- only expanded to nothing. */
-#define SelectWindow(w)  ((void)(w))
-#define BringToFront(w)  ((void)(w))
 
 #define kSponsorStrList      0x1fa4  /* STR# 8100, the sponsor lines */
 #define kFillerNewsStrList   0x1fa5  /* STR# 8101, used when nothing qualifies */
@@ -239,14 +266,19 @@ void DoBarDialog(void)
  * this was a key that acts like a click.
  */
 
-/* BarDialogEvent. STATE: MATCH, byte-identical. OPEN: none */
+/* BarFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047cdb0
-char BarDialogEvent(long unused, EventRecord *ev, short *itemHit)
+// MAC: _BarFilter i386 0x00047a4b ppc 0x000503e8
+Boolean BarFilter(long unused, EventRecord *ev, short *itemHit)
 {
     Point where;
     short button;
-    int c;
-    int key;
+#if V111
+    char key;
+#else
+    EventChar c;
+    EventChar key;
+#endif
 
     if (absquatulateStr[0] != 0) {
         ev->what = kMouseDown;
@@ -270,8 +302,30 @@ char BarDialogEvent(long unused, EventRecord *ev, short *itemHit)
             *itemHit = 10;
             return 1;
         }
-        c = ev->message & kCharCodeMask;
-        if (c == kReturnChar || c == kEscapeChar) {
+#if V111
+        key = (ev->message & kKeyCodeMask) >> 8;
+        if (key == kReturnKeyCode || key == kEnterKeyCode || key == kEscapeKeyCode) {
+            *itemHit = 1;
+            return 1;
+        }
+        if (key == kGKeyCode || key == kRKeyCode) {
+            ev->what = kMouseDown;
+            *itemHit = 2;
+            return 1;
+        }
+        if (key == kWKeyCode || key == kNKeyCode) {
+            ev->what = kMouseDown;
+            *itemHit = 3;
+            return 1;
+        }
+        if (key == kHKeyCode || key == kEKeyCode) {
+            ev->what = kMouseDown;
+            *itemHit = 5;
+            return 1;
+        }
+#else
+        c = EventCharOf(ev);
+        if (IsReturnChar(c) || c == kEscapeChar) {
             *itemHit = 1;
             return 1;
         }
@@ -291,11 +345,14 @@ char BarDialogEvent(long unused, EventRecord *ev, short *itemHit)
             *itemHit = 5;
             return 1;
         }
+#endif
     }
     if ((int)ev->what == kMouseDown) {
-        where.v = ev->where.v;
-        where.h = ev->where.h;
-        UpdateBarDialog();
+        where = ev->where;
+#ifdef MACBUILD
+        GlobalToLocal(&where);
+#endif
+        BarDialogUpdate();
         button = TrackBarButtons(where);
         if (button == 0) {
             *itemHit = 1;
@@ -322,88 +379,104 @@ char BarDialogEvent(long unused, EventRecord *ev, short *itemHit)
         return 1;
     }
     if ((int)ev->what == kUpdateEvt) {
-        UpdateBarDialog();
+#ifdef MACBUILD
+        BeginUpdate(GetDialogWindow(barDialog));
+        BarDialogUpdate();
+        EndUpdate(GetDialogWindow(barDialog));
+#else
+        BarDialogUpdate();
+#endif
         return 0;
     }
     return 0;
 }
 
-/* UpdateBarDialog. STATE: MATCH, byte-identical. OPEN: none */
+/* BarDialogUpdate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047cfe0
-void UpdateBarDialog(void)
+// MAC: _BarDialogUpdate i386 0x000477e8 ppc 0x0005020c
+void BarDialogUpdate(void)
 {
     Rect box;
     short itemType;
-    void *item;
+    Handle item;
 
     SetGWorldContainer(&loadPort);
     TextFont(smallTextFont);
     TextSize(smallTextSize);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetDialogPortRect(barDialog));
-    if (barDialogPict != NULL)
-        DrawPicHandle(barDialogPict, GetDialogPortRect(barDialog));
-    if (barPortraitPict != NULL) {
-        GetDialogItem(barDialog, 8, &itemType, &item, &box);
-        RGBForeColor(blackColor);
-        DrawPicHandle(barPortraitPict, &box);
+    if (barBackgroundPic != NULL)
+        DrawPicHandle(barBackgroundPic, GetDialogPortRect(barDialog));
+    if (barPic != NULL) {
+        GetDialogItem(barDialog, 8, &itemType, (void **)&item, &box);
+        ForeColor(blackColor);
+        DrawPicHandle(barPic, &box);
     }
-    GetDialogItem(barDialog, 7, &itemType, &item, &box);
-    RGBForeColor(blackColor);
+    GetDialogItem(barDialog, 7, &itemType, (void **)&item, &box);
+    ForeColor(blackColor);
     TextFont(smallTextFont);
     TextSize(smallTextSize);
-    TETextBox(barDialogText, strlen(barDialogText), &box, 0);
+    TETextBox(barDescText, strlen(barDescText), &box, 0);
     InvertRect(&box);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     DrawBarButtons(-1);
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(barDialog);
-    RGBForeColor(blackColor);
-    CopyBits(GetGWCPixMap(&loadPort),
+    ForeColor(blackColor);
+    CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(barDialog)),
              GetDialogPortRect(barDialog), GetDialogPortRect(barDialog), 0, NULL);
+#ifdef MAC1010
+    QDFlushPortBuffer(GetWindowGrafPort(GetDialogWindow(barDialog)), NULL);
+#else
+#if V111
+    QDFlushPortBuffer(GetWindowGrafPort(FrontWindow(barDialog)), NULL);
+#endif
+#endif
 }
 
-/* ShowDlg1014. STATE: MATCH, byte-identical. OPEN: none */
+/* DoNewsDialog. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047d180
-void ShowDlg1014(void)
+// MAC: _DoNewsDialog i386 0x00047f0a ppc 0x000508b8
+void DoNewsDialog(void)
 {
-    short govtPict;
-    char done;
+    Boolean done;
     short pictID;
     short itemHit;
 
     PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
     pictID = kDefaultBackdropPict;
     if (dockedPort->govt != -1) {
-        govtPict = govtData[dockedPort->govt].newsPict;
-        if (govtPict != -1)
-            pictID = govtPict;
+        if (govtData[dockedPort->govt].newsPict != -1)
+            pictID = govtData[dockedPort->govt].newsPict;
     }
-    gDlg1014Pict = GetPicture(pictID);
-    if (gDlg1014Pict == NULL && pictID != kDefaultBackdropPict)
-        gDlg1014Pict = GetPicture(kDefaultBackdropPict);
+    newsPic = GetPicture(pictID);
+    if (newsPic == NULL && pictID != kDefaultBackdropPict)
+        newsPic = GetPicture(kDefaultBackdropPict);
     newsDialog = NULL;
-    newsDialog = GetNewDialog(kDlg1014ID, UpdateDlg1014, Dlg1014EventProc);
+    newsDialog = GetNewDialog(kDlg1014ID, NewsDialogUpdate, NewsDialogFilter);
     if (newsDialog == NULL)
         return;
     CenterWindow(FrontWindow(newsDialog), FrontWindow(barDialog));
     ShowWindowNoFlash(FrontWindow(newsDialog));
     SetDialogGWorld(newsDialog);
     FlushEvents(everyEvent - diskMask, 0);
-    UpdateDlg1014();
-    FrontWindow(newsDialog);
-    FrontWindow(newsDialog);
+    NewsDialogUpdate();
+    SelectWindow(FrontWindow(newsDialog));
+    BringToFront(FrontWindow(newsDialog));
     done = 0;
     do {
         if (gQuit != 0)
             done = 1;
-        RunModalDialog(newsDialog, Dlg1014EventProc, &itemHit, NULL);
+        MyModalDialog(newsDialog, NewsDialogFilter, &itemHit, NULL);
         if (itemHit == 1)
             done = 1;
     } while (done == 0);
-    QDReleaseResource(gDlg1014Pict);
-    gDlg1014Pict = NULL;
+#ifdef MACBUILD
+    HPurge((Handle)newsPic);
+#endif
+    QDReleaseResource(newsPic);
+    newsPic = NULL;
     DisposeDialogNoFlash(newsDialog);
     newsDialog = NULL;
     FlushEvents(1, 0);
@@ -412,66 +485,109 @@ void ShowDlg1014(void)
     FlushEvents(4, 0);
     FlushEvents(5, 0);
     PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
+#ifdef MACBUILD
+    RefreshSAT();
+#endif
 }
 
-/* UpdateDlg1014. STATE: MATCH, byte-identical. OPEN: none */
+/* NewsDialogUpdate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047d370
-void UpdateDlg1014(void)
+// MAC: _NewsDialogUpdate i386 0x00047c57 ppc 0x00050688
+void NewsDialogUpdate(void)
 {
     Rect box;
 
     SetGWorldContainer(&loadPort);
     TextFont(smallTextFont);
     TextSize(smallTextSize);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetDialogPortRect(newsDialog));
-    DrawPicHandle(gDlg1014Pict, GetDialogPortRect(newsDialog));
+    DrawPicHandle(newsPic, GetDialogPortRect(newsDialog));
+#ifdef CEFIX /* F12.40 */
+    SetRect(&box, GetDialogPortRect(newsDialog)->left + CE_Scale(kTextInset),
+            GetDialogPortRect(newsDialog)->top + CE_Scale(kTitleTop),
+            GetDialogPortRect(newsDialog)->right - CE_Scale(kTextInset),
+            GetDialogPortRect(newsDialog)->top + CE_Scale(kTitleBottom));
+#else
     SetRect(&box, GetDialogPortRect(newsDialog)->left + kTextInset,
             GetDialogPortRect(newsDialog)->top + kTitleTop,
             GetDialogPortRect(newsDialog)->right - kTextInset,
             GetDialogPortRect(newsDialog)->top + kTitleBottom);
+#endif
     TETextBox(sponsorString, strlen(sponsorString), &box, 0);
     InvertRect(&box);
+#ifdef CEFIX /* F12.41 */
+    SetRect(&box, GetDialogPortRect(newsDialog)->left + CE_Scale(kTextInset),
+            GetDialogPortRect(newsDialog)->top + CE_Scale(kBodyTop),
+            GetDialogPortRect(newsDialog)->right - CE_Scale(kTextInset),
+            GetDialogPortRect(newsDialog)->bottom - CE_Scale(kBodyMargin));
+#else
     SetRect(&box, GetDialogPortRect(newsDialog)->left + kTextInset,
             GetDialogPortRect(newsDialog)->top + kBodyTop,
             GetDialogPortRect(newsDialog)->right - kTextInset,
             GetDialogPortRect(newsDialog)->bottom - kBodyMargin);
+#endif
     TETextBox(newsString, strlen(newsString), &box, 0);
     InvertRect(&box);
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(newsDialog);
-    RGBForeColor(blackColor);
-    CopyBits(GetGWCPixMap(&loadPort),
+    ForeColor(blackColor);
+    CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(newsDialog)),
              GetDialogPortRect(newsDialog), GetDialogPortRect(newsDialog), 0, NULL);
+#if defined(MACBUILD) || V111
+    QDFlushPortBuffer(GetDialogPort(newsDialog), NULL);
+#endif
 }
 
-/* Dlg1014EventProc. STATE: MATCH, byte-identical. OPEN: none */
+/* NewsDialogFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047d560
-char Dlg1014EventProc(long unused, EventRecord *ev, short *itemHit)
+// MAC: _NewsDialogFilter i386 0x00048160 ppc 0x00050acc
+Boolean NewsDialogFilter(long unused, EventRecord *ev, short *itemHit)
 {
-    short v;
-    short h;
+#if V111
+    char key;
+#endif
+    Point where;
 
     *itemHit = -1;
-    if ((int)ev->what == kKeyDown &&
-        ((ev->message & kCharCodeMask) == kReturnChar ||
-         (ev->message & kCharCodeMask) == kEscapeChar)) {
-        *itemHit = 1;
-        return 1;
-    }
-    if ((int)ev->what == kMouseDown) {
-        v = ev->where.v;
-        h = ev->where.h;
-        SetDialogGWorld(newsDialog);
-        if (PtInRect(h, v, GetDialogPortRect(newsDialog)) != 0) {
+#if V111
+    if ((int)ev->what == kKeyDown) {
+        key = (ev->message & kKeyCodeMask) >> 8;
+        if (key == kReturnKeyCode || key == kEnterKeyCode || key == kEscapeKeyCode) {
             *itemHit = 1;
             return 1;
         }
     }
-    if ((int)ev->what != kUpdateEvt)
+#else
+    if ((int)ev->what == kKeyDown &&
+        (IsReturnChar(EventCharOf(ev)) ||
+         EventCharOf(ev) == kEscapeChar)) {
+        *itemHit = 1;
+        return 1;
+    }
+#endif
+    if ((int)ev->what == kMouseDown) {
+        where = ev->where;
+        SetDialogGWorld(newsDialog);
+#ifdef MACBUILD
+        GlobalToLocal(&where);
+#endif
+        if (PtInRectPoint(where, GetDialogPortRect(newsDialog)) != 0) {
+            *itemHit = 1;
+            return 1;
+        }
+    }
+    if ((int)ev->what == kUpdateEvt) {
+#ifdef MACBUILD
+        BeginUpdate(GetDialogWindow(newsDialog));
+        NewsDialogUpdate();
+        EndUpdate(GetDialogWindow(newsDialog));
+#else
+        NewsDialogUpdate();
+#endif
         return 0;
-    UpdateDlg1014();
+    }
     return 0;
 }
 
@@ -481,16 +597,32 @@ char Dlg1014EventProc(long unused, EventRecord *ev, short *itemHit)
    byte-identical yes, relocregcheck 0 of 91. OPEN: none. The dead licence parity counts in
    `pick'. see notes */
 // FUNCTION: EVNOVA 0x0047d600
+// MAC: _RandomizeNewsDialog i386 0x00048238 ppc 0x00050bd0
 void RandomizeNewsDialog(void)
 {
-    char cronActive[kMaxCrons];
-    char anyActiveCron;
-    char anyGovtNews;
+#ifdef MACBUILD
+    Boolean cronActive[kMaxCrons];
+    short i;
+    short pick;
+    short j;
+    short cronNewsID[kMaxCrons];
+    Str255 line;
+    Str255 tmp;
+    Boolean anyGovtNews;
+    Boolean anyActiveCron;
+    short eligible;
+    short matching;
+
+    LicenseParity();
+#else
+    Boolean cronActive[kMaxCrons];
+    Boolean anyGovtNews;
+    Boolean anyActiveCron;
     short i;
     short cronNewsID[kMaxCrons];
-    Str255 tmp;
     Str255 line;
-    long code;
+    Str255 tmp;
+    unsigned long code;
     short eligible;
     short matching;
     short j;
@@ -500,27 +632,29 @@ void RandomizeNewsDialog(void)
     mem = fakeLicenseCode;
     pick = 0;
     code = mem;
-    code ^= mem >> 32;
+    code ^= (mem >> 32);
     while (code != 0) {
         code &= code - 1;
         pick = 1 - pick;
     }
+#endif
 
     GetRandomIndString((unsigned char *)sponsorString, kSponsorStrList);
-    if (sponsorString[0] != 0) {
+    if ((unsigned char)sponsorString[0] != 0) {
         PtoCstr((unsigned char *)sponsorString);
     } else {
         strcpy(sponsorString, "");
-        AppendIndString(sponsorString, kGameStrList, kStrSponsor);
+        StrcatIndCString(sponsorString, kGameStrList, kStrSponsor);
     }
 
     strcpy(newsString, "");
+    i = 0;
     eligible = 0;
     matching = 0;
     for (i = 0; i < kMaxDisasters; i++) {
         if (disasterData[i].loaded != 0 && disasterData[i].countdown > 1) {
             eligible++;
-            if (shipData[0].targetStellar == disasterData[i].stellarID ||
+            if (disasterData[i].stellarID == shipData[0].targetStellar ||
                 disasterData[i].stellar == -2)
                 matching++;
         }
@@ -530,7 +664,7 @@ void RandomizeNewsDialog(void)
             do {
                 pick = Rand(kMaxDisasters);
             } while (disasterData[pick].loaded == 0 || disasterData[pick].countdown <= 1 ||
-                     (shipData[0].targetStellar != disasterData[pick].stellarID &&
+                     (disasterData[pick].stellarID != shipData[0].targetStellar &&
                       disasterData[pick].stellar != -2));
         } else {
             do {
@@ -540,26 +674,26 @@ void RandomizeNewsDialog(void)
         pstrcpy(line, "\p");
         if (disasterData[pick].stellarID != -1 && disasterData[pick].name[0] != 0) {
             strcpy((char *)line, "");
-            AppendIndString((char *)line, kGameStrList, kStrSponsor);
+            StrcatIndCString((char *)line, kGameStrList, kStrSponsor);
             strcat((char *)line, " ");
             pstrcpy(tmp, disasterData[pick].name);
             PtoCstr(tmp);
             strcat((char *)line, (char *)tmp);
             strcat((char *)line, " ");
-            AppendIndString((char *)line, kGameStrList, kStrDisasterVerb);
+            StrcatIndCString((char *)line, kGameStrList, kStrDisasterVerb);
             strcat((char *)line, " ");
             if (disasterData[pick].amount > 0)
-                AppendIndString((char *)line, kGameStrList, kStrDisasterOn);
+                StrcatIndCString((char *)line, kGameStrList, kStrDisasterOn);
             else
-                AppendIndString((char *)line, kGameStrList, kStrDisasterIn);
+                StrcatIndCString((char *)line, kGameStrList, kStrDisasterIn);
             strcat((char *)line, " ");
-            AppendIndString((char *)line, kGameStrList, kStrDisasterAffects);
+            StrcatIndCString((char *)line, kGameStrList, kStrDisasterAffects);
             strcat((char *)line, " ");
             pstrcpy(tmp, lcCargoName[disasterData[pick].commodity]);
             PtoCstr(tmp);
             strcat((char *)line, (char *)tmp);
             strcat((char *)line, " ");
-            AppendIndString((char *)line, kGameStrList, kStrDisasterAt);
+            StrcatIndCString((char *)line, kGameStrList, kStrDisasterAt);
             strcat((char *)line, " ");
             pstrcpy(tmp, stellarData[disasterData[pick].stellarID].name);
             PtoCstr(tmp);
@@ -575,19 +709,19 @@ void RandomizeNewsDialog(void)
     for (i = 0; i < kMaxCrons; i++) {
         cronNewsID[i] = -2;
         cronActive[i] = 0;
-        if (gCrons[i].active != 0 && gCrons[i].loaded != 0 &&
-            gCrons[i].holdoffLeft <= 0) {
+        if (cronEvent[i].active != 0 && cronEvent[i].loaded != 0 &&
+            cronEvent[i].holdoffLeft <= 0) {
             for (j = 0; j < 4; j++) {
-                if (gCrons[i].govts[j] != -1 &&
-                    GovtAllies(gCrons[i].govts[j],
+                if (cronEvent[i].govts[j] != -1 &&
+                    GovtAllies(cronEvent[i].govts[j],
                                stellarData[shipData[0].targetStellar].govt)
                         != 0) {
-                    cronNewsID[i] = gCrons[i].govtValues[j];
+                    cronNewsID[i] = cronEvent[i].govtValues[j];
                     if (cronNewsID[i] > 0)
                         anyGovtNews = 1;
                 }
             }
-            if (cronNewsID[i] < -1 && gCrons[i].indNewsStr > 0) {
+            if (cronNewsID[i] < -1 && cronEvent[i].indNewsStr > 0) {
                 cronActive[i] = 1;
                 anyActiveCron = 1;
             }
@@ -603,42 +737,44 @@ void RandomizeNewsDialog(void)
             do {
                 pick = Rand(kMaxCrons);
             } while (cronActive[pick] == 0);
-            GetRandomIndString((unsigned char *)newsString, gCrons[pick].indNewsStr);
+            GetRandomIndString((unsigned char *)newsString, cronEvent[pick].indNewsStr);
         }
         PtoCstr((unsigned char *)newsString);
     }
     if (strlen(newsString) == 0) {
         GetRandomIndString((unsigned char *)newsString, kFillerNewsStrList);
-        if (newsString[0] != 0) {
+        if ((unsigned char)newsString[0] != 0) {
             PtoCstr((unsigned char *)newsString);
         } else {
             extern char *strcpy(char *, const char *);
 
             strcpy(newsString, "");
-            AppendIndString(newsString, kGameStrList, kStrNoNews);
+            StrcatIndCString(newsString, kGameStrList, kStrNoNews);
         }
     }
 }
 
 /* DoRaceDialog. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047dc50
+// MAC: _DoRaceDialog i386 0x000489ca ppc 0x00051360
 void DoRaceDialog(void)
 {
     short itemHit;
-    char done;
+    Boolean done;
     short i;
     short j;
     long payout;
+    long credits;
 
     raceDialog = NULL;
-    raceDialog = GetNewDialog(kRaceDialogID, UpdateRaceDialog,
-                              RaceDialogEventProc);
+    raceDialog = GetNewDialog(kRaceDialogID, RaceDialogUpdate,
+                              RaceFilter);
     if (raceDialog == NULL)
         return;
     raceWinner = -1;
     racePick = -1;
     raceCount = 0;
-    raceDialogPict = GetPicture(kRaceBackdropPict);
+    raceBackgroundPic = GetPicture(kRaceBackdropPict);
     for (i = 0; i < kRacerCount; i++) {
         raceButtonPic[i][0] = GetPicture(kRaceRunnerPict + i);
         raceButtonPic[i][1] = GetPicture(kRaceRunnerPict + 10 + i);
@@ -650,32 +786,40 @@ void DoRaceDialog(void)
     FlushEvents(everyEvent - diskMask, 0);
     SetDialogGWorld(raceDialog);
     RedrawDialog(raceDialog);
-    UpdateRaceDialog();
+    RaceDialogUpdate();
     SelectWindow(FrontWindow(raceDialog));
     BringToFront(FrontWindow(raceDialog));
     done = 0;
     do {
         if (gQuit != 0)
             done = 1;
-        RunModalDialog(raceDialog, RaceDialogEventProc, &itemHit, NULL);
+        MyModalDialog(raceDialog, RaceFilter, &itemHit, NULL);
         if (itemHit == 1)
             done = 1;
         if (itemHit == 2) {
-            LoadDescription(gTextShowString, kRaceHelpDesc);
+            LoadDescription(textShowString, kRaceHelpDesc);
             ShowTextDialog(0, 0, 0);
             SetDialogGWorld(raceDialog);
-            UpdateRaceDialog();
+            RaceDialogUpdate();
         }
         if (itemHit >= kRaceFirstButton &&
             itemHit < kRaceFirstButton + kRacerCount) {
+#ifdef MACBUILD
+            if (KeyCheck(kScanOption) != 0)
+#else
             if (KeyCheck(kKeyLeftAlt) != 0 || KeyCheck(kKeyRightAlt) != 0)
-                raceBetAmount = DoQuantityDialog(
-                    shipData[0].credits > kMaxRaceBet ? kMaxRaceBet
-                                                      : shipData[0].credits, 2);
-            else if (shipData[0].credits < kQuickRaceBet)
-                raceBetAmount = shipData[0].credits;
-            else
+#endif
+            {
+                if (shipData[0].credits > kMaxRaceBet)
+                    credits = kMaxRaceBet;
+                else
+                    credits = shipData[0].credits;
+                raceBetAmount = DoQuantityDialog(credits, 2);
+            }
+            else if (shipData[0].credits >= kQuickRaceBet)
                 raceBetAmount = kQuickRaceBet;
+            else
+                raceBetAmount = shipData[0].credits;
             if (raceWinner == -1 && raceBetAmount > 0) {
                 racePick = itemHit - kRaceFirstButton;
                 shipData[0].credits -= raceBetAmount;
@@ -691,21 +835,21 @@ void DoRaceDialog(void)
                 lastRaceWinner = raceWinner;
                 raceCount++;
                 RedrawDialog(raceDialog);
-                LoadDescription(gTextShowString,
+                LoadDescription(textShowString,
                                 (raceWinner + kRaceResultDesc));
                 if (raceWinner == racePick) {
                     payout = raceBetAmount * kRacePayoutOdds;
-                    strcat(gTextShowString, "\r\r");
-                    AppendIndString(gTextShowString, kGameStrList,
+                    strcat(textShowString, "\r\r");
+                    StrcatIndCString(textShowString, kGameStrList,
                                     kRaceWinStrIndex);
-                    strcat(gTextShowString, ":  ");
-                    StrcatCommaNumber(payout, gTextShowString);
-                    strcat(gTextShowString, " ");
+                    strcat(textShowString, ":  ");
+                    StrcatCommaNumber(payout, textShowString);
+                    strcat(textShowString, " ");
                     if (payout == 1)
-                        strcat(gTextShowString, creditCString);
+                        strcat(textShowString, creditCString);
                     else
-                        strcat(gTextShowString, creditsCString);
-                    strcat(gTextShowString, ".");
+                        strcat(textShowString, creditsCString);
+                    strcat(textShowString, ".");
                 }
                 ShowTextDialog(0, 0, 1);
                 if (raceWinner == racePick) {
@@ -719,12 +863,12 @@ void DoRaceDialog(void)
             }
             SetDialogGWorld(raceDialog);
             RedrawDialog(raceDialog);
-            UpdateRaceDialog();
+            RaceDialogUpdate();
         }
     } while (done == 0);
-    if (raceDialogPict != NULL) {
-        QDReleaseResource(raceDialogPict);
-        raceDialogPict = NULL;
+    if (raceBackgroundPic != NULL) {
+        QDReleaseResource(raceBackgroundPic);
+        raceBackgroundPic = NULL;
     }
     for (i = 0; i < kRacerCount; i++) {
         for (j = 0; j <= 3; j++) {
@@ -738,23 +882,40 @@ void DoRaceDialog(void)
     raceDialog = NULL;
 }
 
-/* RaceDialogEventProc. STATE: MATCH, byte-identical. OPEN: none */
+/* RaceFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047e150
-char RaceDialogEventProc(long unused, EventRecord *ev, short *itemHit)
+// MAC: _RaceFilter i386 0x0004890e ppc 0x00051284
+Boolean RaceFilter(long unused, EventRecord *ev, short *itemHit)
 {
+#if V111
+    char key;
+#endif
     Point where;
     short button;
 
+#if V111
+    if ((int)ev->what == kKeyDown) {
+        key = (ev->message & kKeyCodeMask) >> 8;
+        if (key == kReturnKeyCode || key == kEnterKeyCode || key == kEscapeKeyCode) {
+            *itemHit = 1;
+            return 1;
+        }
+        return 0;
+    }
+#else
     if ((int)ev->what == kKeyDown &&
-        ((ev->message & kCharCodeMask) == kReturnChar ||
-         (ev->message & kCharCodeMask) == kEscapeChar)) {
+        (IsReturnChar(EventCharOf(ev)) ||
+         EventCharOf(ev) == kEscapeChar)) {
         *itemHit = 1;
         return 1;
     }
+#endif
     if ((int)ev->what == kMouseDown) {
-        where.v = ev->where.v;
-        where.h = ev->where.h;
-        UpdateRaceDialog();
+        where = ev->where;
+#ifdef MACBUILD
+        GlobalToLocal(&where);
+#endif
+        RaceDialogUpdate();
         button = TrackRaceButtons(where);
         if (button >= 0 && button < kRaceButtonCount) {
             *itemHit = button + 1;
@@ -763,31 +924,46 @@ char RaceDialogEventProc(long unused, EventRecord *ev, short *itemHit)
         *itemHit = -1;
         return 1;
     }
-    if ((int)ev->what != kUpdateEvt)
+    if ((int)ev->what == kUpdateEvt) {
+#ifdef MACBUILD
+        BeginUpdate(GetDialogWindow(raceDialog));
+        RaceDialogUpdate();
+        EndUpdate(GetDialogWindow(raceDialog));
+#else
+        RaceDialogUpdate();
+#endif
         return 0;
-    UpdateRaceDialog();
+    }
     return 0;
 }
 
-/* UpdateRaceDialog. STATE: MATCH, byte-identical. OPEN: none */
+/* RaceDialogUpdate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047e1e0
-void UpdateRaceDialog(void)
+// MAC: _RaceDialogUpdate i386 0x0004879d ppc 0x0005115c
+void RaceDialogUpdate(void)
 {
     SetGWorldContainer(&loadPort);
     TextFont(smallTextFont);
     TextSize(smallTextSize);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetDialogPortRect(raceDialog));
-    if (raceDialogPict != NULL)
-        DrawPicHandle(raceDialogPict, GetDialogPortRect(raceDialog));
-    RGBForeColor(blackColor);
+    if (raceBackgroundPic != NULL)
+        DrawPicHandle(raceBackgroundPic, GetDialogPortRect(raceDialog));
+    ForeColor(blackColor);
     DrawRaceButtons(-1);
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(raceDialog);
-    RGBForeColor(blackColor);
-    CopyBits(GetGWCPixMap(&loadPort),
+    ForeColor(blackColor);
+    CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(raceDialog)),
              GetDialogPortRect(raceDialog), GetDialogPortRect(raceDialog), 0, NULL);
+#ifdef MAC1010
+    QDFlushPortBuffer(GetWindowGrafPort(GetDialogWindow(raceDialog)), NULL);
+#else
+#if V111
+    QDFlushPortBuffer(GetWindowGrafPort(FrontWindow(raceDialog)), NULL);
+#endif
+#endif
 }
 
-}
+EXTERN_C_END

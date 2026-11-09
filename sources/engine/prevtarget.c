@@ -15,20 +15,24 @@
 
 
 
-/* FindPrevTarget. STATE: MATCH, byte-identical. OPEN: none */
+/* FindPrevShipInSystem (mac _FindPrevShipInSystem). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00461f60
-short FindPrevTarget(short cur, short system)
+// MAC: _FindPrevShipInSystem i386 0x0000a1dd ppc 0x0000c834
+short FindPrevShipInSystem(short cur, short system)
 {
-    char isPlayerEscort[kMaxShips];
-    char pad[2];
-    char canUntarget;
-    char canCloaked;
-    char eligible[kMaxShips];
-    char onEscortMission[kMaxShips];
     short i;
-    char wantHostile;
+    Boolean onEscortMission[kMaxShips];
+    Boolean isPlayerEscort[kMaxShips];
+    Boolean eligible[kMaxShips];
+    Boolean wantHostile;
+    Boolean canUntarget;
+    Boolean canCloaked;
 
+#ifdef MACBUILD
+    if (KeyCheck(kScanOption) != 0)
+#else
     if (KeyCheck(kScanLCtrl) != 0 || KeyCheck(kScanRCtrl) != 0)
+#endif
         wantHostile = 1;
     else
         wantHostile = 0;
@@ -36,19 +40,18 @@ short FindPrevTarget(short cur, short system)
     canCloaked = ShipCanTargetCloakedShips(shipData);
 
     i = 1;
-    do {
+    while (i < kMaxShips) {
         onEscortMission[i] = 0;
         isPlayerEscort[i] = 0;
         eligible[i] = 0;
-        if (shipData[i].specialMission == -1) {
-            if (shipData[i].parentShip != -1 && shipData[i].parentShip != 0
+        if (shipData[i].specialMission != -1) {
+            if (currentMissionObjectives[shipData[i].specialMission].active != 0
+                    && currentMissions[shipData[i].specialMission].shipBehav == kMissionModeEscort)
+                onEscortMission[i] = 1;
+        } else if (shipData[i].parentShip != -1 && shipData[i].parentShip != 0
                 && shipData[i].defenseStellar == -1
                 && shipData[shipData[i].parentShip].parentShip == 0)
-                isPlayerEscort[i] = 1;
-        } else if (currentMissionObjectives[shipData[i].specialMission].active != 0
-                   && currentMissions[shipData[i].specialMission].shipBehav == kMissionModeEscort) {
-            onEscortMission[i] = 1;
-        }
+            isPlayerEscort[i] = 1;
         if (onEscortMission[i] == 0) {
             if (shipData[i].parentShip == 0
                 || (isPlayerEscort[i] != 0
@@ -56,7 +59,7 @@ short FindPrevTarget(short cur, short system)
                 eligible[i] = 1;
         }
         i++;
-    } while (i < kMaxShips);
+    }
 
     if (cur != -1) {
         i = (cur - 1);
@@ -66,8 +69,8 @@ short FindPrevTarget(short cur, short system)
                     || (eligible[i] != 0 && wantHostile != 0)) {
                     if (shipData[i].curSystem == system
                         && !AIShipIsEmergingFromHypergate(&shipData[i])
-                        && ((gShipTypes[shipData[i].type].flags2
-                             & kShipFlag2NoTarget) == 0 || canUntarget != 0)
+                        && ((shipClass[shipData[i].type].flags2
+                             & kShipUntargetable) == 0 || canUntarget != 0)
                         && eligible[i] == wantHostile)
                         return i;
                 }
@@ -76,20 +79,51 @@ short FindPrevTarget(short cur, short system)
         }
     } else {
         i = kMaxShips - 1;
-        do {
+        while (i >= 1) {
             if (shipData[i].active != 0 && !IsDying(&shipData[i])) {
                 if (!ShipIsCloaked(&shipData[i]) || canCloaked != 0
                     || (eligible[i] != 0 && wantHostile != 0)) {
                     if (shipData[i].curSystem == system
                         && !AIShipIsEmergingFromHypergate(&shipData[i])
-                        && ((gShipTypes[shipData[i].type].flags2
-                             & kShipFlag2NoTarget) == 0 || canUntarget != 0)
+                        && ((shipClass[shipData[i].type].flags2
+                             & kShipUntargetable) == 0 || canUntarget != 0)
                         && eligible[i] == wantHostile)
                         return i;
                 }
             }
             i--;
-        } while (i >= 1);
+        }
     }
     return cur;
 }
+
+#ifdef MACBUILD
+/* FindNextStellarInSystem (mac _FindNextStellarInSystem, mac-only). STATE: see the mac gate. */
+// MAC: _FindNextStellarInSystem i386 0x000025a2 ppc 0x00002f80
+short FindNextStellarInSystem(short cur, short system)
+{
+    short i;
+
+    if (cur != -1) {
+        for (i = cur + 1; i < kMaxStellars; i++)
+            if (stellarData[i].loaded && system == stellarData[i].system)
+                return i;
+        for (i = 0; i < cur; i++)
+            if (stellarData[i].loaded && system == stellarData[i].system)
+                return i;
+    } else {
+        for (i = 0; i < kMaxStellars; i++)
+            if (stellarData[i].loaded && stellarData[i].system == system)
+                return i;
+    }
+    return cur;
+}
+
+/* DrawCenteredText (mac _DrawCenteredText, mac-only). STATE: see the mac gate. */
+// MAC: _DrawCenteredText i386 0x0000263d ppc 0x00003058
+void DrawCenteredText(StringPtr s, short left, short right, short y)
+{
+    MoveTo((left + right) / 2 - StringWidth(s) / 2, y);
+    DrawString(s);
+}
+#endif

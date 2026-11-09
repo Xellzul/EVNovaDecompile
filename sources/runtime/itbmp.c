@@ -15,7 +15,7 @@
 #define kBmpMinSize         0x0e
 #define kBmpSizeOffset      2
 #define kBmpBitsOffset      10
-#define kBmpWinMinFile      0x36
+#define kBmpWinMinFile      0x36U
 #define kBmpOs2MinFile      0x28
 
 /* DT_BmpUnpack4 (4-bit pixels to one byte each; `odd' starts on a low nibble; answers whether
@@ -26,9 +26,7 @@ unsigned char DT_BmpUnpack4(unsigned char *dst, const unsigned char *src, ULong 
                            unsigned char odd)
 {
     if (odd != 0 && count != 0) {
-        *dst = *src & 0xf;
-        src++;
-        dst++;
+        *dst++ = *src++ & 0xf;
         count--;
     }
     while (count > 1) {
@@ -51,15 +49,25 @@ unsigned char DT_BmpUnpack4(unsigned char *dst, const unsigned char *src, ULong 
    obj 350, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005124d2
 long _BMP_DecodePixels(ITStream *stream, ITImage *image, unsigned char *buf, unsigned char *row,
+#ifdef MAC1010 /* 1.0.10 spelling */
+                  long inWidth, long height, unsigned char rle4, ULong rows)
+#else
                   long width, long height, unsigned char rle4, ULong rows)
+#endif
 {
     long err;
     long e;
     ULong x;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    ULong width;
+#endif
     ULong y;
     ULong count;
     unsigned char odd;
 
+#ifdef MAC1010 /* 1.0.10 spelling */
+    width = inWidth;
+#endif
     err = 0;
     x = 0;
     y = 0;
@@ -124,8 +132,7 @@ long _BMP_DecodePixels(ITStream *stream, ITImage *image, unsigned char *buf, uns
                 err = e;
                 goto done;
             }
-            count = buf[0];
-            count += x;
+            count = x + buf[0];
             if (buf[1] != 0) {
                 do
                     row[x++] = 0;
@@ -189,14 +196,24 @@ done:
 /* BMP_CheckFileType (a "BM" file over 0x36 bytes or a "BA" array of at least 0x28, with a bits
    offset). STATE: MATCH 100%, exe 56 / obj 56, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00512903
+#ifdef MAC1010
+#define FixLE32(v) (v) = ((((v) & 0xff000000) >> 24) | (((v) & 0xff0000) >> 8) | (((v) & 0xff00) << 8) | (((v) & 0xff) << 24))
+#define FixLE16(v) (v) = ((((v) & 0xff00) >> 8) | (((v) & 0xff) << 8))
+#else
+#define FixLE32(v)
+#define FixLE16(v)
+#endif
+
 unsigned char BMP_CheckFileType(const void *buffer, ULong size)
 {
-    const unsigned char *data = (const unsigned char *)buffer;
+    const unsigned char *data = buffer;
     ULong fileSize;
 
     fileSize = 0;
-    if (size > 6)
+    if (size > 6) {
         MemoryCopy(&fileSize, data + kBmpSizeOffset, sizeof(fileSize));
+        FixLE32(fileSize);
+    }
     if (size >= kBmpMinSize && data[0] == 'B' && data[1] == 'M' && fileSize > kBmpWinMinFile &&
         (data[kBmpBitsOffset] != 0 || data[kBmpBitsOffset + 1] != 0 ||
          data[kBmpBitsOffset + 2] != 0 || data[kBmpBitsOffset + 3] != 0))
@@ -212,11 +229,19 @@ unsigned char BMP_CheckFileType(const void *buffer, ULong size)
    BI_BITFIELDS masks, as the loader unpacks them */
 typedef struct BmpFileHeader {
     short type;
-    ULong size;
-    unsigned short reserved1;
-    unsigned short reserved2;
-    ULong offBits;
+    long size;
+    short reserved1;
+    short reserved2;
+    long offBits;
 } BmpFileHeader;
+
+typedef struct BmpArrayHeader {
+    short type;
+    long size;
+    long next;
+    short cx;
+    short cy;
+} BmpArrayHeader;
 
 typedef struct BmpInfoHeader {
     ULong size;
@@ -224,8 +249,8 @@ typedef struct BmpInfoHeader {
     long height;
     short planes;
     short bitCount;
-    ULong compression;
-    ULong sizeImage;
+    long compression;
+    long sizeImage;
     long xPelsPerMeter;
     long yPelsPerMeter;
     long clrUsed;
@@ -238,7 +263,7 @@ typedef struct BmpInfoHeader {
 
 #define kBmpTypeBM          0x424d        /* "BM" */
 #define kBmpTypeBA          0x4241        /* "BA", an OS/2 bitmap array */
-#define kBmpArrayEntry      0x28
+#define kBmpArrayEntry      0x28U
 #define kBmpRGB             0
 #define kBmpRLE8            1
 #define kBmpRLE4            2
@@ -281,13 +306,13 @@ long BMP_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
 {
     long err;
     long e;
-    ULong n;
     ULong y;
     ULong rShift;
     ULong gShift;
     ULong bShift;
     ULong aShift;
     unsigned short rScale;
+    ULong n;
     unsigned short gScale;
     unsigned short bScale;
     unsigned short aScale;
@@ -310,7 +335,7 @@ long BMP_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     ULong bit;
     unsigned char quads[256 * 4];
     unsigned char scratch[kBmpSkipChunk];
-    BmpFileHeader array;
+    BmpArrayHeader array;
     BmpFileHeader file;
     BmpInfoHeader info;
     ITPalette palette;
@@ -355,15 +380,19 @@ long BMP_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                 goto done;
             }
             MemoryCopy(&array, &file, sizeof(array));
+            FixLE32(array.size);
+            FixLE32(array.next);
+            FixLE16(array.cx);
+            FixLE16(array.cy);
             if (array.size != kBmpArrayEntry) {
                 err = kBmpBadHeader;
                 goto done;
             }
-        } else {
-            if (file.type != kBmpTypeBM) {
-                err = kBmpBadHeader;
-                goto done;
-            }
+        } else if (file.type == kBmpTypeBM) {
+            FixLE32(file.size);
+            FixLE16(file.reserved1);
+            FixLE16(file.reserved2);
+            FixLE32(file.offBits);
             if (file.size <= kBmpWinMinFile) {
                 err = kBmpBadHeader;
                 goto done;
@@ -372,11 +401,15 @@ long BMP_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                 err = kBmpBadHeader;
                 goto done;
             }
+        } else {
+            err = kBmpBadHeader;
+            goto done;
         }
     } while (file.type == kBmpTypeBA);
 
     MemoryClear(&info, sizeof(info));
     ReadOrFail(&info.size, 4);
+    FixLE32(info.size);
     size = info.size;
     if (size <= sizeof(info)) {
         ReadOrFail(&info.width, size - 4);
@@ -385,6 +418,20 @@ long BMP_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
         ReadOrFail(&info.width, sizeof(info) - 4);
         consumed = sizeof(info);
     }
+    FixLE32(info.width);
+    FixLE32(info.height);
+    FixLE16(info.planes);
+    FixLE16(info.bitCount);
+    FixLE32(info.compression);
+    FixLE32(info.sizeImage);
+    FixLE32(info.xPelsPerMeter);
+    FixLE32(info.yPelsPerMeter);
+    FixLE32(info.clrUsed);
+    FixLE32(info.clrImportant);
+    FixLE32(info.redMask);
+    FixLE32(info.greenMask);
+    FixLE32(info.blueMask);
+    FixLE32(info.alphaMask);
     if (info.width == 0) {
         err = kStreamOverrun;
         goto done;
@@ -449,8 +496,12 @@ long BMP_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     if (info.bitCount <= 8) {
         if (info.clrUsed == 0)
             info.clrUsed = 1 << info.bitCount;
+#ifdef MAC1010 /* 1.0.10 spelling */
+        ReadOrFail(quads, info.clrUsed * 4);
+#else
         quadSize = 4;
         ReadOrFail(quads, info.clrUsed * quadSize);
+#endif
     } else {
         info.clrUsed = 0;
     }
@@ -465,7 +516,12 @@ long BMP_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     }
 
     palette.count = info.clrUsed;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    /* BUG: the first pass adds quadSize before it is ever set (the compiler folds the 3) */
+    for (n = k = 0; n < palette.count; n++, k += quadSize + 1, quadSize = 3) {
+#else
     for (n = k = 0; n < palette.count; n++, quadSize = 4, k += quadSize) {
+#endif
         palette.entry[n].alpha = 0xff;
         palette.entry[n].red = quads[k + 2];
         palette.entry[n].green = quads[k + 1];
@@ -473,8 +529,7 @@ long BMP_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     }
     DT_SetRect(&bounds, 0, 0, info.width, info.height < 0 ? -info.height : info.height);
     depth = info.bitCount < 8 ? kIndexedDepth : info.bitCount;
-    *imageOut = DT_ImageCreate(&bounds, depth, palette.count != 0 ? &palette : NULL);
-    if (*imageOut == NULL) {
+    if ((*imageOut = DT_ImageCreate(&bounds, depth, palette.count != 0 ? &palette : NULL)) == NULL) {
         err = kOutOfMemory;
         goto done;
     }

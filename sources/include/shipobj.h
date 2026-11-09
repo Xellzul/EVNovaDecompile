@@ -1,4 +1,4 @@
-/* shipobj.h -- the runtime ship object (shipData, stride 0xc948) and the shot record. Notes: Research/notes/shipobj.md */
+/* shipobj.h -- the runtime ship object (shipData, stride 0xc948 on win, 0xc940 on mac) and the shot record. Notes: Research/notes/shipobj.md */
 #include "gametypes.h"
 
 #ifndef SHIPOBJ_H
@@ -9,16 +9,15 @@ extern "C" {
 #endif
 
 typedef struct ShipObj {
-    char *sprite;
-    char *glowSprite;
-    char *lightSprite;
-    char *weapSprite;
-    char *altSprite;
-    char *shieldSprite;
+    struct SpriteRec *sprite;
+    struct SpriteRec *glowSprite;
+    struct SpriteRec *lightSprite;
+    struct SpriteRec *weapSprite;
+    struct SpriteRec *altSprite;
+    struct SpriteRec *shieldSprite;
     FloatPoint pos;
     FloatPoint vel;
-    float formPosX;
-    float formPosY;
+    FloatPoint formPos;
     float thrust;
     float speedLimit;
     float fuel;
@@ -36,7 +35,7 @@ typedef struct ShipObj {
     short desiredHeading;
     short navTargetKind;
     short targetStellar;
-    char unk6e[2];
+    short unk6e;
     short targetShip;
     short selectedWeapon;
     short curSystem;
@@ -54,28 +53,29 @@ typedef struct ShipObj {
     short grudge;
     short govt;
     short parentShip;
-    char unk9C[4];
+    short unk9C;
+    short unk9E;
     long credits;
     unsigned long jumpTick;
     unsigned long fireTick;
     unsigned long hailTick;
-    long ionColor;
+    unsigned long ionColor;
     unsigned long tractorTick;
-    char active;
-    char boarded;
-    char fireQueued;
-    char hired;
-    char hailed;
-    char hasAfterburner;
-    char sellOnLanding;
-    char upgradeOnLanding;
-    char hasEscorts;
-    char hasSwarm;
-    char hasFormation;
-    char canScoop;
-    char escortMayAttack;
-    char unkC5[3];
-    WeapSlot weap[256];
+    Boolean active;
+    Boolean boarded;
+    Boolean fireQueued;
+    Boolean hired;
+    Boolean hailed;
+    Boolean hasAfterburner;
+    Boolean sellOnLanding;
+    Boolean upgradeOnLanding;
+    Boolean hasEscorts;
+    Boolean hasSwarm;
+    Boolean hasFormation;
+    Boolean canScoop;
+    Boolean escortMayAttack;
+    char padC5[3];
+    WeapRecord weap[256];
     short aiState;
     short aiSubstate;
     short aggression;
@@ -106,19 +106,15 @@ typedef struct ShipObj {
     float annoyance;
     float odds;
     float fuelRegenRate;
-    short seesCloaked;
-    short seesCloakedRadar;
+    short seesCloaked[2];
     short decloaksWhenHit;
     short voiceClass;
     short fuelRegenState;
     short jamming[4];
     short formLeader;
-    char *unkC930;
-    long unkC934;
-    unsigned long unkC938;
-    unsigned long unkC93C;
-    long unkC940;
-    long unkC944;
+    unsigned char *licenseName;
+    long long licenseCode;
+    unsigned long licenseCopies;
 } ShipObj;
 
 typedef struct ShotObj {
@@ -145,21 +141,21 @@ typedef struct ShotObj {
     char pad45[3];
 } ShotObj;
 
-typedef struct ShipSprites {
-    struct SpriteRec *sprite;
-    struct SpriteRec *glowSprite;
-    struct SpriteRec *lightSprite;
-    struct SpriteRec *weapSprite;
-    struct SpriteRec *altSprite;
-    struct SpriteRec *shieldSprite;
-} ShipSprites;
-
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern ShipObj *shipData;
 extern short shipSystems[512];
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
+
+/* a step of the licence checks */
+#ifdef MAC1010
+#define LICENSE_STEP_BEGIN do {
+#define LICENSE_STEP_END   } while (0);
+#else
+#define LICENSE_STEP_BEGIN
+#define LICENSE_STEP_END
+#endif
 
 #ifdef __cplusplus
 }

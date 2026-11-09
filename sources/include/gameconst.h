@@ -6,39 +6,33 @@
 
 /* ShipObj.aiState: the high-level goal, named as the game's own debug
    readout (DrawHighGoalAbbreviation) prints it */
-#define kAIStateHiJack          0
-#define kAIStateGoStel          1
-#define kAIStateHypOut          2
-#define kAIStateDefRet          3
-#define kAIStateFightSh         4
-#define kAIStateGoHome          5
-#define kAIStateWait            6
-#define kAIStateInspect         7
-#define kAIStateJumpIn          8
-#define kAIStateRefuel          9
-#define kAIStateFlyPr           0xa
-#define kAIStateHypPr           0xb
-#define kAIStateProtect         0xc
-#define kAIStatePlunder         0xd
-#define kAIStateUnPlunder       0xe
-#define kAIStateRepair          0xf
-#define kAIStateAtkAster        0x10
-#define kAIStateScoop           0x11
-#define kAIStateDestStel        0x12
-#define kAIStateConfused        0x13
-#define kAIStateGoHGate         0x14
-#define kAIStateEmerge          0x15
-#define kAIStateCountWait       0x16
+enum {
+    kAIStateHiJack,
+    kAIStateGoStel,
+    kAIStateHypOut,
+    kAIStateDefRet,
+    kAIStateFightSh,
+    kAIStateGoHome,
+    kAIStateWait,
+    kAIStateInspect,
+    kAIStateJumpIn,
+    kAIStateRefuel,
+    kAIStateFlyPr,
+    kAIStateHypPr,
+    kAIStateProtect,
+    kAIStatePlunder,
+    kAIStateUnPlunder,
+    kAIStateRepair,
+    kAIStateAtkAster,
+    kAIStateScoop,
+    kAIStateDestStel,
+    kAIStateConfused,
+    kAIStateGoHGate,
+    kAIStateEmerge,
+    kAIStateCountWait
+};
 
 #define kShipTypeEscapePod      0x2ff   /* the last shïp slot is the escape pod */
-
-/* GovtRecord.flags */
-#define kGovtAttacksAnyone      0x0001
-#define kGovtFlag2              0x0002
-#define kGovtHuntsOutlawPlayer  0x0040
-
-/* PersRecord.flags */
-#define kPersFlagHunts          0x0001
 
 #define kScanRangeStep          0x258   /* ShipObj.aggression units -> pixels */
 
@@ -46,30 +40,32 @@
 
 /* ShipObj.aiSubstate: the low-level goal, named as DrawLowGoalAbbreviation
    prints it */
-#define kSubLoJack              0
-#define kSubKillSpd             1
-#define kSubFlyStel             2
-#define kSubFlyHypD             3
-#define kSubHypJmp              4
-#define kSubRunAwy              5
-#define kSubTF                  6       /* "T+F" */
-#define kSubMissile             7
-#define kSubDock                8
-#define kSubChase               9
-#define kSubZoom                0xa
-#define kSubChasSlw             0xb
-#define kSubFormFly             0xc
-#define kSubJmpPar              0xd
-#define kSubWaitTarg            0xe
-#define kSubBoard               0xf
-#define kSubVeerOff             0x10
-#define kSubAfterBurn           0x11
-#define kSubChaseSwarm          0x12
-#define kSubChaseAst            0x13
-#define kSubKillAst             0x14
-#define kSubScoop               0x15
-#define kSubAttkStel            0x16
-#define kSubEnterHG             0x17
+enum {
+    kSubLoJack,
+    kSubKillSpd,
+    kSubFlyStel,
+    kSubFlyHypD,
+    kSubHypJmp,
+    kSubRunAwy,
+    kSubTF,                 /* "T+F" */
+    kSubMissile,
+    kSubDock,
+    kSubChase,
+    kSubZoom,
+    kSubChasSlw,
+    kSubFormFly,
+    kSubJmpPar,
+    kSubWaitTarg,
+    kSubBoard,
+    kSubVeerOff,
+    kSubAfterBurn,
+    kSubChaseSwarm,
+    kSubChaseAst,
+    kSubKillAst,
+    kSubScoop,
+    kSubAttkStel,
+    kSubEnterHG
+};
 
 /* ShipObj.escortOrder and playerEscortOrders[]: an escort's standing order */
 #define kOrderFormation         0
@@ -106,14 +102,11 @@
 #define kHalfCircle             180
 #define kHalfTurn               180.0f
 #define kHiliteFull         0x20
-#define ROTL(x, n)          ((((x) >> (8 - (n))) | ((x) << (n))))
+#define ROTL(x, n)          (((unsigned char)(x) >> (8 - (n))) | ((x) << (n)))
 #define kHyperFuelUnit      100.0   /* one jump costs this much fuel */
 #define kItemAccept                    1
 #define kMaxJunks           128
 #define kKeyMask            0x0fffffffffffffffLL   /* the licence code's low 60 bits */
-#define kLicenseCodePair    0x4b7a0
-#define kLicenseCopies      0x1d1760
-#define kLicenseName        0xe26f8
 #define kMainButtons     6
 #define kMapPictItem   3
 #define kMasterStellarSprites 256
@@ -127,8 +120,8 @@
 #define kMaxFleets      0x100
 #define kMaxHyperRoute        32
 #define kMaxMissionBits    10000
-#define kNavSlots               16      /* gSystems[].navDefault entries */
-#define kMaxSystemLinks         16      /* gSystems[].links entries */
+#define kNavSlots               16      /* systemData[].navDefault entries */
+#define kMaxSystemLinks         16      /* systemData[].links entries */
 #define kSpobHyperLinks         8       /* stellarData[].hyperLinks: a gate's destinations */
 #define kMaxNavTargets    4       /* navTargetSprite[] */
 #define kMaxNebulae       0x20
@@ -136,11 +129,15 @@
 #define kMaxPersons       0x400
 #define kMaxPods         32
 #define kMaxRanks                   0x80
-#define kMaxShipTypes    0x300 /* gShipTypes entries */
+#define kMaxShipTypes    0x300 /* shipClass entries */
 #define kMaxShots               0x80  /* shotData stride 0x48, 0x80 slots */
+#ifdef MAC1010
+#define kMaxStars        40
+#else
 #define kMaxStars        20
+#endif
 #define kMaxSystems           0x800
-#define kMaxWeapTypes           256     /* gWeapons entries, and ship->weap[] is indexed the same way */
+#define kMaxWeapTypes           256     /* weaponStats entries, and ship->weap[] is indexed the same way */
 #define kMinPilotVersion 0x12c
 #define kMissionRecStride 0x473   /* in shorts */
 #define kMissionVenues           2
@@ -167,7 +164,6 @@
 #define kQuarterCircle          0x5a
 #define kRankRecordSize             0x120
 #define kScrollToEnd  9999
-#define kShipRecBanks       0x0002
 #define kStatusDestroyed    0x18c
 #define kStatusDisabled     0x15b
 #define kStatusHostile      0xa9

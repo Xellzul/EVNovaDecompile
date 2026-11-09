@@ -10,6 +10,7 @@
 
 /* BlitPixieTranslucentBiasCopy8 (mac _BlitPixieTranslucentBiasCopy8). STATE: MATCH, byte-identical. OPEN: none. */
 // FUNCTION: EVNOVA 0x00473e00
+// MAC: _BlitPixieTranslucentBiasCopy8 i386 0x000c17e6 ppc 0x000cd840
 void BlitPixieTranslucentBiasCopy8(unsigned char *dstPixels,
                                    unsigned char *srcPixels, long count)
 {
@@ -23,8 +24,7 @@ void BlitPixieTranslucentBiasCopy8(unsigned char *dstPixels,
     s = srcPixels;
     d = dstPixels;
     for (i = 0; i < count; i++) {
-        *d = alphaTable[overBias][biasColor][*s];
-        s++;
+        *d = alphaTable[overBias][biasColor][*s++];
         d++;
     }
 }

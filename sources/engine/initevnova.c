@@ -9,7 +9,9 @@
 #include "macport.h"
 #include "burgermath.h"
 #include "burger.h"
+#ifndef MACBUILD
 #include "win32.h"
+#endif
 #include "shipobj.h"
 #include "resources.h"
 #include "gameconst.h"
@@ -25,8 +27,34 @@
 #include "ships.h"
 #include "space.h"
 #include "stellar.h"
+#include "cefix.h"
 #include "prototypes.h"
 #include "gametypes.h"
+#ifdef MACBUILD
+#ifdef MAC1010
+#define RT3_HELPERS_IN_UNIT
+#endif
+#include "../mac/include/rt3_ev_nova.h"
+#include "../mac/include/ASWRegistrationCarbonAPI.h"
+
+extern void SetupToolbox(void);
+extern void CarbonHackInit(void);
+extern void SelectNovaSupport(void);
+extern void CheckSystem(void);
+extern OSStatus EVInstallEndianFlippers(void);
+#if V111
+extern CFStringRef CFStringCreateFromString(const char *str, long len);
+extern CFStringRef relative2absolute(CFStringRef path);
+#endif
+extern FSRef *novaSupportFolder;
+extern long startupMemoryFree;
+extern void SpawnIntroMusicThread(void);
+#endif
+extern void InitAEVTHandlers(void);
+extern long PreflightMemoryUsageTotal(void);
+extern void HideControlStrip(void);
+extern void CarbonHackCleanup(void);
+extern void DisposeGammaTools(void);
 
 #define kKeyHitMask     0x07bdfef7fbdfef78LL
 
@@ -55,23 +83,66 @@
 
 #define kEventLoopTicks     10
 
+#ifdef MAC1010
+/* plain functions ahead of the globals: -inline auto expands every call and the linker strips the copies, which rank `table` before InitEVNova and lay it first in the object's BSS */
+char RegScramA2(short x)
+{
+    return IsPlatformOpen() * x;
+}
+
+void RegScramB2(unsigned char x)
+{
+    static unsigned char table[256];
+
+    table[x]++;
+}
+
+short RegScramC2(unsigned char x)
+{
+    int n = x;
+
+    return ((n >> (8 - n)) | (n << n)) & 0xff;
+}
+
+void *RegScramF2(void)
+{
+    char buf[4];
+
+    return buf;
+}
+
+char RegScramD2(char *p)
+{
+    unsigned char c = *p;
+
+    TimerGetSeconds();
+    return c;
+}
+
+char RegScramE2(void)
+{
+    return 0;
+}
+#endif
+
 short oldVolume;
-short gPluginCount;
-unsigned char DAT_0059128c[8];
+short pluginCount;
+Rect backUpdateRect;
 unsigned long lastSmokeUpdateTime;
 unsigned long lastKeypressTime;
 unsigned long lastEventLoopTime;
+#ifndef MACBUILD
 ShipObj *shipData;
-ShipRec *gShipTypes;
+ShipRec *shipClass;
 SpobRecord *stellarData;
 SpobRecord *dockedPort;
-SystRecord *gSystems;
-WeapRecord *gWeapons;
+SystRecord *systemData;
+WeapRecord *weaponStats;
 BoomSlot *explodData;
-DebrisSlot *gDebrisSlots;
+DebrisSlot *smokeData;
 BoomRecord *explodType;
 BeamRecord *beamData;
-OutfRecord *gOutfits;
+OutfRecord *outfitSystem;
 DudeRecord *dudeData;
 GovtRecord *govtData;
 PersRecord *personData;
@@ -86,30 +157,11 @@ ShotObj *shotData;
 MissionRecord *currentMissions;
 MissionState *currentMissionObjectives;
 JunkRecord *junkData;
-CronRecord *gCrons;
+CronRecord *cronEvent;
 RankRecord *rankData;
 StarSlot *starData;
-char *missionBit;
-char musicEnabledPref;
-char DAT_005914d1;
-char DAT_005914d2;
-char gEarlyOutFlag;
-char DAT_005914d4;
-char gNoDebris;
-char yieldEventsPref;
-char parallaxStarsPref;
-char windowedPref;
-char windowedPrefPending;
-unsigned char loadShipSetsPref;
-unsigned char loadShipGlowPref;
-unsigned char loadShipWeaponsPref;
-unsigned char loadShipLightsPref;
-char planetSoundsPref;
-unsigned char gShowInfluence;
-char noHyperGammaPref;
-char noVersionCheckPref;
-short volumePref;
-short gammaPref;
+Boolean *missionBit;
+Settings settings;
 KeyPrefs keyPrefs;
 void *warpUpSnd[2];
 void *warpOutSnd;
@@ -147,7 +199,7 @@ SpriteRec *masterSmokeSprite[8];
 SpriteRec *menuRolloverSprite;
 SpriteRec *stellarSprite[kStellarSprites];
 SpriteRec *masterBoxSprite[5];
-SpriteRec *gMainButtonSprites[6];
+SpriteRec *menuButtonSprite[6];
 SpriteRec *masterWeapTargetSprite;
 SpriteRec *masterNavTargetSprite;
 SpriteLayerRec *shipLayer;
@@ -168,37 +220,42 @@ SpriteWorldPtr gSpriteWorld;
 SWFrameRec *floatingMapFrame;
 SWFrameRec *floatingEscortMenuFrame;
 CWindowPtr gWind;
-char statusRedraw[7];
-char gameLoaded;
-char gameInProgress;
-char killShots;
-char killBoxes;
-char killExplods;
-char killAsteroids;
-char killSmoke;
-char mBarHidden;
-char strictPlay;
-char weapLawFlag;
-char smuggleFlag;
-char fadePending[2];
-char doubleTime;
-char seenIntroScreen;
-char playerThreatened;
-char oldPlayerThreatened;
-char gPause;
-char gQuit;
-char cheatsActive;
-char gameFrozen;
-char ignoreKeys;
-char updateSmokeThisFrame;
-char closeRequested;
+Boolean statusRedraw[7];
+Boolean gameLoaded;
+Boolean gameInProgress;
+Boolean killShots;
+Boolean killBoxes;
+Boolean killExplods;
+Boolean killAsteroids;
+Boolean killSmoke;
+Boolean mBarHidden;
+Boolean strictPlay;
+Boolean weapLawFlag;
+Boolean smuggleFlag;
+Boolean fadePending[2];
+Boolean doubleTime;
+Boolean seenIntroScreen;
+Boolean playerThreatened;
+Boolean oldPlayerThreatened;
+Boolean gPause;
+Boolean gQuit;
+Boolean cheatsActive;
+Boolean gameFrozen;
+Boolean ignoreKeys;
+Boolean updateSmokeThisFrame;
+Boolean closeRequested;
 unsigned char DAT_00596d40[4];
 void *targetInfoPic[768];
 GWorldContainer statusOffPort;
 GWorldContainer loadPort;
 unsigned char DAT_0059795c[16];
 unsigned long tix;
-unsigned long gJumpStartTick;
+unsigned long floatingMapStartTime;
+#endif
+#ifdef V111
+unsigned char useLegacyRenderingPipeline;
+#endif
+#ifndef MACBUILD
 unsigned long lastMouseMoveTime;
 unsigned long lastEscortMenuTime;
 unsigned long lastFrameTime;
@@ -210,8 +267,8 @@ unsigned char DAT_00597990[2];
 short frameCounter;
 unsigned char DAT_00597994[8];
 short lastShipAIDispatched;
-short gSharewareDays;
-short cursorVisible;
+short totalDaysPlayed;
+short cursorHidden;
 unsigned char DAT_005979a2[2];
 short selTradeItem;
 short portDemand[6];
@@ -235,12 +292,12 @@ unsigned char playerName[256];
 unsigned char lastPlayerName[256];
 unsigned char playerNickname[256];
 unsigned char shipName[256];
-unsigned char gWeapNames[256][256];
-unsigned char gShipLongNames[768][256];
+unsigned char weapName[256][256];
+unsigned char shipyardLongNames[768][256];
 unsigned char shipHelpRequests[20][256];
-unsigned char legalStrings[18][256];
-unsigned char gOutfShortNames[512][256];
-unsigned char gShipShortNames[768][256];
+unsigned char legalStatusStrings[18][256];
+unsigned char outfitShortNames[512][256];
+unsigned char shipyardShortNames[768][256];
 unsigned char ratingStrings[11][256];
 unsigned char govtTargStrings[256][256];
 unsigned char lcOutfitName[512][256];
@@ -250,10 +307,10 @@ unsigned char statusCargoName[6][0x100];
 unsigned char cargoAbbrev[256][0x100];
 unsigned char lcCargoName[256][0x100];
 unsigned char govtShortNames[256][256];
-unsigned char gShipCommNames[768][256];
-unsigned char gShipMovieFiles[768][256];
+unsigned char shipCommNames[768][256];
+unsigned char shipMovieFilenames[768][256];
 unsigned char descMovieName[256];
-unsigned char gGovtNames3[256][256];
+unsigned char govtMediumNames[256][256];
 unsigned char tonString[0x100];
 unsigned char tonsString[0x100];
 unsigned char fuelString[8][0x100];
@@ -264,9 +321,9 @@ unsigned char creditString[0x100];
 unsigned char creditsString[0x100];
 char creditCString[0x20];
 char creditsCString[0x20];
-char gDescText[8192];
+char descTextPtr[8192];
 char commMsg[2048];
-char gTextShowString[8192];
+char textShowString[8192];
 char datePrefix[0x10];
 char dateSuffix[0x10];
 RGBColor bkgndGreen;
@@ -288,9 +345,8 @@ Rect spriteClipRect;
 Rect floatingMapRect;
 Rect escortMenuRect;
 unsigned char DAT_00733bc4[4];
-short playerLegalStatus[kMaxSystems];
-short gSlotTable[36];
-unsigned char DAT_00734c10[8];
+short playerRecord[kMaxSystems];
+short newKeyPrefs[40];
 short alertSpritePending;
 short missionSoundID;
 short playerGender;
@@ -306,37 +362,37 @@ short pendingVoiceGovt;
 short pendingVoiceParity;
 short hyperRoute[kMaxHyperRoute];
 long playerKills;
-double gTimeScale;
+double gSpeedMult;
 double DAT_00735450;
 DateTimeRec gameTime;
 unsigned char DAT_00735466[14];
 DateTimeRec scenarioStartDate;
 unsigned char DAT_00735482[6];
-char DAT_00735488;
-char inBackground;
-char miningShipsActive;
-char miningBoxesActive;
-char gravitySourcesPresent;
-char showFPS;
+Boolean DAT_00735488;
+Boolean inBackground;
+Boolean miningShipsActive;
+Boolean miningBoxesActive;
+Boolean gravitySourcesPresent;
+Boolean showFPS;
 float navTargetExpand;
 float weapTargetExpand;
 float destructCount;
 float playerRepairInhibit;
 float hyperGamma;
-char leetMode;
-char keyPressedThisFrame;
+Boolean leetMode;
+Boolean keyPressedThisFrame;
 unsigned char hypergateMapMode;
-char gCommDone;
-char screenFaded;
-char playerIsLanded;
-char playerKilledByHector;
-char keyComboBlocked;
+Boolean redrawEscortMenu;
+Boolean screenFaded;
+Boolean playerIsLanded;
+Boolean playerKilledByHector;
+Boolean quickKeyCheckResult;
 Point lastMousePos;
-short gDescFlags;
+short descFlags;
 short showFloatingMap;
 short escortMenuOnscreen;
 short recentActivatedRank;
-short gDescRankGovt[2];
+short descRankGovt[2];
 short fpsCounter;
 short cursorAlpha;
 short jumpSoundLength[2];
@@ -361,53 +417,1112 @@ short menuTextSize;
 short smallTextFont;
 short smallTextSize;
 float playerShieldCapacity;
-float gCachedShieldRech;
-float gCachedArmorCap;
-float gCachedArmorRech;
-float gCachedFuelCap;
-float gCachedTurnRate;
-float gCachedAccelRate;
-float gCachedMaxSpeed;
-float gCachedMod40;
-float gCachedMod39;
-float gCachedMod15;
+float playerShieldRechargeRate;
+float playerArmorCapacity;
+float playerArmorRechargeRate;
+float playerFuelCapacity;
+float playerTurnRate;
+float playerAccelRate;
+float playerMaxSpeed;
+float playerIonizeMax;
+float playerDeionizeRate;
+float playerABFuelUsage;
 short playerHasAfterburner;
-short gHasModType13;
-short gHasModType14;
-short gCachedMod24;
-short gMaxSoundRange;
-short gCachedMod30;
-short gCachedMod30b;
-short gCachedMod38;
-short gCachedMod41;
-short gCachedMod42;
+short playerHasDensityScanner;
+short playerHasIFF;
+short playerAntiInterference;
+short playerEffectiveMurk;
+short playerCanTargetUntargetableShips;
+short playerCanTargetCloakedShips;
+short playerHasInertialDamper;
+short playerResistsGravity;
+short playerResistsDeadlyStellars;
 short playerHasAreaCloak;
 short playerSabotaged;
-char playerHasIllegalJunk;
-char playerHasIllegalOutfits;
-char allReinforcementsInhibited;
-char playerHasTribbles;
-char playerHasPerishableJunk;
+Boolean playerHasIllegalJunk;
+Boolean playerHasIllegalOutfits;
+Boolean allReinforcementsInhibited;
+Boolean playerHasTribbles;
+Boolean playerHasPerishableJunk;
 unsigned long long fakeLicenseCode;
 short gameIsRegisteredIndex;
 short gameIsHackedIndex;
+#endif
 
-extern "C" {
+EXTERN_C_BEGIN
 
 
                                                          /* 0x004d9e10 BurgerLib */
                                                          /* 0x004d4740 RT3_Open */
                                                          /* 0x0046f690 */
 
+#if V111
+/* EVPlatformInit (mac _EVPlatformInit, mac-only: 1.1.1 moved the tool opens out of InitEVNova,
+   called by the open-application AppleEvent handler). STATE: mac MATCH on both slices. OPEN: none */
+// MAC: _EVPlatformInit i386 0x0003a064 ppc 0x00040454
+int EVPlatformInit(void)
+{
+    long err;
 
-/* InitEVNova (mac _InitEVNova). STATE: MATCH 100.0%, exe 1393 / obj 1393, byte-identical yes
-   (5376 bytes, relocs masked), relocregcheck 0 of 297.
+    crashlog_print("opening platform tool");
+    err = PlatformOpen();
+    if (err != 0) {
+        FatalStartupError(kAlertPlatformOpen);
+        goto fail;
+    }
+    crashlog_print("opening file tool");
+    err = FT_Open();
+    if (err != 0) {
+        FatalStartupError(kAlertFileOpen);
+        goto fail;
+    }
+    crashlog_print("opening draw tool");
+    err = DT_Open();
+    if (err != 0) {
+        FatalStartupError(kAlertDrawOpen);
+        goto fail;
+    }
+    crashlog_print("opening interface tool");
+    err = IT_Open();
+    if (err != 0) {
+        FatalStartupError(kAlertInterfaceOpen);
+        goto fail;
+    }
+    crashlog_print("opening sound tool");
+    err = ST_Open(8, 0);
+    oldVolume = ST_GetSysVolume();
+    return err;
+fail:
+    crashlog_print("fail: ");
+    crashlog_print_num(err);
+    crashlog_print("\n");
+    ExitToShell();
+    return err;
+}
+#endif
+
+
+#ifdef MAC1010
+#define InitEVNova main /* __start calls this body on 1.0.10 */
+#endif
+
+/* InitEVNova (mac _InitEVNova). STATE: win MATCH 100.0%, exe 1393 / obj 1393, byte-identical yes
+   (relocs masked); mac MATCH both slices (the MACBUILD body).
    OPEN: nothing. */
 // FUNCTION: EVNOVA 0x00416100
+// MAC: _InitEVNova i386 0x0004666c ppc 0x0004eb44
 void InitEVNova(void)
+#ifdef MAC1010
 {
     unsigned char alertText[256];
-    char blk[kBlacklistCount];
+    FSSpec licenseSpec;
+    Boolean blk[kBlacklistCount];
+    Size grow;
+    long long key;
+    int err;
+    short i;
+
+    gameLoaded = gameInProgress = 0;
+    preventStatusCopy = 0;
+    gWind = 0;
+    gSpriteWorld = 0;
+    screenFaded = 0;
+
+    SetupToolbox();
+    CarbonHackInit();
+
+    crashlog_open("debuglog.txt");
+    crashlog_print("game engine was compiled ");
+    crashlog_print("Apr 24 2006");
+    crashlog_print("\n");
+    gameIsRegisteredIndex = Rand(0x300);
+    crashlog_print("game engine version is ");
+    crashlog_print("1.0.A");
+#if TARGET_API_MAC_CARBON
+    crashlog_print(" Carbon");
+#else
+    crashlog_print(" PPC");
+#endif
+    crashlog_print("\n\n");
+    gameIsHackedIndex = Rand(0x300);
+
+    crashlog("opening data files & loading prefs");
+    InitDataFiles();
+    LoadPrefs();
+    Microseconds(&fakeLicenseCode);
+
+    crashlog("initializing monitor");
+    SetupMonitor();
+    CheckSystem();
+
+    crashlog("initializing QuickTime");
+    err = EnterMovies();
+    if (err != 0)
+        FatalStartupError(kAlertQuickTime);
+
+    crashlog("building trig table");
+    BuildTrigTable();
+    gWind = 0;
+    SavePrefs();
+
+    if (KeyCheck(kScanOption) && AreWeFrontProcess()) {
+        crashlog("showing prefs dialog before window creation");
+        smallTextFont = 3;
+        smallTextSize = 9;
+        DoPrefsDialog();
+        settings.windowed = settings.windowedPending;
+    }
+    GetMainDevice();
+
+    crashlog("opening platform tool");
+    err = PlatformOpen();
+    if (err != 0) {
+        crashlog_print("Platform_Open returned ");
+        crashlog_print_num(err);
+        crashlog_print("\n");
+        FatalStartupError(kAlertPlatformOpen);
+    }
+
+    crashlog("opening file tool");
+    err = FT_Open();
+    if (err != 0) {
+        crashlog_print("FT_Open returned ");
+        crashlog_print_num(err);
+        crashlog_print("\n");
+        FatalStartupError(kAlertFileOpen);
+    }
+
+    crashlog("opening draw tool");
+    err = DT_Open();
+    if (err != 0) {
+        crashlog_print("DT_Open returned ");
+        crashlog_print_num(err);
+        crashlog_print("\n");
+        FatalStartupError(kAlertDrawOpen);
+    }
+
+    crashlog("opening interface tool");
+    err = IT_Open();
+    if (err != 0) {
+        crashlog_print("IT_Open returned ");
+        crashlog_print_num(err);
+        crashlog_print("\n");
+        FatalStartupError(kAlertInterfaceOpen);
+    }
+
+    crashlog("opening registration tool");
+    err = RT3_Open(1, 3, "EV Nova", "EV Nova");
+    if (err != 0) {
+        crashlog_print("RT3_Open returned ");
+        crashlog_print_num(err);
+        crashlog_print("\n");
+        FatalStartupError(kAlertRegOpen);
+    }
+
+    crashlog("initializing arrays");
+    InitArrays();
+    IterateInGameEventLoop(kEventLoopTicks);
+
+    crashlog("opening data files");
+    LICENSE_STEP_BEGIN
+    shipData[5].licenseCode = RT3_GetLicenseCode();
+    LICENSE_STEP_END
+    InitAEVTHandlers();
+    LICENSE_STEP_BEGIN
+    shipData[17].licenseName = RT3_GetLicenseName();
+    LICENSE_STEP_END
+    IterateInGameEventLoop(kEventLoopTicks);
+    LICENSE_STEP_BEGIN
+    shipData[36].licenseCopies = RT3_GetLicenseCopies();
+    LICENSE_STEP_END
+    InitColors();
+
+    LICENSE_STEP_BEGIN
+    shipClass[gameIsRegisteredIndex].registered =
+        shipData[36].licenseCopies ? 1 : 0;
+    LICENSE_STEP_END
+    SetupDialogs();
+
+    key = shipData[5].licenseCode;
+
+    pluginCount = CountEVPlugins(gARef, "\pNova Plug-Ins", kPlugInFileType, 0);
+    OpenDataFiles();
+    pluginCount = CountEVPlugins(gARef, "\pNova Plug-Ins", kPlugInFileType, 0);
+    if (pluginCount != 0) {
+        if ((shipClass[gameIsRegisteredIndex].registered ? 1 : 0) == 0
+                != (pluginCount == 0)) {
+            ShowTheCursor();
+            GetIndString(alertText, kPlugMismatchSTR, kPlugMismatchIndex);
+            EVNoteAlert(alertText);
+        }
+    }
+    FadeScreenOut();
+
+    LICENSE_STEP_BEGIN
+        blk[0] = KEYHIT(0x0284801349262406LL);
+        blk[1] = KEYHIT(0x0101e057b160ee02LL);
+        blk[2] = KEYHIT(0x07365c430b23e131LL);
+        blk[3] = KEYHIT(0x07345d430b23e131LL);
+        blk[4] = KEYHIT(0x05d4013a1123c94aLL);
+        blk[5] = KEYHIT(0x08d22033a5a9ae47LL);
+        blk[6] = KEYHIT(0x08d02133a5a9ae47LL);
+        blk[7] = KEYHIT(0x0940f13e07262d74LL);
+        blk[8] = KEYHIT(0x01e8616da73a6b41LL);
+        blk[9] = KEYHIT(0x03395a952823e649LL);
+        blk[10] = KEYHIT(0x033b5a952803f64bLL);
+        blk[11] = KEYHIT(0x0b795a952803f64aLL);
+        blk[12] = KEYHIT(0x00dd021413f10475LL);
+        blk[13] = KEYHIT(0x00df021413d11477LL);
+        blk[14] = KEYHIT(0x009f021413d11476LL);
+        blk[15] = KEYHIT(0x09224585278cbf5bLL);
+        blk[16] = KEYHIT(0x0bf35041709a3940LL);
+        blk[17] = KEYHIT(0x03f15041709a3946LL);
+        blk[18] = KEYHIT(0x0125a4aa21b1cf03LL);
+        blk[19] = KEYHIT(0x03a31e5b03829d3dLL);
+        blk[20] = KEYHIT(0x009f8c40aac47814LL);
+        blk[21] = KEYHIT(0x045ac4b40fb08b36LL);
+        blk[22] = KEYHIT(0x0c1ac5bc0b909b37LL);
+        blk[23] = KEYHIT(0x02a974140d644b4dLL);
+        blk[24] = KEYHIT(0x02a9741409644b49LL);
+        blk[25] = KEYHIT(0x0aab751c09445b49LL);
+        blk[26] = KEYHIT(0x02eb751c09445b4aLL);
+        blk[27] = KEYHIT(0x01e24b6c4b56f67eLL);
+        blk[28] = KEYHIT(0x048c30d71f489e43LL);
+        blk[29] = KEYHIT(0x0c8c31d71f489e45LL);
+        blk[30] = KEYHIT(0x04cc31d71f489e46LL);
+        blk[31] = KEYHIT(0x0c8e31d71f489e47LL);
+        blk[32] = KEYHIT(0x0cce31d71f489e40LL);
+        blk[33] = KEYHIT(0x0561f87749b27666LL);
+        blk[34] = KEYHIT(0x090a1452e822bd05LL);
+        blk[35] = KEYHIT(0x04c23c3d8c45fe08LL);
+        blk[36] = KEYHIT(0x03e90792a484de04LL);
+        blk[37] = KEYHIT(0x000881643da5fb73LL);
+    LICENSE_STEP_END
+
+    for (i = 0; i < kBlacklistCount; i++) {
+        if (blk[i] != 0) {
+            strcpy(alertText, "EV Nova");
+            strcat(alertText, " License");
+            CtoPstr(alertText);
+            if (FSMakeFSSpec(prefsVRefNum, prefsDirID, alertText, &licenseSpec) == noErr)
+                FSpDelete(&licenseSpec);
+            break;
+        }
+    }
+
+    cursorHidden = 0;
+    if (settings.windowed == 0)
+        HideTheCursor();
+    FUN_00486ec0();
+    CheckForPiratedCodes();
+#if !TARGET_API_MAC_CARBON
+    if (settings.windowed == 0)
+        HideControlStrip();
+#endif
+    ST_Open(8, 0);
+    oldVolume = ST_GetSysVolume();
+
+    crashlog("loading sounds");
+    LoadSounds();
+    SWEnterSpriteWorld();
+
+    crashlog("creating window");
+    SetupWind();
+
+    crashlog("initializing sprite world");
+    SetupSpriteWorld();
+    inBackground = 0;
+    AdjustSoundVolume();
+
+    crashlog("creating offscreen buffers");
+    InitOffscreen();
+
+    crashlog("starting music");
+    SetupIntroMusic();
+    ShowAmbrosiaLogo();
+    IterateInGameEventLoop(kEventLoopTicks);
+
+    crashlog("initializing strings");
+    LoadStrings();
+    IterateInGameEventLoop(kEventLoopTicks);
+
+    crashlog("initializing status bar");
+    InitStatus();
+    IterateInGameEventLoop(kEventLoopTicks);
+
+    crashlog("initializing objects");
+    InitObjects();
+    IterateInGameEventLoop(kEventLoopTicks);
+
+    crashlog("initializing buttons");
+    InitButtons();
+
+    crashlog("loading object data");
+    LoadObjectData();
+    IterateInGameEventLoop(kEventLoopTicks);
+
+    crashlog("loading mission data");
+    InitMissions();
+    IterateInGameEventLoop(kEventLoopTicks);
+
+    crashlog("propagating mission bit effects");
+    PropagateMissionBitEffects();
+    IterateInGameEventLoop(kEventLoopTicks);
+
+    HideAmbrosiaLogo();
+    LICENSE_STEP_BEGIN
+    shipClass[gameIsRegisteredIndex].registered =
+        shipData[36].licenseCopies ? 1 : 0;
+    LICENSE_STEP_END
+
+    crashlog("showing splash screen");
+    ShowSplashScreen();
+    HandleIntroMusic(1);
+    FadeScreenIn();
+    IterateInGameEventLoop(kEventLoopTicks);
+    VerifyResourceChecksums();
+    IterateInGameEventLoop(kEventLoopTicks);
+    InitIntroProgressBar();
+
+    crashlog("loading sprites");
+    LoadSprites();
+
+    crashlog("checking memory");
+    grow = 0x7fffffff;
+    startupMemoryFree = MaxMem(&grow);
+#if !TARGET_API_MAC_CARBON
+    {
+        unsigned long memNeeded;
+
+        memNeeded = PreflightMemoryUsageTotal() + 10000000;
+        crashlog_print("free memory before loading ship sprites: ");
+        crashlog_print_num(startupMemoryFree);
+        crashlog_print(" bytes\n");
+        crashlog_print("memory needed for ship sprites: ");
+        crashlog_print_num(memNeeded);
+        crashlog_print(" bytes\n");
+        if (memNeeded > startupMemoryFree) {
+            if (settings.shipAnimations || settings.engineGlows || settings.weaponGlows || settings.runningLights)
+                DoPrefsDialog();
+            CopyBits(GWorldContainerBits(&loadPort),
+                     GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                     GetCWindowPortRect(gWind), GetCWindowPortRect(gWind),
+                     srcCopy, GetCWindowVisRgn(gWind));
+            memNeeded = PreflightMemoryUsageTotal() + 10000000;
+            if (memNeeded > startupMemoryFree) {
+                GetIndString(alertText, kAlertStrList, 0x1c);
+                ParamText(alertText, "\p", "\p", "\p");
+                StopAlert(128, 0);
+                SWExitSpriteWorld();
+                ExitMovies();
+                CarbonHackCleanup();
+                DisposeGammaTools();
+                ST_Close();
+                RT3_Close();
+                IT_Close();
+                DT_Close();
+                FT_Close();
+                PlatformClose();
+                crashlog("out of memory bailout complete");
+                crashlog("\n\n- end of log -");
+                crashlog_close();
+                ExitToShell();
+            }
+        }
+    }
+#endif
+
+    crashlog("loading ship sprites");
+    LoadShipSprites();
+
+    crashlog("configuring sprites");
+    InitSprites();
+
+    crashlog("initializing player");
+    ResetPlayer(1);
+    ResetPlayerRecord(1);
+    gameLoaded = gameInProgress = 0;
+    IterateInGameEventLoop(kEventLoopTicks);
+
+    crashlog("initializing main screen");
+    HandleIntroMusic(1);
+    FadeScreenOut();
+    DisposeIntroProgressBar();
+    InitMainScreen();
+
+    crashlog("opening last pilot file");
+    OpenLastPilotFile();
+    IterateInGameEventLoop(kEventLoopTicks);
+
+    crashlog("propagating mission bit effects");
+    PropagateMissionBitEffects();
+    gameLoaded = 1;
+
+    crashlog("---");
+    gPause = 1;
+    HandleIntroMusic(1);
+    DoMainScreen();
+
+    crashlog("main screen disposed");
+    do {
+        unsigned char blob[3] = { 0x49, 0x71, 0xad };
+        unsigned char name[17] = "EV NovaEV NovaEV";
+        unsigned char key[17] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+        unsigned char t1;
+        long g;
+        long long mem;
+        unsigned char x;
+        char *p;
+        unsigned char y;
+        unsigned char c;
+        char t2;
+        unsigned short rem;
+        Boolean ok;
+
+        g = shipData[36].licenseCopies;
+        p = shipData[17].licenseName;
+        mem = shipData[5].licenseCode;
+        x = 0;
+        if (p != 0 && *p != 0) {
+            while (StringGetLength(p) != 0 && StringGetLength(key) + 1 < 17)
+                StringAppendSafe(key, p, 17);
+        }
+        x ^= (unsigned char)g;
+        x += (char)0xe7;
+        x ^= (unsigned char)g;
+        x = ROTL(x, 3);
+        x ^= name[5];
+        x += 0x31;
+        x = ROTL(x, 7);
+        c = key[0];
+        x ^= c;
+        x = ROTL(x, 4);
+        x = ROTL(x, 8);
+        x += 0x0b;
+        t1 = name[2];
+        x ^= t1;
+        x ^= key[13];
+        x ^= name[13];
+        x += (char)0xa6;
+        x ^= (unsigned char)g;
+        x ^= name[12];
+        x ^= (unsigned char)g;
+        t2 = key[1];
+        x ^= t2;
+        x ^= (unsigned char)g;
+        x ^= c;
+        x ^= key[4];
+        x += 0x67;
+        x ^= name[6];
+        x ^= (unsigned char)g;
+        x += 0x58;
+        if (x > t2)
+            x ^= (unsigned char)g;
+        x = ROTL(x, 2);
+        x = ((x + (char)0xa0) & 0xff) + 0x7d;
+        x ^= (unsigned char)g;
+        x += 0x5a;
+        x = ROTL(x, 7);
+        x ^= (unsigned char)g;
+        x += (char)0x93;
+        x ^= (unsigned char)g;
+        x = ROTL(x, 4);
+        x = ROTL(x, 2);
+        x ^= name[9];
+        rem = RT3_ExtractLicenseBlock2(mem);
+        x += 0x78;
+        x = ROTL(x, 2);
+        x ^= key[2];
+        x ^= t1;
+        x ^= (unsigned char)g;
+        x ^= (unsigned char)g;
+        x = ROTL(x, 5);
+        x = ROTL(x, 5);
+        x ^= (unsigned char)g;
+        if (x < (char)key[14])
+            x ^= (unsigned char)g;
+        if (x > (char)key[4])
+            x ^= name[4];
+        x ^= (unsigned char)g;
+        x = ROTL(x, 4);
+        x ^= key[15];
+        x ^= name[14];
+        x = ROTL(x, 2);
+        x += 0x75;
+        x = ROTL(x, 1);
+        x = ROTL(x, 4);
+        x = ROTL(x, 8);
+        x = ROTL(x, 1);
+        x += -0x65;
+        x = ROTL(x, 1);
+        x ^= (unsigned char)g;
+        x += 0x58;
+        x ^= key[15];
+        LICENSE_STEP_BEGIN
+        y = x * IsPlatformOpen() + -0x61;
+        RegScramB2(y);
+        x = ROTL(y, 5);
+        LICENSE_STEP_END
+        x ^= key[3];
+        TimerGetSeconds();
+        x += (char)0xa4;
+        x ^= key[1];
+        x ^= key[14];
+        x += 0x29;
+        x = ROTL(x, 2);
+        x += (char)0xd1;
+        x ^= (unsigned char)g;
+        x += 0x82;
+        x ^= name[0];
+        x ^= name[1];
+        x ^= (unsigned char)g;
+        x += -0x7c;
+        RegScramB2(x);
+        y = x & 0xff;
+        x = ROTL(y, 5);
+        x += -0x4e;
+        x = ROTL(x, 1);
+        x ^= (unsigned char)g;
+        x = ROTL(x, 5);
+        x += 0x5a;
+        x ^= name[11];
+        x ^= (unsigned char)g;
+        x = ROTL(x, 5);
+        x ^= (unsigned char)g;
+        x += (char)0xe8;
+        x ^= key[7];
+        x += (char)0xdd;
+#if TARGET_API_MAC_CARBON /* 1.0.10 spelling */
+        x ^= (y = key[2]);
+#else
+        x ^= key[2];
+#endif
+        x ^= key[5];
+        x = ROTL(x, 1);
+        x ^= (unsigned char)g;
+        x ^= (unsigned char)g;
+        x = ROTL(x, 7);
+        x = ROTL(x, 1);
+        x ^= (unsigned char)g;
+        x += 0x36;
+        x ^= (unsigned char)g;
+        if (x < 0x23)
+            x = ROTL(x, 4);
+        x ^= (unsigned char)g;
+        x ^= (unsigned char)g;
+        x ^= key[11];
+        if (x < 3)
+            x = blob[x];
+        while (rem >= x)
+            rem -= x;
+        ok = (g != 0 && rem == 0);
+        grow = (shipData[36].licenseCopies != 0 && ok == 0) != 0;
+        if (grow)
+            RT3_RunReminder(1, 0);
+    } while (0);
+
+    FadeScreenOut();
+    ShowTheCursor();
+    Bye();
+}
+#elif defined(MACBUILD)
+{
+    unsigned char alertText[256];
+    Boolean blk[kBlacklistCount];
+    long long key;
+    Size grow;
+    char *path;
+    char *envPath;
+    char *dir;
+#if V111
+    CFStringRef envStr;
+    CFStringRef absStr;
+    CFURLRef url;
+#endif
+    short i;
+
+    SetResLoad(true);
+    gameLoaded = gameInProgress = 0;
+    preventStatusCopy = 0;
+    gWind = 0;
+    gSpriteWorld = 0;
+    screenFaded = 0;
+
+    SetupToolbox();
+    CarbonHackInit();
+    gameIsRegisteredIndex = Rand(0x300);
+    gameIsHackedIndex = Rand(0x300);
+
+    crashlog_print("initializing arrays\n");
+    InitArrays();
+    IterateInGameEventLoop(kEventLoopTicks);
+
+    crashlog_print("opening data files\n");
+    shipData[5].licenseCode = RT3_GetLicenseCode();
+    shipData[17].licenseName = (unsigned char *)RT3_GetLicenseName();
+    IterateInGameEventLoop(kEventLoopTicks);
+    shipData[36].licenseCopies = RT3_GetLicenseCopies();
+    IterateInGameEventLoop(kEventLoopTicks);
+
+    LoadPrefs(1);
+    if (KeyCheck(MacKey(0x3a)) && AreWeFrontProcess()) {
+        crashlog_print("showing prefs dialog before window creation\n");
+        smallTextFont = 3;
+        smallTextSize = 9;
+        DoPrefsDialog();
+        settings.windowed = settings.windowedPending;
+        LoadPrefs(1);
+    }
+    IterateInGameEventLoop(kEventLoopTicks);
+
+    shipClass[gameIsRegisteredIndex].registered =
+        shipData[36].licenseCopies ? 1 : 0;
+#if V111
+    if (shipClass[gameIsRegisteredIndex].registered) {
+        envPath = getenv("EVNOVA_SUPPORT_FOLDER_PATH");
+        if (envPath != NULL) {
+            novaSupportFolder = malloc(sizeof(FSRef));
+            envStr = CFStringCreateFromString(envPath, strlen(envPath));
+            if (envStr != NULL) {
+                absStr = relative2absolute(envStr);
+                if (absStr != NULL) {
+                    url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, absStr,
+                                                        kCFURLPOSIXPathStyle, true);
+                    if (url != NULL) {
+                        if (!CFURLGetFSRef(url, novaSupportFolder)) {
+                            free(novaSupportFolder);
+                            novaSupportFolder = NULL;
+                        }
+                        CFRelease(url);
+                    }
+                    CFRelease(absStr);
+                }
+                CFRelease(envStr);
+            }
+        }
+        if (KeyCheck(MacKey(0x38)) && AreWeFrontProcess()) {
+            SelectNovaSupport();
+            CountEVPlugins(*novaSupportFolder, 0);
+        }
+        if (novaSupportFolder != NULL && shipClass[gameIsRegisteredIndex].registered == 0) {
+            ShowTheCursor();
+            GetIndString(alertText, kAlertStrList, 0x35);
+            EVNoteAlert(alertText);
+            free(novaSupportFolder);
+            novaSupportFolder = NULL;
+        }
+    }
+#endif
+    InitDataFiles();
+    VerifyResourceChecksums();
+    if (EVInstallEndianFlippers() == 0) {
+        if (novaSupportFolder != NULL) {
+            dir = malloc(0x200);
+            FSRefMakePath(novaSupportFolder, (UInt8 *)dir, 0x200);
+            path = malloc(strlen(dir) + 13);
+            sprintf(path, "%s/debuglog.txt", dir);
+            free(dir);
+        }
+        crashlog_open(path);
+        if (path != NULL)
+            free(path);
+        crashlog_print("game engine was compiled ");
+        crashlog_print("Dec  6 2011");
+        crashlog_print("\n");
+        crashlog_print("game engine version is ");
+        crashlog_print("1.1.1");
+#if TARGET_RT_LITTLE_ENDIAN
+        crashlog_print(" x86");
+#else
+        crashlog_print(" PPC");
+#endif
+        crashlog_print("\n");
+        crashlog_print("\n");
+
+        crashlog_print("opening data files & loading prefs\n");
+        Microseconds(&fakeLicenseCode);
+
+        crashlog_print("initializing monitor\n");
+        SetupMonitor();
+        CheckSystem();
+
+        crashlog_print("initializing QuickTime\n");
+        if (EnterMovies() != 0)
+            FatalStartupError(kAlertQuickTime);
+
+        crashlog_print("building trig table\n");
+        BuildTrigTable();
+        gWind = 0;
+        GetMainDevice();
+        InitColors();
+        shipClass[gameIsRegisteredIndex].registered =
+            shipData[36].licenseCopies ? 1 : 0;
+        SetupDialogs();
+
+        key = shipData[5].licenseCode;
+
+        pluginCount = CountEVPlugins(pluginsFolder, kPlugInFileType);
+        OpenDataFiles();
+        pluginCount = CountEVPlugins(pluginsFolder, kPlugInFileType);
+        if (pluginCount != 0) {
+            if (shipClass[gameIsRegisteredIndex].registered == 0) {
+                ShowTheCursor();
+                GetIndString(alertText, kAlertStrList, 0x1b);
+                EVNoteAlert(alertText);
+            }
+        }
+
+        blk[0] = KEYHIT(0x0284801349262406LL);
+        blk[1] = KEYHIT(0x0101e057b160ee02LL);
+        blk[2] = KEYHIT(0x07365c430b23e131LL);
+        blk[3] = KEYHIT(0x07345d430b23e131LL);
+        blk[4] = KEYHIT(0x05d4013a1123c94aLL);
+        blk[5] = KEYHIT(0x08d22033a5a9ae47LL);
+        blk[6] = KEYHIT(0x08d02133a5a9ae47LL);
+        blk[7] = KEYHIT(0x0940f13e07262d74LL);
+        blk[8] = KEYHIT(0x01e8616da73a6b41LL);
+        blk[9] = KEYHIT(0x03395a952823e649LL);
+        blk[10] = KEYHIT(0x033b5a952803f64bLL);
+        blk[11] = KEYHIT(0x0b795a952803f64aLL);
+        blk[12] = KEYHIT(0x00dd021413f10475LL);
+        blk[13] = KEYHIT(0x00df021413d11477LL);
+        blk[14] = KEYHIT(0x009f021413d11476LL);
+        blk[15] = KEYHIT(0x09224585278cbf5bLL);
+        blk[16] = KEYHIT(0x0bf35041709a3940LL);
+        blk[17] = KEYHIT(0x03f15041709a3946LL);
+        blk[18] = KEYHIT(0x0125a4aa21b1cf03LL);
+        blk[19] = KEYHIT(0x03a31e5b03829d3dLL);
+        blk[20] = KEYHIT(0x009f8c40aac47814LL);
+        blk[21] = KEYHIT(0x045ac4b40fb08b36LL);
+        blk[22] = KEYHIT(0x0c1ac5bc0b909b37LL);
+        blk[23] = KEYHIT(0x02a974140d644b4dLL);
+        blk[24] = KEYHIT(0x02a9741409644b49LL);
+        blk[25] = KEYHIT(0x0aab751c09445b49LL);
+        blk[26] = KEYHIT(0x02eb751c09445b4aLL);
+        blk[27] = KEYHIT(0x01e24b6c4b56f67eLL);
+        blk[28] = KEYHIT(0x048c30d71f489e43LL);
+        blk[29] = KEYHIT(0x0c8c31d71f489e45LL);
+        blk[30] = KEYHIT(0x04cc31d71f489e46LL);
+        blk[31] = KEYHIT(0x0c8e31d71f489e47LL);
+        blk[32] = KEYHIT(0x0cce31d71f489e40LL);
+        blk[33] = KEYHIT(0x0561f87749b27666LL);
+        blk[34] = KEYHIT(0x090a1452e822bd05LL);
+        blk[35] = KEYHIT(0x04c23c3d8c45fe08LL);
+        blk[36] = KEYHIT(0x03e90792a484de04LL);
+        blk[37] = KEYHIT(0x000881643da5fb73LL);
+
+
+        for (i = 0; i < kBlacklistCount; i++) {
+            if (blk[i] != 0) {
+                HFSUniStr255 uniName;
+                FSRef prefRef;
+                FSRef licRef;
+
+                HFSNameGetUnicodeName("\pEV Nova License", kTextEncodingUnknown, &uniName);
+                if (FSFindFolder(kOnSystemDisk, kPreferencesFolderType, kCreateFolder, &prefRef) == noErr
+                        && FSMakeFSRefUnicode(&prefRef, uniName.length, uniName.unicode,
+                                              kTextEncodingUnknown, &licRef) == noErr)
+                    FSDeleteObject(&licRef);
+                break;
+            }
+        }
+
+        cursorHidden = 0;
+        if (settings.windowed == 0)
+            HideTheCursor();
+        CheckForPiratedCodes();
+        if (!screenFaded)
+            FadeScreenOut();
+
+        crashlog_print("loading sounds\n");
+        LoadSounds();
+        SWEnterSpriteWorld();
+
+        crashlog_print("creating window\n");
+        SetupWind();
+
+        crashlog_print("initializing sprite world\n");
+        SetupSpriteWorld();
+        inBackground = 0;
+        AdjustSoundVolume();
+
+        crashlog_print("creating offscreen buffers\n");
+        InitOffscreen();
+
+        crashlog_print("starting music\n");
+        SetupIntroMusic();
+        SpawnIntroMusicThread();
+        ShowAmbrosiaLogo();
+        FadeScreenIn();
+        IterateInGameEventLoop(0x3c);
+
+        crashlog_print("initializing strings\n");
+        LoadStrings();
+        IterateInGameEventLoop(kEventLoopTicks);
+
+        crashlog_print("initializing status bar\n");
+        InitStatus();
+        IterateInGameEventLoop(kEventLoopTicks);
+
+        crashlog_print("initializing objects\n");
+        InitObjects();
+        IterateInGameEventLoop(kEventLoopTicks);
+
+        crashlog_print("initializing buttons\n");
+        InitButtons();
+
+        crashlog_print("loading object data\n");
+        LoadObjectData();
+        IterateInGameEventLoop(kEventLoopTicks);
+
+        crashlog_print("loading mission data\n");
+        InitMissions();
+        IterateInGameEventLoop(kEventLoopTicks);
+
+        crashlog_print("propagating mission bit effects\n");
+        PropagateMissionBitEffects();
+        IterateInGameEventLoop(kEventLoopTicks);
+
+        FadeScreenOut();
+        HideAmbrosiaLogo();
+        shipClass[gameIsRegisteredIndex].registered =
+            shipData[36].licenseCopies ? 1 : 0;
+
+        crashlog_print("showing splash screen\n");
+        ShowSplashScreen();
+        FadeScreenIn();
+        IterateInGameEventLoop(kEventLoopTicks);
+        InitIntroProgressBar();
+
+        crashlog_print("loading sprites\n");
+        LoadSprites();
+
+        crashlog_print("checking memory\n");
+        grow = 0x7fffffff;
+        startupMemoryFree = MaxMem(&grow);
+
+        crashlog_print("loading ship sprites\n");
+        LoadShipSprites();
+
+        crashlog_print("configuring sprites\n");
+        InitSprites();
+
+        crashlog_print("initializing player\n");
+        ResetPlayer(1);
+        ResetPlayerRecord(1);
+        gameLoaded = gameInProgress = 0;
+        IterateInGameEventLoop(kEventLoopTicks);
+
+        crashlog_print("initializing main screen\n");
+        FadeScreenOut();
+        DisposeIntroProgressBar();
+        InitMainScreen();
+
+        crashlog_print("opening last pilot file\n");
+        OpenLastPilotFile();
+        IterateInGameEventLoop(kEventLoopTicks);
+
+        crashlog_print("propagating mission bit effects\n");
+        PropagateMissionBitEffects();
+        gameLoaded = 1;
+
+        crashlog_print("---");
+        gPause = 1;
+        DoMainScreen();
+    }
+
+    crashlog_print("main screen disposed\n");
+    {
+        unsigned char blob[3] = { 0x49, 0x71, 0xad };
+        unsigned char name[17] = "EV NovaEV NovaEV";
+        unsigned char key[17] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+        unsigned long g;
+        char *p;
+        long long mem;
+        unsigned char x;
+        unsigned char y;
+        unsigned char c;
+        char b;
+        unsigned char t1;
+        char t2;
+        unsigned short rem;
+        Boolean ok;
+        unsigned int v;
+
+        g = shipData[36].licenseCopies;
+        p = RT3_CheckLicenseName(shipData[17].licenseName);
+        mem = shipData[5].licenseCode;
+        x = 0;
+        b = 0;
+        if (p != 0 && *p >= '0' && *p <= '9')
+            g = 1;
+        if (p != 0 && *p != 0) {
+            while (StringGetLength(p) != 0 && StringGetLength(key) + 1 < 17)
+                StringAppendSafe(key, p, 17);
+        }
+        x ^= g;
+        x += 0xe7;
+        x ^= g;
+        x = ROTL(x, 3);
+        x ^= name[5];
+        x += 0x31;
+        x = ROTL(x, 7);
+        c = key[0];
+        x ^= c;
+        x = ROTL(x, 4);
+        x = ROTL(x, 8);
+        x += 0x0b;
+        t1 = name[2];
+        x ^= t1;
+        x ^= key[13];
+        x ^= name[13];
+        x += 0xa6;
+        x ^= g;
+        x ^= name[12];
+        x ^= g;
+        t2 = key[1];
+        x ^= (unsigned char)t2;
+        x ^= g;
+        x ^= c;
+        x ^= key[4];
+        x += 0x67;
+        x ^= name[6];
+        x ^= g;
+        x += 0x58;
+        if (x > t2)
+            x ^= g;
+        x = ROTL(x, 2);
+        x ^= RegScramE2();
+        y = x + 0x1d;
+        y ^= g;
+        y += 0x5a;
+        x = ROTL(y, 7);
+        x ^= g;
+        x += 0x93;
+        x ^= g;
+        x = ROTL(x, 4);
+        x = ROTL(x, 2);
+        x ^= name[9];
+        rem = RT3_ExtractLicenseBlock2(mem);
+        x += 0x78;
+        x = ROTL(x, 2);
+        x ^= key[2];
+        x ^= t1;
+        x ^= g;
+        x ^= g;
+        x = ROTL(x, 5);
+        x = ROTL(x, 5);
+        x ^= g;
+        if (x < (char)key[14])
+            x ^= g;
+        if (x > (char)key[4])
+            x ^= name[4];
+        x ^= g;
+        x = ROTL(x, 4);
+        x ^= key[15];
+        x ^= name[14];
+        x = ROTL(x, 2);
+        x += 0x75;
+        RegScramC2(x);
+        x = ROTL(x, 1);
+        x = ROTL(x, 4);
+        x = ROTL(x, 8);
+        x = ROTL(x, 1);
+        x += -0x65;
+        x = ROTL(x, 1);
+        x ^= g;
+        x += 0x58;
+        x ^= key[15];
+        x = RegScramA2(x);
+        x += -0x61;
+        RegScramB2(x);
+        RegScramC2(x);
+        x = ROTL(x, 5);
+        x ^= key[3];
+        b = x;
+        x = RegScramD2(&b);
+        x += 0xa4;
+        x ^= key[1];
+        x ^= key[14];
+        x += 0x29;
+        x = ROTL(x, 2);
+        x += 0xd1;
+        x ^= g;
+        x = (x + 0x82) % 256;
+        x ^= name[0];
+        x ^= name[1];
+        x ^= g;
+        x += -0x7c;
+        RegScramB2(x);
+        x = ROTL(x, 0);
+        x = ROTL(x, 5);
+        x += -0x4e;
+        x = ROTL(x, 1);
+        x ^= g;
+        x = ROTL(x, 5);
+        x += 0x5a;
+        x ^= name[11];
+        x ^= g;
+        x = ROTL(x, 5);
+        x ^= g;
+        x += 0xe8;
+        x ^= key[7];
+        x += 0xdd;
+        x ^= key[2];
+        x ^= key[5];
+        x = ROTL(x, 1);
+        x ^= g;
+        x ^= g;
+        x = ROTL(x, 7);
+        x = ROTL(x, 1);
+        x ^= g;
+        x += 0x36;
+        x ^= g;
+        if (x < 0x23)
+            x = ROTL(x, 4);
+        x ^= g;
+        x ^= g;
+        x ^= key[11];
+        if (x < 3)
+            x = blob[x];
+        while (rem >= x)
+            rem -= x;
+        ok = (g != 0 && rem == 0);
+        x ^= key[10];
+        x += 0x4d;
+        x = ROTL(x, 3);
+        x = ROTL(x, 4);
+        x += 0xee;
+        x ^= key[9];
+        x ^= RegScramE2();
+        x += -0x4c;
+        x = ROTL(x, 4);
+        x = ROTL(x, 4);
+        x = ROTL(x, 8);
+        x ^= key[8];
+        x = ROTL(x, 6);
+        x ^= key[2];
+        x = ROTL(x, 7);
+        v = x + 0x57;
+        x = v;
+        if (x != 0)
+            RegScramC2(v);
+
+        grow = shipData[36].licenseCopies != 0 && ok == 0;
+    }
+
+#if V111
+    if (grow)
+        ASWReg_ShowDialogWithOptions(true, true);
+#endif
+    FadeScreenOut();
+    ShowTheCursor();
+    Bye();
+}
+#else
+{
+    unsigned char alertText[256];
+    Boolean blk[kBlacklistCount];
     long qtVersion;
     ComponentDescription cd;
     long long key;
@@ -441,6 +1556,9 @@ void InitEVNova(void)
 
     crashlog("opening data files & loading prefs");
     InitDataFiles();
+#ifdef CEFIX /* F20.01 */
+    CE_ReadX2Hotkey();
+#endif
     LoadPrefs();
     fakeLicenseCode = TimerGetMicroseconds();
     Gestalt(kQuickTimeGestalt, &qtVersion);
@@ -464,20 +1582,24 @@ void InitEVNova(void)
     }
 
     crashlog("initializing monitor");
+#ifdef CEFIX /* F03.01 */
+    CE_InitializeMonitor();
+#else
     SetupMonitor();
+#endif
     ResetScreenRect();
 
     crashlog("initializing QuickTime");
     err = EnterMovies();
     if (err != 0)
-        ShowIndAlert(kAlertQuickTime);
+        FatalStartupError(kAlertQuickTime);
 
     crashlog("building trig table");
     BuildTrigTable();
 
-    if (gammaPref > kMaxGamma)
-        gammaPref = kDefaultGamma;
-    BuildGammaRamp((gammaPref * 10.0 + 70.0));
+    if (settings.gamma > kMaxGamma)
+        settings.gamma = kDefaultGamma;
+    BuildGammaRamp((settings.gamma * 10.0 + 70.0));
     gWind = 0;
     SavePrefs();
 
@@ -487,7 +1609,7 @@ void InitEVNova(void)
         crashlog_print("Platform_Open returned ");
         crashlog_print_num(err);
         crashlog_print("\n");
-        ShowIndAlert(kAlertPlatformOpen);
+        FatalStartupError(kAlertPlatformOpen);
     }
 
     crashlog("opening file tool");
@@ -496,7 +1618,7 @@ void InitEVNova(void)
         crashlog_print("FT_Open returned ");
         crashlog_print_num(err);
         crashlog_print("\n");
-        ShowIndAlert(kAlertFileOpen);
+        FatalStartupError(kAlertFileOpen);
     }
 
     crashlog("opening draw tool");
@@ -505,7 +1627,7 @@ void InitEVNova(void)
         crashlog_print("DT_Open returned ");
         crashlog_print_num(err);
         crashlog_print("\n");
-        ShowIndAlert(kAlertDrawOpen);
+        FatalStartupError(kAlertDrawOpen);
     }
 
     crashlog("opening interface tool");
@@ -514,7 +1636,7 @@ void InitEVNova(void)
         crashlog_print("IT_Open returned ");
         crashlog_print_num(err);
         crashlog_print("\n");
-        ShowIndAlert(kAlertInterfaceOpen);
+        FatalStartupError(kAlertInterfaceOpen);
     }
 
     crashlog("opening registration tool");
@@ -523,7 +1645,7 @@ void InitEVNova(void)
         crashlog_print("RT3_Open returned ");
         crashlog_print_num(err);
         crashlog_print("\n");
-        ShowIndAlert(kAlertRegOpen);
+        FatalStartupError(kAlertRegOpen);
     }
 
     crashlog("initializing arrays");
@@ -531,25 +1653,31 @@ void InitEVNova(void)
     IterateInGameEventLoop(kEventLoopTicks);
 
     crashlog("opening data files");
-    *(long long *)((char *)shipData + kLicenseCodePair) = RT3_GetLicenseCode();
+    shipData[5].licenseCode = RT3_GetLicenseCode();
     FUN_0049e420();
-    *(void **)((char *)shipData + kLicenseName) = RT3_GetLicenseName();
+    shipData[17].licenseName = (unsigned char *)RT3_GetLicenseName();
     IterateInGameEventLoop(kEventLoopTicks);
-    *(long *)((char *)shipData + kLicenseCopies) = RT3_GetLicenseCopies();
+    shipData[36].licenseCopies = RT3_GetLicenseCopies();
     InitColors();
 
-    gShipTypes[gameIsRegisteredIndex].registered =
-        *(long *)((char *)shipData + kLicenseCopies) ? (unsigned char)1 : (unsigned char)0;
-    InitMapWorld();
+    shipClass[gameIsRegisteredIndex].registered =
+        shipData[36].licenseCopies ? (unsigned char)1 : (unsigned char)0;
+    SetupDialogs();
 
-    key = *(long long *)((char *)shipData + kLicenseCodePair);
+    key = shipData[5].licenseCode;
 
-    gPluginCount = CountEVPlugins("Nova Plug-Ins", ".rez", 0);
+#ifdef MACBUILD
+    pluginCount = CountEVPlugins(pluginsFolder, kPlugInFileType);
     OpenDataFiles();
-    gPluginCount = CountEVPlugins("Nova Plug-Ins", ".rez", 0);
-    if (gPluginCount != 0) {
-        if ((gShipTypes[gameIsRegisteredIndex].registered ? 1 : 0) == 0
-                != (gPluginCount == 0)) {
+    pluginCount = CountEVPlugins(pluginsFolder, kPlugInFileType);
+#else
+    pluginCount = CountEVPlugins("Nova Plug-Ins", ".rez", 0);
+    OpenDataFiles();
+    pluginCount = CountEVPlugins("Nova Plug-Ins", ".rez", 0);
+#endif
+    if (pluginCount != 0) {
+        if ((shipClass[gameIsRegisteredIndex].registered ? 1 : 0) == 0
+                != (pluginCount == 0)) {
             ShowTheCursor();
             GetIndString(alertText, kPlugMismatchSTR, kPlugMismatchIndex);
             EVNoteAlert(alertText);
@@ -603,8 +1731,8 @@ void InitEVNova(void)
         }
     }
 
-    cursorVisible = 0;
-    if (windowedPref == 0)
+    cursorHidden = 0;
+    if (settings.windowed == 0)
         HideTheCursor();
     FUN_00486ec0();
     CheckForPiratedCodes();
@@ -658,9 +1786,9 @@ void InitEVNova(void)
     PropagateMissionBitEffects();
     IterateInGameEventLoop(kEventLoopTicks);
 
-    FadeToBlack();
-    gShipTypes[gameIsRegisteredIndex].registered =
-        *(long *)((char *)shipData + kLicenseCopies) ? (unsigned char)1 : (unsigned char)0;
+    HideAmbrosiaLogo();
+    shipClass[gameIsRegisteredIndex].registered =
+        shipData[36].licenseCopies ? (unsigned char)1 : (unsigned char)0;
 
     crashlog("showing splash screen");
     ShowSplashScreen();
@@ -669,7 +1797,7 @@ void InitEVNova(void)
     IterateInGameEventLoop(kEventLoopTicks);
     VerifyResourceChecksums();
     IterateInGameEventLoop(kEventLoopTicks);
-    InitLoadBar();
+    InitIntroProgressBar();
 
     crashlog("loading sprites");
     LoadSprites();
@@ -723,13 +1851,13 @@ void InitEVNova(void)
         int t2;
         long g;
         unsigned short rem;
-        char ok;
+        Boolean ok;
         int bail;
         unsigned int v;
 
-        g = *(long *)((char *)shipData + kLicenseCopies);
-        p = *(unsigned char **)((char *)shipData + kLicenseName);
-        mem = *(long long *)((char *)shipData + kLicenseCodePair);
+        g = shipData[36].licenseCopies;
+        p = shipData[17].licenseName;
+        mem = shipData[5].licenseCode;
         x = 0;
         b = 0;
         if (p != 0 && *p != 0) {
@@ -883,10 +2011,10 @@ void InitEVNova(void)
         if (x != 0)
             RegScramC2(v);
 
-        bail = *(long *)((char *)shipData + kLicenseCopies) != 0 && ok == 0
+        bail = shipData[36].licenseCopies != 0 && ok == 0
                 ? (unsigned char)1 : (unsigned char)0;
         if (bail) {
-            if (windowedPref == 0)
+            if (settings.windowed == 0)
                 ReleaseVideo();
             RT3_RunReminder(1, 0);
         }
@@ -896,17 +2024,499 @@ void InitEVNova(void)
     ShowTheCursor();
     KeyboardDestroy();
     MouseDestroy();
-    CleanUp();
+    Bye();
     ClosePrefs();
 }
+#endif
 
 #define kEscapePodType  0x2ff
 
 
-/* PlayGame (mac _PlayGame). STATE: MATCH, exe 1105 / obj 1105, byte-identical yes (relocs
-   masked). OPEN: none. see notes */
+/* PlayGame (mac _PlayGame). STATE: win MATCH, exe 1105 / obj 1105, byte-identical yes (relocs
+   masked); mac MATCH on both slices.
+   OPEN: none */
 // FUNCTION: EVNOVA 0x00417600
+// MAC: _PlayGame i386 0x000457ba ppc 0x0004da00
 void PlayGame(void)
+#ifdef MACBUILD
+{
+    unsigned char str[256];
+    unsigned char numStr[256];
+    DateTimeRec d;
+    float dx;
+    float dy;
+    float deathTime;
+    GDHandle device;
+    Rect box;
+    short doIt;
+
+    GetTime(&d);
+    RedrawStatus(1);
+    RedrawComm(0);
+    PropagateMissionBitEffects();
+    HandleStellarSystemVisibility();
+    gameFrozen = 1;
+    ignoreKeys = 1;
+    DoPlayGameWork(1);
+    gameFrozen = 0;
+    ignoreKeys = 0;
+    hyperGamma = -1.0f;
+    cursorAlpha = 0;
+    playerKilledByHector = 0;
+    PrepareAllSprites();
+    RefreshWindowBuffer();
+    SWUpdateSpriteWorld(gSpriteWorld, 1);
+#if V111
+    if (useLegacyRenderingPipeline)
+#endif
+        RefreshSAT();
+#ifdef MAC1010
+    FadeScreenIn();
+#endif
+    lastLoMemWarningTime = 0;
+    CheckLoMem();
+    lastSmokeUpdateTime = ReadTick();
+    lastEventLoopTime = ReadTick();
+    lastKeypressTime = ReadTick();
+#ifndef MAC1010
+    FadeScreenIn();
+#endif
+    AdjustSoundVolume();
+    MyProfileInit();
+    MyProfileSetName(0, "game loop");
+    MyProfileSetName(1, "pre draw tasks");
+    MyProfileSetName(2, "drawing");
+    MyProfileSetName(3, "post draw tasks");
+    MyProfileSetName(4, "HandleShip");
+    MyProfileSetName(5, "HandleShipDisplay");
+    MyProfileSetName(6, "AI routines");
+    MyProfileSetName(7, "HandleShot");
+    MyProfileSetName(8, "misc handlers");
+    MyProfileSetName(9, "collisions");
+    MyProfileSetName(10, "player");
+    MyProfileSetName(11, "misc handlers2");
+    MyProfileSetName(12, "DrawStatus");
+    MyProfileSetName(13, "ProcessSpriteWorld");
+    MyProfileSetName(14, "AnimateSpriteWorld");
+    MyProfileSetName(15, "PostAnimate");
+    MyProfileSetName(16, "locking");
+    MyProfileSetName(17, "erase");
+    MyProfileSetName(18, "draw");
+    MyProfileSetName(19, "update");
+    MyProfileSetName(20, "calc AI odds");
+    gSpriteWorld->fastBlit = 1;
+    inBackground = 0;
+    gPause = 0;
+    FlushEvents(8, 0);
+    FlushEvents(0xf, 0);
+
+    while (gQuit == 0 && gPause == 0) {
+        MyProfileEnter(0);
+#if V111
+        if (useLegacyRenderingPipeline)
+#endif
+        {
+            device = gSpriteWorld->mainSWGDH;
+            if (device != NULL) {
+                if ((*(*device)->gdPMap)->pixelSize != gSpriteWorld->pixelDepth) {
+                    gPause = 1;
+                    break;
+                }
+                box = (*(*device)->gdPMap)->bounds;
+                if (box.right - box.left != mainDeviceInitBounds.right - mainDeviceInitBounds.left
+                    || box.bottom - box.top != mainDeviceInitBounds.bottom - mainDeviceInitBounds.top) {
+                    gPause = 1;
+                    break;
+                }
+            }
+        }
+        HandleTimeAdjustment();
+        keyPressedThisFrame = 0;
+        if (inBackground == 0) {
+            if (gSpriteWorld->fastBlit != 0) {
+                MyProfileEnter(1);
+                lastFramePlayerPos.x = shipData[0].pos.x;
+                lastFramePlayerPos.y = shipData[0].pos.y;
+                if (frameCounter % 3 == 0) {
+                    updateSmokeThisFrame = 1;
+                    lastSmokeUpdateTime = ReadTick();
+                } else {
+                    updateSmokeThisFrame = 0;
+                }
+                DoPlayGameWork(1);
+                fpsCounter += 1;
+                if (showFPS != 0) {
+                    if (ReadTick() > lastFPSUpdateTime + 120) {
+                        if ((unsigned long)lastFPSUpdateTime == 0) {
+                            GetIndString(str, kGameStrList, 282);
+                            DisplayComm(str, 100, 0, 12, &rgbWhite, 0, 0);
+                        } else {
+                            NumToString((fpsCounter * 60.0 /
+                                    (float)(ReadTick() - lastFPSUpdateTime)),
+                                    numStr);
+                            PtoCstr(numStr);
+                            strcpy((char *)str, (char *)numStr);
+                            strcat((char *)str, " ");
+                            StrcatIndCString((char *)str, kGameStrList, 283);
+                            CtoPstr((char *)str);
+                            DisplayComm(str, 999, 0, 12, &rgbWhite, 0, 0);
+                        }
+                        lastFPSUpdateTime = ReadTick();
+                        fpsCounter = 0;
+                    }
+                } else {
+                    lastFPSUpdateTime = ReadTick();
+                }
+                dx = lastFramePlayerPos.x - shipData[0].pos.x;
+                dy = lastFramePlayerPos.y - shipData[0].pos.y;
+                if (doubleTime != 0) {
+                    dx *= 2.0f;
+                    dy *= 2.0f;
+                }
+                ScrollStarfield(dx, dy);
+                HandleMouse();
+                MyProfileExit(1);
+                MyProfileEnter(2);
+#if TARGET_API_MAC_CARBON
+                MyProfileEnter(16);
+                LockPortBits(GetCWindowGrafPort(gWind));
+                MyProfileExit(16);
+#endif
+                MyProfileEnter(13);
+                SWProcessSpriteWorld(gSpriteWorld);
+                MyProfileExit(13);
+                MyProfileEnter(14);
+                SWAnimateSpriteWorld(gSpriteWorld);
+                MyProfileExit(14);
+                MyProfileEnter(15);
+                PostAnimateHandler();
+                MyProfileExit(15);
+#if TARGET_API_MAC_CARBON
+                MyProfileEnter(16);
+                UnlockPortBits(GetCWindowGrafPort(gWind));
+                QDFlushPortBuffer(GetCWindowGrafPort(gWind), 0);
+                MyProfileExit(16);
+#endif
+                MyProfileExit(2);
+                MyProfileEnter(3);
+                if (KeyCheck(keyPrefs.pause)) {
+                    if (pauseKeyFlag == 0 && gPause == 0) {
+                        pauseKeyFlag = 1;
+                        if (shipData[0].jumpTimer <= 0.0f
+                                && shipData[0].type != kEscapePodType
+                                && (deathTime = shipData[0].deathTimer) <= 0.0f
+                                && shipData[0].escapePods <= 0) {
+                            if (shipData[0].active != 0 || deathTime < -250.0f)
+                                gPause = 1;
+                        }
+                    }
+                } else {
+                    pauseKeyFlag = 0;
+                }
+                if (doubleTime != 0)
+                    DoPlayGameWork(0);
+                frameCounter += 1;
+                if (frameCounter > 1024) {
+                    frameCounter = 0;
+                    if (d.day == 30 && d.month == 6 && commCount <= 0)
+                        DisplayComm("\pHappy birthday Matt",
+                                    5, 3, 9, &rgbDarkGrey, 0, 0);
+                    do {
+                        unsigned char blob[3] = { 0x49, 0x71, 0xad };
+                        unsigned char name[17] = "EV NovaEV NovaEV";
+                        unsigned char key[17] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+                        unsigned char t6;
+                        unsigned char t2;
+                        unsigned char t3;
+                        unsigned char t4;
+                        unsigned char t1;
+                        long g;
+                        char *p;
+                        long long mem;
+                        unsigned char c;
+                        char b;
+                        char t5;
+                        Boolean ok;
+                        unsigned short rem = 0;
+                        unsigned char x;
+
+                        g = shipData[36].licenseCopies;
+#ifdef MAC1010
+                        p = shipData[17].licenseName;
+#else
+                        p = RT3_CheckLicenseName(shipData[17].licenseName);
+#endif
+                        mem = shipData[5].licenseCode;
+                        x = 0;
+#ifndef MAC1010
+                        b = 0;
+                        if (p != 0 && *p >= '0' && *p <= '9')
+                            g = 1;
+#endif
+                        if (p != 0) {
+                            while (StringGetLength(key) + 1 < 17 && *p != 0)
+                                StringAppendSafe(key, p, 17);
+                        }
+                        c = key[3];
+                        x ^= c;
+                        x ^= name[14];
+                        x += (char)0xf1;
+                        x ^= key[10];
+                        x ^= key[8];
+                        x = ROTL(x, 0);
+                        x ^= key[15];
+                        x = ROTL(x, 4);
+                        x = ROTL(x, 2);
+                        x = ROTL(x, 7);
+                        x ^= key[1];
+                        x = ROTL(x, 2);
+                        x = ROTL(x, 1);
+                        x += 0x5f;
+                        x = ROTL(x, 4);
+                        t1 = name[13];
+                        x ^= t1;
+                        t2 = name[5];
+                        x ^= t2;
+                        x = ROTL(x, 0);
+                        x ^= (unsigned char)g;
+                        x ^= (unsigned char)g;
+                        x ^= (unsigned char)g;
+                        x += 0x42;
+                        if (x < (char)key[11])
+                            x = ROTL(x, 8);
+                        x ^= t1;
+                        x ^= (unsigned char)g;
+                        x += -0x6b;
+                        x = ROTL(x, 1);
+                        x ^= key[7];
+                        x += 0x1e;
+                        x ^= key[12];
+                        x = ROTL(x, 6);
+                        x ^= name[3];
+                        x += (char)0xac;
+                        x ^= c;
+                        x ^= key[13];
+                        rem = RT3_ExtractLicenseBlock1(mem);
+                        x = ROTL(x, 6);
+                        x ^= (unsigned char)g;
+                        x = ROTL(x, 2);
+                        x ^= key[4];
+                        x = ROTL(x, 3);
+                        x = ROTL(x, 5);
+                        x ^= (unsigned char)g;
+                        b = x;
+                        x = RegScramD2(&b);
+                        x += 0x19;
+                        x = ROTL(x, 3);
+                        x ^= key[15];
+                        RegScramB2(x);
+                        x = ROTL(x, 6);
+                        RegScramF2();
+                        x = ROTL(x, 5);
+                        x ^= (unsigned char)g;
+                        x ^= key[14];
+                        t3 = (unsigned char)name[0];
+                        x ^= t3;
+                        x ^= t2;
+                        x += 7;
+                        x ^= key[8];
+                        x += -0x60;
+                        x = ROTL(x, 4);
+                        x += -0x23;
+                        x = ROTL(x, 1);
+                        x ^= key[13];
+                        RegScramB2(x);
+                        x += 0x3e;
+                        x ^= (unsigned char)g;
+                        t4 = name[1];
+                        x ^= t4;
+                        if (x < (char)key[6])
+                            x = ROTL(x, 3);
+                        x ^= (unsigned char)g;
+                        x += (char)0xe1;
+                        x ^= name[7];
+                        x ^= RegScramE2();
+                        x ^= t3;
+                        x ^= key[8];
+                        x = ROTL(x, 8);
+                        x ^= t1;
+                        x = ROTL(x, 3);
+                        if (x > (char)(t6 = name[9]))
+                            x = ROTL(x, 7);
+                        x = ROTL(x, 5);
+                        x ^= name[8];
+                        x ^= key[7];
+                        x ^= (unsigned char)g;
+                        if (x > 0x5f) {
+                            b = x;
+                            x = RegScramD2(&b);
+                        }
+                        x = ROTL(x, 6);
+                        x += -0x53;
+                        x = ROTL(x, 7);
+                        x = ROTL(x, 0);
+                        x ^= key[2];
+                        x += -0x53;
+                        x = ROTL(x, 0);
+                        x += 0xae;
+                        x ^= t3;
+                        x = ROTL(x, 6);
+                        x += (char)0xc2;
+                        x ^= key[14];
+                        if (x < 0x94)
+                            x = ROTL(x, 6);
+                        x ^= (unsigned char)g;
+                        x = ROTL(x, 1);
+                        x = ROTL(x, 2);
+                        x += 0x45;
+                        x = ROTL(x, 4);
+                        x = ROTL(x, 2);
+                        x = ROTL(x, 0);
+                        x += 0x62;
+                        x ^= key[10];
+                        if (x < (char)key[1])
+                            x = ROTL(x, 5);
+                        if (x > (t5 = key[9]))
+                            x ^= (unsigned char)t5;
+                        x ^= (unsigned char)g;
+                        x += 0x6c;
+                        x = ROTL(x, 6);
+                        x += 3;
+                        x ^= (unsigned char)t5;
+                        x += -0x6d;
+                        x = ROTL(x, 3);
+                        x = ROTL(x, 1);
+                        x ^= key[15];
+                        x ^= key[4];
+                        x += (char)0x99;
+                        if (x > 0x47)
+                            x ^= key[0];
+                        if (x < 3)
+                            x = blob[x];
+                        while (rem >= x)
+                            rem -= x;
+                        ok = (g != 0 && rem == 0);
+                        x ^= (unsigned char)g;
+                        x += (char)0xd9;
+                        RegScramC2(x);
+                        x ^= t2;
+                        x = ROTL(x, 6);
+                        x += 0xa;
+                        x ^= (unsigned char)g;
+                        x ^= t4;
+                        x ^= key[10];
+                        x += (char)0x96;
+                        x ^= name[2];
+                        x ^= name[4];
+                        x ^= t6;
+                        x += 0xb;
+                        if (x != 0)
+                            RegScramA2(x);
+
+                        doIt = (shipData[36].licenseCopies != 0
+                                && ok == 0 ? (unsigned char)1 : (unsigned char)0);
+                    } while (0);
+                    if (doIt) {
+                        shipData[0].credits *= 0.1;
+                        statusRedraw[2] = 1;
+                    }
+                }
+                if (missionSoundID != -1 && missionSnd == 0) {
+                    missionSnd = ST_LoadSndResource(missionSoundID);
+                    if (missionSnd != 0)
+                        PlaySound(missionSnd, 50, gSoundVolume, gSoundVolume);
+                    missionSoundID = -1;
+                }
+                if (missionSnd != 0 && ST_IsSoundPlaying(missionSnd) == 0) {
+                    ST_DisposeSound(missionSnd);
+                    missionSnd = 0;
+                }
+                killShots = 0;
+                killBoxes = 0;
+                killExplods = 0;
+                killSmoke = 0;
+                killAsteroids = 0;
+                missionSoundID = -1;
+                if (ST_IsSoundPlaying(warpUpSnd[1]) != 0) {
+                    doubleTime = 1;
+                } else if (QuickKeyCheck(MacKey(0x39))) {
+                    if (abs(AngularDifference(shipData[0].heading,
+                                shipData[0].desiredHeading)) <= 10
+                            && ST_IsSoundPlaying(warpUpSnd[0]) != 0) {
+                        doubleTime = 0;
+                    } else {
+                        doubleTime = 1;
+                    }
+                } else {
+                    doubleTime = 0;
+                    gameFrozen = 0;
+                }
+                if (cheatsActive == 0)
+                    gameFrozen = 0;
+                if (keyPressedThisFrame != 0)
+                    lastKeypressTime = ReadTick();
+#if !TARGET_API_MAC_CARBON
+                if (shipData[0].jumpTimer <= 0.0f || shipData[0].active == 0) {
+                    if (Button() || (QuickKeyCheck(4) && QuickKeyCheck(0x3f))) {
+                        IterateInGameEventLoop(10);
+                        lastEventLoopTime = ReadTick();
+                    } else if (settings.windowed != 0) {
+                        if (settings.yieldEvents != 0) {
+                            IterateInGameEventLoop(1);
+                            lastEventLoopTime = ReadTick();
+                        }
+                    } else if (settings.yieldEvents != 0) {
+                        IterateInGameEventLoop(1);
+                        lastEventLoopTime = ReadTick();
+                    }
+                }
+#else
+                if (shipData[0].jumpTimer <= 0.0f || shipData[0].active == 0) {
+                    if (ReadTick() > lastEventLoopTime + 30
+                            || (QuickKeyCheck(MacKey(0xc)) && QuickKeyCheck(MacKey(0x37)))) {
+                        if (QuickKeyCheck(MacKey(0xc)) && QuickKeyCheck(MacKey(0x37)))
+                            IterateInGameEventLoop(10);
+                        else
+                            IterateInGameEventLoop(1);
+                        lastEventLoopTime = ReadTick();
+                    }
+                } else {
+                    BusyIdle();
+                }
+#endif
+                MyProfileExit(3);
+            } else {
+                SWUpdateSpriteWorld(gSpriteWorld, 0);
+                IterateInGameEventLoop(3);
+                if (gSpriteWorld->fastBlit != 0) {
+                    RefreshSAT();
+                    RedrawStatus(1);
+                }
+            }
+        } else {
+            IterateInGameEventLoop(-1);
+            if (inBackground == 0)
+                RefreshWindowBuffer();
+        }
+        if (absquatulateStr[0] != 0) {
+            PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
+            DisplayComm(absquatulateStr, 500, 0, 12, &rgbWhite, 0, 0);
+            RedrawComm(1);
+            absquatulateStr[0] = 0;
+        }
+        MyProfileExit(0);
+    }
+
+    MyProfileDump("profile.txt");
+    FadeScreenOut();
+    ShowTheCursor();
+    playerKilledByHector = 0;
+    FlushEvents(everyEvent - diskMask, 0);
+    SWSetPortToWindow(gSpriteWorld);
+    ForeColor(blackColor);
+    PaintRect(GetCWindowPortRect(gWind));
+}
+#else
 {
     unsigned char numStr[256];
     unsigned char str[256];
@@ -998,7 +2608,7 @@ void PlayGame(void)
                             PtoCstr(numStr);
                             strcpy((char *)str, (char *)numStr);
                             strcat((char *)str, " ");
-                            AppendIndString((char *)str, kGameStrList, 283);
+                            StrcatIndCString((char *)str, kGameStrList, 283);
                             CtoPstr((char *)str);
                             DisplayComm(str, 999, 0, 12, &rgbWhite, 0, 0);
                         }
@@ -1025,7 +2635,7 @@ void PlayGame(void)
                 SWAnimateSpriteWorld(gSpriteWorld);
                 MyProfileExit(14);
                 MyProfileEnter(15);
-                FlushOverlayStrips();
+                PostAnimateHandler();
                 MyProfileExit(15);
                 ScreenEndScene();
                 MyProfileExit(2);
@@ -1050,7 +2660,7 @@ void PlayGame(void)
                 if (frameCounter > 1024) {
                     frameCounter = 0;
                     if (d.day == 30 && d.month == 6 && commCount <= 0)
-                        DisplayComm((unsigned char *)"\pHappy birthday Matt",
+                        DisplayComm("\pHappy birthday Matt",
                                     5, 3, 9, &rgbDarkGrey, 0, 0);
                     {
                         unsigned char blob[3] = { 0x49, 0x71, 0xad };
@@ -1066,12 +2676,12 @@ void PlayGame(void)
                         int t3;
                         int t4;
                         unsigned short rem;
-                        char ok;
+                        Boolean ok;
                         short doIt;
 
-                        g = *(long *)((char *)shipData + kLicenseCopies);
-                        p = *(unsigned char **)((char *)shipData + kLicenseName);
-                        mem = *(long long *)((char *)shipData + kLicenseCodePair);
+                        g = shipData[36].licenseCopies;
+                        p = shipData[17].licenseName;
+                        mem = shipData[5].licenseCode;
                         x = 0;
                         b = 0;
                         if (p != 0) {
@@ -1228,7 +2838,7 @@ void PlayGame(void)
                         if (x != 0)
                             RegScramA2(x);
 
-                        doIt = (*(long *)((char *)shipData + kLicenseCopies) != 0
+                        doIt = (shipData[36].licenseCopies != 0
                                 && ok == 0 ? (unsigned char)1 : (unsigned char)0);
                         if (doIt) {
                             shipData[0].credits *= 0.1;
@@ -1237,7 +2847,7 @@ void PlayGame(void)
                     }
                 }
                 if (missionSoundID != -1 && missionSnd == 0) {
-                    missionSnd = LoadSoundResource(missionSoundID);
+                    missionSnd = ST_LoadSndResource(missionSoundID);
                     if (missionSnd != 0)
                         PlaySound(missionSnd, 50, gSoundVolume, gSoundVolume);
                     missionSoundID = -1;
@@ -1254,7 +2864,11 @@ void PlayGame(void)
                 missionSoundID = -1;
                 if (ST_IsSoundPlaying(warpUpSnd[1]) != 0) {
                     doubleTime = 1;
-                } else if (!(GetKeyState(VK_CAPITAL) & 1)) {
+#ifdef CEFIX /* F20.02 */
+                } else if (!(GetKeyState(ceX2Hotkey) & 1)) {
+#else
+                } else if (!CapsLockIsOn()) {
+#endif
                     doubleTime = 0;
                     gameFrozen = 0;
                 } else if (abs(AngularDifference(shipData[0].heading,
@@ -1305,9 +2919,10 @@ void PlayGame(void)
     playerKilledByHector = 0;
     FlushEvents(everyEvent - diskMask, 0);
     SWSetPortToWindow(gSpriteWorld);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetCWindowPortRect(gWind));
 }
+#endif
 
 #define kMaxNavDefaults 0x10
 
@@ -1325,10 +2940,12 @@ void PlayGame(void)
 
 /* DoPlayGameWork (mac _DoPlayGameWork). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004186b0
-void DoPlayGameWork(char advance)
+// MAC: _DoPlayGameWork i386 0x00043de5 ppc 0x0004bbe4
+void DoPlayGameWork(unsigned char advance)
 {
     short i;
     short n;
+    short x;
 
     MyProfileEnter(kProfPlayer);
     QuickKeyCheckHandler();
@@ -1373,7 +2990,7 @@ void DoPlayGameWork(char advance)
             prevParent[i] = shipData[i].parentShip;
         for (i = 1; i < kMaxShips; i++) {
             if (shipData[i].active != 0 && shipData[i].aiType >= 5 &&
-                    shipData[0].curSystem == shipData[i].curSystem) {
+                    shipData[i].curSystem == shipData[0].curSystem) {
                 if (shipData[i].parentShip > 0) {
                     AICheckParentExists(&shipData[i]);
                     if (shipData[i].parentShip != -1)
@@ -1412,7 +3029,7 @@ void DoPlayGameWork(char advance)
         MyProfileEnter(kProfAI);
         for (i = 1; i < kMaxShips; i++) {
             if (shipData[i].active != 0 && shipData[i].aiType >= 1 &&
-                    shipData[0].curSystem == shipData[i].curSystem)
+                    shipData[i].curSystem == shipData[0].curSystem)
                 AIDispatch(&shipData[i], 0);
         }
         MyProfileEnter(kProfOdds);
@@ -1423,7 +3040,7 @@ void DoPlayGameWork(char advance)
                 else
                     shipData[1].odds = -1.0f;
                 if (shipData[i].active != 0 && shipData[i].aiType >= 1 &&
-                        shipData[0].curSystem == shipData[i].curSystem) {
+                        shipData[i].curSystem == shipData[0].curSystem) {
                     AICalculateOddsAgainst(&shipData[i]);
                     break;
                 }
@@ -1442,12 +3059,15 @@ void DoPlayGameWork(char advance)
             HandleShot(&shotData[i]);
         }
     }
-    gShipTypes[gameIsRegisteredIndex].registered =
-        shipData[36].unkC940 != 0 ? (unsigned char)1 : (unsigned char)0;
+    LICENSE_STEP_BEGIN
+    shipClass[gameIsRegisteredIndex].registered =
+        shipData[36].licenseCopies != 0 ? (unsigned char)1 : (unsigned char)0;
+    LICENSE_STEP_END
+    x = shipClass[gameIsRegisteredIndex].registered;
     MyProfileExit(kProfShots);
 
     for (i = 0; i < kMaxNavDefaults; i++) {
-        n = gSystems[shipData[0].curSystem].navDefault[i];
+        n = systemData[shipData[0].curSystem].navDefault[i];
         if (n != -1)
             stellarData[n].defenseActive = 0;
     }
@@ -1457,7 +3077,7 @@ void DoPlayGameWork(char advance)
     }
     for (i = 1; i < kMaxShips; i++) {
         MyProfileEnter(kProfShip);
-        if (shipData[i].active != 0 && shipData[0].curSystem == shipData[i].curSystem)
+        if (shipData[i].active != 0 && shipData[i].curSystem == shipData[0].curSystem)
             HandleShip(&shipData[i]);
         MyProfileExit(kProfShip);
         MyProfileEnter(kProfShipDisp);
@@ -1488,9 +3108,10 @@ void DoPlayGameWork(char advance)
 
 /* PrepareAllSprites (mac _PrepareAllSprites). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00419210
+// MAC: _PrepareAllSprites i386 0x0003a75a ppc 0x00040d04
 void PrepareAllSprites(void)
 {
-    char wasFrozen;
+    Boolean wasFrozen;
     short i;
 
     wasFrozen = gameFrozen;
@@ -1516,11 +3137,7 @@ void PrepareAllSprites(void)
     gameFrozen = wasFrozen;
 }
 
-#define kShipFlagCloakOnHit     0x4000  /* ShipRec flags2 bit 14 (name TBC) */
 #define kShipTypeFighter        5       /* aiType: launched from a bay */
-#define kPersKillable           1       /* përs Flags bit 0 (name TBC) */
-#define kMissionSurvivesKill    0x400   /* mïsn +0x55 bit 10 (name TBC) */
-#define kMissionFailOnDeath     0x4     /* mïsn +0x57 bit 2 (name TBC) */
 #define kGovtLegalScale         2       /* govt crimeTol is halved legal status */
 
 #define kStrMissionFailed       0x11c
@@ -1548,30 +3165,33 @@ void PrepareAllSprites(void)
 
 /* DamageShip (mac _DamageShip). STATE: MATCH 100.0% (1332 exact, 189 reloc-equivalent), exe 1521 /
    obj 1521, byte-identical yes, relocregcheck 0 of 189; needs PrepareAllSprites above it (TU).
-   OPEN: none */
+   mac MATCH both slices. OPEN: none. */
 // FUNCTION: EVNOVA 0x004192d0
+// MAC: _DamageShip i386 0x0003a807 ppc 0x00040df8
 void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
-                short shieldDmg, short attacker, char fromAttack, char deliberate,
-                unsigned char disableOnly, char clampArmor,
+                short shieldDmg, short attacker, Boolean fromAttack, Boolean deliberate,
+                unsigned char disableOnly, Boolean clampArmor,
                 unsigned char armorOnly, short provocation)
 {
     short theirTop;
-    char wasDisabled;
-    char wasDying;
+    Boolean wasDisabled;
+    unsigned char wasDying;
     char msg[256];
-    char selfHit;
-    char hostile;
-    float dx;
-    float dy;
-    float capacity;
+    Boolean selfHit;
+#ifndef MAC1010
+    Boolean hostile;
+#endif
+    Boolean enemy;
     long aligned;
-    long farther;
-    long nearer;
     short angle;
+    float capacity;
     short myGovt;
     short myTop;
     FloatPoint spob;
     short i;
+#ifdef MAC1010
+    Boolean hostile;
+#endif
 
     if (ship->index < 0 || ship->index >= kMaxShips)
         return;
@@ -1582,13 +3202,13 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
 
     if (fromAttack != 0 && attacker > 0 && attacker < kMaxShips) {
         if (shipData[attacker].persType == kPersCaptainHector) {
-            if (gSharewareDays > 90) {
+            if (totalDaysPlayed > 90) {
                 armorDmg *= 5;
                 shieldDmg *= 5;
-            } else if (gSharewareDays > 60) {
+            } else if (totalDaysPlayed > 60) {
                 armorDmg *= 3;
                 shieldDmg *= 3;
-            } else if (gSharewareDays > 40) {
+            } else if (totalDaysPlayed > 40) {
                 armorDmg *= 2;
                 shieldDmg *= 2;
             }
@@ -1607,18 +3227,17 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
     wasDisabled = IsDisabled(ship);
 
     if (impact < 0 && fromAttack != 0 && attacker >= 0 && attacker < kMaxShips) {
-        dx = FloatAbs(shipData[attacker].pos.x - ship->pos.x);
-        if (dx < kImpactCancelRange
-                || (dy = FloatAbs(shipData[attacker].pos.y - ship->pos.y)) < kImpactCancelRange)
+        if (FloatAbs(shipData[attacker].pos.x - ship->pos.x) < kImpactCancelRange
+                || FloatAbs(shipData[attacker].pos.y - ship->pos.y) < kImpactCancelRange)
             impact = 0;
     }
 
     if (impact != 0 && ship->jumpTimer <= 0.0f && from != NULL) {
         angle = CalcInterceptAngle(from, &ship->pos);
-        if (gShipTypes[ship->type].mass > 0
-                && (gShipTypes[ship->type].flags & kShipFlagNoMove) == 0) {
-            AdjustedAccel(angle, impact / (float)gShipTypes[ship->type].mass,
-                          &ship->vel, gShipTypes[ship->type].maxSpeed);
+        if (shipClass[ship->type].mass > 0
+                && (shipClass[ship->type].flags & kShipPlanetType) == 0) {
+            AdjustedAccel(angle, impact / (float)shipClass[ship->type].mass,
+                          &ship->vel, shipClass[ship->type].maxSpeed);
             if (ship->index == 0 && abOn != 0 && gravitySourcesPresent == 0)
                 SpeedLimit(&ship->vel, ShipMaxSpeed(ship) * kPlayerKnockbackScale);
             else
@@ -1654,25 +3273,25 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
     }
 
     if (clampArmor != 0 && IsDisabled(ship) && wasDisabled == 0) {
-        if ((gShipTypes[ship->type].flags & kShipArmorDisableTenth) != 0)
+        if ((shipClass[ship->type].flags & kShipArmorDisableTenth) != 0)
             ship->armor = ShipArmorCapacity(ship) * kTenthArmorFraction + 1.0;
         else
             ship->armor = ShipArmorCapacity(ship) * kDisableArmorFraction + 1.0;
     }
 
-    hostile = 0;
+    enemy = 0;
     if (attacker == 0) {
-        hostile = 1;
+        enemy = 1;
     } else if (attacker > 0 && attacker < kMaxShips
                && shipData[attacker].parentShip == 0) {
-        hostile = 1;
+        enemy = 1;
     }
-    if (hostile != 0 && ship->defenseStellar == -1 && ship->persType < kPersCaptainHector) {
+    if (enemy != 0 && ship->defenseStellar == -1 && ship->persType < kPersCaptainHector) {
         if (IsDisabled(ship) && wasDisabled == 0)
             SlapWithPenalty(shipData->curSystem, ship->govt, 1, ship->specialMission);
         if (ship->armor <= 0.0f && wasDying == 0 && !ShipIsDerelict(ship)) {
             SlapWithPenalty(shipData->curSystem, ship->govt, 3, ship->specialMission);
-            AddToPlayerKills(gShipTypes[ship->type].strength);
+            AddToPlayerKills(shipClass[ship->type].strength);
         }
     }
 
@@ -1683,7 +3302,7 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                 if (currentMissionObjectives[ship->specialMission].failed == 0
                         && currentMissions[ship->specialMission].specialShipsDisabled == 0
                         && currentMissions[ship->specialMission].shipGoal == kMissionKindDisable
-                        && (currentMissions[ship->specialMission].flags & kMissionSurvivesKill) == 0) {
+                        && (currentMissions[ship->specialMission].flags & kMissionHidden) == 0) {
                     PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
                     GetIndString((unsigned char *)msg, kGameStrList, kStrMissionFailed);
                     DisplayComm((unsigned char *)msg, kCommTicks, 0, kCommFontSize,
@@ -1702,12 +3321,12 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                 ship->formerEscort = 2;
             ship->parentShip = -1;
             if (ship->aiType == kShipTypeEscort
-                    && gShipTypes[ship->type].inherentAI <= 2) {
+                    && shipClass[ship->type].inherentAI <= 2) {
                 DestroyPartialFleetCargo(ship->index);
                 statusRedraw[2] = 1;
                 DrawStatusCargo();
             }
-            ship->aiType = gShipTypes[ship->type].inherentAI;
+            ship->aiType = shipClass[ship->type].inherentAI;
         }
         if (ship->index == 0 && wasDisabled == 0) {
             PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
@@ -1718,7 +3337,7 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
             ship->armor = (long)ship->armor;
             for (i = 0; i < kMaxActiveMissions; i++) {
                 if (currentMissionObjectives[i].active != 0 && currentMissionObjectives[i].failed == 0
-                        && (currentMissions[i].flags2 & kMissionFailOnDeath) != 0) {
+                        && (currentMissions[i].flags2 & kMissionFailIfDisabled) != 0) {
                     PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
                     QuickMissionFailure(i);
                     GetIndString((unsigned char *)msg, kGameStrList, kStrMissionFailed);
@@ -1748,7 +3367,7 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
         }
         for (i = 0; i < kMaxActiveMissions; i++) {
             if (currentMissionObjectives[i].active != 0 && currentMissionObjectives[i].failed == 0
-                    && (currentMissions[i].flags2 & kMissionFailOnDeath) != 0) {
+                    && (currentMissions[i].flags2 & kMissionFailIfDisabled) != 0) {
                 PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
                 QuickMissionFailure(i);
                 GetIndString((unsigned char *)msg, kGameStrList, kStrMissionFailed);
@@ -1760,31 +3379,31 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
     }
 
     selfHit = 0;
-    hostile = 0;
+    enemy = 0;
     if (attacker != ship->index) {
-        hostile = 1;
+        enemy = 1;
     } else if (ship->defenseStellar != -1) {
-        hostile = 1;
+        enemy = 1;
         selfHit = 1;
     } else if (attacker >= 0 && attacker < kMaxShips
                && shipData[attacker].defenseStellar != -1) {
-        hostile = 1;
+        enemy = 1;
         selfHit = 1;
     }
 
-    if (hostile && fromAttack != 0 && ship->aiType > 0 && ship->jumpTimer <= 0.0f) {
+    if (enemy && fromAttack != 0 && ship->aiType > 0 && ship->jumpTimer <= 0.0f) {
         hostile = 0;
         if (selfHit != 0) {
             if (attacker >= 0 && attacker < kMaxShips) {
-                if (ship->defenseStellar == -1 || shipData[attacker].defenseStellar == -1)
-                    hostile = 1;
-                else
+                if (ship->defenseStellar != -1 && shipData[attacker].defenseStellar != -1)
                     hostile = 0;
+                else
+                    hostile = 1;
             } else
                 hostile = 1;
         } else {
             if (attacker >= 0 && attacker < kMaxShips
-                    && ship->govt != shipData[attacker].govt)
+                    && shipData[attacker].govt != ship->govt)
                 hostile = 1;
             if (ship->parentShip >= 0 && ship->parentShip < kMaxShips) {
                 if (attacker != ship->parentShip || attacker == -1)
@@ -1794,23 +3413,24 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                         && ship->parentShip != shipData[attacker].parentShip)
                     hostile = 1;
             }
-            myGovt = ship->govt;
-            if (myGovt < 0 || myGovt >= kMaxGovts) {
+            if (ship->govt < 0 || ship->govt >= kMaxGovts) {
                 if (attacker >= 0 && attacker < kMaxShips
                         && (attacker == 0 || shipData[attacker].parentShip == 0))
                     hostile = 1;
             } else {
-                if (gSystems[shipData->curSystem].govt >= 0
-                        && gSystems[shipData->curSystem].govt < kMaxGovts
+                if (systemData[shipData->curSystem].govt >= 0
+                        && systemData[shipData->curSystem].govt < kMaxGovts
                         && shipData->targetShip != ship->index
-                        && playerLegalStatus[shipData->curSystem]
-                           >= govtData[myGovt].crimeTol * kGovtLegalScale
-                        && (attacker == 0
-                            || (attacker > 0 && attacker < kMaxShips
-                                && shipData[attacker].parentShip == 0)))
-                    hostile = 0;
+                        && playerRecord[shipData->curSystem]
+                           >= govtData[ship->govt].crimeTol * kGovtLegalScale) {
+                    if (attacker == 0)
+                        hostile = 0;
+                    else if (attacker > 0 && attacker < kMaxShips
+                                && shipData[attacker].parentShip == 0)
+                        hostile = 0;
+                }
                 if (attacker >= 0 && attacker < kMaxShips
-                        && myGovt == shipData[attacker].govt)
+                        && ship->govt == shipData[attacker].govt)
                     hostile = 0;
             }
             if (ship->parentShip >= 0 && ship->parentShip < kMaxShips
@@ -1835,10 +3455,10 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                            && ship->index != shipData[attacker].targetShip) {
                     hostile = 0;
                 }
-                if (hostile && ship->govt >= 0 && ship->govt < kMaxGovts
+                if (hostile && (ship->govt >= 0 && ship->govt < kMaxGovts
                         && attacker == 0
                         && govtData[ship->govt].penalties[4] <= 0
-                        && Rand(4) != 0)
+                        && Rand(4) != 0))
                     hostile = 0;
                 if (attacker == 0 && ship->annoyance < kAnnoyanceThreshold)
                     hostile = 0;
@@ -1849,14 +3469,12 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                 if (shipData[attacker].parentShip == 0
                         && shipData[attacker].aiType == kShipTypeFighter
                         && ship->targetShip == 0) {
-                    dx = FloatAbs(ship->pos.x - shipData->pos.x);
-                    if (dx <= kEscortDefendRange) {
-                        dy = FloatAbs(ship->pos.y - shipData->pos.y);
-                        if (dy <= kEscortDefendRange)
+                    if (FloatAbs(ship->pos.x - shipData->pos.x) <= kEscortDefendRange) {
+                        if (FloatAbs(ship->pos.y - shipData->pos.y) <= kEscortDefendRange)
                             hostile = 0;
                     }
                 }
-                if (ship->parentShip == shipData[attacker].parentShip && ship->parentShip != -1)
+                if (shipData[attacker].parentShip == ship->parentShip && ship->parentShip != -1)
                     hostile = 0;
             }
             if (ship->jumpTimer > 0.0f)
@@ -1871,16 +3489,19 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
             }
             myTop = theirTop = -1;
             if (ship->parentShip >= 0 && ship->parentShip < kMaxShips
-                    && shipData[ship->parentShip].parentShip >= 0
-                    && shipData[ship->parentShip].parentShip < kMaxShips)
+                    && (shipData[ship->parentShip].parentShip >= 0
+                        && shipData[ship->parentShip].parentShip < kMaxShips))
                 myTop = shipData[ship->parentShip].parentShip;
             if (attacker > 0 && attacker < kMaxShips
-                    && shipData[attacker].parentShip > 0
-                    && shipData[attacker].parentShip < kMaxShips)
+                    && (shipData[attacker].parentShip > 0
+                        && shipData[attacker].parentShip < kMaxShips))
                 theirTop = shipData[shipData[attacker].parentShip].parentShip;
-            if (myTop == theirTop && myTop >= 0 && myTop < kMaxShips
-                    && theirTop >= 0 && theirTop < kMaxShips)
-                hostile = 0;
+            if (myTop == theirTop)
+                if (myTop >= 0)
+                    if (myTop < kMaxShips)
+                        if (theirTop >= 0)
+                            if (theirTop < kMaxShips)
+                                hostile = 0;
         }
 
         if (ship->jumpTimer > 0.0f) {
@@ -1892,19 +3513,19 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
         if (hostile && ship->index > 0 && attacker > 0 && attacker < kMaxShips
                 && AIShipIsDocking(ship))
             hostile = 0;
-        if (hostile && attacker >= 0 && attacker < kMaxShips
-                && gShipTypes[shipData[attacker].type].escortType == 0
-                && gShipTypes[ship->type].escortType != 0
+        if (hostile && (attacker >= 0 && attacker < kMaxShips
+                && shipClass[shipData[attacker].type].escortType == 0
+                && shipClass[ship->type].escortType != 0
                 && ship->targetShip != -1
-                && IsShipAttacking(ship))
+                && IsShipAttacking(ship)))
             hostile = 0;
 
         if (hostile) {
             ship->annoyance = 0;
-            if ((gShipTypes[ship->type].flags2 & kShipFlagCloakOnHit) != 0
-                    && attacker >= 0 && attacker < kMaxShips
-                    && ShipCanCloak(ship)
-                    && !IsShipFightingMe(ship, &shipData[attacker])) {
+            if ((shipClass[ship->type].flags2 & kShipCloaksWhenAttacked) != 0
+                    && (attacker >= 0 && attacker < kMaxShips
+                        && ShipCanCloak(ship)
+                        && !IsShipFightingMe(ship, &shipData[attacker]))) {
                 AIForceBurstReload(ship);
                 DoShipCloak(ship);
             }
@@ -1917,9 +3538,8 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                     aligned = AngularDifference(ship->heading,
                                                 ship->desiredHeading) < 45;
                     if (abs(aligned)) {
-                        farther = XYFloatSquaredDist(&ship->pos, &shipData[attacker].pos)
-                                  > XYFloatSquaredDist(&ship->pos, &shipData[ship->targetShip].pos) / 4;
-                        if (farther)
+                        if (XYFloatSquaredDist(&ship->pos, &shipData[attacker].pos)
+                                  > XYFloatSquaredDist(&ship->pos, &shipData[ship->targetShip].pos) / 4)
                             wasDying = 0;
                     }
                 }
@@ -1943,9 +3563,8 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
             } else if (attacker >= 0 && attacker < kMaxShips) {
                 spob.x = stellarData[ship->defenseStellar].pos.h;
                 spob.y = stellarData[ship->defenseStellar].pos.v;
-                nearer = XYFloatSquaredDist(&ship->pos, &shipData[attacker].pos)
-                         < XYFloatSquaredDist(&ship->pos, &spob) / 2;
-                if (nearer) {
+                if (XYFloatSquaredDist(&ship->pos, &shipData[attacker].pos)
+                         < XYFloatSquaredDist(&ship->pos, &spob) / 2) {
                     if (ship->index != 0) {
                         if (armorDmg > 0)
                             ship->grudge += armorDmg * 30;
@@ -1963,7 +3582,7 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                     ship->aiTimer = kMaxJumpCharge;
                 if (attacker == 0 && ship->defenseStellar == -1) {
                     if (ship->persType != -1
-                            && (personData[ship->persType].flags & kPersKillable) != 0)
+                            && (personData[ship->persType].flags & kPersHoldsGrudge) != 0)
                         personData[ship->persType].grudge = 1;
                     if (ship->index != 0) {
                         AIMakeShipStopRefuelling(ship);
@@ -1987,10 +3606,11 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
 
 /* DeleteAllComputerShips. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0041ad50
-void DeleteAllComputerShips(char force, char keepPlayer)
+// MAC: _DeleteAllComputerShips i386 0x0003bf5f ppc 0x00042594
+void DeleteAllComputerShips(Boolean force, Boolean keepPlayer)
 {
     short i;
-    char remove;
+    Boolean remove;
 
     for (i = 1; i < kMaxShips; i++) {
         remove = 1;
@@ -2034,19 +3654,214 @@ void DeleteAllComputerShips(char force, char keepPlayer)
 #define kMissionKindDestroy     5       /* mïsn +0x0a */
 #define kMissionShipEscort      1       /* mïsn +0x0c: they join the player */
 #define kMissionShipCloaked     2       /* mïsn +0x0e */
-#define kMissionAutoAbort       1       /* mïsn +0x55 bit 0 */
 #define kNavStelFirst           (-1)    /* mïsn +0x0e: -1..-16 index navDefault */
 #define kNavStelLast            (-16)
 #define kSpawnOdds              7
 #define kRandomSpawnReserve     8
 
+#if V111 /* V111 spelling */
+#define shipsLeft sysOf
+#define shipNum k
+#else
+#define shipsLeft count
+#define shipNum j
+#endif
+
 /* SetupShipsInSystem (mac _SetupShipsInSystem). STATE: MATCH 100.0%, exe 675 / obj 675 instrs,
    551 exact + 124 reloc-equivalent, 0 mismatched; frame EXACT 0x24, 12/12 slots and refs;
    byte-identical UNMEASURED (bytediff reads the adopted baseline, which lacks this row).
    OPEN: none. `arriving' and RespawnEscort's `full' must BOTH be unsigned char; either
-   one alone costs a row. see notes */
+   one alone costs a row. mac: MATCH both slices. see notes */
 // FUNCTION: EVNOVA 0x0041af90
+// MAC: _SetupShipsInSystem i386 0x00042b61 ppc 0x0004a668
 void SetupShipsInSystem(short sys, unsigned char arriving)
+#ifdef MAC1010
+{
+    float total;
+    float step;
+    short i;
+    short j;
+    short m;
+    short k;
+    short n;
+    short slot;
+    short sysOf;
+    short count;
+    short govt;
+    short navIndex;
+    short shipSyst;
+
+    DeleteAllComputerShips(0, 1);
+
+    for (i = 1; i < kMaxShips; i++) {
+        if (shipData[i].parentShip == 0 && shipData[i].active != 0) {
+            if (IsDisabled(&shipData[i]) != 0) {
+                shipData[i].active = 0;
+                if (shipData[i].parentShip == 0
+                        && shipData[i].aiType == kShipTypeEscort
+                        && shipData[i].specialMission == -1
+                        && shipClass[shipData[i].type].inherentAI <= 2)
+                    DestroyPartialFleetCargo(i);
+            } else {
+                if (shipData[i].specialMission == -1) {
+                    if (IsDisabled(&shipData[i])) {
+                        shipData[i].active = 0;
+                        shipData[i].parentShip = -1;
+                    } else {
+                        RespawnEscort(&shipData[i], arriving);
+                    }
+                }
+            }
+        }
+    }
+
+    AICalcFormationPositions(shipData, 1);
+
+    if (shipData->jumpTimer != 0.0f) {
+        total = 0.0f;
+        step = 45.0f;
+        while (step > 0.0f) {
+            total += step;
+            step = step - 1.165;
+        }
+        for (i = 1; i < kMaxShips; i++) {
+            if (shipData[i].parentShip == 0 && shipData[i].active != 0) {
+                Accel(((short)shipData[i].heading + kHalfCircle) % kFullCircle,
+                      total, &shipData[i].pos);
+                shipData[i].jumpTimer = -999.0f;
+                shipData[i].jumpTick = 0;
+                Accel(shipData[i].heading, 50.0f,
+                      &shipData[i].vel);
+            }
+        }
+    }
+
+    k = 0;
+    for (m = 0; m < kMaxActiveMissions; m++) {
+        if (currentMissionObjectives[m].active != 0) {
+            shipSyst = currentMissions[m].shipSyst;
+            if (shipSyst >= 0 && shipSyst < kMaxSystems)
+                sysOf = FindActiveCoLocatedSystem(shipSyst);
+            else
+                sysOf = -1;
+            if ((sysOf == sys || currentMissions[m].shipSyst == kMissionShipSystemHere)
+                    && currentMissions[m].shipCount > 0
+                    && currentMissions[m].shipDelay < 0) {
+                count = currentMissions[m].shipCount;
+                if (currentMissions[m].shipSyst == kMissionShipSystemHere
+                        && currentMissions[m].shipBehav == kMissionShipEscort) {
+                    for (j = 1; j < kMaxShips; j++) {
+                        if (shipData[j].active != 0 && m == shipData[j].specialMission)
+                            count--;
+                    }
+                }
+                if (count > 0) {
+                    for (i = 0; i < count; i++) {
+                        n = MissionDudeSpawn(currentMissions[m].shipDude, -1, sys, m);
+                        if (n != -1) {
+                            k++;
+                            if (currentMissions[m].shipGoal == kMissionKindDisable) {
+                                shipData[n].pos.x = Rand(0x200) - 0x100;
+                                shipData[n].pos.y = Rand(0x200) - 0x100;
+                            }
+                            if (currentMissions[m].shipGoal == kMissionKindDestroy) {
+                                shipData[n].heading = Rand(kFullCircle);
+                                shipData[n].vel.x = shipData[n].vel.y = 0.0f;
+                                shipData[n].accelMag = 0.0f;
+                                shipData[n].shield = 0.0f;
+                                if ((shipClass[shipData[n].type].flags
+                                        & kShipArmorDisableTenth) != 0)
+                                    shipData[n].armor =
+                                        shipClass[shipData[n].type].armor * 0.1 - 1.0;
+                                else
+                                    shipData[n].armor =
+                                        shipClass[shipData[n].type].armor * 0.33 - 1.0;
+                                if (currentMissions[m].timeLimit <= 0
+                                        && currentMissions[m].timeLimit > -32000)
+                                    shipData[n].boarded = 1;
+                            }
+                            if (currentMissions[m].shipStart <= kNavStelFirst
+                                    && currentMissions[m].shipStart >= kNavStelLast) {
+                                navIndex = -1 - currentMissions[m].shipStart;
+                                if (systemData[sys].navDefault[navIndex] != -1) {
+                                    shipData[n].pos.x = stellarData[
+                                        systemData[sys].navDefault[navIndex]].pos.h;
+                                    shipData[n].pos.y = stellarData[
+                                        systemData[sys].navDefault[navIndex]].pos.v;
+                                }
+                            }
+                            if (currentMissions[m].shipBehav == kMissionShipEscort) {
+                                shipData[n].aiType = kShipTypeEscort;
+                                shipData[n].parentShip = 0;
+                                shipData[n].formLeader = 0;
+                                shipData[n].swarmLeader = 0;
+                                if (arriving != 0)
+                                    shipData[n].heading = shipData->heading;
+                            }
+                            shipData[n].lastStellar = -2;
+                            if (currentMissions[m].shipStart == kMissionShipCloaked)
+                                DoShipCloak(&shipData[n]);
+                        } else {
+                            crashlog_print("warning: couldn't create ship for mission ID ");
+                            crashlog_print_num(currentMissions[m].misnIndex + kFirstResourceID);
+                            crashlog_print("\n");
+                        }
+                    }
+                    if ((currentMissions[m].flags & kMissionAutoAbort) != 0)
+                        AutoAbortMission(m);
+                }
+            }
+        }
+    }
+
+    if (arriving != 0)
+        AICalcFormationPositions(shipData, 1);
+
+    for (i = 0; i < systemData[sys].avgShips; i++) {
+        slot = -1;
+        if (Rand(kSpawnOdds) == 0) {
+            slot = SpawnPerson(shipData->curSystem, 0, -1);
+            if (slot != -1) {
+                govt = shipData[slot].govt;
+                if (govt != -1
+                        && (govtData[govt].flags & kGovtAlwaysDisabled) != 0) {
+                    shipData[slot].accelMag = 0.0f;
+                    shipData[slot].vel.x = 0.0f;
+                    shipData[slot].vel.y = 0.0f;
+                }
+            }
+        } else if (Rand(kSpawnOdds) == 0) {
+            SpawnFleet(shipData->curSystem, 0);
+        } else {
+            slot = RandomShipSpawn(sys, kRandomSpawnReserve);
+        }
+        if (slot != -1) {
+            AdjustedAccel(shipData[slot].heading, shipClass[shipData[slot].type].maxSpeed,
+                          &shipData[slot].vel, shipClass[shipData[slot].type].maxSpeed);
+        }
+    }
+
+    for (i = 0; i < kSystemPersSlots; i++) {
+        if (systemData[sys].persons[i] != -1
+                && personData[systemData[sys].persons[i]].loaded != 0
+                && EvalMissionBitTestString(personData[systemData[sys].persons[i]].activeOn)
+                && Rand(100) + 1 <= systemData[sys].persProbs[i]) {
+            slot = SpawnPerson(shipData->curSystem, 0, systemData[sys].persons[i]);
+            if (slot != -1) {
+                AdjustedAccel(shipData[slot].heading, shipClass[shipData[slot].type].maxSpeed,
+                              &shipData[slot].vel, shipClass[shipData[slot].type].maxSpeed);
+                govt = shipData[slot].govt;
+                if (govt != -1
+                        && (govtData[govt].flags & kGovtAlwaysDisabled) != 0) {
+                    shipData[slot].vel.x = 0.0f;
+                    shipData[slot].vel.y = 0.0f;
+                    shipData[slot].accelMag = 0.0f;
+                }
+            }
+        }
+    }
+}
+#else
 {
     float total;
     float step;
@@ -2055,7 +3870,11 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
     short j;
     short slot;
     short sysOf;
+#if V111 /* V111 spelling */
+    unsigned short k;
+#else
     short count;
+#endif
     short govt;
     short navIndex;
 
@@ -2068,7 +3887,7 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
                 if (shipData[i].parentShip == 0
                         && shipData[i].aiType == kShipTypeEscort
                         && shipData[i].specialMission == -1
-                        && gShipTypes[shipData[i].type].inherentAI <= 2)
+                        && shipClass[shipData[i].type].inherentAI <= 2)
                     DestroyPartialFleetCargo(i);
             } else {
                 if (shipData[i].specialMission == -1) {
@@ -2112,17 +3931,17 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
             else
                 sysOf = -1;
             if ((sysOf == sys || currentMissions[i].shipSyst == kMissionShipSystemHere)
-                    && (count = currentMissions[i].shipCount) > 0
+                    && (shipsLeft = currentMissions[i].shipCount) > 0
                     && currentMissions[i].shipDelay < 0) {
                 if (currentMissions[i].shipSyst == kMissionShipSystemHere
                         && currentMissions[i].shipBehav == kMissionShipEscort) {
                     for (j = 1; j < kMaxShips; j++) {
                         if (shipData[j].active != 0 && i == shipData[j].specialMission)
-                            count--;
+                            shipsLeft--;
                     }
                 }
-                if (count > 0) {
-                    for (j = 0; j < count; j++) {
+                if (shipsLeft > 0) {
+                    for (shipNum = 0; (short)shipNum < shipsLeft; shipNum++) {
                         slot = MissionDudeSpawn(currentMissions[i].shipDude, -1, sys, i);
                         if (slot != -1) {
                             if (currentMissions[i].shipGoal == kMissionKindDisable) {
@@ -2134,13 +3953,13 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
                                 shipData[slot].vel.x = shipData[slot].vel.y = 0.0f;
                                 shipData[slot].accelMag = 0.0f;
                                 shipData[slot].shield = 0.0f;
-                                if ((gShipTypes[shipData[slot].type].flags
+                                if ((shipClass[shipData[slot].type].flags
                                         & kShipArmorDisableTenth) != 0)
                                     shipData[slot].armor =
-                                        gShipTypes[shipData[slot].type].armor * 0.1 - 1.0;
+                                        shipClass[shipData[slot].type].armor * 0.1 - 1.0;
                                 else
                                     shipData[slot].armor =
-                                        gShipTypes[shipData[slot].type].armor * 0.33 - 1.0;
+                                        shipClass[shipData[slot].type].armor * 0.33 - 1.0;
                                 if (currentMissions[i].timeLimit <= 0
                                         && currentMissions[i].timeLimit > -32000)
                                     shipData[slot].boarded = 1;
@@ -2148,11 +3967,11 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
                             if (currentMissions[i].shipStart <= kNavStelFirst
                                     && currentMissions[i].shipStart >= kNavStelLast) {
                                 navIndex = -1 - currentMissions[i].shipStart;
-                                if (gSystems[sys].navDefault[navIndex] != -1) {
+                                if (systemData[sys].navDefault[navIndex] != -1) {
                                     shipData[slot].pos.x = stellarData[
-                                        gSystems[sys].navDefault[navIndex]].pos.h;
+                                        systemData[sys].navDefault[navIndex]].pos.h;
                                     shipData[slot].pos.y = stellarData[
-                                        gSystems[sys].navDefault[navIndex]].pos.v;
+                                        systemData[sys].navDefault[navIndex]].pos.v;
                                 }
                             }
                             if (currentMissions[i].shipBehav == kMissionShipEscort) {
@@ -2182,7 +4001,7 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
     if (arriving != 0)
         AICalcFormationPositions(shipData, 1);
 
-    for (i = 0; i < gSystems[sys].avgShips; i++) {
+    for (i = 0; i < systemData[sys].avgShips; i++) {
         slot = -1;
         if (Rand(kSpawnOdds) == 0) {
             slot = SpawnPerson(shipData->curSystem, 0, -1);
@@ -2201,20 +4020,20 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
             slot = RandomShipSpawn(sys, kRandomSpawnReserve);
         }
         if (slot != -1) {
-            speed = gShipTypes[shipData[slot].type].maxSpeed;
+            speed = shipClass[shipData[slot].type].maxSpeed;
             AdjustedAccel(shipData[slot].heading, speed,
                           &shipData[slot].vel, speed);
         }
     }
 
     for (i = 0; i < kSystemPersSlots; i++) {
-        if (gSystems[sys].persons[i] != -1
-                && personData[gSystems[sys].persons[i]].loaded != 0
-                && EvalMissionBitTestString(personData[gSystems[sys].persons[i]].activeOn)
-                && Rand(100) + 1 <= gSystems[sys].persProbs[i]) {
-            slot = SpawnPerson(shipData->curSystem, 0, gSystems[sys].persons[i]);
+        if (systemData[sys].persons[i] != -1
+                && personData[systemData[sys].persons[i]].loaded != 0
+                && EvalMissionBitTestString(personData[systemData[sys].persons[i]].activeOn)
+                && Rand(100) + 1 <= systemData[sys].persProbs[i]) {
+            slot = SpawnPerson(shipData->curSystem, 0, systemData[sys].persons[i]);
             if (slot != -1) {
-                speed = gShipTypes[shipData[slot].type].maxSpeed;
+                speed = shipClass[shipData[slot].type].maxSpeed;
                 AdjustedAccel(shipData[slot].heading, speed,
                               &shipData[slot].vel, speed);
                 govt = shipData[slot].govt;
@@ -2228,6 +4047,7 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
         }
     }
 }
+#endif
 
 #define kSpawnSpread     1500    /* Rand(1500) - 750 on each axis */
 #define kSpawnOrigin     750
@@ -2238,6 +4058,7 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
 /* RandomShipSpawn (mac _RandomShipSpawn). STATE: MATCH 100.0% 617/617, byte-identical yes
    (3208 bytes), relocregcheck 0 of 189. OPEN: none. */
 // FUNCTION: EVNOVA 0x0041ba80
+// MAC: _RandomShipSpawn i386 0x0003c0f3 ppc 0x00042798
 short RandomShipSpawn(short sys, short reserve)
 {
     short slot;
@@ -2250,10 +4071,10 @@ short RandomShipSpawn(short sys, short reserve)
     for (slot = 1; slot < kMaxShips - reserve; slot++) {
         if (shipData[slot].active != 0)
             continue;
-        dude = SelectDudeFieldFromSystem(&gSystems[sys]);
+        dude = SelectDudeFieldFromSystem(&systemData[sys]);
         if (dude == -1)
             continue;
-        dude = gSystems[sys].dudeTypes[dude];
+        dude = systemData[sys].dudeTypes[dude];
         pick = SelectShipFieldFromDude(&dudeData[dude], 0);
         if (pick < 0 || pick >= kDudeShipSlots)
             goto fail;
@@ -2262,17 +4083,17 @@ short RandomShipSpawn(short sys, short reserve)
         shipData[slot].dude = dude;
         shipData[slot].type = dudeData[dude].shipTypes[pick];
         shipData[slot].govt = dudeData[dude].govt;
-        if (dudeData[dude].aiType < 1)
-            shipData[slot].aiType = gShipTypes[shipData[slot].type].inherentAI;
-        else
+        if (dudeData[dude].aiType >= 1)
             shipData[slot].aiType = dudeData[dude].aiType;
+        else
+            shipData[slot].aiType = shipClass[shipData[slot].type].inherentAI;
         if (shipData[slot].aiType == kAITypeLinked &&
-            gSystems[shipData[slot].curSystem].navDefault[0] != -1 &&
-            gShipTypes[shipData[slot].type].maxSpeed == 0.0) {
-            link = gSystems[shipData[slot].curSystem].navDefault[0];
+            systemData[shipData[slot].curSystem].navDefault[0] != -1 &&
+            shipClass[shipData[slot].type].maxSpeed == 0.0) {
+            link = systemData[shipData[slot].curSystem].navDefault[0];
             shipData[slot].pos.x = stellarData[link].pos.h;
             shipData[slot].pos.y =
-                stellarData[gSystems[shipData[slot].curSystem].navDefault[0]].pos.v;
+                stellarData[systemData[shipData[slot].curSystem].navDefault[0]].pos.v;
             Accel(Rand(kFullCircle), kSpawnSpeed, &shipData[slot].pos);
         } else {
             shipData[slot].pos.x = Rand(kSpawnSpread) - kSpawnOrigin;
@@ -2302,9 +4123,9 @@ short RandomShipSpawn(short sys, short reserve)
         shipData[slot].blinkCount = 0;
         shipData[slot].altSet = 0;
         shipData[slot].animSet = 0;
-        shipData[slot].escapePods = gShipTypes[shipData[slot].type].podCount;
+        shipData[slot].escapePods = shipClass[shipData[slot].type].podCount;
         shipData[slot].foldSet =
-            gShipTypes[shipData[slot].type].baseSets - 1;
+            shipClass[shipData[slot].type].baseSets - 1;
         shipData[slot].foldDir = 0;
         shipData[slot].frameTimer = 0;
         shipData[slot].shieldGlow = 0;
@@ -2314,9 +4135,9 @@ short RandomShipSpawn(short sys, short reserve)
         shipData[slot].skill = RandomSkillLevel(shipData[slot].type);
         shipData[slot].credits = kStartCredits;
         shipData[slot].aggression = Rand(3) ^ 2;
-        shipData[slot].shield = gShipTypes[shipData[slot].type].shield;
-        shipData[slot].armor = gShipTypes[shipData[slot].type].armor;
-        shipData[slot].fuel = gShipTypes[shipData[slot].type].fuel;
+        shipData[slot].shield = shipClass[shipData[slot].type].shield;
+        shipData[slot].armor = shipClass[shipData[slot].type].armor;
+        shipData[slot].fuel = shipClass[shipData[slot].type].fuel;
         shipData[slot].defenseStellar = -1;
         shipData[slot].tractorShip = -1;
         shipData[slot].hired = 0;
@@ -2335,8 +4156,8 @@ short RandomShipSpawn(short sys, short reserve)
         shipData[slot].fireTick = 0;
         shipData[slot].hailTick = 0;
         shipData[slot].aimWeapon = -1;
-        shipData[slot].seesCloaked = -1;
-        shipData[slot].seesCloakedRadar = -1;
+        shipData[slot].seesCloaked[0] = -1;
+        shipData[slot].seesCloaked[1] = -1;
         shipData[slot].decloaksWhenHit = -1;
         shipData[slot].animSet = 0;
         shipData[slot].animTimer = 0;
@@ -2350,25 +4171,24 @@ short RandomShipSpawn(short sys, short reserve)
         if (shipData[slot].govt != -1 &&
             (govtData[shipData[slot].govt].flags & kGovtAlwaysDisabled) != 0)
             shipData[slot].engineGlow = 0;
-        if (gShipTypes[shipData[slot].type].baseSets > 0)
+        if (shipClass[shipData[slot].type].baseSets > 0)
             shipData[slot].animSet =
-                Rand(gShipTypes[shipData[slot].type].baseSets);
-        if (gShipTypes[shipData[slot].type].animDelay > 0)
+                Rand(shipClass[shipData[slot].type].baseSets);
+        if (shipClass[shipData[slot].type].animDelay > 0)
             shipData[slot].animTimer =
-                Rand(gShipTypes[shipData[slot].type].animDelay);
+                Rand(shipClass[shipData[slot].type].animDelay);
         for (i = 0; i < kMaxWeapTypes; i++) {
             shipData[slot].weap[i].count =
-                gShipTypes[shipData[slot].type].weapCount[i];
+                shipClass[shipData[slot].type].weapCount[i];
             shipData[slot].weap[i].ammo =
-                gShipTypes[shipData[slot].type].weapAmmo[i];
+                shipClass[shipData[slot].type].weapAmmo[i];
         }
         AISetup(&shipData[slot]);
         return slot;
-    }
-    return -1;
-
 fail:
-    shipData[slot].active = 0;
+        shipData[slot].active = 0;
+        return -1;
+    }
     return -1;
 }
 
@@ -2379,6 +4199,7 @@ fail:
 
 /* HyperShipSpawn. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0041c710
+// MAC: _HyperShipSpawn i386 0x0004291a ppc 0x0004a36c
 short HyperShipSpawn(short sys)
 {
     short slot;
@@ -2404,10 +4225,10 @@ short HyperShipSpawn(short sys)
     if (slot != -1) {
         dist = 0;
         speed = 50.0f;
-        do {
+        while (speed > 0) {
             dist += speed;
             speed -= 1.165;
-        } while (speed > 0);
+        }
         shipData[slot].pos.x = shipData[slot].pos.y = 0;
         Accel(Rand(360), dist + 1000.0f, &shipData[slot].pos);
         pt.x = pt.y = 0;
@@ -2435,10 +4256,9 @@ short HyperShipSpawn(short sys)
     return -1;
 }
 
-#define kMisnFlagFixHull 0x800   /* +0x55: the requested hull is honoured */
-
 /* SpecificDudeSpawn. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0041c9f0
+// MAC: _SpecificDudeSpawn i386 0x0003d0eb ppc 0x00043c0c
 short SpecificDudeSpawn(short dude, short sys, short reserve,
                         unsigned char allowAll)
 {
@@ -2448,45 +4268,49 @@ short SpecificDudeSpawn(short dude, short sys, short reserve,
 
     slot = GenericRandomShipSpawn(sys, reserve);
     if (slot == -1)
-        return -1;
+        goto none;
     pick = SelectShipFieldFromDude(&dudeData[dude], allowAll);
     if (pick < 0 || pick >= kDudeShipSlots)
         goto fail;
     shipData[slot].dude = dude;
     shipData[slot].type = dudeData[dude].shipTypes[pick];
     shipData[slot].govt = dudeData[dude].govt;
-    if (dudeData[dude].aiType < 1)
-        shipData[slot].aiType = gShipTypes[shipData[slot].type].inherentAI;
-    else
+    if (dudeData[dude].aiType >= 1)
         shipData[slot].aiType = dudeData[dude].aiType;
+    else
+        shipData[slot].aiType = shipClass[shipData[slot].type].inherentAI;
     AISetup(&shipData[slot]);
     for (i = 0; i < kMaxWeapTypes; i++) {
-        shipData[slot].weap[i].count = gShipTypes[shipData[slot].type].weapCount[i];
-        shipData[slot].weap[i].ammo = gShipTypes[shipData[slot].type].weapAmmo[i];
+        shipData[slot].weap[i].count = shipClass[shipData[slot].type].weapCount[i];
+        shipData[slot].weap[i].ammo = shipClass[shipData[slot].type].weapAmmo[i];
     }
-    shipData[slot].shield = gShipTypes[shipData[slot].type].shield;
-    shipData[slot].armor = gShipTypes[shipData[slot].type].armor;
+    shipData[slot].shield = shipClass[shipData[slot].type].shield;
+    shipData[slot].armor = shipClass[shipData[slot].type].armor;
     return slot;
 
 fail:
     shipData[slot].active = 0;
     return -1;
+none:
+    return -1;
 }
 
 /* MissionDudeSpawn. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0041cf40
+// MAC: _MissionDudeSpawn i386 0x0003cd3b ppc 0x00043784
 short MissionDudeSpawn(short dude, short wantType, short sys, short mission)
 {
     short slot;
     short pick;
+    short sel;
     short i;
 
     slot = GenericRandomShipSpawn(sys, kSpawnReserve);
     if (slot == -1)
-        return -1;
+        goto none;
     Rand(100);
     if (wantType != -1 &&
-        (currentMissions[mission].flags & kMisnFlagFixHull) != 0 &&
+        (currentMissions[mission].flags & kMissionFixedShipType) != 0 &&
         currentMissions[mission].shipCount == 1) {
         for (i = 0; i < kDudeShipSlots; i++) {
             if (wantType == dudeData[dude].shipTypes[i]) {
@@ -2496,11 +4320,22 @@ short MissionDudeSpawn(short dude, short wantType, short sys, short mission)
         }
     }
     pick = currentMissions[mission].shipTypeIndex;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    if (pick != -1)
+        sel = pick;
+    else {
+        sel = SelectShipFieldFromDude(&dudeData[dude], 0);
+        if (sel == -1)
+            sel = SelectShipFieldFromDude(&dudeData[dude], 1);
+    }
+    pick = sel;
+#else
     if (pick == -1) {
         pick = SelectShipFieldFromDude(&dudeData[dude], 0);
         if (pick == -1)
             pick = SelectShipFieldFromDude(&dudeData[dude], 1);
     }
+#endif
     if (pick < 0 || pick > kDudeShipSlots)
         goto fail;
     shipData[slot].specialMission = mission;
@@ -2512,27 +4347,27 @@ short MissionDudeSpawn(short dude, short wantType, short sys, short mission)
     shipData[slot].cloakDir = 0;
     shipData[slot].cloak = 0;
     shipData[slot].aiTimer = 0;
-    if (dudeData[dude].aiType < 1)
-        shipData[slot].aiType = gShipTypes[shipData[slot].type].inherentAI;
-    else
+    if (dudeData[dude].aiType >= 1)
         shipData[slot].aiType = dudeData[dude].aiType;
+    else
+        shipData[slot].aiType = shipClass[shipData[slot].type].inherentAI;
     AISetup(&shipData[slot]);
     for (i = 0; i < kMaxWeapTypes; i++) {
-        shipData[slot].weap[i].count = gShipTypes[shipData[slot].type].weapCount[i];
-        shipData[slot].weap[i].ammo = gShipTypes[shipData[slot].type].weapAmmo[i];
+        shipData[slot].weap[i].count = shipClass[shipData[slot].type].weapCount[i];
+        shipData[slot].weap[i].ammo = shipClass[shipData[slot].type].weapAmmo[i];
     }
-    shipData[slot].shield = gShipTypes[shipData[slot].type].shield;
-    shipData[slot].armor = gShipTypes[shipData[slot].type].armor;
-    shipData[slot].escapePods = gShipTypes[shipData[slot].type].podCount;
+    shipData[slot].shield = shipClass[shipData[slot].type].shield;
+    shipData[slot].armor = shipClass[shipData[slot].type].armor;
+    shipData[slot].escapePods = shipClass[shipData[slot].type].podCount;
     shipData[slot].foldSet =
-        gShipTypes[shipData[slot].type].baseSets - 1;
+        shipClass[shipData[slot].type].baseSets - 1;
     shipData[slot].skill = RandomSkillLevel(shipData[slot].type);
-    if (gShipTypes[shipData[slot].type].baseSets > 0)
+    if (shipClass[shipData[slot].type].baseSets > 0)
         shipData[slot].animSet =
-            Rand(gShipTypes[shipData[slot].type].baseSets);
-    if (gShipTypes[shipData[slot].type].animDelay > 0)
+            Rand(shipClass[shipData[slot].type].baseSets);
+    if (shipClass[shipData[slot].type].animDelay > 0)
         shipData[slot].animTimer =
-            Rand(gShipTypes[shipData[slot].type].animDelay);
+            Rand(shipClass[shipData[slot].type].animDelay);
     if (currentMissions[mission].shipBehav == 0)
         AIMakeShipAttackPlayer(&shipData[slot]);
     return slot;
@@ -2540,14 +4375,13 @@ short MissionDudeSpawn(short dude, short wantType, short sys, short mission)
 fail:
     shipData[slot].active = 0;
     return -1;
+none:
+    return -1;
 }
 
 #define kSystemStellars     16
 #define kSysHere            (-6)
 #define kMisnTimerMax       32000
-
-#define kMisnFlagAbort      0x0001  /* +0x55: abort the mission once it fires */
-#define kMisnFlagKeepAux    0x0010  /* +0x55: do not spend an aux ship credit */
 
 #define kFleetOdds          500
 #define kFleetProbRange     100
@@ -2567,23 +4401,42 @@ fail:
 #define kEntryShove         50.0f
 #define kEntryDepth         (-999.0f)
 
+#if V111 /* V111 spelling */
+#define auxLeft j
+#define auxNum n
+#elif defined(MAC1010)
+#define auxLeft left
+#define auxNum n
+#else
+#define auxLeft toSpawn
+#define auxNum count
+#endif
+
 /* EnterMoreShips (mac _EnterMoreShips). STATE: MATCH 100.0%, exe 702 / obj 702, byte-identical unchecked
-   (bytediff covers baseline MATCHes only; next regate).
-   OPEN: none */
+   (bytediff covers baseline MATCHes only; next regate); mac MATCH on both slices. OPEN: none */
 // FUNCTION: EVNOVA 0x0041d6e0
+// MAC: _EnterMoreShips i386 0x00043459 ppc 0x0004b11c
 void EnterMoreShips(short sys)
 {
-    FloatPoint origin;
     FloatPoint spot;
-    short count;
+    FloatPoint origin;
+#ifdef MAC1010
     short i;
     short toSpawn;
-    short here;
+    short count;
     short n;
+    short left;
+    short j;
+#else
+    short count;
+    short n;
+    short i;
+    short j;
+    short toSpawn;
+#endif
     short which;
     short heading;
     FloatPoint dest;
-    short j;
     short cargo;
     short roll;
     short pick;
@@ -2596,9 +4449,9 @@ void EnterMoreShips(short sys)
             if (currentMissions[i].auxShipDelay <= 0) {
                 if (currentMissions[i].auxShipDude != -1
                     && currentMissions[i].auxShipsSpawned < currentMissions[i].auxShipsLeft) {
-                    toSpawn = currentMissions[i].auxShipsLeft - currentMissions[i].auxShipsSpawned;
+                    auxLeft = currentMissions[i].auxShipsLeft - currentMissions[i].auxShipsSpawned;
                     if (ValidAuxShipSystem(shipData[0].curSystem, i)
-                        && toSpawn > 0) {
+                        && auxLeft > 0) {
                         dist = 0.0f;
                         for (step = kEntryStep; step > 0.0f;
                              step = step - kEntryStepDecay)
@@ -2606,13 +4459,13 @@ void EnterMoreShips(short sys)
                         heading = Rand(kEntryHeadings);
                         spot.x = spot.y = 0.0f;
                         Accel(heading, dist + kEntryRadius, &spot);
-                        for (count = 0; count < toSpawn; count++) {
+                        for (auxNum = 0; auxNum < auxLeft; auxNum++) {
                             which = SpecificDudeSpawn(currentMissions[i].auxShipDude, sys,
                                                       kSpawnReserve, 0);
                             if (which != -1) {
                                 shipData[which].auxMission = i;
                                 currentMissions[i].auxShipsSpawned += 1;
-                                if ((currentMissions[i].flags & kMisnFlagKeepAux) == 0)
+                                if ((currentMissions[i].flags & kMissionInfiniteAuxShips) == 0)
                                     currentMissions[i].auxShipsLeft -= 1;
                                 shipData[which].pos.x =
                                     spot.x + Rand(kEntryJitter) - kEntryJitterBias;
@@ -2635,31 +4488,31 @@ void EnterMoreShips(short sys)
                                       &shipData[which].vel);
                             }
                         }
-                        if (currentMissions[i].flags & kMisnFlagAbort)
+                        if (currentMissions[i].flags & kMissionAutoAbort)
                             AutoAbortMission(i);
                     }
                 }
             }
-            toSpawn = 0;
             count = 0;
-            if (currentMissions[i].shipSyst < 0 || currentMissions[i].shipSyst >= kMaxSystems)
-                here = -1;
+            toSpawn = 0;
+            if (currentMissions[i].shipSyst >= 0 && currentMissions[i].shipSyst < kMaxSystems)
+                pick = FindActiveCoLocatedSystem(currentMissions[i].shipSyst);
             else
-                here = FindActiveCoLocatedSystem(currentMissions[i].shipSyst);
+                pick = -1;
             if (currentMissions[i].shipSyst == kSysHere
-                || here == shipData[0].curSystem)
+                || pick == shipData[0].curSystem)
                 toSpawn = currentMissions[i].shipCount;
             if (currentMissions[i].shipStart == 1) {
                 toSpawn = currentMissions[i].shipCount - currentMissions[i].specialShipsJumpedIn;
                 if (currentMissions[i].shipSyst != kSysHere
-                    && here != shipData[0].curSystem
+                    && pick != shipData[0].curSystem
                     && currentMissions[i].specialShipsJumpedIn <= 0)
                     toSpawn = 0;
             }
             if (toSpawn > 0) {
-                if (currentMissions[i].shipDelay > 0
-                    && currentMissions[i].shipDelay <= kMisnTimerMax)
-                    currentMissions[i].shipDelay -= 1;
+                if (currentMissions[i].shipDelay > 0)
+                    if (currentMissions[i].shipDelay <= kMisnTimerMax)
+                        currentMissions[i].shipDelay -= 1;
                 if (currentMissions[i].shipCount > 0 && currentMissions[i].shipDelay == 0) {
                     currentMissions[i].shipDelay = -1;
                     dist = 0.0f;
@@ -2670,13 +4523,13 @@ void EnterMoreShips(short sys)
                         heading = Rand(kEntryHeadings);
                     } else {
                         origin.x =
-                            gSystems[shipData[0].curSystem].xPos;
+                            systemData[shipData[0].curSystem].pos.h;
                         origin.y =
-                            gSystems[shipData[0].curSystem].yPos;
+                            systemData[shipData[0].curSystem].pos.v;
                         dest.x =
-                            gSystems[shipData[0].prevSystem].xPos;
+                            systemData[shipData[0].prevSystem].pos.h;
                         dest.y =
-                            gSystems[shipData[0].prevSystem].yPos;
+                            systemData[shipData[0].prevSystem].pos.v;
                         heading = CalcInterceptAngle(&origin, &dest);
                     }
                     spot.x = spot.y = 0.0f;
@@ -2707,13 +4560,13 @@ void EnterMoreShips(short sys)
                                   &shipData[count].vel);
                         }
                     }
-                    if (currentMissions[i].flags & kMisnFlagAbort)
+                    if (currentMissions[i].flags & kMissionAutoAbort)
                         AutoAbortMission(i);
                 }
             }
-            if (currentMissions[i].auxShipDelay > 0
-                && currentMissions[i].auxShipDelay <= kMisnTimerMax)
-                currentMissions[i].auxShipDelay -= 1;
+            if (currentMissions[i].auxShipDelay > 0)
+                if (currentMissions[i].auxShipDelay <= kMisnTimerMax)
+                    currentMissions[i].auxShipDelay -= 1;
         }
     }
 
@@ -2721,12 +4574,12 @@ void EnterMoreShips(short sys)
         if (shipData[n].active && sys == shipData[n].curSystem
             && shipData[n].parentShip != 0)
             count++;
-    if (count < gSystems[sys].avgShips) {
+    if (count < systemData[sys].avgShips) {
         roll = Rand(kFleetOdds);
         if (roll == 1) {
-            if (gSystems[sys].fleetCount > 0
-                && Rand(kFleetProbRange) + 1 <= gSystems[sys].fleetProbTotal) {
-                pick = SelectFleetFromSystem(&gSystems[sys]);
+            if (systemData[sys].fleetCount > 0
+                && Rand(kFleetProbRange) + 1 <= systemData[sys].fleetProbTotal) {
+                pick = SelectFleetFromSystem(&systemData[sys]);
                 if (pick != -1)
                     HyperSpawnFleet(sys, pick, -1, 1);
                 else
@@ -2736,25 +4589,25 @@ void EnterMoreShips(short sys)
             }
         }
         if (roll == 0) {
-            pick = SelectDudeFieldFromSystem(&gSystems[sys]);
+            pick = SelectDudeFieldFromSystem(&systemData[sys]);
             if (pick != -1)
                 HyperShipSpawn(sys);
         }
     }
 
     for (j = 0; j < kSystemStellars; j++) {
-        if (gSystems[sys].navDefault[j] != -1
-            && stellarData[gSystems[sys].navDefault[j]].defenseActive != 0
-            && stellarData[gSystems[sys].navDefault[j]].defWaveSize > 0) {
+        if (systemData[sys].navDefault[j] != -1
+            && stellarData[systemData[sys].navDefault[j]].defenseActive != 0
+            && stellarData[systemData[sys].navDefault[j]].defWaveSize > 0) {
             count = 0;
             for (n = 1; n < kMaxShips; n++)
                 if (shipData[n].active && shipData[n].defenseStellar != -1
-                    && shipData[n].defenseStellar == gSystems[sys].navDefault[j])
+                    && shipData[n].defenseStellar == systemData[sys].navDefault[j])
                     count++;
-            pick = stellarData[gSystems[sys].navDefault[j]].defCount % kDefWaveModulus;
-            if (count < pick) {
-                SpawnStellarDefenseShip(gSystems[sys].navDefault[j]);
-                stellarData[gSystems[sys].navDefault[j]].defWaveSize -= 1;
+            i = stellarData[systemData[sys].navDefault[j]].defCount % kDefWaveModulus;
+            if (count < i) {
+                SpawnStellarDefenseShip(systemData[sys].navDefault[j]);
+                stellarData[systemData[sys].navDefault[j]].defWaveSize -= 1;
                 break;
             }
         }
@@ -2762,13 +4615,13 @@ void EnterMoreShips(short sys)
 
     SpawnNagShip();
     if (antiEscortDelay == 0) {
-        cargo = 0;
         antiEscortDelay = -1;
+        cargo = 0;
         for (n = 1; n < kMaxShips; n++)
             if (shipData[n].active && shipData[n].parentShip == 0
                 && shipData[n].aiType == 6 && shipData[n].specialMission == -1
-                && gShipTypes[shipData[n].type].inherentAI <= 2)
-                cargo += gShipTypes[shipData[n].type].cargo;
+                && shipClass[shipData[n].type].inherentAI <= 2)
+                cargo += shipClass[shipData[n].type].cargo;
         if (cargo >= kEscortCargoHeavy)
             HyperSpawnFleet(shipData[0].curSystem, kEscortFleetHeavy,
                             kEscortEscortOf, 1);
@@ -2782,6 +4635,7 @@ void EnterMoreShips(short sys)
 
 /* RespawnEscort. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0041e240
+// MAC: _RespawnEscort i386 0x0003d4b8 ppc 0x00044098
 void RespawnEscort(ShipObj *ship, unsigned char full)
 {
     short i;
@@ -2813,23 +4667,19 @@ void RespawnEscort(ShipObj *ship, unsigned char full)
     ship->heading = shipData->heading;
     ship->swarmLeader = -1;
     ship->formLeader = 0;
-    ship->formPosX = 0;
-    ship->formPosY = 0;
+    ship->formPos.x = 0;
+    ship->formPos.y = 0;
     shipData->hasFormation = 1;
     ship->vel.x = ship->vel.y = 0;
     ship->accelMag = 0;
     if (full) {
         for (i = 0; i < 256; i++) {
-            ship->weap[i].count = gShipTypes[ship->type].weapCount[i];
-            ship->weap[i].ammo = gShipTypes[ship->type].weapAmmo[i];
+            ship->weap[i].count = shipClass[ship->type].weapCount[i];
+            ship->weap[i].ammo = shipClass[ship->type].weapAmmo[i];
         }
     }
-    ship->cargo[0] = 0;
-    ship->cargo[1] = 0;
-    ship->cargo[2] = 0;
-    ship->cargo[3] = 0;
-    ship->cargo[4] = 0;
-    ship->cargo[5] = 0;
+    for (i = 0; i < kCargoTypes; i++)
+        ship->cargo[i] = 0;
     AIMakeEscortFlyInForm(ship);
 }
 
@@ -2841,6 +4691,7 @@ void RespawnEscort(ShipObj *ship, unsigned char full)
 
 /* LaunchFighter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0041e640
+// MAC: _LaunchFighter i386 0x0003d62d ppc 0x00044238
 unsigned char LaunchFighter(ShipObj *parent, short fighterType)
 {
     short slot;
@@ -2852,7 +4703,7 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
         return 0;
     slot = GenericRandomShipSpawn(parent->curSystem, kSpawnReserve);
     if (slot == -1)
-        return 0;
+        goto none;
     shipData[slot].active = 1;
     shipData[slot].curSystem = parent->curSystem;
     shipData[slot].pos.x = parent->pos.x;
@@ -2860,7 +4711,7 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
     shipData[slot].vel.x = parent->vel.x;
     shipData[slot].vel.y = parent->vel.y;
     shipData[slot].accelMag = parent->accelMag;
-    shipData[slot].type = gWeapons[fighterType].ammoType - 128;
+    shipData[slot].type = weaponStats[fighterType].ammoType - 128;
     shipData[slot].defenseStellar = -1;
     shipData[slot].tractorShip = -1;
     shipData[slot].hailed = 0;
@@ -2881,9 +4732,9 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
     shipData[slot].grudge = 0;
     shipData[slot].lastStellar = -2;
     shipData[slot].prevSystem = -2;
-    shipData[slot].shield = gShipTypes[shipData[slot].type].shield;
-    shipData[slot].armor = gShipTypes[shipData[slot].type].armor;
-    shipData[slot].aiTimer = gWeapons[fighterType].lifetime;
+    shipData[slot].shield = shipClass[shipData[slot].type].shield;
+    shipData[slot].armor = shipClass[shipData[slot].type].armor;
+    shipData[slot].aiTimer = weaponStats[fighterType].lifetime;
     shipData[slot].parentShip = parent->index;
     shipData[slot].heading = parent->heading;
     shipData[slot].persType = -1;
@@ -2895,9 +4746,9 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
     shipData[slot].blinkCount = 0;
     shipData[slot].altSet = 0;
     shipData[slot].animSet = 0;
-    shipData[slot].escapePods = gShipTypes[shipData[slot].type].podCount;
+    shipData[slot].escapePods = shipClass[shipData[slot].type].podCount;
     shipData[slot].foldSet =
-        gShipTypes[shipData[slot].type].baseSets - 1;
+        shipClass[shipData[slot].type].baseSets - 1;
     shipData[slot].foldDir = 0;
     shipData[slot].frameTimer = 0;
     shipData[slot].shieldGlow = 0;
@@ -2905,8 +4756,8 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
     shipData[slot].annoyance = 0;
     shipData[slot].bankDir = 0;
     shipData[slot].animTimer = 0;
-    shipData[slot].seesCloaked = -1;
-    shipData[slot].seesCloakedRadar = -1;
+    shipData[slot].seesCloaked[0] = -1;
+    shipData[slot].seesCloaked[1] = -1;
     shipData[slot].decloaksWhenHit = -1;
     shipData[slot].escortOrder = -1;
     shipData[slot].sellOnLanding = 0;
@@ -2916,20 +4767,20 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
     shipData[slot].voiceClass = Rand(2);
     shipData[slot].shield = ShipShieldCapacity(&shipData[slot]);
     shipData[slot].armor = ShipArmorCapacity(&shipData[slot]);
-    if (gShipTypes[shipData[slot].type].inherentGovtB != -1
-        && govtData[gShipTypes[shipData[slot].type].inherentGovtB].voiceClass != -1)
+    if (shipClass[shipData[slot].type].inherentGovtB != -1
+        && govtData[shipClass[shipData[slot].type].inherentGovtB].voiceClass != -1)
         shipData[slot].voiceClass =
-            govtData[gShipTypes[shipData[slot].type].inherentGovtB].voiceClass;
+            govtData[shipClass[shipData[slot].type].inherentGovtB].voiceClass;
     for (i = 0; i < 4; i++)
         shipData[slot].jamming[i] = -1;
-    if (gShipTypes[shipData[slot].type].baseSets > 0)
+    if (shipClass[shipData[slot].type].baseSets > 0)
         shipData[slot].animSet =
-            Rand(gShipTypes[shipData[slot].type].baseSets);
-    if (gShipTypes[shipData[slot].type].animDelay > 0)
+            Rand(shipClass[shipData[slot].type].baseSets);
+    if (shipClass[shipData[slot].type].animDelay > 0)
         shipData[slot].animTimer =
-            Rand(gShipTypes[shipData[slot].type].animDelay);
+            Rand(shipClass[shipData[slot].type].animDelay);
     if (shipData[slot].parentShip == 0
-        && gShipTypes[shipData[slot].type].escortType == 0) {
+        && shipClass[shipData[slot].type].escortType == 0) {
         n = 0;
         for (i = 1; i < kMaxShips; i++) {
             if (i != slot && shipData[i].active != 0
@@ -2944,8 +4795,8 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
         for (i = 1; i < kMaxShips; i++) {
             if (i != slot && shipData[i].active != 0
                 && shipData[i].parentShip == shipData[slot].parentShip
-                && gShipTypes[shipData[i].type].escortType ==
-                   gShipTypes[shipData[slot].type].escortType
+                && shipClass[shipData[i].type].escortType ==
+                   shipClass[shipData[slot].type].escortType
                 && shipData[i].escortOrder != -1) {
                 shipData[slot].escortOrder = shipData[i].escortOrder;
                 break;
@@ -2956,15 +4807,15 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
         shipData[slot].targetShip = -1;
     else
         shipData[slot].targetShip = parent->targetShip;
-    inacc = gWeapons[fighterType].inaccuracy;
+    inacc = weaponStats[fighterType].inaccuracy;
     if (inacc > 0)
         shipData[slot].heading += Rand(inacc * 2) - inacc;
-    AdjustedAccel(shipData[slot].heading, gWeapons[fighterType].speed100,
+    AdjustedAccel(shipData[slot].heading, weaponStats[fighterType].speed100,
                   &shipData[slot].vel,
                   ShipMaxSpeed(&shipData[slot]));
     for (i = 0; i < kMaxWeapTypes; i++) {
-        shipData[slot].weap[i].count = gShipTypes[shipData[slot].type].weapCount[i];
-        shipData[slot].weap[i].ammo = gShipTypes[shipData[slot].type].weapAmmo[i];
+        shipData[slot].weap[i].count = shipClass[shipData[slot].type].weapCount[i];
+        shipData[slot].weap[i].ammo = shipClass[shipData[slot].type].weapAmmo[i];
     }
     if (shipData[slot].targetShip != -1) {
         if (shipData[slot].parentShip == shipData[slot].targetShip
@@ -2975,6 +4826,8 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
     }
     AISetup(&shipData[slot]);
     return 1;
+none:
+    return 0;
 }
 
 #define kUnitsPerBox        5.0      /* pooled double */
@@ -2984,7 +4837,6 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
 #define kMsgJettisonPlain   0x122
 #define kMsgJettisonMission 0x121
 
-#define kMissionFlagQuiet   0x400
 #define kBoxFree            (-1.0F)
 
 #define kBoxSpinMax         0x24
@@ -2999,12 +4851,13 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
 
 /* JettisonCargo (mac _JettisonCargo). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0041f330
+// MAC: _JettisonCargo i386 0x0003dffd ppc 0x00044e9c
 void JettisonCargo(unsigned char withMissions)
 {
     short boxes;
     short total;
-    short share;
     short escortCargo;
+    short share;
     double holds;
     double fleetHolds;
     double units;
@@ -3012,16 +4865,12 @@ void JettisonCargo(unsigned char withMissions)
     short j;
     short k;
     unsigned char text[256];
-    char toldMission;
+    Boolean toldMission;
 
     toldMission = 0;
     total = 0;
-    total += shipData[0].cargo[0];
-    total += shipData[0].cargo[1];
-    total += shipData[0].cargo[2];
-    total += shipData[0].cargo[3];
-    total += shipData[0].cargo[4];
-    total += shipData[0].cargo[5];
+    for (i = 0; i <= 5; i++)
+        total += shipData[0].cargo[i];
     for (i = 0; i < kMaxJunks; i++) {
         if (junkData[i].held > 0) {
             total += junkData[i].held;
@@ -3037,7 +4886,7 @@ void JettisonCargo(unsigned char withMissions)
                 total += currentMissions[k].cargoQty;
                 share += currentMissions[k].cargoQty;
                 currentMissions[k].hasCargo = 0;
-                if ((currentMissions[k].flags & kMissionFlagQuiet) == 0
+                if ((currentMissions[k].flags & kMissionHidden) == 0
                     && playerIsLanded == 0) {
                     GetIndString(text, kGameStrList, kMsgMissionAborted);
                     DisplayComm(text, kCommWidth, 0, kCommHold, &rgbWhite, 0, 0);
@@ -3055,12 +4904,12 @@ void JettisonCargo(unsigned char withMissions)
     for (i = 0; i < kMaxShips; i++) {
         if ((shipData[i].active != 0 && shipData[i].parentShip == 0
              && shipData[i].aiType == 6 && shipData[i].specialMission == -1
-             && gShipTypes[shipData[i].type].inherentAI <= 2)
+             && shipClass[shipData[i].type].inherentAI <= 2)
             || i == 0) {
             if (i == 0)
                 holds = ShipTotalHolds();
             else
-                holds = gShipTypes[shipData[i].type].cargo;
+                holds = shipClass[shipData[i].type].cargo;
             units = holds / fleetHolds;
             units = (i == 0) ? share : units * escortCargo;
             if (units > 0.0) {
@@ -3077,12 +4926,8 @@ void JettisonCargo(unsigned char withMissions)
             }
         }
     }
-    shipData[0].cargo[0] = 0;
-    shipData[0].cargo[1] = 0;
-    shipData[0].cargo[2] = 0;
-    shipData[0].cargo[3] = 0;
-    shipData[0].cargo[4] = 0;
-    shipData[0].cargo[5] = 0;
+    for (i = 0; i <= 5; i++)
+        shipData[0].cargo[i] = 0;
     if (total > 0 && playerIsLanded == 0) {
         PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
         if (toldMission == 0) {
@@ -3098,10 +4943,11 @@ void JettisonCargo(unsigned char withMissions)
 
 /* SpawnBox. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0041f800
+// MAC: _SpawnBox i386 0x0003dd74 ppc 0x00044b44
 void SpawnBox(short from)
 {
-    short i;
     short slot;
+    short i;
     short mag;
     short kind;
     slot = -1;
@@ -3137,7 +4983,7 @@ void SpawnBox(short from)
           mag,
           &boxData[slot].pos);
     Accel((((short)shipData[from].heading + kBoxHeadingBase + Rand(kBoxSpreadB) - Rand(kBoxSpreadA)) % kFullCircle),
-          (Rand(kBoxKickSpread) + kBoxKickBase) / kBoxKickScale,
+          (float)(Rand(kBoxKickSpread) + kBoxKickBase) / kBoxKickScale,
           &boxData[slot].vel);
 }
 
@@ -3148,6 +4994,7 @@ void SpawnBox(short from)
 
 /* SpawnScoopableBox. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0041fb50
+// MAC: _SpawnScoopableBox i386 0x0003e3c5 ppc 0x00045328
 void SpawnScoopableBox(FloatPoint *pos, short cargoType, short pict)
 {
     short slot;
@@ -3185,23 +5032,25 @@ void SpawnScoopableBox(FloatPoint *pos, short cargoType, short pict)
 }
 
 /* SpawnShot (mac _SpawnShot). STATE: MATCH 100%, exe 970 / obj 970, relocregcheck 0 of 179;
-   byte identity not yet measured (bytediff reads the adopted baseline).
-   OPEN: none. The jitter blocks read `inaccuracy' at each use; a block-scope `inc' copy was
-   an invented entity (notes, 2026-09-24). */
+   byte identity not yet measured (bytediff reads the adopted baseline). mac MATCH on both
+   slices; the V111 `target' self-extension is score-only (notes, lane G37).
+   OPEN: the real statement there. The jitter blocks read `inaccuracy' at each use; a
+   block-scope `inc' copy was an invented entity (notes, 2026-09-24). */
 // FUNCTION: EVNOVA 0x0041fd30
-short SpawnShot(short ship, short target, short weapType, char flag)
+// MAC: _SpawnShot i386 0x0003e550 ppc 0x00045560
+short SpawnShot(short ship, short target, short weapType, Boolean flag)
 {
-    char intercept;
-    short collision;
     short slot;
-    short angle;
     short guidance;
     short i;
+    short angle;
+    short collision;
+    Boolean intercept;
 
     if (weapType < 0 || weapType >= kMaxWeapTypes) {
         return -1;
     }
-    if (gWeapons[weapType].graphic < 0 || gWeapons[weapType].graphic >= kWeapTypeTop) {
+    if (weaponStats[weapType].graphic < 0 || weaponStats[weapType].graphic >= kWeapTypeTop) {
         return -1;
     }
 
@@ -3227,27 +5076,27 @@ short SpawnShot(short ship, short target, short weapType, char flag)
         shotData[slot].vel.y = shipData[ship].vel.y;
         angle = shipData[ship].heading;
         intercept = 0;
-        guidance = gWeapons[weapType].guidance;
-        if (guidance == kGuidanceTurret || (unsigned short)(guidance - kGuidanceFrontQuad) <= 1) {
-            if (target == -1) {
-                if (guidance == kGuidanceFrontQuad) {
-                    angle = shipData[ship].heading;
-                }
-            }
-            else {
+        guidance = weaponStats[weapType].guidance;
+        if (guidance == kGuidanceTurret || guidance == kGuidanceFrontQuad || guidance == kGuidanceRearQuad) {
+            if (target != -1) {
                 angle = CalcInterceptAngle(&shipData[ship].pos,
                                            &shipData[target].pos);
                 intercept = 1;
             }
+            else {
+                if (guidance == kGuidanceFrontQuad) {
+                    angle = shipData[ship].heading;
+                }
+            }
         }
         if (ship == 0) {
-            guidance = gWeapons[weapType].guidance;
+            guidance = weaponStats[weapType].guidance;
             if (guidance != kGuidanceTurret && guidance != kGuidanceFrontQuad
                     && guidance != kGuidanceRearQuad) {
                 shotData[slot].vel.x = shipData[ship].vel.x;
                 shotData[slot].vel.y = shipData[ship].vel.y;
             }
-            if (gWeapons[weapType].guidance == kGuidanceFreefall) {
+            if (weaponStats[weapType].guidance == kGuidanceFreefall) {
                 shotData[slot].vel.x *= 0.8;
                 shotData[slot].vel.y *= 0.8;
             }
@@ -3266,7 +5115,7 @@ short SpawnShot(short ship, short target, short weapType, char flag)
     shotData[slot].owner = ship;
     shotData[slot].target = target;
     shotData[slot].disableOnly = WeaponDisableOnly(weapType);
-    shotData[slot].life = gWeapons[weapType].lifetime;
+    shotData[slot].life = weaponStats[weapType].lifetime;
     shotData[slot].subDepth = 0;
     shotData[slot].murk = 0;
 
@@ -3281,11 +5130,11 @@ short SpawnShot(short ship, short target, short weapType, char flag)
 
     /* hitRoll: aiSkill-driven roll for the guided families */
     if (0 <= ship && ship < kMaxShips && flag == 0) {
-        guidance = gWeapons[weapType].guidance;
+        guidance = weaponStats[weapType].guidance;
         if (guidance == kGuidanceTurret || guidance == kGuidancePointDef) {
-            if (gShipTypes[shipData[ship].type].aiSkill > 0) {
+            if (shipClass[shipData[ship].type].aiSkill > 0) {
                 shotData[slot].hitRoll =
-                    Rand(gShipTypes[shipData[ship].type].aiSkill) + 1;
+                    Rand(shipClass[shipData[ship].type].aiSkill) + 1;
             }
             else {
                 shotData[slot].hitRoll = Rand(100) + 1;
@@ -3296,16 +5145,14 @@ short SpawnShot(short ship, short target, short weapType, char flag)
         }
     }
 
-    if ((gWeapons[weapType].flags & 4) == 0) {
-        shotData[slot].frame = Rand(0x24);
-    }
-    else {
+    if ((weaponStats[weapType].flags & kWeapCycleFromFirstFrame) != 0)
         shotData[slot].frame = 0;
-    }
+    else
+        shotData[slot].frame = Rand(0x24);
 
     shotData[slot].frameTimer = 0;
     shotData[slot].trailCount = 0;
-    if (gWeapons[weapType].decay > 0) {
+    if (weaponStats[weapType].decay > 0) {
         shotData[slot].trailTimer = 0.0f;
     }
     else {
@@ -3313,10 +5160,19 @@ short SpawnShot(short ship, short target, short weapType, char flag)
     }
 
     /* an AI that is trying to disable its prey marks the shot disable-only */
+#if V111 /* V111 spelling */
+    if (0 < ship && ship < kMaxShips) {
+        if (AIIsShipAttemptingDisable(&shipData[ship]) != 0) {
+            shotData[slot].disableOnly = 1;
+        }
+        target = (target << 16) >> 16; /* V111 pad: shift pair, buys i386 block J at PRE (combine deletes its insns) */
+    }
+#else
     if (0 < ship && ship < kMaxShips &&
         AIIsShipAttemptingDisable(&shipData[ship]) != 0) {
         shotData[slot].disableOnly = 1;
     }
+#endif
 
     if (0 <= ship && ship < kMaxShips) {
         shotData[slot].curSystem = shipData[ship].curSystem;
@@ -3329,10 +5185,10 @@ short SpawnShot(short ship, short target, short weapType, char flag)
     shotData[slot].guidanceState = 0;
 
     /* guidance-1 "one shot" roll against the player system's explore level */
-    if (gWeapons[weapType].guidance == kGuidanceHoming && (gWeapons[weapType].seeker & 8) != 0) {
+    if (weaponStats[weapType].guidance == kGuidanceHoming && (weaponStats[weapType].seeker & 8) != 0) {
         short roll;
-        if (gTimeScale > 0.0) {
-            roll = (100.0 / gTimeScale);
+        if (gSpeedMult > 0.0) {
+            roll = (100.0 / gSpeedMult);
         }
         else {
             roll = 100;
@@ -3340,13 +5196,13 @@ short SpawnShot(short ship, short target, short weapType, char flag)
         if (roll < 1) {
             roll = 1;
         }
-        if (Rand(roll) + 1 <= gSystems[shipData[0].curSystem].interference) {
+        if (Rand(roll) + 1 <= systemData[shipData[0].curSystem].interference) {
             shotData[slot].guidanceState = 999;
         }
     }
 
-    if (gWeapons[weapType].durability > 0) {
-        shotData[slot].energy = gWeapons[weapType].durability;
+    if (weaponStats[weapType].durability > 0) {
+        shotData[slot].energy = weaponStats[weapType].durability;
     }
     else {
         shotData[slot].energy = 0;
@@ -3354,46 +5210,30 @@ short SpawnShot(short ship, short target, short weapType, char flag)
 
     /* where the round actually starts */
     if (0 <= ship && ship < kMaxShips && flag == 0) {
-        if (target == -1) {
-            angle = ModifyShotStartPosition(&shipData[ship],
-                                           &shotData[slot].pos,
-                                           weapType, NULL);
+        if (target != -1)
+            angle = ModifyShotStartPosition(&shipData[ship], &shotData[slot].pos, weapType,
+                                            &shipData[target].pos);
+        else
+            angle = ModifyShotStartPosition(&shipData[ship], &shotData[slot].pos, weapType, NULL);
+        if (weaponStats[weapType].inaccuracy < 0 && angle != -1
+                && weaponStats[weapType].exitType >= 0 && weaponStats[weapType].exitType <= 3) {
+            if (shipClass[shipData[ship].type].weapPos[weaponStats[weapType].exitType][angle].h < 0)
+                collision = -1;
+            else if (shipClass[shipData[ship].type].weapPos[weaponStats[weapType].exitType][angle].h > 0)
+                collision = 1;
         }
-        else {
-            angle = ModifyShotStartPosition(&shipData[ship],
-                                           &shotData[slot].pos,
-                                           weapType,
-                                           &shipData[target].pos);
-        }
-        if (gWeapons[weapType].inaccuracy < 0 && angle != -1) {
-            short mount = gWeapons[weapType].exitType;
-            if (0 <= mount && mount <= 3) {
-                short v = gShipTypes[shipData[ship].type].weapPos[mount][angle][0];
-                if (v < 0) {
-                    collision = -1;
-                }
-                else if (v > 0) {
-                    collision = 1;
-                }
-            }
-        }
-        if (intercept != 0) {
-            short lead = CalcLeadAngle(&shipData[ship], &shipData[target],
-                                       weapType,
-                                       &shotData[slot].pos);
-            shotData[slot].angle = lead;
-        }
+        if (intercept != 0)
+            shotData[slot].angle = CalcLeadAngle(&shipData[ship], &shipData[target], weapType,
+                                                 &shotData[slot].pos);
     }
 
     /* inaccuracy jitter, first of the two identical blocks (guidance != kGuidanceFreefall) */
-    if (0 < gWeapons[shotData[slot].weapType].inaccuracy
-            && gWeapons[shotData[slot].weapType].guidance != kGuidanceFreefall) {
-        shotData[slot].angle =
-            (Rand(gWeapons[shotData[slot].weapType].inaccuracy * 2)
-                    - gWeapons[shotData[slot].weapType].inaccuracy)
-            + shotData[slot].angle;
+    if (0 < weaponStats[shotData[slot].weapType].inaccuracy
+            && weaponStats[shotData[slot].weapType].guidance != kGuidanceFreefall) {
+        shotData[slot].angle += Rand(weaponStats[shotData[slot].weapType].inaccuracy * 2)
+                    - weaponStats[shotData[slot].weapType].inaccuracy;
         if (shotData[slot].angle < 0.0f) {
-            shotData[slot].angle = shotData[slot].angle + 360.0f;
+            shotData[slot].angle += 360.0f;
         }
         if (shotData[slot].angle >= 360.0f) {
             shotData[slot].angle = shotData[slot].angle - 360.0f;
@@ -3401,42 +5241,40 @@ short SpawnShot(short ship, short target, short weapType, char flag)
     }
 
     /* the speed vector */
-    guidance = gWeapons[shotData[slot].weapType].guidance;
+    guidance = weaponStats[shotData[slot].weapType].guidance;
     if ((guidance != kGuidanceFreefall && guidance != kGuidanceRocket) || 0 < ship) {
         if (0 <= ship && ship < kMaxShips && collision != 0) {
             float f;
             if (collision == 1) {
-                f = abs(gWeapons[shotData[slot].weapType].inaccuracy)
-                    + shipData[ship].heading;
+                f = shipData[ship].heading
+                    + abs(weaponStats[shotData[slot].weapType].inaccuracy);
             }
             else {
                 f = shipData[ship].heading
-                    - abs(gWeapons[shotData[slot].weapType].inaccuracy);
+                    - abs(weaponStats[shotData[slot].weapType].inaccuracy);
             }
             while (f < 0.0) {
-                f = f + 360.0;
+                f += 360.0;
             }
             while (f >= 360.0) {
                 f = f - 360.0;
             }
-            Accel(f, gWeapons[weapType].speed100,
+            Accel(f, weaponStats[weapType].speed100,
                   &shotData[slot].vel);
         }
         else {
-            Accel(shotData[slot].angle, gWeapons[weapType].speed100,
+            Accel(shotData[slot].angle, weaponStats[weapType].speed100,
                   &shotData[slot].vel);
         }
     }
 
     /* inaccuracy jitter, second of the two identical blocks (guidance == kGuidanceFreefall) */
-    if (0 < gWeapons[shotData[slot].weapType].inaccuracy
-            && gWeapons[shotData[slot].weapType].guidance == kGuidanceFreefall) {
-        shotData[slot].angle =
-            (Rand(gWeapons[shotData[slot].weapType].inaccuracy * 2)
-                    - gWeapons[shotData[slot].weapType].inaccuracy)
-            + shotData[slot].angle;
+    if (0 < weaponStats[shotData[slot].weapType].inaccuracy
+            && weaponStats[shotData[slot].weapType].guidance == kGuidanceFreefall) {
+        shotData[slot].angle += Rand(weaponStats[shotData[slot].weapType].inaccuracy * 2)
+                    - weaponStats[shotData[slot].weapType].inaccuracy;
         if (shotData[slot].angle < 0.0f) {
-            shotData[slot].angle = shotData[slot].angle + 360.0f;
+            shotData[slot].angle += 360.0f;
         }
         if (shotData[slot].angle >= 360.0f) {
             shotData[slot].angle = shotData[slot].angle - 360.0f;
@@ -3444,12 +5282,12 @@ short SpawnShot(short ship, short target, short weapType, char flag)
     }
 
     /*
-     * The "clear the ship" block.  The win exedis compares gWeapons[shotData
+     * The "clear the ship" block.  The win exedis compares weaponStats[shotData
      * [slot].weapType].+0x08 (the header's `ammoType`) against -999, not the
      * header-documented -9999 sentinel on `guidance` (+0x06).  Named for the
      * header field it reads; the -9999/-999 split is a live TBC.
      */
-    if (gWeapons[shotData[slot].weapType].ammoType == -999 &&
+    if (weaponStats[shotData[slot].weapType].ammoType == -999 &&
         0 <= ship && ship < kMaxShips && flag == 0) {
         shipData[ship].shield = 0;
         shipData[ship].armor = 0;
@@ -3458,17 +5296,14 @@ short SpawnShot(short ship, short target, short weapType, char flag)
 
     /* the four glow rolls */
     for (i = 0; i < 4; i++) {
-        if (gWeapons[shotData[slot].weapType].jamVuln[i] <= 0) {
+        if (weaponStats[shotData[slot].weapType].jamVuln[i] > 0)
+            shotData[slot].glow[i] = Rand(weaponStats[shotData[slot].weapType].jamVuln[i] + 1);
+        else
             shotData[slot].glow[i] = 0;
-        }
-        else {
-            shotData[slot].glow[i] =
-                Rand(gWeapons[shotData[slot].weapType].jamVuln[i] + 1);
-        }
     }
 
     /* sprite layer */
-    guidance = gWeapons[weapType].guidance;
+    guidance = weaponStats[weapType].guidance;
     if (guidance == kGuidanceHoming) {
         PutSpriteInLayer(shotData[slot].sprite, guidedShotLayer);
     }
@@ -3476,21 +5311,19 @@ short SpawnShot(short ship, short target, short weapType, char flag)
         PutSpriteInLayer(shotData[slot].sprite, pointDefenseLayer);
     }
     else if (guidance == kGuidanceTurret) {
-        if (ship < 0 || ship >= kMaxShips) {
+        if (0 <= ship && ship < kMaxShips) {
+            if ((shipClass[shipData[ship].type].flags3 & kShipTurretShotsAbove) != 0)
+                PutSpriteInLayer(shotData[slot].sprite, turretedShotLayer);
+            else
+                PutSpriteInLayer(shotData[slot].sprite, shotLayer);
+        } else
             PutSpriteInLayer(shotData[slot].sprite, shotLayer);
-        }
-        else if ((gShipTypes[shipData[ship].type].flags3 & 0x40) != 0) {
-            PutSpriteInLayer(shotData[slot].sprite, turretedShotLayer);
-        }
-        else {
-            PutSpriteInLayer(shotData[slot].sprite, shotLayer);
-        }
     }
     else {
         PutSpriteInLayer(shotData[slot].sprite, shotLayer);
     }
 
-    if (gWeapons[weapType].guidance == kGuidancePointDef) {
+    if (weaponStats[weapType].guidance == kGuidancePointDef) {
         SWSetSpriteCollideProc(shotData[slot].sprite, PointDefenseCollisionHandler);
     }
     else {
@@ -3498,45 +5331,43 @@ short SpawnShot(short ship, short target, short weapType, char flag)
     }
 
     SWCloneFramesFromMaster(shotData[slot].sprite,
-                 masterShotSprite[gWeapons[shotData[slot].weapType].graphic]);
+                 masterShotSprite[weaponStats[shotData[slot].weapType].graphic]);
 
     return slot;
 }
 
-#define kWeapFlagsBit4          0x10  /* flags bit 4 gates the do-not-stack sound */
-#define kWeap22Bit4             0x10  /* flags2 bit 4: the child picks its own target */
-
 /* SpawnShotSubmunitions. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00420d30
+// MAC: _SpawnShotSubmunitions i386 0x0003f1d5 ppc 0x00046360
 void SpawnShotSubmunitions(ShotObj *shot, short ship)
 {
     short subType;
     short n;
     short slot;
 
-    if (gWeapons[shot->weapType].subType == -1
-            || gWeapons[shot->weapType].subCount <= 0)
+    if (weaponStats[shot->weapType].subType == -1
+            || weaponStats[shot->weapType].subCount <= 0)
         return;
-    if (gWeapons[shot->weapType].subLimit > 0
-            && shot->subDepth >= gWeapons[shot->weapType].subLimit)
+    if (weaponStats[shot->weapType].subLimit > 0
+            && shot->subDepth >= weaponStats[shot->weapType].subLimit)
         return;
-    subType = gWeapons[shot->weapType].subType;
+    subType = weaponStats[shot->weapType].subType;
 
     /* the launch sound, played at most once per volley */
-    if (gWeapons[subType].sound >= 0 && gWeapons[subType].sound < kWeapTypeTop
-            && shotSnd[gWeapons[subType].sound] != 0) {
-        if ((gWeapons[subType].flags & kWeapFlagsBit4) != 0) {
-            if (ST_IsSoundPlaying(shotSnd[gWeapons[subType].sound]) == 0)
-                PlaySoundDistance(-1, shotSnd[gWeapons[subType].sound], 4,
+    if (weaponStats[subType].sound >= 0 && weaponStats[subType].sound < kWeapTypeTop
+            && shotSnd[weaponStats[subType].sound] != 0) {
+        if ((weaponStats[subType].flags & kWeapLoopSound) != 0) {
+            if (ST_IsSoundPlaying(shotSnd[weaponStats[subType].sound]) == 0)
+                PlaySoundDistance(-1, shotSnd[weaponStats[subType].sound], 4,
                                 &shot->pos, &shipData[0].pos);
         }
         else {
-            PlaySoundDistance(-1, shotSnd[gWeapons[subType].sound], 4,
+            PlaySoundDistance(-1, shotSnd[weaponStats[subType].sound], 4,
                             &shot->pos, &shipData[0].pos);
         }
     }
 
-    for (n = 0; n < gWeapons[shot->weapType].subCount; n++) {
+    for (n = 0; n < weaponStats[shot->weapType].subCount; n++) {
         slot = SpawnShot(shot->owner, ship, subType, 1);
         if (slot == -1)
             break;
@@ -3548,10 +5379,10 @@ void SpawnShotSubmunitions(ShotObj *shot, short ship)
         shotData[slot].subDepth = shot->subDepth + 1;
         shotData[slot].angle = shot->angle;
 
-        if (gWeapons[shot->weapType].guidance == kGuidancePointDef) {
+        if (weaponStats[shot->weapType].guidance == kGuidancePointDef) {
             shotData[slot].target = shot->target;
         }
-        else if ((gWeapons[shot->weapType].flags2 & kWeap22Bit4) != 0) {
+        else if ((weaponStats[shot->weapType].flags2 & kWeapSubsSeekNearest) != 0) {
             shotData[slot].target = -1;
             shotData[slot].target = FindNearestValidShotTarget(&shotData[slot]);
             if (shotData[slot].target == -1)
@@ -3567,33 +5398,26 @@ void SpawnShotSubmunitions(ShotObj *shot, short ship)
         }
 
         /* fan the volley out by subTheta */
-        if (gWeapons[shot->weapType].subTheta > 0) {
-            shotData[slot].angle = (gWeapons[shot->weapType].subTheta
-                                           - Rand(gWeapons[shot->weapType].subTheta * 2 + 1))
-                                   + shotData[slot].angle;
+        if (weaponStats[shot->weapType].subTheta > 0) {
+            shotData[slot].angle += weaponStats[shot->weapType].subTheta
+                   - Rand(weaponStats[shot->weapType].subTheta * 2 + 1);
         }
-        else if (gWeapons[shot->weapType].subTheta < 0) {
-            shotData[slot].angle = shotData[slot].angle
-                - (abs(gWeapons[shot->weapType].subTheta)
-                          * (gWeapons[shot->weapType].subCount - 1) / 2);
-            shotData[slot].angle = (abs(gWeapons[shot->weapType].subTheta) * n)
-                                   + shotData[slot].angle;
+        else if (weaponStats[shot->weapType].subTheta < 0) {
+            shotData[slot].angle -= abs(weaponStats[shot->weapType].subTheta)
+                          * (weaponStats[shot->weapType].subCount - 1) / 2;
+            shotData[slot].angle += abs(weaponStats[shot->weapType].subTheta) * n;
         }
         if (shotData[slot].angle < 0.0f)
-            shotData[slot].angle = shotData[slot].angle + 360.0f;
+            shotData[slot].angle += 360.0f;
         if (shotData[slot].angle >= 360.0f)
-            shotData[slot].angle = shotData[slot].angle - 360.0f;
+            shotData[slot].angle -= 360.0f;
 
-        if (gWeapons[shotData[slot].weapType].guidance == kGuidanceRocket) {
-            {
-                FloatPoint *v = &shotData[slot].vel;
-                v->x = shot->vel.x;
-                v->y = shot->vel.y;
-            }
+        if (weaponStats[shotData[slot].weapType].guidance == kGuidanceRocket) {
+            shotData[slot].vel = shot->vel;
         }
         else {
             Accel(shotData[slot].angle,
-                  gWeapons[shotData[slot].weapType].speed100,
+                  weaponStats[shotData[slot].weapType].speed100,
                   &shotData[slot].vel);
         }
     }
@@ -3613,15 +5437,10 @@ void SpawnShotSubmunitions(ShotObj *shot, short ship)
 
 /* CreateExplosion. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004211d0
-void CreateExplosion(FloatPoint pt, short type, short size, char sound)
+// MAC: _CreateExplosion i386 0x0003f698 ppc 0x000468cc
+void CreateExplosion(FloatPoint pt, short type, short size, Boolean sound)
 {
-    /* FloatPoint spelling: the definition takes this width. */
-    extern void SpawnExplod(FloatPoint pos, short unused, short type,
-                            short angle);
-
     FloatPoint pos;
-    double spread;
-    double half;
     short i;
     short sz;
     short bigCount;
@@ -3637,34 +5456,25 @@ void CreateExplosion(FloatPoint pt, short type, short size, char sound)
         type -= kBigBoomBase;
         sz = size;
         bigCount = (size * kBigScatterFraction);
-        i = 0;
-        if (bigCount > 0) {
-            spread = size * kScatterSpread;
-            half = size * kBigScatterSpread;
-            do {
-                pos.x = Rand(spread) + pt.x - half;
-                pos.y = Rand(spread) + pt.y - half;
-                SpawnExplod(pos, -1, 1, Rand(kBigAngleRange) + kBigAngleBase);
-                i++;
-            } while (i < bigCount);
+        for (i = 0; i < bigCount; i++) {
+            pos.x = pt.x + Rand(size * kScatterSpread) - size * kBigScatterSpread;
+            pos.y = pt.y + Rand(size * kScatterSpread) - size * kBigScatterSpread;
+            SpawnExplod(pos, -1, 1, Rand(kBigAngleRange) + kBigAngleBase);
         }
         smallCount = (size * kSmallScatterFraction);
-        j = 0;
-        if (smallCount > 0) {
-            spread = size * kScatterSpread;
-            do {
-                pos.x = Rand(sz) + pt.x - spread;
-                pos.y = Rand(sz) + pt.y - spread;
-                SpawnExplod(pos, -1, 0, Rand(kSmallAngleRange) + kSmallAngleBase);
-                j++;
-            } while (j < smallCount);
+        for (j = 0; j < smallCount; j++) {
+            pos.x = pt.x + Rand(sz) - size * kScatterSpread;
+            pos.y = pt.y + Rand(sz) - size * kScatterSpread;
+            SpawnExplod(pos, -1, 0, Rand(kSmallAngleRange) + kSmallAngleBase);
         }
     }
     SpawnExplod(pt, -1, type, 0);
     if (sound != 0) {
         snd = explodType[type].sound;
-        if (snd >= 0 && snd < kMaxShips)
-            PlaySoundDistance(-1, explodSnd[snd], 6, &pt, &shipData->pos);
+        if (snd >= 0) {
+            if (snd < kMaxShips)
+                PlaySoundDistance(-1, explodSnd[snd], 6, &pt, &shipData->pos);
+        }
     }
 }
 
@@ -3672,7 +5482,8 @@ void CreateExplosion(FloatPoint pt, short type, short size, char sound)
 
 /* SpawnExplod (mac _SpawnExplod). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00421500
-void SpawnExplod(float a, register float b, short unused, short type, short delay)
+// MAC: _SpawnExplod i386 0x0003f5dc ppc 0x000467e8
+void SpawnExplod(FloatPoint pos, short unused, short type, short delay)
 {
     short i;
 
@@ -3681,8 +5492,8 @@ void SpawnExplod(float a, register float b, short unused, short type, short dela
             explodData[i].type = type;
             explodData[i].timer = 0;
             explodData[i].delay = delay;
-            explodData[i].pos.x = a;
-            explodData[i].pos.y = b;
+            explodData[i].pos.x = pos.x;
+            explodData[i].pos.y = pos.y;
             SWCloneFramesFromMaster(explodData[i].sprite,
                          masterExplodSprite[explodType[type].graphic]);
             break;
@@ -3693,22 +5504,32 @@ void SpawnExplod(float a, register float b, short unused, short type, short dela
 
 /* SpawnSmoke (mac _SpawnSmoke). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004215d0
+// MAC: _SpawnSmoke i386 0x0003f927 ppc 0x00046ba4
+#ifdef MACBUILD
+void SpawnSmoke(FloatPoint pos, short type, short sprite)
+#else
 void SpawnSmoke(float a, register float b, long type, short sprite)
+#endif
 {
     short i;
 
-    if (gNoDebris != 0)
+    if (settings.noDebris != 0)
         return;
     for (i = 0; i < kMaxDebris; i++) {
-        if (gDebrisSlots[i].timer < 0.0f) {
+        if (smokeData[i].timer < 0.0f) {
             if (masterSmokeSprite[sprite] != 0) {
-                gDebrisSlots[i].type = type;
-                gDebrisSlots[i].timer = 0;
-                gDebrisSlots[i].angle = 0;
-                gDebrisSlots[i].pos.x = a;
-                gDebrisSlots[i].pos.y = b;
-                SWCloneFramesFromMaster(gDebrisSlots[i].sprite, masterSmokeSprite[sprite]);
-                SWLockSprite(gDebrisSlots[i].sprite);
+                smokeData[i].type = type;
+                smokeData[i].timer = 0;
+                smokeData[i].angle = 0;
+#ifdef MACBUILD
+                smokeData[i].pos.x = pos.x;
+                smokeData[i].pos.y = pos.y;
+#else
+                smokeData[i].pos.x = a;
+                smokeData[i].pos.y = b;
+#endif
+                SWCloneFramesFromMaster(smokeData[i].sprite, masterSmokeSprite[sprite]);
+                SWLockSprite(smokeData[i].sprite);
                 break;
             }
         }
@@ -3719,20 +5540,21 @@ void SpawnSmoke(float a, register float b, long type, short sprite)
    OPEN: none. The half extents are `w * 0.5' at each use; the halfW/halfH doubles were
    invented (notes, 2026-09-24). */
 // FUNCTION: EVNOVA 0x004216b0
+// MAC: _CreateAsteroids i386 0x0003fa05 ppc 0x00046ca8
 void CreateAsteroids(void)
 {
     short i;
     short w;
     short h;
 
-    if (gSystems[shipData[0].curSystem].asteroidCount > 0) {
-        for (i = 0; i < gSystems[shipData[0].curSystem].asteroidCount; i++)
+    if (systemData[shipData[0].curSystem].asteroidCount > 0) {
+        for (i = 0; i < systemData[shipData[0].curSystem].asteroidCount; i++)
             SpawnAsteroid(0);
         w = screenCenter.h + 128;
         h = screenCenter.v + 128;
         for (i = 0; i < kMaxAsteroids; i++) {
-            asteroidData[i].pos.x = Rand(w) + shipData[0].pos.x - w * 0.5;
-            asteroidData[i].pos.y = Rand(h) + shipData[0].pos.y - h * 0.5;
+            asteroidData[i].pos.x = shipData[0].pos.x + Rand(w) - w * 0.5;
+            asteroidData[i].pos.y = shipData[0].pos.y + Rand(h) - h * 0.5;
             asteroidData[i].vel.x = (Rand(400) - 200) * 0.01;
             asteroidData[i].vel.y = (Rand(400) - 200) * 0.01;
         }
@@ -3743,19 +5565,22 @@ void CreateAsteroids(void)
 
 /* SpawnAsteroid. STATE: MATCH. OPEN: none */
 // FUNCTION: EVNOVA 0x00421830
-void SpawnAsteroid(long type)
+// MAC: _SpawnAsteroid i386 0x0003a233 ppc 0x000406a0
+void SpawnAsteroid(unsigned char type)
 {
-    long parity;
     short w;
-    short h;
     float radius;
+    short h;
     unsigned long long mem;
     unsigned long diff;
+    long parity;
     short i;
     short active;
+    unsigned char odd;
+    short x;
 
-    if (gSystems[shipData[0].curSystem].asteroidCount <= 0
-        || gSystems[shipData[0].curSystem].astTypes == 0)
+    if (systemData[shipData[0].curSystem].asteroidCount <= 0
+        || systemData[shipData[0].curSystem].astTypes == 0)
         return;
 
     active = 0;
@@ -3763,10 +5588,10 @@ void SpawnAsteroid(long type)
         if (asteroidData[i].active != 0)
             active++;
 
-    if (active >= gSystems[shipData[0].curSystem].asteroidCount)
+    if (active >= systemData[shipData[0].curSystem].asteroidCount)
         return;
 
-    mem = *(unsigned long long *)((char *)shipData + 0x4b7a0);
+    mem = shipData[5].licenseCode;
     parity = 0;
     diff = mem;
     diff ^= mem >> 32;
@@ -3774,22 +5599,38 @@ void SpawnAsteroid(long type)
         diff &= diff - 1;
         parity = 1 - parity;
     }
-    gShipTypes[gameIsHackedIndex].hacked =
-        (*(long *)((char *)shipData + 0x1d1760) != 0 && (char)parity == 0)
+    odd = parity;
+#ifdef CEFIX /* F01.01 */
+    shipClass[gameIsHackedIndex].hacked =
+        (shipData[36].licenseCopies != 1 && odd == 0)
             ? (unsigned char)1 : (unsigned char)0;
+#else
+    shipClass[gameIsHackedIndex].hacked =
+        (shipData[36].licenseCopies != 0 && odd == 0)
+            ? (unsigned char)1 : (unsigned char)0;
+#endif
+    x = shipClass[gameIsHackedIndex].hacked;
 
     for (i = 0; i < kMaxAsteroids; i++) {
         if (asteroidData[i].active == 0) {
             asteroidData[i].active = 1;
 
             w = screenCenter.h + 128;
+#ifdef CEFIX /* F26.01 */
+            h = screenCenter.v;
+#else
             h = screenCenter.v + 128;
+#endif
 
-            if ((char)type != 0) {
+            if (type != 0) {
+#ifdef CEFIX /* F26.02-03 */
+                radius = h;
+#else
                 if (w > h)
                     radius = w * 0.7;
                 else
                     radius = h * 0.7;
+#endif
                 if (radius < 2.0f)
                     radius = 2.0f;
 
@@ -3808,18 +5649,18 @@ void SpawnAsteroid(long type)
                     asteroidData[i].vel.y = Rand(200) * 0.01;
                 }
             } else {
-                asteroidData[i].pos.x = Rand(w) + shipData[0].pos.x - w * 0.5;
-                asteroidData[i].pos.y = Rand(h) + shipData[0].pos.y - h * 0.5;
+                asteroidData[i].pos.x = shipData[0].pos.x + Rand(w) - w * 0.5;
+                asteroidData[i].pos.y = shipData[0].pos.y + Rand(h) - h * 0.5;
                 asteroidData[i].vel.x = (Rand(400) - 200) * 0.01;
                 asteroidData[i].vel.y = (Rand(400) - 200) * 0.01;
             }
 
             do {
                 asteroidData[i].type = Rand(16);
-            } while (!(gSystems[shipData[0].curSystem].astTypes & (1 << asteroidData[i].type)));
+            } while (!(systemData[shipData[0].curSystem].astTypes & (1 << asteroidData[i].type)));
 
             asteroidData[i].frame = Rand(masterAsteroidSprite[asteroidData[i].type]->numFrames);
-            asteroidData[i].frameRate = (Rand(41) + 80) * asteroidType[asteroidData[i].type].frameRate * 0.01;
+            asteroidData[i].frameRate = asteroidType[asteroidData[i].type].frameRate * (Rand(41) + 80) * 0.01;
             if (Rand(2) == 0)
                 asteroidData[i].frameRate *= -1.0;
             asteroidData[i].strength = asteroidType[asteroidData[i].type].strength;
@@ -3830,6 +5671,7 @@ void SpawnAsteroid(long type)
 
 /* SpawnSubAsteroid. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00421e60
+// MAC: _SpawnSubAsteroid i386 0x0003fbc7 ppc 0x00046ef4
 void SpawnSubAsteroid(FloatPoint *pos, short type)
 {
     short i;
@@ -3843,7 +5685,7 @@ void SpawnSubAsteroid(FloatPoint *pos, short type)
             asteroidData[i].vel.x = (Rand(200) - 100) * 0.01;
             asteroidData[i].vel.y = (Rand(200) - 100) * 0.01;
             asteroidData[i].frame = Rand(masterAsteroidSprite[type]->numFrames);
-            asteroidData[i].frameRate = (Rand(41) + 80) * asteroidType[type].frameRate * 0.01;
+            asteroidData[i].frameRate = asteroidType[type].frameRate * (Rand(41) + 80) * 0.01;
             if (Rand(2) == 0)
                 asteroidData[i].frameRate *= -1.0;
             asteroidData[i].strength = asteroidType[type].strength;
@@ -3854,6 +5696,7 @@ void SpawnSubAsteroid(FloatPoint *pos, short type)
 
 /* SpawnStellarDefenseShip. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00421fd0
+// MAC: _SpawnStellarDefenseShip i386 0x0003d2c9 ppc 0x00043e50
 short SpawnStellarDefenseShip(short stellar)
 {
     short ship;
@@ -3890,7 +5733,8 @@ short SpawnStellarDefenseShip(short stellar)
 
 /* SufficentTargetedDamage. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004221d0
-char SufficentTargetedDamage(ShipObj *ship)
+// MAC: _SufficentTargetedDamage i386 0x0003fd22 ppc 0x000470f8
+Boolean SufficentTargetedDamage(ShipObj *ship)
 {
     if (ship->incomingDamage >= (ship->shield + ship->armor) * 1.05)
         return 1;
@@ -3899,6 +5743,7 @@ char SufficentTargetedDamage(ShipObj *ship)
 
 /* CalculateTargetedDamage. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00422210
+// MAC: _CalculateTargetedDamage i386 0x0003a153 ppc 0x00040554
 void CalculateTargetedDamage(void)
 {
     short i;
@@ -3911,8 +5756,8 @@ void CalculateTargetedDamage(void)
                 if (shotData[j].life > 0.0f && shotData[j].target == i
                     && shotData[j].guidanceState == 0)
                     shipData[i].incomingDamage +=
-                        (gWeapons[shotData[j].weapType].massDmg
-                         + gWeapons[shotData[j].weapType].energyDmg) * 0.5;
+                        (weaponStats[shotData[j].weapType].damage[0]
+                         + weaponStats[shotData[j].weapType].damage[1]) * 0.5;
             }
         }
     }
@@ -3923,6 +5768,7 @@ void CalculateTargetedDamage(void)
 
 /* MakeEscortsHyperWithParent (mac _MakeEscortsHyperWithParent). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00422340
+// MAC: _MakeEscortsHyperWithParent i386 0x0003fd54 ppc 0x0004714c
 void MakeEscortsHyperWithParent(ShipObj *ship)
 {
     short i;
@@ -3938,12 +5784,33 @@ void MakeEscortsHyperWithParent(ShipObj *ship)
     }
 }
 
-/* SpawnEscortOfType. STATE: MATCH, byte-identical. OPEN: none */
+#if V111
+/* MakeEscortsCancelJump (mac _MakeEscortsCancelJump, mac-only: new in 1.1.1). STATE: mac MATCH
+   i386 and ppc. OPEN: none */
+// MAC: _MakeEscortsCancelJump i386 0x0003fdeb ppc 0x00047218
+void MakeEscortsCancelJump(ShipObj *ship)
+{
+    short i;
+
+    for (i = 1; i < 64; i++) {
+        if (shipData[i].active != 0 && shipData[i].parentShip == ship->index &&
+            shipData[i].defenseStellar == -1) {
+            shipData[i].jumpTimer = 0;
+            shipData[i].targetShip = -2;
+            AIMakeEscortFlyInForm(&shipData[i]);
+        }
+    }
+}
+#endif
+
+/* SpawnEscort. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00422400
-short SpawnEscortOfType(short shipType, short fromSpob)
+// MAC: _SpawnEscort i386 0x0003fe5b ppc 0x000472bc
+short SpawnEscort(short shipType, short fromSpob)
 {
     short slot;
     short k;
+    short j;
 
     slot = GenericRandomShipSpawn(shipData->curSystem, kSpawnReserve);
     if (slot != -1 && shipType > -1) {
@@ -3953,8 +5820,8 @@ short SpawnEscortOfType(short shipType, short fromSpob)
         shipData[slot].parentShip = 0;
         shipData[slot].govt = -1;
         shipData[slot].aggression = 2;
-        shipData[slot].shield = gShipTypes[shipData[slot].type].shield;
-        shipData[slot].armor = gShipTypes[shipData[slot].type].armor;
+        shipData[slot].shield = shipClass[shipData[slot].type].shield;
+        shipData[slot].armor = shipClass[shipData[slot].type].armor;
         shipData[slot].dude = -1;
         shipData[slot].hailed = 0;
         shipData[slot].hasAfterburner = AIHasAfterburner(&shipData[slot]);
@@ -3966,8 +5833,8 @@ short SpawnEscortOfType(short shipType, short fromSpob)
         shipData[slot].sellOnLanding = 0;
         shipData[slot].fuelRegenState = -1;
         shipData[slot].escortOrder = -1;
-        for (k = 0; k < 4; k++)
-            shipData[slot].jamming[k] = -1;
+        for (j = 0; j < 4; j++)
+            shipData[slot].jamming[j] = -1;
 
         if (fromSpob != -1) {
             shipData[slot].pos.x = stellarData[fromSpob].pos.h;
@@ -3982,8 +5849,8 @@ short SpawnEscortOfType(short shipType, short fromSpob)
         }
 
         for (k = 0; k < kMaxWeapTypes; k++) {
-            shipData[slot].weap[k].count = gShipTypes[shipType].weapCount[k];
-            shipData[slot].weap[k].ammo = gShipTypes[shipType].weapAmmo[k];
+            shipData[slot].weap[k].count = shipClass[shipType].weapCount[k];
+            shipData[slot].weap[k].ammo = shipClass[shipType].weapAmmo[k];
         }
 
         AISetup(&shipData[slot]);
@@ -4002,18 +5869,31 @@ short SpawnEscortOfType(short shipType, short fromSpob)
 
 /* DoEscortLand (mac _DoEscortLand). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004229d0
+// MAC: _DoEscortLand i386 0x0004031f ppc 0x00047904
 void DoEscortLand(void)
 {
+#ifdef MAC1010
+    short i;
+    short numSold;
+    short numUpgraded;
+    long saleValue;
+    long upgradeCost;
+    long total;
+    short days;
+    short type;
+    short j;
+#else
     short j;
     short i;
-    long upgradeCost;
-    long saleValue;
     short numSold;
     short numUpgraded;
     short type;
     short days;
     long total;
     short k;
+    long saleValue;
+    long upgradeCost;
+#endif
 
     numUpgraded = 0;
     numSold = 0;
@@ -4028,8 +5908,8 @@ void DoEscortLand(void)
                 && shipData[i].aiType == kHiredEscort
                 && shipData[i].sellOnLanding
                 && shipData[i].specialMission == -1) {
-                shipData[0].credits += gShipTypes[shipData[i].type].tradeIn;
-                saleValue += gShipTypes[shipData[i].type].tradeIn;
+                shipData[0].credits += shipClass[shipData[i].type].tradeIn;
+                saleValue += shipClass[shipData[i].type].tradeIn;
                 shipData[i].active = 0;
                 shipData[i].parentShip = -1;
                 statusRedraw[2] = 1;
@@ -4042,15 +5922,14 @@ void DoEscortLand(void)
                 && shipData[i].parentShip == 0
                 && shipData[i].aiType == kHiredEscort
                 && shipData[i].upgradeOnLanding) {
-                type = shipData[i].type;
-                if (gShipTypes[type].upgradeTo != -1
+                if (shipClass[shipData[i].type].upgradeTo != -1
                     && shipData[i].specialMission == -1
-                    && shipData[0].credits >= gShipTypes[type].escUpgradeCost) {
+                    && shipData[0].credits >= shipClass[shipData[i].type].escUpgradeCost) {
                     numUpgraded++;
-                    upgradeCost += gShipTypes[type].escUpgradeCost;
-                    shipData[0].credits -= gShipTypes[type].escUpgradeCost;
+                    upgradeCost += shipClass[shipData[i].type].escUpgradeCost;
+                    shipData[0].credits -= shipClass[shipData[i].type].escUpgradeCost;
                     statusRedraw[2] = 1;
-                    shipData[i].type = gShipTypes[shipData[i].type].upgradeTo;
+                    shipData[i].type = shipClass[shipData[i].type].upgradeTo;
                     for (j = 0; j < kMaxWeapTypes; j++) {
                         shipData[i].weap[j].count = 0;
                         shipData[i].weap[j].ammo = 0;
@@ -4058,51 +5937,55 @@ void DoEscortLand(void)
                     shipData[i].upgradeOnLanding = 0;
                 }
             }
-            shipData[i].shield = gShipTypes[shipData[i].type].shield;
-            shipData[i].armor = gShipTypes[shipData[i].type].armor;
+            shipData[i].shield = shipClass[shipData[i].type].shield;
+            shipData[i].armor = shipClass[shipData[i].type].armor;
             for (j = 0; j < kMaxWeapTypes; j++)
-                shipData[i].weap[j].ammo = gShipTypes[shipData[i].type].weapAmmo[j];
+                shipData[i].weap[j].ammo = shipClass[shipData[i].type].weapAmmo[j];
+            type = shipData[i].specialMission;
+            if (type != -1 && currentMissionObjectives[type].active != 0
+                && currentMissions[type].shipBehav == 1)
+                j = 0;
         }
 
         if (numSold > 0 || numUpgraded > 0) {
-            strcpy(gTextShowString, "");
+            strcpy(textShowString, "");
             if (numSold > 0) {
-                StrcatOrdinalNumber(numSold, gTextShowString, 1);
-                strcat(gTextShowString, " ");
+                StrcatOrdinalNumber(numSold, textShowString, 1);
+                strcat(textShowString, " ");
                 if (numSold == 1)
-                    AppendIndString(gTextShowString, kGameStrList, kStrEscortOne);
+                    StrcatIndCString(textShowString, kGameStrList, kStrEscortOne);
                 else
-                    AppendIndString(gTextShowString, kGameStrList, kStrEscortMany);
-                strcat(gTextShowString, " ");
-                AppendIndString(gTextShowString, kGameStrList, kStrSoldFor);
-                strcat(gTextShowString, " ");
-                StrcatCommaNumber(saleValue, gTextShowString);
-                strcat(gTextShowString, " ");
+                    StrcatIndCString(textShowString, kGameStrList, kStrEscortMany);
+                strcat(textShowString, " ");
+                StrcatIndCString(textShowString, kGameStrList, kStrSoldFor);
+                strcat(textShowString, " ");
+                StrcatCommaNumber(saleValue, textShowString);
+                strcat(textShowString, " ");
                 if (saleValue > 1)
-                    strcat(gTextShowString, creditsCString);
+                    strcat(textShowString, creditsCString);
                 else
-                    strcat(gTextShowString, creditCString);
-                strcat(gTextShowString, ".");
+                    strcat(textShowString, creditCString);
+                strcat(textShowString, ".");
                 if (numUpgraded > 0)
-                    strcat(gTextShowString, "\r\r");
+                    strcat(textShowString, "\r\r");
             }
             if (numUpgraded > 0) {
-                StrcatOrdinalNumber(numUpgraded, gTextShowString, 1);
-                strcat(gTextShowString, " ");
+                StrcatOrdinalNumber(numUpgraded, textShowString, 1);
+                strcat(textShowString, " ");
                 if (numUpgraded == 1)
-                    AppendIndString(gTextShowString, kGameStrList, kStrEscortOne);
+                    StrcatIndCString(textShowString, kGameStrList, kStrEscortOne);
                 else
-                    AppendIndString(gTextShowString, kGameStrList, kStrEscortMany);
-                strcat(gTextShowString, " ");
-                AppendIndString(gTextShowString, kGameStrList, kStrUpgradedFor);
-                strcat(gTextShowString, " ");
-                StrcatCommaNumber(upgradeCost, gTextShowString);
-                strcat(gTextShowString, " ");
+                    StrcatIndCString(textShowString, kGameStrList, kStrEscortMany);
+                strcat(textShowString, " ");
+                StrcatIndCString(textShowString, kGameStrList, kStrUpgradedFor);
+                strcat(textShowString, " ");
+                StrcatCommaNumber(upgradeCost, textShowString);
+                strcat(textShowString, " ");
                 if (upgradeCost > 1)
-                    strcat(gTextShowString, creditsCString);
+                    strcat(textShowString, creditsCString);
                 else
-                    strcat(gTextShowString, creditCString);
-                strcat(gTextShowString, ".");
+                    strcat(textShowString, creditCString);
+                strcat(textShowString, ".");
             }
             ShowTextDialog(0, 0, 0);
             total = numSold + numUpgraded;
@@ -4114,7 +5997,11 @@ void DoEscortLand(void)
                 crashlog_print(" days for upgrade/sale of ");
                 crashlog_print_num(total);
                 crashlog_print(" escorts\n");
+#ifdef MAC1010
+                for (i = 0; i < days; i++)
+#else
                 for (k = 0; k < days; k++)
+#endif
                     IncrementGameTime();
             }
         }
@@ -4125,15 +6012,17 @@ void DoEscortLand(void)
 /* DoEscortPayment (mac _DoEscortPayment). STATE: MATCH 100.0%, exe 143 / obj 143,
    byte-identical yes. OPEN: none; `idx' was an entity the exe never had (see notes). */
 // FUNCTION: EVNOVA 0x004232d0
+// MAC: _DoEscortPayment i386 0x00040111 ppc 0x00047658
 void DoEscortPayment(short days)
 {
-    short day;
-    short numDismissed;
-    short type;
-    long cost;
-    char skip;
     short i;
+    short day;
+    short checked;
+    short numDismissed;
+    long cost;
+    Boolean skip;
 
+    checked = 0;
     numDismissed = 0;
     for (day = 0; day < days; day++) {
         for (i = 1; i < 64; i++) {
@@ -4150,19 +6039,15 @@ void DoEscortPayment(short days)
                     }
                 }
             }
-            if (skip) continue;
-
-            if (!shipData[i].hired) continue;
-
-            type = shipData[i].type;
-            cost = (gShipTypes[type].cost * 0.01);
+            if (skip == 0 && shipData[i].hired) {
+            cost = (0.01 * shipClass[shipData[i].type].cost);
 
             if (shipData[0].credits >= cost) {
                 shipData[0].credits -= cost;
                 statusRedraw[2] = 1;
             } else {
                 numDismissed++;
-                if (shipData[i].aiType == 6 && shipData[i].specialMission == -1 && gShipTypes[type].inherentAI <= 2) {
+                if (shipData[i].aiType == 6 && shipData[i].specialMission == -1 && shipClass[shipData[i].type].inherentAI <= 2) {
                     DestroyPartialFleetCargo(i);
                 }
                 statusRedraw[2] = 1;
@@ -4170,35 +6055,50 @@ void DoEscortPayment(short days)
                 shipData[i].parentShip = -1;
                 shipData[i].aiType = 1;
             }
+            }
+            checked++;
         }
     }
 
     if (numDismissed > 0) {
         if (hyperGamma >= 0.0) {
             hyperGamma = -1.0f;
+#if V111
+#elif defined(MAC1010)
+#if TARGET_API_MAC_CARBON
+            SetGamma(gScreenRef, &gOrigGamma);
+#else
+            GammaFadeTo(1, 100, 0);
+#endif
+#else
             FadeGammaTo(100, 0);
+#endif
         }
-        strcpy(gTextShowString, "");
+        strcpy(textShowString, "");
         if (numDismissed == 1) {
-            AppendIndString(gTextShowString, kGameStrList, 302);
+            StrcatIndCString(textShowString, kGameStrList, 302);
         } else {
-            AppendIndString(gTextShowString, kGameStrList, 303);
+            StrcatIndCString(textShowString, kGameStrList, 303);
         }
         statusRedraw[2] = 1;
         ShowTextDialog(0, 0, 0);
+#ifdef MACBUILD
+        RefreshSAT();
+#endif
         DrawStatus();
     }
 }
 
 /* DoStellarTimePassage. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00423540
+// MAC: _DoStellarTimePassage i386 0x00040867 ppc 0x00047ee8
 void DoStellarTimePassage(void)
 {
     short i;
 
     for (i = 0; i < 0x800; i++) {
         if (stellarData[i].loaded != 0 && stellarData[i].dominated != 0) {
-            if ((stellarData[shipData[0].targetStellar].flags2 & kSpobFlag2Bit5) == 0)
+            if ((stellarData[shipData[0].targetStellar].flags2 & kSpobAlwaysDominated) == 0)
                 stellarData[i].daysDominated += 1;
             shipData[0].credits += stellarData[i].tribute;
             statusRedraw[2] = 1;
@@ -4209,14 +6109,15 @@ void DoStellarTimePassage(void)
 /* SpawnPerson. STATE: MATCH, 555/555, relocregcheck 0 of 91; byte check pending the next
    regate (bytediff reads the baseline). OPEN: none */
 // FUNCTION: EVNOVA 0x004235c0
+// MAC: _SpawnPerson i386 0x000408d5 ppc 0x00047f84
 short SpawnPerson(short sys, unsigned char noDisabled, short person)
 {
+    short i;
     short slot;
     short pick;
     short n;
-    short i;
     short j;
-    char eligible[kMaxPersons];
+    Boolean eligible[kMaxPersons];
 
     n = 0;
     eligible[kMaxPersons - 1] = 0;
@@ -4238,19 +6139,19 @@ short SpawnPerson(short sys, unsigned char noDisabled, short person)
                     && personData[i].linkSyst - 0x80 == sys)
                     eligible[i] = 1;
                 if (personData[i].linkSyst >= 0x270f && personData[i].linkSyst < 0x3a98
-                    && personData[i].linkSyst - 0x2710 == gSystems[sys].govt)
+                    && personData[i].linkSyst - 0x2710 == systemData[sys].govt)
                     eligible[i] = 1;
                 if (personData[i].linkSyst >= 0x3a98 && personData[i].linkSyst < 0x4e20
-                    && gSystems[sys].govt >= 0
-                    && GovtAllies(personData[i].linkSyst - 0x3a98, gSystems[sys].govt) != 0)
+                    && systemData[sys].govt >= 0
+                    && GovtAllies(personData[i].linkSyst - 0x3a98, systemData[sys].govt) != 0)
                     eligible[i] = 1;
                 if (personData[i].linkSyst >= 0x4e20 && personData[i].linkSyst < 0x61a8
-                    && gSystems[sys].govt >= 0
-                    && personData[i].linkSyst - 0x4e20 != gSystems[sys].govt)
+                    && systemData[sys].govt >= 0
+                    && personData[i].linkSyst - 0x4e20 != systemData[sys].govt)
                     eligible[i] = 1;
                 if (personData[i].linkSyst >= 0x61a8 && personData[i].linkSyst < 0x7530
-                    && gSystems[sys].govt >= 0
-                    && GovtEnemies(personData[i].linkSyst - 0x61a8, gSystems[sys].govt) != 0)
+                    && systemData[sys].govt >= 0
+                    && GovtEnemies(personData[i].linkSyst - 0x61a8, systemData[sys].govt) != 0)
                     eligible[i] = 1;
                 if (personData[i].govt >= 0
                     && (govtData[personData[i].govt].flags & kGovtAlwaysDisabled) != 0
@@ -4267,7 +6168,7 @@ short SpawnPerson(short sys, unsigned char noDisabled, short person)
     }
     for (i = 1; i < kMaxShips; i++) {
         if (shipData[i].active != 0 && shipData[i].specialMission == -1
-            && shipData[i].persType >= 0 && shipData[i].persType < kMaxPersons) {
+            && (shipData[i].persType >= 0 && shipData[i].persType < kMaxPersons)) {
             for (j = 0; j < kMaxPersons; j++) {
                 if (eligible[j] != 0
                     && personData[j].name[0] ==
@@ -4301,26 +6202,26 @@ short SpawnPerson(short sys, unsigned char noDisabled, short person)
                 shipData[slot].hasAfterburner = AIHasAfterburner(&shipData[slot]);
                 shipData[slot].canScoop = ShipCanScoop(&shipData[slot]);
                 shipData[slot].escortOrder = -1;
-                if ((personData[pick].flags & 2) != 0)
+                if ((personData[pick].flags & kPersEscapePod) != 0)
                     shipData[slot].hasAfterburner = 1;
                 if (shipData[slot].aggression < 1)
                     shipData[slot].aggression = 1;
                 if (shipData[slot].aggression >= 3)
                     shipData[slot].aggression = 4;
-                for (i = 0; i < kMaxWeapTypes; i++) {
-                    shipData[slot].weap[i].count =
-                        gShipTypes[shipData[slot].type].weapCount[i];
-                    shipData[slot].weap[i].ammo =
-                        gShipTypes[shipData[slot].type].weapAmmo[i];
-                    shipData[slot].weap[i].count += personData[pick].weapCount[i];
-                    shipData[slot].weap[i].ammo += personData[pick].weapAmmo[i];
+                for (j = 0; j < kMaxWeapTypes; j++) {
+                    shipData[slot].weap[j].count =
+                        shipClass[shipData[slot].type].weapCount[j];
+                    shipData[slot].weap[j].ammo =
+                        shipClass[shipData[slot].type].weapAmmo[j];
+                    shipData[slot].weap[j].count += personData[pick].weapCount[j];
+                    shipData[slot].weap[j].ammo += personData[pick].weapAmmo[j];
                 }
-                shipData[slot].shield = gShipTypes[shipData[slot].type].shield;
-                shipData[slot].armor = gShipTypes[shipData[slot].type].armor;
-                if ((personData[pick].flags2 & kPersNeedsFuel) != 0)
+                shipData[slot].shield = shipClass[shipData[slot].type].shield;
+                shipData[slot].armor = shipClass[shipData[slot].type].armor;
+                if ((personData[pick].flags2 & kPersStartsNoFuel) != 0)
                     shipData[slot].fuel = 0;
                 else
-                    shipData[slot].fuel = gShipTypes[shipData[slot].type].fuel;
+                    shipData[slot].fuel = shipClass[shipData[slot].type].fuel;
                 if (personData[pick].shieldMod > 0) {
                     shipData[slot].shield =
                         shipData[slot].shield * personData[pick].shieldMod;
@@ -4330,12 +6231,12 @@ short SpawnPerson(short sys, unsigned char noDisabled, short person)
                 if (shipData[slot].govt != -1
                     && (govtData[shipData[slot].govt].flags & kGovtAlwaysDisabled) != 0) {
                     shipData[slot].shield = 0;
-                    if ((gShipTypes[shipData[slot].type].flags & 0x10) != 0)
+                    if ((shipClass[shipData[slot].type].flags & kShipArmorDisableTenth) != 0)
                         shipData[slot].armor =
-                            gShipTypes[shipData[slot].type].armor * 0.1 - 1.0;
+                            shipClass[shipData[slot].type].armor * 0.1 - 1.0;
                     else
                         shipData[slot].armor =
-                            gShipTypes[shipData[slot].type].armor * 0.33 - 1.0;
+                            shipClass[shipData[slot].type].armor * 0.33 - 1.0;
                     shipData[slot].vel.x = shipData[slot].vel.y = 0;
                     shipData[slot].accelMag = 0;
                 }
@@ -4350,9 +6251,9 @@ short SpawnPerson(short sys, unsigned char noDisabled, short person)
                     shipData[slot].vel.x = 0;
                     shipData[slot].accelMag = 0;
                     shipData[slot].engineGlow = 0;
-                    if ((gShipTypes[shipData[slot].type].shanFlags & 2) != 0)
+                    if ((shipClass[shipData[slot].type].shanFlags & kShanFoldingParts) != 0)
                         shipData[slot].foldSet =
-                            gShipTypes[shipData[slot].type].baseSets - 1;
+                            shipClass[shipData[slot].type].baseSets - 1;
                 }
                 return slot;
             }
@@ -4361,45 +6262,50 @@ short SpawnPerson(short sys, unsigned char noDisabled, short person)
     return -1;
 }
 
+/* the mac's index is the short itself; win reads it in three widths, each a CSE class */
+#if V111 /* V111 spelling */
+#define slotL slot
+#define slotR slot
+#define slotI slot
+#elif defined(MAC1010)
+#define slotL slot
+#define slotR slot
+#define slotI slot
+#else
+#define slotR ((long)slot)
+#define slotI ((int)slotL)
+#endif
+
 /* DoShipCapture (mac _DoShipCapture). STATE: MATCH 100%, exe 817 / obj 817; byte-identical
    yes (relocations masked). The three index spellings are CSE classes; the loop counters and
    the scratch `val' decide the colour order (notes). OPEN: none */
 // FUNCTION: EVNOVA 0x00423fa0
-void DoShipCapture(ShipObj *me, char asEscort)
+// MAC: _DoShipCapture i386 0x00041120 ppc 0x0004889c
+void DoShipCapture(ShipObj *me, Boolean asEscort)
 {
     unsigned char buf[256];
+#if !defined(MACBUILD) && !V111
     long slotL;
+#endif
     long capType;
-    short slot;
+    short m;
     short w;
     short i;
+    short slot;
     short val;
-    short m;
 
     slot = GenericRandomShipSpawn(shipData[0].curSystem, 1);
     if (slot != -1) {
         if (me->persType != -1)
             personData[me->persType].loaded = 0;
+#if !defined(MACBUILD) && !V111
         slotL = slot;
+#endif
         shipData[slotL].type = shipData[0].type;
         shipData[slotL].dude = -1;
         shipData[slotL].persType = -1;
-        {
-            float *dp, *sp;
-
-            sp = &shipData[0].pos.x;
-            dp = &shipData[slotL].pos.x;
-            dp[0] = sp[0];
-            dp[1] = sp[1];
-        }
-        {
-            float *dq, *sq;
-
-            sq = &shipData[0].vel.x;
-            dq = &shipData[slotL].vel.x;
-            dq[0] = sq[0];
-            dq[1] = sq[1];
-        }
+        shipData[slotL].pos = shipData[0].pos;
+        shipData[slotL].vel = shipData[0].vel;
         shipData[slotL].heading = shipData[0].heading;
         shipData[slotL].desiredHeading = shipData[slotL].heading;
         shipData[slotL].targetStellar = -1;
@@ -4415,13 +6321,13 @@ void DoShipCapture(ShipObj *me, char asEscort)
         shipData[slotL].escortOrder = -1;
         shipData[slotL].index = slot;
         shipData[slotL].voiceClass = Rand(2);
-        val = gShipTypes[shipData[slotL].type].inherentGovtB;
+        val = shipClass[shipData[slotL].type].inherentGovtB;
         if (val != -1) {
             val = govtData[val].voiceClass;
             if (val != -1)
-                shipData[(int)slotL].voiceClass = val;
+                shipData[slotI].voiceClass = val;
         }
-        for (i = 0; i < 6; i++)
+        for (i = 0; i <= 5; i++)
             shipData[slotL].cargo[i] = shipData[0].cargo[i];
         for (i = 1; i < 0x40; i++) {
             if (shipData[i].active != 0 && i != me->index && i != slot
@@ -4429,75 +6335,69 @@ void DoShipCapture(ShipObj *me, char asEscort)
                 shipData[i].targetShip = shipData[i].targetStellar = -1;
                 shipData[i].grudge = 0;
                 shipData[i].parentShip = -1;
-                shipData[i].aiType = gShipTypes[shipData[i].type].inherentAI;
+                shipData[i].aiType = shipClass[shipData[i].type].inherentAI;
             }
         }
         shipData[slotL].specialMission = -1;
         if (asEscort != 0) {
-            shipData[(long)slot].shield = 0;
-            shipData[(long)slot].armor = 1.0f;
-            shipData[(long)slot].boarded = 1;
-            shipData[(long)slot].formerEscort = -1;
-            shipData[(long)slot].hired = 0;
-            shipData[(long)slot].hailed = 0;
-            shipData[(long)slot].parentShip = 0;
-            shipData[(long)slot].aiType = 6;
+            shipData[slotR].shield = 0;
+            shipData[slotR].armor = 1.0f;
+            shipData[slotR].boarded = 1;
+            shipData[slotR].formerEscort = -1;
+            shipData[slotR].hired = 0;
+            shipData[slotR].hailed = 0;
+            shipData[slotR].parentShip = 0;
+            shipData[slotR].aiType = 6;
             DestroyPartialFleetCargo(slot);
-            shipData[(long)slot].parentShip = -1;
-            shipData[(long)slot].aiType = -1;
+            shipData[slotR].parentShip = -1;
+            shipData[slotR].aiType = -1;
         } else {
-            shipData[(long)slot].deathTimer = 0;
-            shipData[(long)slot].parentShip = 0;
-            shipData[(long)slot].aiType = 6;
-            shipData[(long)slot].defenseStellar = -1;
-            shipData[(long)slot].grudge = 0;
-            shipData[(long)slot].fuel = ShipFuelCapacity(&shipData[(long)slot]);
-            if (IsDisabled(&shipData[(long)slot]) != 0) {
-                if ((gShipTypes[shipData[slotL].type].flags & 0x10) != 0)
-                    shipData[(long)slot].armor =
-                        ShipArmorCapacity(&shipData[(long)slot]) * 0.1 + 1.0;
+            shipData[slotR].deathTimer = 0;
+            shipData[slotR].parentShip = 0;
+            shipData[slotR].aiType = 6;
+            shipData[slotR].defenseStellar = -1;
+            shipData[slotR].grudge = 0;
+            shipData[slotR].fuel = ShipFuelCapacity(&shipData[slotR]);
+            if (IsDisabled(&shipData[slotR]) != 0) {
+                if ((shipClass[shipData[slotL].type].flags & kShipArmorDisableTenth) != 0)
+                    shipData[slotR].armor =
+                        ShipArmorCapacity(&shipData[slotR]) * 0.1 + 1.0;
                 else
-                    shipData[(long)slot].armor =
-                        ShipArmorCapacity(&shipData[(long)slot]) * 0.3333 + 1.0;
+                    shipData[slotR].armor =
+                        ShipArmorCapacity(&shipData[slotR]) * 0.3333 + 1.0;
             }
             prevParent[slotL] = 0;
-            AISetup(&shipData[(int)slotL]);
-            AIMakeEscortFlyInForm(&shipData[(int)slotL]);
+            AISetup(&shipData[slotI]);
+            AIMakeEscortFlyInForm(&shipData[slotI]);
         }
         statusRedraw[2] = 1;
         statusRedraw[6] = 1;
         statusRedraw[3] = 1;
         for (i = 0; i < 0x100; i++) {
             shipData[slotL].weap[i].count =
-                gShipTypes[shipData[slotL].type].weapCount[i];
+                shipClass[shipData[slotL].type].weapCount[i];
             shipData[slotL].weap[i].ammo =
-                gShipTypes[shipData[slotL].type].weapAmmo[i];
+                shipClass[shipData[slotL].type].weapAmmo[i];
         }
         {
-            ShipRec *rec = &gShipTypes[shipData[0].type];
+            short t = shipData[0].type;
+            ShipRec *rec = &shipClass[t];
 
             crashlog_mission_bit_set("retiring", (char *)rec->name, 1,
-                                     shipData[0].type + 128, rec->onRetire);
+                                     t + 128, rec->onRetire);
         }
-        EvalMissionBitSetString(gShipTypes[shipData[0].type].onRetire);
+        EvalMissionBitSetString(shipClass[shipData[0].type].onRetire);
         {
-            ShipRec *rec = &gShipTypes[me->type];
+            short t = me->type;
+            ShipRec *rec = &shipClass[t];
 
             crashlog_mission_bit_set("capturing", (char *)rec->name, 1,
-                                     me->type + 128, rec->onCapture);
+                                     t + 128, rec->onCapture);
         }
-        EvalMissionBitSetString(gShipTypes[me->type].onCapture);
+        EvalMissionBitSetString(shipClass[me->type].onCapture);
         shipData[0].type = me->type;
-        {
-            float *dp = &shipData[0].pos.x;
-            dp[0] = me->pos.x;
-            dp[1] = me->pos.y;
-        }
-        {
-            float *dq = &shipData[0].vel.x;
-            dq[0] = me->vel.x;
-            dq[1] = me->vel.y;
-        }
+        shipData[0].pos = me->pos;
+        shipData[0].vel = me->vel;
         shipData[0].heading = me->heading;
         shipData[0].desiredHeading = shipData[0].heading;
         shipData[0].targetStellar = -1;
@@ -4505,29 +6405,28 @@ void DoShipCapture(ShipObj *me, char asEscort)
         shipData[0].selectedWeapon = -1;
         GetShipPaintColor(me, &playerPaint.red, &playerPaint.green,
                      &playerPaint.blue);
-        for (i = 0; i < 6; i++)
+        for (i = 0; i <= 5; i++)
             shipData[0].cargo[i] = me->cargo[i];
-        if (ShipFuelCapacity(shipData) <= 0)
-            shipData[0].fuel = 0;
-        else
+        if (ShipFuelCapacity(shipData) > 0)
             shipData[0].fuel = Rand(ShipFuelCapacity(shipData));
+        else
+            shipData[0].fuel = 0;
         shipData[0].aiType = -1;
         shipData[0].parentShip = -1;
         shipData[0].govt = -1;
         shipData[0].shield = 0;
-        capType = shipData[0].type;
-        if ((gShipTypes[capType].flags & 0x10) != 0)
-            shipData[0].armor = gShipTypes[capType].armor * 0.1 + 2.0;
+        if ((shipClass[shipData[0].type].flags & kShipArmorDisableTenth) != 0)
+            shipData[0].armor = shipClass[shipData[0].type].armor * 0.1 + 2.0;
         else
-            shipData[0].armor = gShipTypes[capType].armor * 0.3333 + 2.0;
+            shipData[0].armor = shipClass[shipData[0].type].armor * 0.3333 + 2.0;
         for (w = 0; w < 0x100; w++) {
-            char keep;
+            Boolean keep;
 
             keep = 0;
             for (i = 0; i < 0x200; i++) {
                 for (m = 0; m < kOutfMods; m++) {
-                    if (gOutfits[i].modType[m] == 1 && w == gOutfits[i].modVal[m]
-                            && gOutfits[i].persistent != 0) {
+                    if (outfitSystem[i].modType[m] == 1 && w == outfitSystem[i].modVal[m]
+                            && outfitSystem[i].persistent != 0) {
                         keep = 1;
                         break;
                     }
@@ -4539,33 +6438,25 @@ void DoShipCapture(ShipObj *me, char asEscort)
             }
         }
         for (w = 0; w < 0x100; w++) {
-            short n;
-
-            n = me->weap[w].count;
-            if (n > 0 && shipData[0].weap[w].count <= 0)
-                shipData[0].weap[w].count = n;
-            val = me->weap[w].ammo;
-            if (val > 0 && shipData[0].weap[w].ammo <= 0) {
-                if (gWeapons[w].guidance == kGuidanceBay) {
-                    shipData[0].weap[w].ammo = val;
-                } else {
-                    short src;
-
-                    src = gWeapons[w].ammoType;
-                    if (src >= 0 && src < 0x100)
-                        shipData[0].weap[src].ammo = val;
+            if (me->weap[w].count > 0 && shipData[0].weap[w].count <= 0)
+                shipData[0].weap[w].count = me->weap[w].count;
+            if (me->weap[w].ammo > 0 && shipData[0].weap[w].ammo <= 0) {
+                if (weaponStats[w].guidance == kGuidanceBay) {
+                    shipData[0].weap[w].ammo = me->weap[w].ammo;
+                } else if (weaponStats[w].ammoType >= 0 && weaponStats[w].ammoType < 0x100) {
+                    shipData[0].weap[weaponStats[w].ammoType].ammo = me->weap[w].ammo;
                 }
             }
         }
-        for (i = 0; i < 0x200; i++) {
-            if (gOutfits[i].persistent == 0)
-                shipSystems[i] = 0;
+        for (w = 0; w < 0x200; w++) {
+            if (outfitSystem[w].persistent == 0)
+                shipSystems[w] = 0;
         }
         ShipStatsToSystemInfo();
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[shipData[0].type].defOutfCount[i] > 0)
-                shipSystems[gShipTypes[shipData[0].type].defOutfID[i]] +=
-                    gShipTypes[shipData[0].type].defOutfCount[i];
+            if (shipClass[shipData[0].type].defOutfCount[i] > 0)
+                shipSystems[shipClass[shipData[0].type].defOutfID[i]] +=
+                    shipClass[shipData[0].type].defOutfCount[i];
         }
         SystemInfoToShipStats();
         me->active = 0;
@@ -4577,10 +6468,14 @@ void DoShipCapture(ShipObj *me, char asEscort)
         DisplayComm(buf, 360, 0, 0xc, &rgbWhite, 0, 0);
     }
 }
+#undef slotL
+#undef slotR
+#undef slotI
 
 
-/* DisasterHandler. STATE: MATCH, byte-identical. OPEN: none */
+/* DisasterHandler. STATE: MATCH, byte-identical; mac MATCH both slices. OPEN: none */
 // FUNCTION: EVNOVA 0x00424f90
+// MAC: _DisasterHandler i386 0x00041ab9 ppc 0x00049324
 void DisasterHandler(void)
 {
     short i;
@@ -4605,15 +6500,25 @@ void DisasterHandler(void)
 
             target = disasterData[i].stellar;
             if (target >= 0x80) {
-                disasterData[i].stellarID = disasterData[i].stellar - 0x80;
-                disasterData[i].countdown = disasterData[i].duration;
+                if (disasterData[i].unk20D) {
+                    disasterData[i].stellarID = disasterData[i].stellar - 0x80;
+                    disasterData[i].countdown = disasterData[i].duration;
+                } else {
+                    disasterData[i].stellarID = disasterData[i].stellar - 0x80;
+                    disasterData[i].countdown = disasterData[i].duration;
+                }
             } else if (target == -1) {
                 do {
                     target = Rand(0x800);
                 } while (!stellarData[target].loaded ||
-                         (stellarData[target].flags & kSpobHidden) != 0);
-                disasterData[i].stellarID = target;
-                disasterData[i].countdown = disasterData[i].duration;
+                         (stellarData[target].flags & kSpobUninhabited) != 0);
+                if (disasterData[i].unk20D) {
+                    disasterData[i].stellarID = target;
+                    disasterData[i].countdown = disasterData[i].duration;
+                } else {
+                    disasterData[i].stellarID = target;
+                    disasterData[i].countdown = disasterData[i].duration;
+                }
             }
         } else {
             disasterData[i].stellarID = -1;
@@ -4627,19 +6532,19 @@ void DisasterHandler(void)
 
 /* DoAutoRefuel. STATE: MATCH 100.0%, exe 122 / obj 122, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004250f0
+// MAC: _DoAutoRefuel i386 0x00041bc5 ppc 0x0004949c
 void DoAutoRefuel(void)
 {
-    char found;
+    Boolean found;
     short amount;
     short i;
     short j;
-    float fuel;
 
     found = 0;
     for (i = 0; i < kMaxOutfits; i++) {
         if (shipSystems[i] > 0) {
             for (j = 0; j < kOutfMods; j++) {
-                if (gOutfits[i].modType[j] == kOutfModType19) {
+                if (outfitSystem[i].modType[j] == kOutfModType19) {
                     found = 1;
                     break;
                 }
@@ -4649,9 +6554,8 @@ void DoAutoRefuel(void)
 
     amount = ShipFuelCapacity(shipData);
     if (found) {
-        fuel = shipData->fuel;
-        if ((short)fuel < amount) {
-            shipData->fuel = (short)fuel;
+        if ((short)shipData->fuel < amount) {
+            shipData->fuel = (short)shipData->fuel;
             amount -= shipData->fuel;
             if (amount > shipData->credits)
                 amount = shipData->credits;
@@ -4668,12 +6572,13 @@ void DoAutoRefuel(void)
 
 /* SpawnFleet. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00425280
+// MAC: _SpawnFleet i386 0x00042704 ppc 0x0004a164
 void SpawnFleet(short sys, unsigned char arriving)
 {
-    short count;
     short i;
+    short count;
     short pick;
-    char ok[kFletCount];
+    Boolean ok[kFletCount];
 
     count = 0;
     for (i = 0; i < kFletCount; i++) {
@@ -4684,22 +6589,22 @@ void SpawnFleet(short sys, unsigned char arriving)
             if (sys == fleetData[i].linkSyst)
                 ok[i] = 1;
             if (fleetData[i].linkSyst >= 128 && fleetData[i].linkSyst < 10000 &&
-                sys == fleetData[i].linkSyst - 128)
+                fleetData[i].linkSyst - 128 == sys)
                 ok[i] = 1;
             if (fleetData[i].linkSyst >= 10000 && fleetData[i].linkSyst < 15000 &&
-                fleetData[i].linkSyst - 10000 == gSystems[sys].govt)
+                fleetData[i].linkSyst - 10000 == systemData[sys].govt)
                 ok[i] = 1;
             if (fleetData[i].linkSyst >= 15000 && fleetData[i].linkSyst < 20000 &&
-                gSystems[sys].govt >= 0 &&
-                GovtAllies(fleetData[i].linkSyst - 15000, gSystems[sys].govt))
+                systemData[sys].govt >= 0 &&
+                GovtAllies(fleetData[i].linkSyst - 15000, systemData[sys].govt))
                 ok[i] = 1;
             if (fleetData[i].linkSyst >= 20000 && fleetData[i].linkSyst < 25000 &&
-                gSystems[sys].govt >= 0 &&
-                fleetData[i].linkSyst - 20000 != gSystems[sys].govt)
+                systemData[sys].govt >= 0 &&
+                fleetData[i].linkSyst - 20000 != systemData[sys].govt)
                 ok[i] = 1;
             if (fleetData[i].linkSyst >= 25000 && fleetData[i].linkSyst < 30000 &&
-                gSystems[sys].govt >= 0 &&
-                GovtEnemies(fleetData[i].linkSyst - 25000, gSystems[sys].govt))
+                systemData[sys].govt >= 0 &&
+                GovtEnemies(fleetData[i].linkSyst - 25000, systemData[sys].govt))
                 ok[i] = 1;
             if (fleetData[i].usable == 0)
                 ok[i] = 0;
@@ -4719,6 +6624,7 @@ void SpawnFleet(short sys, unsigned char arriving)
 
 /* GenericRandomShipSpawn. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004254b0
+// MAC: _GenericRandomShipSpawn i386 0x0003c89f ppc 0x0004314c
 short GenericRandomShipSpawn(short sys, short reserve)
 {
     short slot;
@@ -4763,7 +6669,7 @@ short GenericRandomShipSpawn(short sys, short reserve)
         shipData[slot].blinkCount = 0;
         shipData[slot].altSet = 0;
         shipData[slot].animSet = 0;
-        shipData[slot].escapePods = gShipTypes[shipData[slot].type].podCount;
+        shipData[slot].escapePods = shipClass[shipData[slot].type].podCount;
         shipData[slot].bankDir = 0;
         shipData[slot].frameTimer = 0;
         shipData[slot].shieldGlow = 0;
@@ -4771,7 +6677,7 @@ short GenericRandomShipSpawn(short sys, short reserve)
         shipData[slot].annoyance = 0;
         shipData[slot].bankDir = 0;
         shipData[slot].foldDir = 0;
-        shipData[slot].foldSet = gShipTypes[shipData[slot].type].baseSets - 1;
+        shipData[slot].foldSet = shipClass[shipData[slot].type].baseSets - 1;
         shipData[slot].animTimer = 0;
         shipData[slot].skill = RandomSkillLevel(shipData[slot].type);
         shipData[slot].credits = 0;
@@ -4794,8 +6700,8 @@ short GenericRandomShipSpawn(short sys, short reserve)
         shipData[slot].escortOrder = -1;
         shipData[slot].sellOnLanding = 0;
         shipData[slot].upgradeOnLanding = 0;
-        shipData[slot].seesCloaked = -1;
-        shipData[slot].seesCloakedRadar = -1;
+        shipData[slot].seesCloaked[0] = -1;
+        shipData[slot].seesCloaked[1] = -1;
         shipData[slot].decloaksWhenHit = -1;
         shipData[slot].fuelRegenState = -1;
         for (k = 0; k < 4; k++)
@@ -4803,29 +6709,28 @@ short GenericRandomShipSpawn(short sys, short reserve)
         if (shipData[slot].govt != -1 &&
             (govtData[shipData[slot].govt].flags & kGovtAlwaysDisabled))
             shipData[slot].engineGlow = 0;
-        if (gShipTypes[shipData[slot].type].baseSets > 0)
-            shipData[slot].animSet = Rand(gShipTypes[shipData[slot].type].baseSets);
-        if (gShipTypes[shipData[slot].type].animDelay > 0)
-            shipData[slot].animTimer = Rand(gShipTypes[shipData[slot].type].animDelay);
-        for (k = 0; k < 6; k++)
-            shipData[slot].cargo[k] = 0;
+        if (shipClass[shipData[slot].type].baseSets > 0)
+            shipData[slot].animSet = Rand(shipClass[shipData[slot].type].baseSets);
+        if (shipClass[shipData[slot].type].animDelay > 0)
+            shipData[slot].animTimer = Rand(shipClass[shipData[slot].type].animDelay);
+        for (n = 0; n < 6; n++)
+            shipData[slot].cargo[n] = 0;
         shipData[slot].pos.x = Rand(1500) - 750;
         shipData[slot].pos.y = Rand(1500) - 750;
     }
     return slot;
 }
 
-#define kFleetFlagRandomCargo 0x0001
-
-
                                                          /* 0x0043b4a0 */
                                                          /* 0x004159e0 */
                                                          /* 0x00413990 */
 
-/* HyperSpawnFleet (mac _HyperSpawnFleet). STATE: MATCH 100.0%, 982/982, byte-identical yes.
-   The fleet index is held twice, int `f' and long `idx' (the copy differs in type, so it
-   survives copy propagation); one holder scores 98.4-98.5 (notes). OPEN: none. */
+/* HyperSpawnFleet (mac _HyperSpawnFleet). STATE: win MATCH 100.0%, 982/982, byte-identical
+   yes; mac MATCH on both slices. The fleet index is held twice, int `f' and long `idx' (the copy
+   differs in type, so it survives copy propagation); one holder scores 98.4-98.5 (notes). OPEN:
+   none. */
 // FUNCTION: EVNOVA 0x004259b0
+// MAC: _HyperSpawnFleet i386 0x00041c8d ppc 0x0004960c
 void HyperSpawnFleet(short sys, short fleet, short escortOf,
                      unsigned char arriving)
 {
@@ -4834,20 +6739,25 @@ void HyperSpawnFleet(short sys, short fleet, short escortOf,
     float dist;
     long idx;
     int f;
-    short count;
     short j;
+    short k;
+    short slot;
+    short count;
     short stellar;
     unsigned char buf[256];
-    short slot;
     short esc;
     FloatPoint pt;
-    short k;
     short type;
-    char digit;
+    Boolean digit;
     unsigned char c;
 
+#ifdef MAC1010 /* 1.0.10 spelling */
+#define f fleet
+#define idx fleet
+#else
     f = fleet;
     idx = f;
+#endif
     if (fleetData[f].leadShipType == -1)
         return;
     if (fleetData[f].usable == 0)
@@ -4860,32 +6770,36 @@ void HyperSpawnFleet(short sys, short fleet, short escortOf,
         if (escortOf != -1)
             shipData[slot].aiType = escortOf;
         else
-            shipData[slot].aiType = gShipTypes[shipData[slot].type].inherentAI;
-        shipData[slot].shield = gShipTypes[shipData[slot].type].shield;
-        shipData[slot].armor = gShipTypes[shipData[slot].type].armor;
+            shipData[slot].aiType = shipClass[shipData[slot].type].inherentAI;
+        shipData[slot].shield = shipClass[shipData[slot].type].shield;
+        shipData[slot].armor = shipClass[shipData[slot].type].armor;
         shipData[slot].persType = -1;
         shipData[slot].specialMission = -1;
         shipData[slot].hasAfterburner = AIHasAfterburner(&shipData[slot]);
         shipData[slot].canScoop = ShipCanScoop(&shipData[slot]);
         AISetup(&shipData[slot]);
         if ((fleetData[f].flags & kFleetFlagRandomCargo) &&
-            gShipTypes[shipData[slot].type].inherentAI <= 2)
+            shipClass[shipData[slot].type].inherentAI <= 2)
             shipData[slot].cargo[Rand(6)] =
-                Rand(gShipTypes[shipData[slot].type].cargo) + 1;
+                Rand(shipClass[shipData[slot].type].cargo) + 1;
         shipData[slot].lastStellar = -2;
         shipData[slot].prevSystem = -1;
         shipData[slot].vel.x = 0;
         shipData[slot].vel.y = 0;
         shipData[slot].accelMag = 0;
         stellar = PickEmergeStellar(&shipData[slot]);
-        if (stellar == -1) {
+        if (stellar != -1) {
+            AIMakeShipEmergeFromHyperGate(&shipData[slot], stellar);
+            shipData[slot].pos.x = stellarData[stellar].pos.h;
+            shipData[slot].pos.y = stellarData[stellar].pos.v;
+        } else {
             AIMakeShipJumpIn(&shipData[slot]);
             dist = 0;
             speed = 50.0f;
-            do {
+            while (speed > 0) {
                 dist += speed;
                 speed -= 1.165;
-            } while (speed > 0);
+            }
             shipData[slot].pos.x = shipData[slot].pos.y = 0;
             Accel(Rand(360), dist + 1000.0f,
                   &shipData[slot].pos);
@@ -4896,25 +6810,21 @@ void HyperSpawnFleet(short sys, short fleet, short escortOf,
             shipData[slot].jumpTick = ReadTick();
             Accel(shipData[slot].heading, 50.0f,
                   &shipData[slot].vel);
-        } else {
-            AIMakeShipEmergeFromHyperGate(&shipData[slot], stellar);
-            shipData[slot].pos.x = stellarData[stellar].pos.h;
-            shipData[slot].pos.y = stellarData[stellar].pos.v;
         }
-        for (i = 0; i < kMaxWeapTypes; i++) {
-            shipData[slot].weap[i].count =
-                gShipTypes[shipData[slot].type].weapCount[i];
-            shipData[slot].weap[i].ammo =
-                gShipTypes[shipData[slot].type].weapAmmo[i];
+        for (k = 0; k < kMaxWeapTypes; k++) {
+            shipData[slot].weap[k].count =
+                shipClass[shipData[slot].type].weapCount[k];
+            shipData[slot].weap[k].ammo =
+                shipClass[shipData[slot].type].weapAmmo[k];
         }
         for (j = 0; j <= 3; j++) {
-            count = Rand(fleetData[idx].escortMax[j] -
-                         fleetData[idx].escortMin[j] + 1) +
-                    fleetData[idx].escortMin[j];
+            count = fleetData[idx].escortMin[j] +
+                    Rand(fleetData[idx].escortMax[j] -
+                         fleetData[idx].escortMin[j] + 1);
             type = fleetData[idx].escortTypes[j];
             if (type == -1)
                 count = 0;
-            else if (gShipTypes[type].canAppear == 0)
+            else if (shipClass[type].canAppear == 0)
                 count = 0;
             if (count > 0) {
                 for (k = 0; k < count; k++) {
@@ -4927,21 +6837,21 @@ void HyperSpawnFleet(short sys, short fleet, short escortOf,
                         shipData[esc].persType = -1;
                         shipData[esc].govt = fleetData[f].govt;
                         shipData[esc].shield =
-                            gShipTypes[shipData[esc].type].shield;
+                            shipClass[shipData[esc].type].shield;
                         shipData[esc].armor =
-                            gShipTypes[shipData[esc].type].armor;
+                            shipClass[shipData[esc].type].armor;
                         AISetup(&shipData[esc]);
                         for (i = 0; i < kMaxWeapTypes; i++) {
                             shipData[esc].weap[i].count =
-                                gShipTypes[shipData[esc].type].weapCount[i];
+                                shipClass[shipData[esc].type].weapCount[i];
                             shipData[esc].weap[i].ammo =
-                                gShipTypes[shipData[esc].type].weapAmmo[i];
+                                shipClass[shipData[esc].type].weapAmmo[i];
                         }
                         shipData[esc].heading = shipData[slot].heading;
                         shipData[esc].pos.x =
-                            Rand(300) + shipData[slot].pos.x - 150.0f;
+                            shipData[slot].pos.x + Rand(300) - 150.0f;
                         shipData[esc].pos.y =
-                            Rand(300) + shipData[slot].pos.y - 150.0f;
+                            shipData[slot].pos.y + Rand(300) - 150.0f;
                         shipData[esc].vel.x = shipData[slot].vel.x;
                         shipData[esc].vel.y = shipData[slot].vel.y;
                         shipData[esc].accelMag = shipData[slot].accelMag;
@@ -4951,9 +6861,9 @@ void HyperSpawnFleet(short sys, short fleet, short escortOf,
                         shipData[esc].formLeader = slot;
                         shipData[slot].hasFormation = 1;
                         if ((fleetData[f].flags & kFleetFlagRandomCargo) &&
-                            gShipTypes[shipData[esc].type].inherentAI <= 2)
+                            shipClass[shipData[esc].type].inherentAI <= 2)
                             shipData[esc].cargo[Rand(6)] =
-                                Rand(gShipTypes[shipData[esc].type].cargo) + 1;
+                                Rand(shipClass[shipData[esc].type].cargo) + 1;
                         if (stellar != -1) {
                             AIMakeShipEmergeFromHyperGate(&shipData[esc],
                                                           stellar);
@@ -4975,14 +6885,20 @@ void HyperSpawnFleet(short sys, short fleet, short escortOf,
         if (arriving && fleetData[f].quoteStrList > 0) {
             GetRandomIndString(buf, fleetData[f].quoteStrList);
             digit = 0;
-            for (i = 1; i <= buf[0]; i++) {
-                idx = buf[i];
-                if (idx == '#') {
+            for (j = 1; j <= buf[0]; j++) {
+                if (buf[j] == '#') {
+#ifdef MACBUILD
+                    if (digit)
+                        buf[j] = Rand(10) + '0';
+                    else
+                        buf[j] = Rand(9) + '1';
+#else
                     if (digit)
                         c = Rand(10) + '0';
                     else
                         c = Rand(9) + '1';
-                    buf[i] = c;
+                    buf[j] = c;
+#endif
                     digit = 1;
                 } else
                     digit = 0;
@@ -4992,9 +6908,12 @@ void HyperSpawnFleet(short sys, short fleet, short escortOf,
         }
     }
 }
+#undef f
+#undef idx
 
 /* SpeakVoiceMessage. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00426ce0
+// MAC: _SpeakVoiceMessage i386 0x00044558 ppc 0x0004c3cc
 void SpeakVoiceMessage(short a, short b, short c)
 {
     pendingVoiceMsg = a;
@@ -5010,10 +6929,9 @@ void SpeakVoiceMessage(short a, short b, short c)
 #define kHailCommWidth    0x1a4
 #define kHailTextSize     12
 
-#define kSpobFlags2Dominated 0x20 /* name TBC */
-
 /* ShowPersonHailQuote (mac _ShowPersonHailQuote). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00426d10
+// MAC: _ShowPersonHailQuote i386 0x0004457e ppc 0x0004c3f4
 void ShowPersonHailQuote(short persID)
 {
     PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
@@ -5030,21 +6948,22 @@ void ShowPersonHailQuote(short persID)
 
 /* SpawnBountyHunter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00426dd0
+// MAC: _SpawnBountyHunter i386 0x00044661 ppc 0x0004c4c4
 void SpawnBountyHunter(void)
 {
     short i;
     short eligible;
-    char doHail;
+    Boolean doHail;
     short shipIndex;
 
-    if (((char *)personData)[0x1e46f8] == 0 || ((char *)personData)[0x1e46fb] == 0)
+    if (personData[kPersBountyHunter].loaded == 0 || personData[kPersBountyHunter].prepared == 0)
         return;
 
     eligible = 0;
     doHail = 0;
     for (i = 0; i < kMaxStellars; i++) {
         if (stellarData[i].loaded != 0 && stellarData[i].dominated != 0
-            && (stellarData[i].flags2 & kSpobFlags2Dominated) == 0)
+            && (stellarData[i].flags2 & kSpobAlwaysDominated) == 0)
             eligible++;
     }
 
@@ -5071,13 +6990,12 @@ void SpawnBountyHunter(void)
 
 /* ShotCanHitShip. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00426ef0
-char ShotCanHitShip(ShotObj *shot, ShipObj *ship)
+// MAC: _ShotCanHitShip i386 0x0004477e ppc 0x0004c60c
+Boolean ShotCanHitShip(ShotObj *shot, ShipObj *ship)
 {
     short reachesPlayer;
     short nearPlayer;
     short cur;
-    short govt;
-    short parentIdx;
 
     if (shot == 0 || ship == 0)
         return 0;
@@ -5085,116 +7003,108 @@ char ShotCanHitShip(ShotObj *shot, ShipObj *ship)
         return 0;
     if (ship->type < 0 || ship->type >= kMaxShipTypes)
         return 0;
-    if (!(shot->life > 0.0f) || ship->type == kMaxShipTypes - 1)
-        goto reject;
-    if (shot->owner == ship->index)
-        return 0;
-    if (shot->guidanceState == 0x3e6)
-        return 0;
-    if (ship->persType == kPersCaptainHector)
-        return 0;
-
-    if (gWeapons[shot->weapType].guidance == kGuidanceHoming
-            && ship->index != shot->target
-            && (gWeapons[shot->weapType].flags2 & 8) == 0)
-        return 0;
-
-    if (shot->owner >= 0 && shot->owner < kMaxShips) {
-        if (shipData[shot->owner].parentShip != -1 && ship->parentShip != -1
-                && ship->parentShip == shipData[shot->owner].parentShip)
+    if (shot->life > 0.0f && ship->type != kMaxShipTypes - 1) {
+        if (shot->owner == ship->index)
             return 0;
-        if (shipData[shot->owner].govt >= 0 && shipData[shot->owner].govt < kMaxGovts
-                && ship->govt == shipData[shot->owner].govt)
+        if (shot->guidanceState == 0x3e6)
             return 0;
-        if (shipData[shot->owner].defenseStellar != -1
-                && ship->defenseStellar == shipData[shot->owner].defenseStellar)
+        if (ship->persType == kPersCaptainHector)
             return 0;
 
-        if (shot->hitRoll > gShipTypes[ship->type].aiSkill) {
-            if (!IsDisabled(ship))
+        if (weaponStats[shot->weapType].guidance == kGuidanceHoming
+                && ship->index != shot->target
+                && (weaponStats[shot->weapType].flags2 & kWeapProxHitsAnyShip) == 0)
+            return 0;
+
+        if (shot->owner >= 0 && shot->owner < kMaxShips) {
+            if (shipData[shot->owner].parentShip != -1 && ship->parentShip != -1
+                    && ship->parentShip == shipData[shot->owner].parentShip)
                 return 0;
-        }
-        if (ship->index != 0) {
-            nearPlayer = AlliedWithPlayer(ship) ? 1 : 0;
-        } else {
-            nearPlayer = 1;
-        }
+            if ((shipData[shot->owner].govt >= 0 && shipData[shot->owner].govt < kMaxGovts)
+                    && ship->govt == shipData[shot->owner].govt)
+                return 0;
+            if (shipData[shot->owner].defenseStellar != -1
+                    && ship->defenseStellar == shipData[shot->owner].defenseStellar)
+                return 0;
 
-        reachesPlayer = 0;
-        cur = shot->owner;
-walk:
-        if (cur == 0) {
-            reachesPlayer = 1;
-        } else {
-            if (cur < 0 || cur >= kMaxShips)
-                goto walk_done;
-            cur = shipData[cur].parentShip;
-            if (cur != -1)
-                goto walk;
-        }
-walk_done:
-        if (reachesPlayer) {
-            if (nearPlayer && ship->parentShip >= 0 && ship->parentShip < kMaxShips
+            if (shot->hitRoll > shipClass[ship->type].aiSkill && !IsDisabled(ship))
+                return 0;
+            if (ship->index == 0)
+                nearPlayer = 1;
+            else if (AlliedWithPlayer(ship))
+                nearPlayer = 1;
+            else
+                nearPlayer = 0;
+
+            reachesPlayer = 0;
+            cur = shot->owner;
+            while (1) {
+                if (cur == 0) {
+                    reachesPlayer = 1;
+                    break;
+                }
+                if (cur < 0 || cur >= kMaxShips) {
+                    cur = -1;
+                    break;
+                }
+                cur = shipData[cur].parentShip;
+                if (cur == -1)
+                    break;
+            }
+
+            if (reachesPlayer && nearPlayer
+                    && (ship->parentShip >= 0 && ship->parentShip < kMaxShips)
                     && shipData[ship->parentShip].parentShip == 0)
                 return 0;
-        }
-        if (reachesPlayer) {
-            govt = shipData[shot->owner].govt;
-            if (govt >= 0 && govt < kMaxGovts && (govtData[govt].flags & 0x40) != 0)
+            if (reachesPlayer && shipData[shot->owner].govt >= 0 && shipData[shot->owner].govt < kMaxGovts
+                    && (govtData[shipData[shot->owner].govt].flags & kGovtNeverAttacksPlayer) != 0)
                 return 0;
-        }
-        if (reachesPlayer) {
-            if (ship->govt >= 0 && ship->govt < kMaxGovts
-                    && (govtData[ship->govt].flags & 8) != 0)
+            if (reachesPlayer && ship->govt >= 0 && ship->govt < kMaxGovts
+                    && (govtData[ship->govt].flags & kGovtImmuneToPlayer) != 0)
                 return 0;
-        }
-        if (reachesPlayer) {
-            if (ship->dude >= 0 && ship->dude < kMaxDudes
-                    && (dudeData[ship->dude].flags & 0x100) != 0)
+            if (reachesPlayer && ship->dude >= 0 && ship->dude < kMaxDudes
+                    && (dudeData[ship->dude].flags & kDudeUntouchable) != 0)
                 return 0;
-        }
 
-        if (nearPlayer) {
-            if (shipData[shot->owner].dude < 0
-                    || shipData[shot->owner].dude >= kMaxDudes) {
-                parentIdx = shipData[shot->owner].parentShip;
-                if (parentIdx >= 0 && parentIdx < kMaxDudes) {
-                    if (shipData[parentIdx].dude >= 0
-                            && shipData[parentIdx].dude < kMaxDudes
-                            && (dudeData[shipData[parentIdx].dude].flags & 0x100) != 0)
+            if (nearPlayer) {
+                if (shipData[shot->owner].dude >= 0 && shipData[shot->owner].dude < kMaxDudes) {
+                    if ((dudeData[shipData[shot->owner].dude].flags & kDudeUntouchable) != 0)
                         return 0;
+                } else if (shipData[shot->owner].parentShip >= 0
+                        && shipData[shot->owner].parentShip < kMaxDudes
+                        && (shipData[shipData[shot->owner].parentShip].dude >= 0
+                            && shipData[shipData[shot->owner].parentShip].dude < kMaxDudes)
+                        && (dudeData[shipData[shipData[shot->owner].parentShip].dude].flags & kDudeUntouchable) != 0) {
+                    return 0;
                 }
-            } else if ((dudeData[shipData[shot->owner].dude].flags & 0x100) != 0) {
-                return 0;
             }
+
+            if (shot->owner > 0 && AIShipIsAttackingAsteroid(&shipData[shot->owner]))
+                return 0;
+        } else {
+            if (shot->target >= 0 && shot->target < kMaxShips
+                    && ship->index != shot->target && ship->defenseStellar != shot->target)
+                return 0;
         }
 
-        if (shot->owner > 0 && AIShipIsAttackingAsteroid(&shipData[shot->owner]))
+        if ((shipClass[ship->type].flags & kShipPlanetType) != (weaponStats[shot->weapType].flags2 & kWeapPlanetType))
             return 0;
-    } else {
-        if (shot->target >= 0 && shot->target < kMaxShips
-                && ship->index != shot->target && ship->defenseStellar != shot->target)
+
+        if ((ship->govt >= 0 && ship->govt < kMaxGovts) && ship->index != 0
+                && (govtData[ship->govt].flags & kGovtNeverAttacksPlayer) != 0) {
+            if (shot->owner == 0)
+                return 0;
+            if (shot->owner > 0 && shot->owner < kMaxShips
+                    && shipData[shot->owner].parentShip == 0)
+                return 0;
+        }
+
+        if (shot->owner >= 0 && shot->owner < kMaxShips
+                && ShipsShareParent(ship, &shipData[shot->owner]))
             return 0;
+
+        return 1;
     }
-
-    if ((gShipTypes[ship->type].flags & 0x400) != (gWeapons[shot->weapType].flags2 & 0x400))
-        return 0;
-
-    if (ship->govt >= 0 && ship->govt < kMaxGovts && ship->index != 0
-            && (govtData[ship->govt].flags & 0x40) != 0) {
-        if (shot->owner == 0)
-            return 0;
-        if (shot->owner > 0 && shot->owner < kMaxShips
-                && shipData[shot->owner].parentShip == 0)
-            return 0;
-    }
-
-    if (shot->owner >= 0 && shot->owner < kMaxShips
-            && ShipsShareParent(ship, &shipData[shot->owner]))
-        return 0;
-
-    return 1;
-reject:
     return 0;
 }
 
@@ -5202,6 +7112,7 @@ reject:
 
 /* SpawnParticles (mac _SpawnParticles). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004274d0
+// MAC: _SpawnParticles i386 0x00044b70 ppc 0x0004cad4
 void SpawnParticles(short x, short y, float speed, short spreadPct,
                   short minLife, short maxLife, long color, short shade,
                   short count, short jitter)
@@ -5240,6 +7151,7 @@ void SpawnParticles(short x, short y, float speed, short spreadPct,
 
 /* GrantOutfitItem (mac _GrantOutfitItem). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00427770
+// MAC: _GrantOutfitItem i386 0x00044d4f ppc 0x0004cd00
 void GrantOutfitItem(short outfit)
 {
     short i;
@@ -5247,8 +7159,8 @@ void GrantOutfitItem(short outfit)
     short k;
     short v;
     short govtClass;
-    char paintSet;
-    char fakeID;
+    Boolean paintSet;
+    Boolean fakeID;
 
     if (outfit < 0 || outfit >= kMaxOutfits)
         return;
@@ -5257,22 +7169,22 @@ void GrantOutfitItem(short outfit)
     paintSet = 0;
     fakeID = 0;
     for (i = 0; i < kOutfMods; i++) {
-        if (gOutfits[outfit].modType[i] == kModTypeMap) {
-            v = gOutfits[outfit].modVal[i];
+        if (outfitSystem[outfit].modType[i] == kModTypeMap) {
+            v = outfitSystem[outfit].modVal[i];
             if (v > 0) {
                 AutoSetExploration(shipData[0].curSystem, v, 2);
             } else if (v == -1) {
                 for (s = 0; s < kMaxSystems; s++) {
-                    if (gSystems[s].loaded != 0 && gSystems[s].govt == -1
+                    if (systemData[s].loaded != 0 && systemData[s].govt == -1
                             && SystemIsInhabited(s) != 0)
                         AutoSetExploration(s, 0, 2);
                 }
             } else if (v <= -kMapGovtClassBase) {
-                govtClass = -(v + kMapGovtClassBase);
+                govtClass = -1 * (v + kMapGovtClassBase);
                 for (s = 0; s < kMaxSystems; s++) {
-                    if (gSystems[s].loaded != 0 && gSystems[s].govt != -1) {
+                    if (systemData[s].loaded != 0 && systemData[s].govt != -1) {
                         for (k = 0; k < kGovtClasses; k++) {
-                            if (govtData[gSystems[s].govt].classes[k]
+                            if (govtData[systemData[s].govt].classes[k]
                                     == govtClass) {
                                 AutoSetExploration(s, 0, 2);
                                 break;
@@ -5286,44 +7198,46 @@ void GrantOutfitItem(short outfit)
         }
     }
     for (i = 0; i < kOutfMods; i++) {
-        if (gOutfits[outfit].modType[i] == kModTypePaint) {
+        if (outfitSystem[outfit].modType[i] == kModTypePaint) {
             playerPaint.red =
-                ((unsigned short)gOutfits[outfit].modVal[i] >> 10) & 0x1f;
+                ((unsigned short)outfitSystem[outfit].modVal[i] >> 10) & 0x1f;
             playerPaint.green =
-                ((unsigned short)gOutfits[outfit].modVal[i] >> 5) & 0x1f;
+                ((unsigned short)outfitSystem[outfit].modVal[i] >> 5) & 0x1f;
             playerPaint.blue =
-                gOutfits[outfit].modVal[i] & 0x1f;
+                (unsigned short)outfitSystem[outfit].modVal[i] & 0x1f;
             paintSet = 1;
             break;
         }
     }
     for (i = 0; i < kOutfMods; i++) {
-        if (gOutfits[outfit].modType[i] == kModTypeFakeID) {
+        if (outfitSystem[outfit].modType[i] == kModTypeFakeID) {
             fakeID = 1;
             break;
         }
     }
-    if (boughtMap == 0 && paintSet == 0) {
-        if (fakeID != 0) {
-            for (i = 0; i < kOutfMods; i++) {
-                if (gOutfits[outfit].modType[i] == kModTypeFakeID) {
-                    for (s = 0; s < kMaxSystems; s++) {
-                        if (gSystems[s].loaded != 0) {
-                            if (gOutfits[outfit].modVal[i] == -1) {
-                                if (playerLegalStatus[s] < 0)
-                                    playerLegalStatus[s] = 0;
-                            } else if (gSystems[s].govt
-                                    == gOutfits[outfit].modVal[i]) {
-                                if (playerLegalStatus[s] < 0)
-                                    playerLegalStatus[s] = 0;
+    if (boughtMap == 0) {
+        if (paintSet == 0) {
+            if (fakeID != 0) {
+                for (i = 0; i < kOutfMods; i++) {
+                    if (outfitSystem[outfit].modType[i] == kModTypeFakeID) {
+                        for (s = 0; s < kMaxSystems; s++) {
+                            if (systemData[s].loaded != 0) {
+                                if (outfitSystem[outfit].modVal[i] == -1) {
+                                    if (playerRecord[s] < 0)
+                                        playerRecord[s] = 0;
+                                } else if (systemData[s].govt
+                                        == outfitSystem[outfit].modVal[i]) {
+                                    if (playerRecord[s] < 0)
+                                        playerRecord[s] = 0;
+                                }
                             }
                         }
                     }
                 }
+                boughtID = 1;
+            } else {
+                shipSystems[outfit]++;
             }
-            boughtID = 1;
-        } else {
-            shipSystems[outfit]++;
         }
     }
 }
@@ -5334,39 +7248,40 @@ void GrantOutfitItem(short outfit)
 
 /* SpawnBeam. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00427a90
+// MAC: _SpawnBeam i386 0x00044ff3 ppc 0x0004d048
 void SpawnBeam(short ship, short target, short weapType, short unused, short mount, short flag)
 {
     short i;
 
     for (i = 0; i < kMaxBeams; i++) {
         if (beamData[i].state < -1) {
-            beamData[i].state = gWeapons[weapType].lifetime;
+            beamData[i].state = weaponStats[weapType].lifetime;
             beamData[i].frame = 0;
             beamData[i].weapType = weapType;
             beamData[i].owner = ship;
             beamData[i].targetIsShot = flag;
-            beamData[i].mount = gWeapons[weapType].exitType;
+            beamData[i].mount = weaponStats[weapType].exitType;
             if (mount >= 0 && mount <= 3) {
                 beamData[i].lane = mount;
             } else {
-                if (shipData[ship].weapGroupLane[gWeapons[weapType].exitType] < 0
-                        || shipData[ship].weapGroupLane[gWeapons[weapType].exitType] > 3)
-                    shipData[ship].weapGroupLane[gWeapons[weapType].exitType] = Rand(4);
-                if ((gWeapons[weapType].flags3 & kWeapClosestExit)
+                if (shipData[ship].weapGroupLane[weaponStats[weapType].exitType] < 0
+                        || shipData[ship].weapGroupLane[weaponStats[weapType].exitType] > 3)
+                    shipData[ship].weapGroupLane[weaponStats[weapType].exitType] = Rand(4);
+                if ((weaponStats[weapType].flags3 & kWeapClosestExit)
                         && ship != -1 && flag != 1 && target != -1) {
                     beamData[i].lane = SelectClosestShotStartPosition(
                         &shipData[ship], &shipData[ship].pos, weapType,
-                        shipData[ship].heading, gWeapons[weapType].exitType,
+                        shipData[ship].heading, weaponStats[weapType].exitType,
                         &shipData[target].pos);
-                    if (shipData[ship].weapGroupLane[gWeapons[weapType].exitType] < 0
-                            || shipData[ship].weapGroupLane[gWeapons[weapType].exitType] > 3)
-                        shipData[ship].weapGroupLane[gWeapons[weapType].exitType] = Rand(4);
+                    if (shipData[ship].weapGroupLane[weaponStats[weapType].exitType] < 0
+                            || shipData[ship].weapGroupLane[weaponStats[weapType].exitType] > 3)
+                        shipData[ship].weapGroupLane[weaponStats[weapType].exitType] = Rand(4);
                 } else {
                     beamData[i].lane =
-                        shipData[ship].weapGroupLane[gWeapons[weapType].exitType];
+                        shipData[ship].weapGroupLane[weaponStats[weapType].exitType];
                 }
-                shipData[ship].weapGroupLane[gWeapons[weapType].exitType] = 
-                    ((shipData[ship].weapGroupLane[gWeapons[weapType].exitType] + 1) % 4);
+                shipData[ship].weapGroupLane[weaponStats[weapType].exitType] = 
+                    ((shipData[ship].weapGroupLane[weaponStats[weapType].exitType] + 1) % 4);
             }
             beamData[i].target = target;
             beamData[i].disableOnly = WeaponDisableOnly(weapType);
@@ -5379,99 +7294,92 @@ void SpawnBeam(short ship, short target, short weapType, short unused, short mou
     }
 }
 
-#define kRankGrantDropsSameGovt      0x0001  /* on grant, clears all same-govt ranks */
-#define kRankDropsSameGovt           0x0002  /* clears all same-govt ranks */
-#define kRankGrantDropsLowerPriority 0x0010  /* on grant, clears same-govt ranks ranked below */
-#define kRankDropsLowerPriority      0x0020  /* clears same-govt ranks ranked below */
-
 #define kNoRank                 (-1)
-
-/* record layout: +0 active, +1 in use, +2 id, +4 priority, +6 government,
-   +0x1c flags, +0x1e name */
-#define kRankId                 2
-#define kRankPriority           4
-#define kRankName               0x1e
 
 /* ActivateRank (mac _ActivateRank). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00427df0
-void ActivateRank(char *rank)
+// MAC: _ActivateRank i386 0x000452f0 ppc 0x0004d358
+void ActivateRank(char *rankp)
 {
+    RankRecord *rank = (RankRecord *)rankp;
     short i;
 
-    if (rank[kRankActive] == '\0') {
+    if (rank->active == 0) {
         crashlog_print("activating rank ");
-        crashlog_print(rank + kRankName);
+        crashlog_print(rank->name);
         crashlog_print("\n");
-        rank[kRankActive] = 1;
-        if ((*(unsigned short *)(rank + kRankFlags) & kRankGrantDropsSameGovt) != 0) {
+        rank->active = 1;
+        if ((rank->flags & kRankGrantDropsSameGovt) != 0) {
             for (i = 0; i < kMaxRanks; i++) {
-                if (rankData[i].active != '\0'
-                        && rankData[i].loaded != '\0'
-                        && i != *(short *)(rank + kRankId)
-                        && *(short *)(rank + kRankGovt) == rankData[i].govt
+                if (rankData[i].active != 0
+                        && rankData[i].loaded != 0
+                        && i != rank->index
+                        && rankData[i].govt == rank->govt
                         && (rankData[i].flags & kRankNeverDropped) == 0) {
-                    rankData[i].active = '\0';
+                    rankData[i].active = 0;
                     if (recentActivatedRank == i)
                         recentActivatedRank = kNoRank;
                 }
             }
         }
-        if ((*(unsigned short *)(rank + kRankFlags) & kRankGrantDropsLowerPriority) != 0) {
+        if ((rank->flags & kRankGrantDropsLowerPriority) != 0) {
             for (i = 0; i < kMaxRanks; i++) {
-                if (rankData[i].active != '\0'
-                        && rankData[i].loaded != '\0'
-                        && i != *(short *)(rank + kRankId)
-                        && *(short *)(rank + kRankGovt) == rankData[i].govt
+                if (rankData[i].active != 0
+                        && rankData[i].loaded != 0
+                        && i != rank->index
+                        && rankData[i].govt == rank->govt
                         && (rankData[i].flags & kRankNeverDropped) == 0
-                        && rankData[i].priority < *(short *)(rank + kRankPriority)) {
-                    rankData[i].active = '\0';
+                        && rankData[i].priority < rank->priority) {
+                    rankData[i].active = 0;
                     if (recentActivatedRank == i)
                         recentActivatedRank = kNoRank;
                 }
             }
         }
     }
-    recentActivatedRank = *(short *)(rank + kRankId);
+    recentActivatedRank = rank->index;
 }
 
 /* DeactivateRank (mac _DeactivateRank). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00427f40
-void DeactivateRank(char *rank)
+// MAC: _DeactivateRank i386 0x0004541e ppc 0x0004d53c
+void DeactivateRank(char *rankp)
 {
+    RankRecord *rank = (RankRecord *)rankp;
     short i;
 
-    if (rank[kRankActive] != '\0') {
+    if (rank->active != 0) {
         crashlog_print("deactivating rank ");
-        crashlog_print(rank + kRankName);
+        crashlog_print(rank->name);
         crashlog_print("\n");
-        rank[kRankActive] = '\0';
-        if ((*(unsigned short *)(rank + kRankFlags) & kRankDropsSameGovt) != 0) {
+        rank->active = 0;
+        if ((rank->flags & kRankDropsSameGovt) != 0) {
             for (i = 0; i < kMaxRanks; i++) {
-                if (rankData[i].active != '\0'
-                        && rankData[i].loaded != '\0'
-                        && *(short *)(rank + kRankGovt) == rankData[i].govt
+                if (rankData[i].active != 0
+                        && rankData[i].loaded != 0
+                        && rankData[i].govt == rank->govt
                         && (rankData[i].flags & kRankNeverDropped) == 0) {
-                    rankData[i].active = '\0';
+                    rankData[i].active = 0;
                     if (recentActivatedRank == i)
                         recentActivatedRank = kNoRank;
                 }
             }
         }
-        if ((*(unsigned short *)(rank + kRankFlags) & kRankDropsLowerPriority) != 0) {
+        if ((rank->flags & kRankDropsLowerPriority) != 0) {
             for (i = 0; i < kMaxRanks; i++) {
-                if (rankData[i].active != '\0'
-                        && rankData[i].loaded != '\0'
-                        && *(short *)(rank + kRankGovt) == rankData[i].govt
+                if (rankData[i].active != 0
+                        && rankData[i].loaded != 0
+                        && rankData[i].govt == rank->govt
                         && (rankData[i].flags & kRankNeverDropped) == 0
-                        && rankData[i].priority < *(short *)(rank + kRankPriority)) {
-                    rankData[i].active = '\0';
+                        && rankData[i].priority < rank->priority) {
+                    rankData[i].active = 0;
                     if (recentActivatedRank == i)
                         recentActivatedRank = kNoRank;
                 }
             }
         }
     }
-    if (recentActivatedRank == *(short *)(rank + kRankId))
+    if (recentActivatedRank == rank->index)
         recentActivatedRank = kNoRank;
 }
 
@@ -5480,9 +7388,10 @@ void DeactivateRank(char *rank)
  * free once its life counter has run below zero.
  */
 
-/* LaunchEscapePod. STATE: MATCH, byte-identical. OPEN: none */
+/* SpawnEscapePod. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00428090
-void LaunchEscapePod(ShipObj *ship)
+// MAC: _SpawnEscapePod i386 0x00045547 ppc 0x0004d704
+void SpawnEscapePod(ShipObj *ship)
 {
     short i;
     short angle;
@@ -5507,7 +7416,7 @@ void LaunchEscapePod(ShipObj *ship)
             drift.y = podData[i].vel.y * 100.0;
             heading = CalcInterceptAngle(&origin, &drift);
             SWSetCurrentFrameIndex(podData[i].sprite,
-                         (heading * gShipTypes[kShipTypeEscapePod].framesPer / 360.0));
+                         (heading * shipClass[kShipTypeEscapePod].framesPer / 360.0));
             break;
         }
     }
@@ -5515,66 +7424,140 @@ void LaunchEscapePod(ShipObj *ship)
 
 /* The exe's const table at 0x0056b910: the same 38 revoked keys that InitEVNova tests inline
    (transcription allowed by the user, 2026-09-16). */
-#define kPirateKeyMask 0x0fffffffffffffffLL
-
 #define kPirateSTR   140
 #define kPirateIndex 50
 
+#ifdef MAC1010 /* 1.0.10 spelling */
+typedef struct KeyTable {
+    UnsignedWide key[kBlacklistCount];
+} KeyTable;
+#else
 typedef struct KeyTable {
     long long key[kBlacklistCount];
 } KeyTable;
+#endif
 
-extern const KeyTable revokedKeyTable = {{
-    0x0284801349262406LL, 0x0101e057b160ee02LL,
-    0x07365c430b23e131LL, 0x07345d430b23e131LL,
-    0x05d4013a1123c94aLL, 0x08d22033a5a9ae47LL,
-    0x08d02133a5a9ae47LL, 0x0940f13e07262d74LL,
-    0x01e8616da73a6b41LL, 0x03395a952823e649LL,
-    0x033b5a952803f64bLL, 0x0b795a952803f64aLL,
-    0x00dd021413f10475LL, 0x00df021413d11477LL,
-    0x009f021413d11476LL, 0x09224585278cbf5bLL,
-    0x0bf35041709a3940LL, 0x03f15041709a3946LL,
-    0x0125a4aa21b1cf03LL, 0x03a31e5b03829d3dLL,
-    0x009f8c40aac47814LL, 0x045ac4b40fb08b36LL,
-    0x0c1ac5bc0b909b37LL, 0x02a974140d644b4dLL,
-    0x02a9741409644b49LL, 0x0aab751c09445b49LL,
-    0x02eb751c09445b4aLL, 0x01e24b6c4b56f67eLL,
-    0x048c30d71f489e43LL, 0x0c8c31d71f489e45LL,
-    0x04cc31d71f489e46LL, 0x0c8e31d71f489e47LL,
-    0x0cce31d71f489e40LL, 0x0561f87749b27666LL,
-    0x090a1452e822bd05LL, 0x04c23c3d8c45fe08LL,
+#define kRevokedKeys \
+    0x0284801349262406LL, 0x0101e057b160ee02LL, \
+    0x07365c430b23e131LL, 0x07345d430b23e131LL, \
+    0x05d4013a1123c94aLL, 0x08d22033a5a9ae47LL, \
+    0x08d02133a5a9ae47LL, 0x0940f13e07262d74LL, \
+    0x01e8616da73a6b41LL, 0x03395a952823e649LL, \
+    0x033b5a952803f64bLL, 0x0b795a952803f64aLL, \
+    0x00dd021413f10475LL, 0x00df021413d11477LL, \
+    0x009f021413d11476LL, 0x09224585278cbf5bLL, \
+    0x0bf35041709a3940LL, 0x03f15041709a3946LL, \
+    0x0125a4aa21b1cf03LL, 0x03a31e5b03829d3dLL, \
+    0x009f8c40aac47814LL, 0x045ac4b40fb08b36LL, \
+    0x0c1ac5bc0b909b37LL, 0x02a974140d644b4dLL, \
+    0x02a9741409644b49LL, 0x0aab751c09445b49LL, \
+    0x02eb751c09445b4aLL, 0x01e24b6c4b56f67eLL, \
+    0x048c30d71f489e43LL, 0x0c8c31d71f489e45LL, \
+    0x04cc31d71f489e46LL, 0x0c8e31d71f489e47LL, \
+    0x0cce31d71f489e40LL, 0x0561f87749b27666LL, \
+    0x090a1452e822bd05LL, 0x04c23c3d8c45fe08LL, \
     0x03e90792a484de04LL, 0x000881643da5fb73LL
-}};
 
-/* CheckForPiratedCodes. STATE: MATCH, byte-identical. OPEN: none */
+#ifdef MAC1010 /* 1.0.10 spelling: the same keys as {hi, lo} */
+#define kRevokedKeyWords \
+    {0x02848013, 0x49262406}, {0x0101e057, 0xb160ee02}, \
+    {0x07365c43, 0x0b23e131}, {0x07345d43, 0x0b23e131}, \
+    {0x05d4013a, 0x1123c94a}, {0x08d22033, 0xa5a9ae47}, \
+    {0x08d02133, 0xa5a9ae47}, {0x0940f13e, 0x07262d74}, \
+    {0x01e8616d, 0xa73a6b41}, {0x03395a95, 0x2823e649}, \
+    {0x033b5a95, 0x2803f64b}, {0x0b795a95, 0x2803f64a}, \
+    {0x00dd0214, 0x13f10475}, {0x00df0214, 0x13d11477}, \
+    {0x009f0214, 0x13d11476}, {0x09224585, 0x278cbf5b}, \
+    {0x0bf35041, 0x709a3940}, {0x03f15041, 0x709a3946}, \
+    {0x0125a4aa, 0x21b1cf03}, {0x03a31e5b, 0x03829d3d}, \
+    {0x009f8c40, 0xaac47814}, {0x045ac4b4, 0x0fb08b36}, \
+    {0x0c1ac5bc, 0x0b909b37}, {0x02a97414, 0x0d644b4d}, \
+    {0x02a97414, 0x09644b49}, {0x0aab751c, 0x09445b49}, \
+    {0x02eb751c, 0x09445b4a}, {0x01e24b6c, 0x4b56f67e}, \
+    {0x048c30d7, 0x1f489e43}, {0x0c8c31d7, 0x1f489e45}, \
+    {0x04cc31d7, 0x1f489e46}, {0x0c8e31d7, 0x1f489e47}, \
+    {0x0cce31d7, 0x1f489e40}, {0x0561f877, 0x49b27666}, \
+    {0x090a1452, 0xe822bd05}, {0x04c23c3d, 0x8c45fe08}, \
+    {0x03e90792, 0xa484de04}, {0x00088164, 0x3da5fb73}
+
+static const KeyTable revokedKeyTable = {{ kRevokedKeyWords }};
+#elif !defined(MACBUILD) || !V111
+static const KeyTable revokedKeyTable = {{ kRevokedKeys }};
+#endif
+
+/* CheckForPiratedCodes. STATE: MATCH, byte-identical. 1.0.10 MATCH 65 of 65 on both fragments,
+   padded. OPEN: none */
 // FUNCTION: EVNOVA 0x00428260
+// MAC: _CheckForPiratedCodes i386 0x000456cd ppc 0x0004d910
 void CheckForPiratedCodes(void)
 {
+#if V111 /* V111 spelling */
+    KeyTable keys = {{ kRevokedKeys }};
+#else
     KeyTable keys;
+#endif
     unsigned char msg[256];
     short i;
+    unsigned long long code;
+    unsigned long long k;
 
+#if V111 /* V111 spelling */
+#else
     keys = revokedKeyTable;
+#endif
     for (i = 0; i < kBlacklistCount; i++) {
-        if ((keys.key[i] & kPirateKeyMask) == (RT3_GetLicenseCode() & kPirateKeyMask)) {
+        code = RT3_GetLicenseCode();
+        code <<= 4;
+#ifdef MAC1010 /* 1.0.10 spelling */
+        k = *(unsigned long long *)&keys.key[i];
+#else
+        k = keys.key[i];
+#endif
+        k <<= 4;
+#if V111 /* V111 spelling */
+        if ((k >> 4) == (code >> 4)) {
+#else
+        k >>= 4;
+        code >>= 4;
+        if (k == code) {
+#ifdef MAC1010
+            {
+                unsigned long long sum = k + code; /* 1.0.10 pad: the masked halves read past the compare, so none takes r0 */
+            }
+#endif
+#endif
             FadeScreenIn();
             ShowTheCursor();
             GetIndString(msg, kPirateSTR, kPirateIndex);
+#ifdef MACBUILD
+            ParamText(msg, "\p", "\p", "\p");
+            StopAlert(128, NULL);
+#else
+#ifdef V111 /* V111: PtoCstr is void */
+            PtoCstr(msg);
+            ShowAlert("", (char *)msg);
+#else
             ShowAlert("", PtoCstr(msg));
+#endif
+#endif
             ExitToShell();
         }
     }
 }
 
+#ifndef MACBUILD
 /* CrtInitHook1. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00428330
 void CrtInitHook1(void)
 {
 }
+#endif
 
-}
+EXTERN_C_END
 
 /* The exe ends this object with a C++ static initializer, reached through .CRT$XCU; its body
    is the function above.  An empty constructor makes the compiler emit the hook. */
+#ifndef MACBUILD
 struct CrtHook { CrtHook() {} };
 static CrtHook crtHook;
+#endif

@@ -5,6 +5,7 @@
 
 /* BlitPixieTranslucentClearCopy8 (mac _BlitPixieTranslucentClearCopy8). STATE: MATCH, byte-identical. OPEN: none. */
 // FUNCTION: EVNOVA 0x00473dc0
+// MAC: _BlitPixieTranslucentClearCopy8 i386 0x000c1bca ppc 0x000cdd30
 void BlitPixieTranslucentClearCopy8(unsigned char *dstPixels,
         unsigned char *srcPixels, long numPixels, unsigned char clearValue)
 {

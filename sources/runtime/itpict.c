@@ -10,6 +10,20 @@
 #include "ambrosia.h"
 #include "macport.h"
 
+#ifdef MAC1010
+#define FromBE16(x) (x)
+#define WideBE16(x) (x)
+#define IMAGE_RECT imageBounds
+#define FromBE32(x) (x)
+#define PictLocal static            /* local symbols in the 1.1.1 framework */
+#else
+#define FromBE16(x) Swap16(x)
+#define WideBE16(x) ((long long)Swap16(x))
+#define IMAGE_RECT bounds
+#define FromBE32(x) Swap32(x)
+#define PictLocal
+#endif
+
 typedef struct PictFrame {
     short top;                                   /* +0 big-endian */
     short left;                                  /* +2 */
@@ -108,6 +122,9 @@ typedef struct PictPixMap {
 typedef struct PictState {
     ITRect bounds;
     short version;
+#ifdef MAC1010
+    ITRect imageBounds;
+#endif
     ITImage *image;
     ITImage *mask;
     ITTransparent *trans;
@@ -122,10 +139,21 @@ struct PictOpcode;
 typedef long (*PictHandler)(ITStream *stream, PictState *s, const struct PictOpcode *op,
                             ULong opcode);
 typedef struct PictOpcode {
-    long length;
+    ULong length;
     PictHandler handler;
+#ifdef MAC1010
+    unsigned char unsupported;  /* the ops that draw: the decoder refuses a picture holding one */
+#endif
     const char *name;
 } PictOpcode;
+
+#ifdef MAC1010
+#define PICT_OP(length, handler)    { length, handler, 0, "" }
+#define PICT_DRAW_OP(length)        { length, NULL, 1, "" }
+#else
+#define PICT_OP(length, handler)    { length, handler, "" }
+#define PICT_DRAW_OP(length)        { length, NULL, "" }
+#endif
 
 /* _DeferredImageCreate (create the picture's image in a format and palette, lock it, and when asked
    paint it white). STATE: MATCH 100%, exe 61 / obj 61, byte-identical yes. OPEN: none */
@@ -141,8 +169,7 @@ long _DeferredImageCreate(PictState *s, ULong format, const ITPalette *palette, 
     unsigned char *p;
 
     err = 0;
-    s->image = DT_ImageCreate(&s->bounds, format, palette);
-    if (s->image == NULL) {
+    if ((s->image = DT_ImageCreate(&s->IMAGE_RECT, format, palette)) == NULL) {
         err = kOutOfMemory;
     } else {
         if (s->bg != NULL) {
@@ -155,12 +182,14 @@ long _DeferredImageCreate(PictState *s, ULong format, const ITPalette *palette, 
         } else {
             s->locked = 1;
             if (white) {
-                height = s->bounds.bottom - s->bounds.top;
-                width = (s->bounds.right - s->bounds.left) * s->info.bytesPerPixel;
-                p = (unsigned char *)s->info.bits;
+                height = s->IMAGE_RECT.bottom - s->IMAGE_RECT.top;
+                width = s->IMAGE_RECT.right - s->IMAGE_RECT.left;
+                width *= s->info.bytesPerPixel;
+                p = s->info.bits;
                 for (y = 0; y < height; y++) {
-                    for (x = 0; x < width; x++)
-                        p[x] = 0xff;
+                    x = 0;
+                    while (x < width)
+                        p[x++] = 0xff;
                     p += s->info.rowBytes;
                 }
             }
@@ -177,6 +206,9 @@ void _DeferredImageDispose(PictState *s)
     long err;
 
     err = 0;
+#ifdef MAC1010
+    s->imageBounds = s->bounds;
+#endif
     DT_ImageDispose(s->image);
     s->image = NULL;
     if (s->mask != NULL) {
@@ -194,7 +226,7 @@ void _DeferredImageDispose(PictState *s)
 /* _PICT_ReadOpCode (the next opcode: one byte in a version 1 picture, else a big-endian word at an
    even offset). STATE: MATCH 100%, exe 55 / obj 55, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00515a39
-long _PICT_ReadOpCode(ITStream *stream, short version, unsigned short *opcode)
+long _PICT_ReadOpCode(ITStream *stream, unsigned short version, unsigned short *opcode)
 {
     long err;
     long e;
@@ -204,22 +236,25 @@ long _PICT_ReadOpCode(ITStream *stream, short version, unsigned short *opcode)
     err = 0;
     if (version == kPictVersionV1) {
         e = DT_BufferRead(stream, &b, 1);
-        if (e != 0)
-            goto fail;
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
         *opcode = b;
     } else {
         if ((stream->pos & 1) != 0) {
             e = DT_BufferRead(stream, &b, 1);
-            if (e != 0)
-                goto fail;
+            if (e != 0) {
+                err = e;
+                goto done;
+            }
         }
         e = DT_BufferRead(stream, &w, 2);
         if (e != 0) {
-fail:
             err = e;
             goto done;
         }
-        *opcode = Swap16(w);
+        *opcode = FromBE16(w);
     }
 done:
     return err;
@@ -238,25 +273,168 @@ long _PICT_ReadRect(ITStream *stream, short *rect)
     if (e != 0) {
         err = e;
     } else {
-        rect[0] = Swap16(rect[0]);
-        rect[1] = Swap16(rect[1]);
-        rect[2] = Swap16(rect[2]);
-        rect[3] = Swap16(rect[3]);
+        rect[0] = FromBE16(rect[0]);
+        rect[1] = FromBE16(rect[1]);
+        rect[2] = FromBE16(rect[2]);
+        rect[3] = FromBE16(rect[3]);
     }
     return err;
 }
 
 #define ReadWord(f)                                         \
     e = DT_BufferRead(stream, &(f), 2);                      \
-    if (e != 0)                                             \
-        goto fail;                                          \
-    (f) = Swap16(f)
+    if (e != 0) {                                       \
+        err = e;                                        \
+        goto done;                                      \
+    }                                                   \
+    (f) = FromBE16(f)
 
 #define ReadLong(f)                                         \
     e = DT_BufferRead(stream, &(f), 4);                      \
-    if (e != 0)                                             \
-        goto fail;                                          \
-    (f) = Swap32(f)
+    if (e != 0) {                                       \
+        err = e;                                        \
+        goto done;                                      \
+    }                                                   \
+    (f) = FromBE32(f)
+
+#ifdef MAC1010
+#define kPictPixMapFlag     0x8000          /* rowBytes: a PixMap, not a BitMap */
+#define kPict72Dpi          0x00480000      /* Fixed */
+
+long _PICT_ReadPixMapTable(ITStream *stream, PictPixMap *map, PictColorTable *table)
+{
+    long err;
+    long e;
+    ULong last;
+    ULong i;
+
+    err = 0;
+    e = DT_BufferRead(stream, &map->rowBytes, 2);
+    if (e != 0) {
+        err = e;
+        goto done;
+    }
+    e = _PICT_ReadRect(stream, &map->bounds);
+    if (e != 0) {
+        err = e;
+        goto done;
+    }
+    if (map->rowBytes & kPictPixMapFlag) {
+        e = DT_BufferRead(stream, &map->pmVersion, 2);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        e = DT_BufferRead(stream, &map->packType, 2);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        e = DT_BufferRead(stream, &map->packSize, 4);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        e = DT_BufferRead(stream, &map->hRes, 4);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        e = DT_BufferRead(stream, &map->vRes, 4);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        e = DT_BufferRead(stream, &map->pixelType, 2);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        e = DT_BufferRead(stream, &map->pixelSize, 2);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        e = DT_BufferRead(stream, &map->cmpCount, 2);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        e = DT_BufferRead(stream, &map->cmpSize, 2);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        e = DT_BufferRead(stream, &map->planeBytes, 4);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        e = DT_BufferRead(stream, &map->pmTable, 4);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        e = DT_BufferRead(stream, &map->pmReserved, 4);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        e = DT_BufferRead(stream, &table->seed, 4);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        e = DT_BufferRead(stream, &table->flags, 2);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        e = DT_BufferRead(stream, &table->size, 2);
+        if (e != 0) {
+            err = e;
+            goto done;
+        }
+        if ((last = table->size) > kColorTableMax) {
+            err = kStreamOverrun;
+            goto done;
+        }
+        for (i = 0; i <= last; i++) {
+            e = DT_BufferRead(stream, &table->entry[i], sizeof(PictColorSpec));
+            if (e != 0) {
+                err = e;
+                goto done;
+            }
+        }
+    } else {
+        map->pmVersion = 0;
+        map->packType = 0;
+        map->packSize = 0;
+        map->hRes = kPict72Dpi;
+        map->vRes = kPict72Dpi;
+        map->pixelType = 0;
+        map->pixelSize = 1;
+        map->cmpCount = 1;
+        map->cmpSize = 1;
+        map->planeBytes = 0;
+        map->pmTable = 0;
+        map->pmReserved = 0;
+        table->seed = 0;
+        table->size = 1;
+        table->flags = 0;
+        table->entry[0].value = 0;
+        table->entry[0].red = 0xffff;
+        table->entry[0].green = 0xffff;
+        table->entry[0].blue = 0xffff;
+        table->entry[1].value = 1;
+        table->entry[1].red = 0;
+        table->entry[1].green = 0;
+        table->entry[1].blue = 0;
+    }
+done:
+    return err;
+}
+#endif
 
 /* _PICT_ReadPixMap (a PixMap record after its baseAddr, big-endian). STATE: MATCH 100%, exe 279 / obj
    279, byte-identical yes. OPEN: none */
@@ -269,8 +447,10 @@ long _PICT_ReadPixMap(ITStream *stream, PictPixMap *map)
     err = 0;
     ReadWord(map->rowBytes);
     e = _PICT_ReadRect(stream, (short *)&map->bounds);
-    if (e != 0)
-        goto fail;
+    if (e != 0) {
+        err = e;
+        goto done;
+    }
     ReadWord(map->pmVersion);
     ReadWord(map->packType);
     ReadLong(map->packSize);
@@ -284,11 +464,11 @@ long _PICT_ReadPixMap(ITStream *stream, PictPixMap *map)
     ReadLong(map->pmTable);
     e = DT_BufferRead(stream, &(map->pmReserved), 4);
     if (e != 0) {
-fail:
         err = e;
     } else {
-        map->pmReserved = Swap32(map->pmReserved);
+        map->pmReserved = FromBE32(map->pmReserved);
     }
+done:
     return err;
 }
 
@@ -304,17 +484,23 @@ long _PICT_ReadColorTable(ITStream *stream, PictColorTable *table)
 
     err = 0;
     e = DT_BufferRead(stream, &table->seed, 4);
-    if (e != 0)
-        goto fail;
-    table->seed = Swap32(table->seed);
+    if (e != 0) {
+        err = e;
+        goto done;
+    }
+    table->seed = FromBE32(table->seed);
     e = DT_BufferRead(stream, &table->flags, 2);
-    if (e != 0)
-        goto fail;
-    table->flags = Swap16(table->flags);
+    if (e != 0) {
+        err = e;
+        goto done;
+    }
+    table->flags = FromBE16(table->flags);
     e = DT_BufferRead(stream, &table->size, 2);
-    if (e != 0)
-        goto fail;
-    table->size = Swap16(table->size);
+    if (e != 0) {
+        err = e;
+        goto done;
+    }
+    table->size = FromBE16(table->size);
     if (table->size > kColorTableMax) {
         err = kStreamOverrun;
         goto done;
@@ -322,7 +508,6 @@ long _PICT_ReadColorTable(ITStream *stream, PictColorTable *table)
     for (i = 0, last = table->size; i <= last; i++) {
         e = DT_BufferRead(stream, &table->entry[i], sizeof(PictColorSpec));
         if (e != 0) {
-fail:
             err = e;
             goto done;
         }
@@ -349,13 +534,15 @@ long _PICT_ReadRegion(ITStream *stream, void ***regionOut)
     h = NULL;
     *regionOut = NULL;
     e = DT_BufferRead(stream, header, kRegionHeader);
-    if (e != 0)
-        goto fail;
-    header[0] = Swap16(header[0]);
-    header[1] = Swap16(header[1]);
-    header[2] = Swap16(header[2]);
-    header[3] = Swap16(header[3]);
-    header[4] = Swap16(header[4]);
+    if (e != 0) {
+        err = e;
+        goto done;
+    }
+    header[0] = FromBE16(header[0]);
+    header[1] = FromBE16(header[1]);
+    header[2] = FromBE16(header[2]);
+    header[3] = FromBE16(header[3]);
+    header[4] = FromBE16(header[4]);
     h = IndirectAllocate(header[0]);
     if (h == NULL) {
         err = kOutOfMemory;
@@ -367,7 +554,6 @@ long _PICT_ReadRegion(ITStream *stream, void ***regionOut)
     MemoryCopy(*h, header, kRegionHeader);
     e = DT_BufferRead(stream, (char *)*h + kRegionData, header[0] - kRegionHeader);
     if (e != 0) {
-fail:
         err = e;
         goto done;
     }
@@ -383,7 +569,7 @@ done:
 /* _PICT_SkipPixPat (the pixel-pattern opcodes: a one-colour PixPat is skipped, a full one is not
    supported). STATE: MATCH 100%, exe 43 / obj 43, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00516187
-long _PICT_SkipPixPat(ITStream *stream, PictState *s, const PictOpcode *op, ULong opcode)
+PictLocal long _PICT_SkipPixPat(ITStream *stream, PictState *s, const PictOpcode *op, ULong opcode)
 {
     long err;
     long e;
@@ -392,28 +578,38 @@ long _PICT_SkipPixPat(ITStream *stream, PictState *s, const PictOpcode *op, ULon
 
     err = 0;
     e = DT_BufferRead(stream, &patType, 2);
-    if (e != 0)
-        goto fail;
-    patType = Swap16(patType);
+    if (e != 0) {
+        err = e;
+        goto done;
+    }
+    patType = FromBE16(patType);
     if (patType == kPatTypeFull) {
         err = kPictUnsupported;
     } else if (patType == kPatTypeRGB) {
         e = DT_BufferRead(stream, skip, kPatRGBSkip);
         if (e != 0) {
-fail:
             err = e;
         }
     } else {
         err = kPictBadData;
     }
+done:
     return err;
 }
+
+#ifdef MAC1010
+static long _PICT_HandleBits(ITStream *stream, PictState *s, const PictOpcode *op, ULong opcode);
+#include "../runtime/pictoptable.inc"          /* 1.0.10 spelling: the table is made ahead of the bits handler's jump table */
+#endif
 
 /* _PICT_HandleBits (the bits opcodes BitsRect / BitsRgn, PackBitsRect / PackBitsRgn, DirectBitsRect /
    DirectBitsRgn: rows into the picture's image when they cover its frame, else skipped). STATE:
    MATCH 100.0%, exe 754 / obj 754, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00516201
-long _PICT_HandleBits(ITStream *stream, PictState *s, const PictOpcode *op, ULong opcode)
+PictLocal long _PICT_HandleBits(ITStream *stream, PictState *s, const PictOpcode *op, ULong opcode)
+#ifdef MAC1010
+#include "../runtime/picthandlebits1010.inc"
+#else
 {
     void **packed;
     long err;
@@ -598,7 +794,7 @@ long _PICT_HandleBits(ITStream *stream, PictState *s, const PictOpcode *op, ULon
                 DT_ImageSetRawColors(s->image, s->mask, y, rgb);
             } else if (fits && map.pixelSize == 16) {
                 for (x = 0; x < width; x++) {
-                    v = Swap16(((unsigned short *)*packed)[x]);
+                    v = FromBE16(((unsigned short *)*packed)[x]);
                     rgb[x].alpha = 0xff;
                     c = (v >> 10) & 0x1f;
                     rgb[x].red = Expand5(c);
@@ -657,7 +853,7 @@ long _PICT_HandleBits(ITStream *stream, PictState *s, const PictOpcode *op, ULon
             } else {
                 e = DT_BufferRead(stream, &count16, 2);
                 CheckErr(e);
-                n = Swap16(count16);
+                n = FromBE16(count16);
             }
             e = IndirectSetSize(packed, n);
             CheckErr(e);
@@ -679,7 +875,7 @@ long _PICT_HandleBits(ITStream *stream, PictState *s, const PictOpcode *op, ULon
                 e = IndirectDecompress(packed, kTagPackWords, NULL);
                 CheckErr(e);
                 for (x = 0; x < width; x++) {
-                    v = Swap16(((unsigned short *)*packed)[x]);
+                    v = FromBE16(((unsigned short *)*packed)[x]);
                     rgb[x].alpha = 0xff;
                     c = (v >> 10) & 0x1f;
                     rgb[x].red = Expand5(c);
@@ -712,6 +908,7 @@ done:
         IndirectDeallocate(region);
     return err;
 }
+#endif
 
 /* _PICT_CheckFileType (a PICT: a non-empty frame, then zero padding up to a version opcode 0x1101 or
    0x0011 0x02ff). STATE: MATCH 100%, exe 89 / obj 89, byte-identical yes. OPEN: none */
@@ -725,10 +922,10 @@ unsigned char _PICT_CheckFileType(const void *dataRef, ULong size)
     MemoryCopy(&frame, data + kPictFrameOffset, sizeof(frame));
     data += kPictOpcodeOffset;
     size -= kPictOpcodeOffset;
-    if ((long long)Swap16(frame.top) < (long long)Swap16(frame.bottom)) {
+    if (WideBE16(frame.top) < WideBE16(frame.bottom)) {
     } else
         return 0;
-    if ((long long)Swap16(frame.left) < (long long)Swap16(frame.right)) {
+    if (WideBE16(frame.left) < WideBE16(frame.right)) {
     } else
         return 0;
     while (size != 0 && *data == 0) {
@@ -738,7 +935,9 @@ unsigned char _PICT_CheckFileType(const void *dataRef, ULong size)
     if (size != 0 && data[0] == kPictVersionOp) {
     } else
         return 0;
-    if (data[1] == kPictVersion1 || (data[1] == kPictVersion2 && data[2] == kPictVersion2Tail))
+    if (data[1] == kPictVersion1)
+        return 1;
+    if (data[1] == kPictVersion2 && data[2] == kPictVersion2Tail)
         return 1;
     return 0;
 }
@@ -756,171 +955,9 @@ unsigned char PICT_CheckFileType(const unsigned char *data, ULong size)
     return 0;
 }
 
-/* the opcodes below 0xa2 (Inside Macintosh: Imaging With QuickDraw, A-22) */
-PictOpcode gDT_PictOpTable[kPictLastTableOp + 1] = {
-    { 0, NULL, "" },                            /* 0x00 NOP */
-    { kOpWordSize, NULL, "" },                  /* 0x01 Clip */
-    { 8, NULL, "" },                            /* 0x02 BkPat */
-    { 2, NULL, "" },                            /* 0x03 TxFont */
-    { 1, NULL, "" },                            /* 0x04 TxFace */
-    { 2, NULL, "" },                            /* 0x05 TxMode */
-    { 4, NULL, "" },                            /* 0x06 SpExtra */
-    { 4, NULL, "" },                            /* 0x07 PnSize */
-    { 2, NULL, "" },                            /* 0x08 PnMode */
-    { 8, NULL, "" },                            /* 0x09 PnPat */
-    { 8, NULL, "" },                            /* 0x0a FillPat */
-    { 4, NULL, "" },                            /* 0x0b OvSize */
-    { 4, NULL, "" },                            /* 0x0c Origin */
-    { 2, NULL, "" },                            /* 0x0d TxSize */
-    { 4, NULL, "" },                            /* 0x0e FgColor */
-    { 4, NULL, "" },                            /* 0x0f BkColor */
-    { 8, NULL, "" },                            /* 0x10 TxRatio */
-    { 1, NULL, "" },                            /* 0x11 VersionOp */
-    { kOpHandler, _PICT_SkipPixPat, "" },           /* 0x12 BkPixPat */
-    { kOpHandler, _PICT_SkipPixPat, "" },           /* 0x13 PnPixPat */
-    { kOpHandler, _PICT_SkipPixPat, "" },           /* 0x14 FillPixPat */
-    { 2, NULL, "" },                            /* 0x15 PnLocHFrac */
-    { 2, NULL, "" },                            /* 0x16 ChExtra */
-    { 0, NULL, "" },                            /* 0x17 reserved */
-    { 0, NULL, "" },
-    { 0, NULL, "" },
-    { 6, NULL, "" },                            /* 0x1a RGBFgCol */
-    { 6, NULL, "" },                            /* 0x1b RGBBkCol */
-    { 0, NULL, "" },                            /* 0x1c HiliteMode */
-    { 6, NULL, "" },                            /* 0x1d HiliteColor */
-    { 0, NULL, "" },                            /* 0x1e DefHilite */
-    { 6, NULL, "" },                            /* 0x1f OpColor */
-    { 8, NULL, "" },                            /* 0x20 Line */
-    { 4, NULL, "" },                            /* 0x21 LineFrom */
-    { 6, NULL, "" },                            /* 0x22 ShortLine */
-    { 2, NULL, "" },                            /* 0x23 ShortLineFrom */
-    { kOpWordLength, NULL, "" },                /* 0x24 reserved */
-    { kOpWordLength, NULL, "" },
-    { kOpWordLength, NULL, "" },
-    { kOpWordLength, NULL, "" },
-    { kOpLongText, NULL, "" },                  /* 0x28 LongText */
-    { kOpDHText, NULL, "" },                    /* 0x29 DHText */
-    { kOpDHText, NULL, "" },                    /* 0x2a DVText */
-    { kOpDHDVText, NULL, "" },                  /* 0x2b DHDVText */
-    { kOpLongText, NULL, "" },                  /* 0x2c fontName */
-    { 10, NULL, "" },                           /* 0x2d lineJustify */
-    { 8, NULL, "" },                            /* 0x2e glyphState */
-    { kOpWordLength, NULL, "" },                /* 0x2f reserved */
-    { 8, NULL, "" },                            /* 0x30 frameRect */
-    { 8, NULL, "" },                            /* 0x31 paintRect */
-    { 8, NULL, "" },                            /* 0x32 eraseRect */
-    { 8, NULL, "" },                            /* 0x33 invertRect */
-    { 8, NULL, "" },                            /* 0x34 fillRect */
-    { 8, NULL, "" },                            /* 0x35 reserved */
-    { 8, NULL, "" },
-    { 8, NULL, "" },
-    { 0, NULL, "" },                            /* 0x38 frameSameRect */
-    { 0, NULL, "" },                            /* 0x39 paintSameRect */
-    { 0, NULL, "" },                            /* 0x3a eraseSameRect */
-    { 0, NULL, "" },                            /* 0x3b invertSameRect */
-    { 0, NULL, "" },                            /* 0x3c fillSameRect */
-    { 0, NULL, "" },                            /* 0x3d reserved */
-    { 0, NULL, "" },
-    { 0, NULL, "" },
-    { 8, NULL, "" },                            /* 0x40 frameRRect */
-    { 8, NULL, "" },                            /* 0x41 paintRRect */
-    { 8, NULL, "" },                            /* 0x42 eraseRRect */
-    { 8, NULL, "" },                            /* 0x43 invertRRect */
-    { 8, NULL, "" },                            /* 0x44 fillRRect */
-    { 8, NULL, "" },                            /* 0x45 reserved */
-    { 8, NULL, "" },
-    { 8, NULL, "" },
-    { 0, NULL, "" },                            /* 0x48 frameSameRRect */
-    { 0, NULL, "" },                            /* 0x49 paintSameRRect */
-    { 0, NULL, "" },                            /* 0x4a eraseSameRRect */
-    { 0, NULL, "" },                            /* 0x4b invertSameRRect */
-    { 0, NULL, "" },                            /* 0x4c fillSameRRect */
-    { 0, NULL, "" },                            /* 0x4d reserved */
-    { 0, NULL, "" },
-    { 0, NULL, "" },
-    { 8, NULL, "" },                            /* 0x50 frameOval */
-    { 8, NULL, "" },                            /* 0x51 paintOval */
-    { 8, NULL, "" },                            /* 0x52 eraseOval */
-    { 8, NULL, "" },                            /* 0x53 invertOval */
-    { 8, NULL, "" },                            /* 0x54 fillOval */
-    { 8, NULL, "" },                            /* 0x55 reserved */
-    { 8, NULL, "" },
-    { 8, NULL, "" },
-    { 0, NULL, "" },                            /* 0x58 frameSameOval */
-    { 0, NULL, "" },                            /* 0x59 paintSameOval */
-    { 0, NULL, "" },                            /* 0x5a eraseSameOval */
-    { 0, NULL, "" },                            /* 0x5b invertSameOval */
-    { 0, NULL, "" },                            /* 0x5c fillSameOval */
-    { 0, NULL, "" },                            /* 0x5d reserved */
-    { 0, NULL, "" },
-    { 0, NULL, "" },
-    { 12, NULL, "" },                           /* 0x60 frameArc */
-    { 12, NULL, "" },                           /* 0x61 paintArc */
-    { 12, NULL, "" },                           /* 0x62 eraseArc */
-    { 12, NULL, "" },                           /* 0x63 invertArc */
-    { 12, NULL, "" },                           /* 0x64 fillArc */
-    { 12, NULL, "" },                           /* 0x65 reserved */
-    { 12, NULL, "" },
-    { 12, NULL, "" },
-    { 4, NULL, "" },                            /* 0x68 frameSameArc */
-    { 4, NULL, "" },                            /* 0x69 paintSameArc */
-    { 4, NULL, "" },                            /* 0x6a eraseSameArc */
-    { 4, NULL, "" },                            /* 0x6b invertSameArc */
-    { 4, NULL, "" },                            /* 0x6c fillSameArc */
-    { 4, NULL, "" },                            /* 0x6d reserved */
-    { 4, NULL, "" },
-    { 4, NULL, "" },
-    { kOpWordSize, NULL, "" },                  /* 0x70 framePoly */
-    { kOpWordSize, NULL, "" },                  /* 0x71 paintPoly */
-    { kOpWordSize, NULL, "" },                  /* 0x72 erasePoly */
-    { kOpWordSize, NULL, "" },                  /* 0x73 invertPoly */
-    { kOpWordSize, NULL, "" },                  /* 0x74 fillPoly */
-    { kOpWordLength, NULL, "" },                /* 0x75 reserved */
-    { kOpWordLength, NULL, "" },
-    { kOpWordLength, NULL, "" },
-    { 0, NULL, "" },                            /* 0x78 frameSamePoly */
-    { 0, NULL, "" },                            /* 0x79 paintSamePoly */
-    { 0, NULL, "" },                            /* 0x7a eraseSamePoly */
-    { 0, NULL, "" },                            /* 0x7b invertSamePoly */
-    { 0, NULL, "" },                            /* 0x7c fillSamePoly */
-    { 0, NULL, "" },                            /* 0x7d reserved */
-    { 0, NULL, "" },
-    { 0, NULL, "" },
-    { kOpWordSize, NULL, "" },                  /* 0x80 frameRgn */
-    { kOpWordSize, NULL, "" },                  /* 0x81 paintRgn */
-    { kOpWordSize, NULL, "" },                  /* 0x82 eraseRgn */
-    { kOpWordSize, NULL, "" },                  /* 0x83 invertRgn */
-    { kOpWordSize, NULL, "" },                  /* 0x84 fillRgn */
-    { kOpWordLength, NULL, "" },                /* 0x85 reserved */
-    { kOpWordLength, NULL, "" },
-    { kOpWordLength, NULL, "" },
-    { 0, NULL, "" },                            /* 0x88 frameSameRgn */
-    { 0, NULL, "" },                            /* 0x89 paintSameRgn */
-    { 0, NULL, "" },                            /* 0x8a eraseSameRgn */
-    { 0, NULL, "" },                            /* 0x8b invertSameRgn */
-    { 0, NULL, "" },                            /* 0x8c fillSameRgn */
-    { 0, NULL, "" },                            /* 0x8d reserved */
-    { 0, NULL, "" },
-    { 0, NULL, "" },
-    { kOpHandler, _PICT_HandleBits, "" },           /* 0x90 BitsRect */
-    { kOpHandler, _PICT_HandleBits, "" },           /* 0x91 BitsRgn */
-    { kOpWordLength, NULL, "" },                /* 0x92 reserved */
-    { kOpWordLength, NULL, "" },
-    { kOpWordLength, NULL, "" },
-    { kOpWordLength, NULL, "" },
-    { kOpWordLength, NULL, "" },
-    { kOpWordLength, NULL, "" },
-    { kOpHandler, _PICT_HandleBits, "" },           /* 0x98 PackBitsRect */
-    { kOpHandler, _PICT_HandleBits, "" },           /* 0x99 PackBitsRgn */
-    { kOpHandler, _PICT_HandleBits, "" },           /* 0x9a DirectBitsRect */
-    { kOpHandler, _PICT_HandleBits, "" },           /* 0x9b DirectBitsRgn */
-    { kOpWordLength, NULL, "" },                /* 0x9c reserved */
-    { kOpWordLength, NULL, "" },
-    { kOpWordLength, NULL, "" },
-    { kOpWordLength, NULL, "" },
-    { 2, NULL, "" },                            /* 0xa0 ShortComment */
-    { kOpLongComment, NULL, "" }                /* 0xa1 LongComment */
-};
+#ifndef MAC1010
+#include "../runtime/pictoptable.inc"
+#endif
 
 /* PICT_Decode (the PICT loader: header, version, then every opcode's data skipped or handed to
    its handler up to OpEndPic). STATE: MATCH 100.0%, exe 561 / obj 561, byte-identical yes.
@@ -928,17 +965,20 @@ PictOpcode gDT_PictOpTable[kPictLastTableOp + 1] = {
 // FUNCTION: EVNOVA 0x00516dac
 long PICT_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut, ITTransparent *trans,
                   ITBackground *bg)
+#ifdef MAC1010
+#include "../runtime/pictdecode1010.inc"
+#else
 {
     long err;
     long e;
-    long version;
+    unsigned short version;
     long length;
     unsigned char unused;
     unsigned char skip[kPictSkipChunk];
     unsigned short picSize;
     PictFrame frame;
     unsigned short opcode;
-    unsigned char b;
+    char b;
     PictState s;
     PictOpcode entry;
 
@@ -966,7 +1006,7 @@ long PICT_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut, ITTran
         err = e;
         goto done;
     }
-    picSize = Swap16(picSize);
+    picSize = FromBE16(picSize);
     e = _PICT_ReadRect(stream, (short *)&frame);
     if (e != 0) {
         err = e;
@@ -979,14 +1019,16 @@ long PICT_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut, ITTran
             goto done;
         }
     } while (b == 0);
-    if (b != kPictVersionOp)
-        goto bad;
+    if (b != kPictVersionOp) {
+        err = kPictBadData;
+        goto done;
+    }
     e = DT_BufferRead(stream, &b, 1);
     if (e != 0) {
         err = e;
         goto done;
     }
-    switch ((char)b) {
+    switch (b) {
     case kPictVersion1:
         version = 1;
         break;
@@ -996,8 +1038,10 @@ long PICT_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut, ITTran
             err = e;
             goto done;
         }
-        if (b != kPictVersion2Tail)
-            goto bad;
+        if (b != (char)kPictVersion2Tail) {
+            err = kPictBadData;
+            goto done;
+        }
         version = 2;
         break;
     default:
@@ -1010,11 +1054,11 @@ long PICT_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut, ITTran
     s.bg = bg;
 
     for (;;) {
-        PictOpcode wordData = { kOpWordLength, NULL, "" };
-        PictOpcode longData = { kOpLongLength, NULL, "" };
-        PictOpcode noData = { 0, NULL, "" };
-        PictOpcode wordFixed = { 2, NULL, "" };
-        PictOpcode longFixed = { 4, NULL, "" };
+        PictOpcode wordData = PICT_OP(kOpWordLength, NULL);
+        PictOpcode longData = PICT_OP(kOpLongLength, NULL);
+        PictOpcode noData = PICT_OP(0, NULL);
+        PictOpcode wordFixed = PICT_OP(2, NULL);
+        PictOpcode longFixed = PICT_OP(4, NULL);
         unsigned short wordLength;
         ULong longLength;
         unsigned short wordSize;
@@ -1071,15 +1115,17 @@ long PICT_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut, ITTran
             continue;
         }
 
-        if (entry.length == kOpHandler)
-            goto bad;
+        if (entry.length == kOpHandler) {
+            err = kPictBadData;
+            goto done;
+        }
         else if (entry.length == kOpWordLength) {
             e = DT_BufferRead(stream, &wordLength, 2);
             if (e != 0) {
                 err = e;
                 goto done;
             }
-            length = Swap16(wordLength) - 2;
+            length = FromBE16(wordLength) - 2;
             if (length < 0) {
                 err = kPictBadData;
                 goto done;
@@ -1090,9 +1136,8 @@ long PICT_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut, ITTran
                 err = e;
                 goto done;
             }
-            length = Swap32(longLength) - 4;
+            length = FromBE32(longLength) - 4;
             if (length < 0) {
-bad:
                 err = kPictBadData;
                 goto done;
             }
@@ -1103,14 +1148,14 @@ bad:
                 err = e;
                 goto done;
             }
-            length = Swap16(wordSize) - 2;
+            length = FromBE16(wordSize) - 2;
         } else if (entry.length == kOpLongSize) {
             e = DT_BufferRead(stream, &longSize, 4);
             if (e != 0) {
                 err = e;
                 goto done;
             }
-            length = Swap32(longSize) - 4;
+            length = FromBE32(longSize) - 4;
         } else if (entry.length == kOpDHText) {
             e = DT_BufferRead(stream, &b, 1);
             if (e != 0) {
@@ -1122,7 +1167,7 @@ bad:
                 err = e;
                 goto done;
             }
-            length = b;
+            length = (unsigned char)b;
         } else if (entry.length == kOpDHDVText) {
             e = DT_BufferRead(stream, &b, 1);
             if (e != 0) {
@@ -1139,7 +1184,7 @@ bad:
                 err = e;
                 goto done;
             }
-            length = b;
+            length = (unsigned char)b;
         } else if (entry.length == kOpLongText) {
             e = DT_BufferRead(stream, &b, 1);
             if (e != 0) {
@@ -1166,7 +1211,7 @@ bad:
                 err = e;
                 goto done;
             }
-            length = b;
+            length = (unsigned char)b;
         } else if (entry.length == kOpLongComment) {
             e = DT_BufferRead(stream, &b, 1);
             if (e != 0) {
@@ -1183,7 +1228,7 @@ bad:
                 err = e;
                 goto done;
             }
-            length = Swap16(commentSize);
+            length = FromBE16(commentSize);
         } else
             /* BUG: also overwrites the -2 / -3 lengths read above, so their skip runs on
                0xfffffffe / 0xfffffffd until a stream error */
@@ -1223,3 +1268,4 @@ done:
     }
     return err;
 }
+#endif

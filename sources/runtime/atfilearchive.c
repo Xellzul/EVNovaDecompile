@@ -33,7 +33,7 @@ FTFile *_FT_IsChunkOpen(FTFile *archive, const char *name)
     }
     link = &gFT_FileList;
     while ((f = *link) != 0) {
-        if (f->parent == archive && (ULong)f->origin == index)
+        if (f->parent == archive && f->origin == index)
             break;
         link = &f->next;
     }
@@ -340,7 +340,7 @@ unsigned char _FT_ChunkLookup(FTFile *archive, const char *name, ULong *index,
         memset(entry, 0, sizeof(FTArchiveEntry));
     locked = IndirectSetLock(archive->buffer, 1);
     locked2 = IndirectSetLock(archive->buffer2, 1);
-    header = (FTArchiveHeader *)*archive->buffer;
+    header = *archive->buffer;
     count = ATSwap32(header->entryCount);
     stride = ATSwap32(header->entrySize);
     size = stride;
@@ -685,7 +685,7 @@ long _FT_ChunkCreate(FTFile *archive, FTFileInfo *info)
     slot->length = 0;
     slot->type = Swap32(info->type);
     e = archive->procs.proc[kFTSeek](archive,
-                                (char *)slot + h.tableOffset - (char *)*archive->buffer2);
+                                (char *)slot + h.tableOffset - *archive->buffer2);
     if (e != 0) {
         err = e;
         goto done;

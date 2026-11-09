@@ -64,7 +64,7 @@ void *crt4_memset(void *dest, int c, size_t len)
     unsigned char *d = dest;
 
     while (len--)
-        *d++ = (unsigned char)c;
+        *d++ = c;
     return dest;
 }
 

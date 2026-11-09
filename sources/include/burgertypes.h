@@ -7,6 +7,14 @@
 #ifndef BURGERTYPES_H
 #define BURGERTYPES_H
 
+#ifdef MAC1010
+#define AT_STATIC static    /* the Mac's AmbrosiaTools keeps these private; win's object names them */
+#define AT_EXTERN extern    /* and defines these in another object */
+#else
+#define AT_STATIC
+#define AT_EXTERN
+#endif
+
 typedef unsigned char Word8;
 typedef unsigned short Word16;
 typedef unsigned int Word;
@@ -28,7 +36,7 @@ typedef unsigned long long ULongLong;
 
 /* ST_PlaySoundParam's request, 0x1c bytes: the engine keeps two of these
    (warpUpSoundSpec, planetSoundSpec) and atsndplay.c clamps one in place.
-   rate is signed: SetSoundRate converts a double into it. */
+   rate is signed: AdjustWarpSoundSpeed converts a double into it. */
 typedef struct SoundRequest {
     void **handle;                               /* +0x00 */
     unsigned long id;                            /* +0x04, 0 = assign one */

@@ -8,31 +8,82 @@
 #include "macport.h"
 #include "spriteworld.h"
 
+#if defined(MACBUILD) && !defined(MAC_GAMEUTILS_ONLY)
+#ifdef MAC1010 /* 1.0.10 spelling */
+static int gLowestUnusedElement;
+static long gLastElementInUse;
+static int gNumberOfParticlesActive;
+static int gGravity;
+static unsigned long gNumArrayElements;
+static long scrollOffsetHoriz;
+static long scrollOffsetVert;
+static ParticlePtr gParticleArray = NULL;
+static Boolean gParticlesInitialized = false;
+#else
+/* tentative, in the image's __bss order (gcc emits these in declaration order; initialised to zero they follow the reference walk) */
+static ParticlePtr gParticleArray;
+static Boolean gParticlesInitialized;
+static int gLowestUnusedElement;
+static long gLastElementInUse;
+static int gNumberOfParticlesActive;
+static int gGravity;
+static unsigned long gNumArrayElements;
+static long scrollOffsetHoriz;
+static long scrollOffsetVert;
+#endif
+#else
 static ParticlePtr gParticleArray = NULL;
 static int gLowestUnusedElement = 0;
 static long gLastElementInUse = 0;
 static int gNumberOfParticlesActive = 0;
 static int gGravity = 0;
 static unsigned long gNumArrayElements = 0;
-static char gParticlesInitialized = false;
+static Boolean gParticlesInitialized = false;
 static long scrollOffsetHoriz = 0;
 static long scrollOffsetVert = 0;
+#endif
+#ifndef MACBUILD
 static unsigned char DAT_007d053c[260];
+#endif
 
+#ifndef MAC_PARTICLES_ONLY
 /* RestoreControlStrip. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047b7d0
+// MAC: _RestoreControlStrip i386 0x000c95d6 ppc 0x000d55dc
 void RestoreControlStrip(void)
 {
+#if TARGET_API_MAC_OS8
+    if (gControlStripWasVisible) {
+        gControlStripWasVisible = false;
+        SBShowHideControlStrip(true);
+    }
+#endif
 }
+
+#if TARGET_API_MAC_OS8
+Boolean SBIsControlStripVisible(void)
+{
+    return CallUniversalProc(GetToolTrapAddress(_ControlStripDispatch), 0xd8, 0);
+}
+
+void SBShowHideControlStrip(Boolean showIt)
+{
+    CallUniversalProc(GetToolTrapAddress(_ControlStripDispatch), 0x1c8, 1, showIt);
+}
+#endif
+#endif
+
+#ifndef MAC_GAMEUTILS_ONLY
 
 /* InitParticles (mac _InitParticles). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047b7e0
+// MAC: _InitParticles i386 0x000c4f83 ppc 0x000d11c0
 short InitParticles(int numElements, int gravity)
 {
     short err;
 
-    gNumArrayElements = numElements;
     err = 0;
+    gNumArrayElements = numElements;
     gGravity = gravity;
     numElements = numElements * sizeof(Particle);
     gParticleArray = (ParticlePtr)AllocAPointer(numElements);
@@ -53,6 +104,7 @@ short InitParticles(int numElements, int gravity)
 
 /* DisposeParticles (mac _DisposeParticles). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047b870
+// MAC: _DisposeParticles i386 0x000c4e80 ppc 0x000d1030
 void DisposeParticles(void)
 {
     if (gParticleArray != NULL) {
@@ -67,12 +119,13 @@ void DisposeParticles(void)
 
 /* ClearParticles. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047b8c0
-void ClearParticles(char active)
+// MAC: _ClearParticles i386 0x000c4ec8 ppc 0x000d10a4
+void ClearParticles(Boolean active)
 {
-    unsigned long i;
+    long i;
 
     if (gParticleArray == NULL)
-        SWAssertFail("SWParticles.c", 0x5d);
+        SW_ASSERT_FAIL("SWParticles.c", 0x5d, 0x5d);
     for (i = 0; i < gNumArrayElements; i++) {
         if (active != 0 && gParticleArray[i].lifeRemaining > 1)
             gParticleArray[i].lifeRemaining = 1;
@@ -86,6 +139,7 @@ void ClearParticles(char active)
 
 /* SetParticleScrollOffset (mac _SetParticleScrollOffset). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047b940
+// MAC: _SetParticleScrollOffset i386 0x000c5008 ppc 0x000d129c
 void SetParticleScrollOffset(int h, int v)
 {
     scrollOffsetHoriz = h;
@@ -94,6 +148,7 @@ void SetParticleScrollOffset(int h, int v)
 
 /* NewParticle. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047b960
+// MAC: _NewParticle i386 0x000c501d ppc 0x000d12b0
 void NewParticle(long color, long horizLoc, long vertLoc, long horizSpeed,
                  long vertSpeed, short shade, short lifeCount)
 {
@@ -129,6 +184,7 @@ void NewParticle(long color, long horizLoc, long vertLoc, long horizSpeed,
 
 /* EraseParticlesOffscreen (mac _EraseParticlesOffscreen). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047bb30
+// MAC: _EraseParticlesOffscreen i386 0x000c511b ppc 0x000d13c8
 void EraseParticlesOffscreen(SpriteWorldPtr spriteWorldP)
 {
     Particle *particlePtr;
@@ -139,13 +195,13 @@ void EraseParticlesOffscreen(SpriteWorldPtr spriteWorldP)
     long index, count = gLastElementInUse;
 
     if (spriteWorldP == 0)
-        SWAssertFail("SWParticles.c", 185);
+        SW_ASSERT_FAIL("SWParticles.c", 185, 185);
     if (workFrameP == 0 || !workFrameP->isFrameLocked)
-        SWAssertFail("SWParticles.c", 186);
+        SW_ASSERT_FAIL("SWParticles.c", 186, 186);
     if (workFrameP->frameDepth < 8)
-        SWAssertFail("SWParticles.c", 187);
+        SW_ASSERT_FAIL("SWParticles.c", 187, 187);
     if (gParticlesInitialized != 1)
-        SWAssertFail("SWParticles.c", 188);
+        SW_ASSERT_FAIL("SWParticles.c", 188, 188);
 
     visBoundsLeft = workFrameP->frameRect.left;
     visBoundsRight = workFrameP->frameRect.right;
@@ -181,9 +237,66 @@ void EraseParticlesOffscreen(SpriteWorldPtr spriteWorldP)
     else                                                                        \
         *SW_PIXELPTR32(frame, x, y) = c;
 
+#if V111
+/* EraseParticlesScrollingOffscreen (mac _EraseParticlesScrollingOffscreen, mac-only). STATE: see the mac gate. */
+// MAC: _EraseParticlesScrollingOffscreen i386 0x000c5403 ppc 0x000d16b4
+void	EraseParticlesScrollingOffscreen( SpriteWorldPtr spriteWorldP )
+{
+	Particle	*particlePtr;
+	FramePtr	workFrameP = spriteWorldP->workFrameP,
+				backFrameP = spriteWorldP->backFrameP;
+	int			visBoundsLeft, visBoundsRight, visBoundsTop, visBoundsBottom;
+	int			horizLoc, vertLoc;
+	long		index, count = gLastElementInUse;
+
+	SW_ASSERT(spriteWorldP != NULL, 234);
+	SW_ASSERT(spriteWorldP->workFrameP != NULL && workFrameP->isFrameLocked, 235);
+	SW_ASSERT(workFrameP->frameDepth >= 8, 236);
+	SW_ASSERT(gParticlesInitialized == true, 237);
+
+	visBoundsLeft = spriteWorldP->oldVisScrollRect.left;
+	visBoundsRight = spriteWorldP->oldVisScrollRect.right;
+	visBoundsTop = spriteWorldP->oldVisScrollRect.top;
+	visBoundsBottom = spriteWorldP->oldVisScrollRect.bottom;
+	FOREACH_DEPTH_DO
+	(
+		spriteWorldP->pixelDepth,
+		for (index = 0, particlePtr = gParticleArray; index <= count; index++, particlePtr++)
+		{
+			if (particlePtr->lifeRemaining>0)
+			{
+				horizLoc = (particlePtr->oldHorizLoc >> 8);
+				vertLoc = (particlePtr->oldVertLoc >> 8);
+
+				if ((horizLoc<visBoundsRight)&&(horizLoc>visBoundsLeft)&&
+					(vertLoc<visBoundsBottom)&&(vertLoc>visBoundsTop))
+				{
+					horizLoc -= spriteWorldP->backRect.right * (spriteWorldP->oldVisScrollRect.left / spriteWorldP->backRect.right);
+					vertLoc -= spriteWorldP->backRect.bottom * (spriteWorldP->oldVisScrollRect.top / spriteWorldP->backRect.bottom);
+
+					if (horizLoc >=  workFrameP->frameRect.right)
+						horizLoc -= workFrameP->frameRect.right;
+					else if (horizLoc < workFrameP->frameRect.left)
+						horizLoc += workFrameP->frameRect.right;
+
+					if (vertLoc >= workFrameP->frameRect.bottom)
+						vertLoc -= workFrameP->frameRect.bottom;
+					else if (vertLoc < workFrameP->frameRect.top)
+						vertLoc += workFrameP->frameRect.bottom;
+
+					SET_DEPTH_PIXEL( workFrameP, horizLoc, vertLoc ,
+						GET_DEPTH_PIXEL( backFrameP, horizLoc, vertLoc ) )
+				}
+			}
+		}
+	)
+}
+#endif
+
 /* DrawParticlesOffscreen (mac _DrawParticlesOffscreen). STATE: MATCH, byte-identical.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0047bdd0
+// MAC: _DrawParticlesOffscreen i386 0x000c590a ppc 0x000d1b24
 void DrawParticlesOffscreen(SpriteWorldPtr spriteWorldP)
 {
     Particle *particlePtr;
@@ -193,13 +306,13 @@ void DrawParticlesOffscreen(SpriteWorldPtr spriteWorldP)
     long index, count = gLastElementInUse;
 
     if (spriteWorldP == 0)
-        SWAssertFail("SWParticles.c", 299);
+        SW_ASSERT_FAIL("SWParticles.c", 299, 299);
     if (workFrameP == 0 || !workFrameP->isFrameLocked)
-        SWAssertFail("SWParticles.c", 300);
+        SW_ASSERT_FAIL("SWParticles.c", 300, 300);
     if (workFrameP->frameDepth < 8)
-        SWAssertFail("SWParticles.c", 301);
+        SW_ASSERT_FAIL("SWParticles.c", 301, 301);
     if (gParticlesInitialized != 1)
-        SWAssertFail("SWParticles.c", 302);
+        SW_ASSERT_FAIL("SWParticles.c", 302, 302);
 
     visBoundsLeft = workFrameP->frameRect.left;
     visBoundsRight = workFrameP->frameRect.right;
@@ -219,7 +332,7 @@ void DrawParticlesOffscreen(SpriteWorldPtr spriteWorldP)
                 if ((horizLoc<visBoundsRight)&&(horizLoc>visBoundsLeft)&&
                 (vertLoc<visBoundsBottom)&&(vertLoc>visBoundsTop))
                 {
-                    if (particlePtr->shade != 32)
+                    if ((long)particlePtr->shade != 32)
                     {
                         if (particlePtr->lifeRemaining > 32)
                             SET_DEPTH_PIXEL( workFrameP, horizLoc, vertLoc,
@@ -243,8 +356,106 @@ void DrawParticlesOffscreen(SpriteWorldPtr spriteWorldP)
     )
 }
 
+#ifdef MACBUILD
+/* DrawParticlesScrollingOffscreen (mac _DrawParticlesScrollingOffscreen, mac-only). STATE: see the mac gate. */
+// MAC: _DrawParticlesScrollingOffscreen i386 0x000c5cf9 ppc 0x000d1f34
+void	DrawParticlesScrollingOffscreen( SpriteWorldPtr spriteWorldP )
+{
+	Particle	*particlePtr;
+	FramePtr	workFrameP = spriteWorldP->workFrameP;
+	int			visBoundsLeft, visBoundsRight, visBoundsTop, visBoundsBottom;
+	int			horizLoc, vertLoc;
+	long		index, count = gLastElementInUse;
+
+	SW_ASSERT(spriteWorldP != NULL, 372);
+	SW_ASSERT(workFrameP != NULL && workFrameP->isFrameLocked, 373);
+	SW_ASSERT(workFrameP->frameDepth >= 8, 374);
+	SW_ASSERT(gParticlesInitialized == true, 375);
+
+	visBoundsLeft = spriteWorldP->visScrollRect.left;
+	visBoundsRight = spriteWorldP->visScrollRect.right;
+	visBoundsTop = spriteWorldP->visScrollRect.top;
+	visBoundsBottom = spriteWorldP->visScrollRect.bottom;
+	FOREACH_DEPTH_DO
+	(
+		spriteWorldP->pixelDepth,
+		for (index = 0, particlePtr = gParticleArray; index <= count; index++, particlePtr++)
+		{
+			if (particlePtr->lifeRemaining>1)
+			{
+				horizLoc = (particlePtr->horizLoc >> 8);
+				vertLoc = (particlePtr->vertLoc >> 8);
+
+				if ((horizLoc<visBoundsRight)&&(horizLoc>visBoundsLeft)&&
+					(vertLoc<visBoundsBottom)&&(vertLoc>visBoundsTop))
+				{
+					horizLoc -= spriteWorldP->horizScrollRectOffset;
+					vertLoc -= spriteWorldP->vertScrollRectOffset;
+
+					if (horizLoc >=  workFrameP->frameRect.right)
+						horizLoc -= workFrameP->frameRect.right;
+					else if (horizLoc < workFrameP->frameRect.left)
+						horizLoc += workFrameP->frameRect.right;
+
+					if (vertLoc >= workFrameP->frameRect.bottom)
+						vertLoc -= workFrameP->frameRect.bottom;
+					else if (vertLoc < workFrameP->frameRect.top)
+						vertLoc += workFrameP->frameRect.bottom;
+
+					SET_DEPTH_PIXEL( workFrameP, horizLoc, vertLoc, particlePtr->color );
+				}
+			}
+		}
+	)
+}
+#endif
+
 /* UpdateParticlesInWindow (mac _UpdateParticlesInWindow). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047c3a0
+// MAC: _UpdateParticlesInWindow i386 0x000c61fb ppc 0x000d24b4
+#if V111
+void UpdateParticlesInWindow(SpriteWorldPtr spriteWorldP)
+{
+    Particle *particlePtr;
+    FramePtr windowFrameP = spriteWorldP->windowFrameP;
+    long count = gLastElementInUse;
+    int horizLoc, vertLoc;
+    long index;
+
+    if (windowFrameP == 0 || !windowFrameP->isFrameLocked)
+        SW_ASSERT_FAIL("SWParticles.c", 440, 440);
+    if (windowFrameP->frameDepth < 8)
+        SW_ASSERT_FAIL("SWParticles.c", 441, 441);
+    if (gParticlesInitialized != 1)
+        SW_ASSERT_FAIL("SWParticles.c", 442, 442);
+
+    FOREACH_DEPTH_DO
+    (
+        spriteWorldP->pixelDepth,
+        for (index = 0, particlePtr = gParticleArray; index <= count; index++, particlePtr++)
+        {
+            if (particlePtr->lifeRemaining > 0)
+            {
+                horizLoc = (particlePtr->horizLoc >> 8) - scrollOffsetHoriz;
+                vertLoc = (particlePtr->vertLoc >> 8) - scrollOffsetVert;
+
+                particlePtr->drawnHorizLoc = horizLoc;
+                particlePtr->drawnVertLoc = vertLoc;
+            }
+        }
+    )
+
+    MoveParticles();
+}
+
+/* UpdateParticlesInScrollingWindow (mac _UpdateParticlesInScrollingWindow, mac-only). STATE: see the mac gate. */
+// MAC: _UpdateParticlesInScrollingWindow i386 0x000c63ba ppc 0x000d26b4
+void UpdateParticlesInScrollingWindow(SpriteWorldPtr spriteWorldP)
+{
+    SW_ASSERT(gParticlesInitialized == true, 522);
+    MoveParticles();
+}
+#else
 void UpdateParticlesInWindow(SpriteWorldRec *spriteWorldP)
 {
     Particle *particlePtr;
@@ -254,16 +465,16 @@ void UpdateParticlesInWindow(SpriteWorldRec *spriteWorldP)
     int visBoundsLeft, visBoundsRight, visBoundsTop, visBoundsBottom;
     int horizLoc, vertLoc;
     long index;
-    char noDirectBlit;
+    Boolean noDirectBlit;
 
     if (spriteWorldP == 0)
-        SWAssertFail("SWParticles.c", 439);
+        SW_ASSERT_FAIL("SWParticles.c", 439, 439);
     if (windowFrameP == 0 || !windowFrameP->isFrameLocked)
-        SWAssertFail("SWParticles.c", 440);
+        SW_ASSERT_FAIL("SWParticles.c", 440, 440);
     if (windowFrameP->frameDepth < 8)
-        SWAssertFail("SWParticles.c", 441);
+        SW_ASSERT_FAIL("SWParticles.c", 441, 441);
     if (gParticlesInitialized != 1)
-        SWAssertFail("SWParticles.c", 442);
+        SW_ASSERT_FAIL("SWParticles.c", 442, 442);
 
     noDirectBlit = (spriteWorldP->fastBlit == 0);
 
@@ -307,9 +518,11 @@ void UpdateParticlesInWindow(SpriteWorldRec *spriteWorldP)
 
     MoveParticles();
 }
+#endif
 
 /* MoveParticles (mac _MoveParticles). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047c800
+// MAC: _MoveParticles i386 0x000c60c5 ppc 0x000d2304
 void MoveParticles(void)
 {
     Particle *p;
@@ -321,12 +534,14 @@ void MoveParticles(void)
     if (!gParticlesInitialized)
         return;
 
+    i = 0;
     p = gParticleArray;
-    for (i = 0; i <= last; i++, p++) {
+    for (; i <= last; i++, p++) {
         if (i >= gNumArrayElements)
-            SWAssertFail("SWParticles.c", 0x221);
+            SW_ASSERT_FAIL("SWParticles.c", 0x221, 0x221);
         if (p->lifeRemaining > 0) {
-            if (--p->lifeRemaining == 0) {
+            p->lifeRemaining--;
+            if (p->lifeRemaining == 0) {
                 gNumberOfParticlesActive--;
                 if (i < gLowestUnusedElement)
                     gLowestUnusedElement = i;
@@ -340,10 +555,11 @@ void MoveParticles(void)
         }
     }
 
-    if (gNumberOfParticlesActive > 0) {
+    if (gNumberOfParticlesActive <= 0) {
+        gLastElementInUse = 0;
+    } else {
         while (gParticleArray[gLastElementInUse].lifeRemaining == 0 && gLastElementInUse > 0)
             gLastElementInUse--;
-    } else {
-        gLastElementInUse = 0;
     }
 }
+#endif

@@ -15,20 +15,24 @@
 
 
 
-/* FindNextTarget. STATE: MATCH, byte-identical. OPEN: none */
+/* FindNextShipInSystem (mac _FindNextShipInSystem). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00461bd0
-short FindNextTarget(short cur, short system)
+// MAC: _FindNextShipInSystem i386 0x0000a5b1 ppc 0x0000cc80
+short FindNextShipInSystem(short cur, short system)
 {
-    char isPlayerEscort[kMaxShips];
-    char pad[2];
-    char canUntarget;
-    char canCloaked;
-    char eligible[kMaxShips];
-    char onEscortMission[kMaxShips];
     short i;
-    char wantHostile;
+    Boolean onEscortMission[kMaxShips];
+    Boolean isPlayerEscort[kMaxShips];
+    Boolean eligible[kMaxShips];
+    Boolean wantHostile;
+    Boolean canUntarget;
+    Boolean canCloaked;
 
+#ifdef MACBUILD
+    if (KeyCheck(kScanOption) != 0)
+#else
     if (KeyCheck(kScanLCtrl) != 0 || KeyCheck(kScanRCtrl) != 0)
+#endif
         wantHostile = 1;
     else
         wantHostile = 0;
@@ -36,19 +40,18 @@ short FindNextTarget(short cur, short system)
     canCloaked = ShipCanTargetCloakedShips(shipData);
 
     i = 1;
-    do {
+    while (i < kMaxShips) {
         onEscortMission[i] = 0;
         isPlayerEscort[i] = 0;
         eligible[i] = 0;
-        if (shipData[i].specialMission == -1) {
-            if (shipData[i].parentShip != -1 && shipData[i].parentShip != 0
+        if (shipData[i].specialMission != -1) {
+            if (currentMissionObjectives[shipData[i].specialMission].active != 0
+                    && currentMissions[shipData[i].specialMission].shipBehav == kMissionModeEscort)
+                onEscortMission[i] = 1;
+        } else if (shipData[i].parentShip != -1 && shipData[i].parentShip != 0
                 && shipData[i].defenseStellar == -1
                 && shipData[shipData[i].parentShip].parentShip == 0)
-                isPlayerEscort[i] = 1;
-        } else if (currentMissionObjectives[shipData[i].specialMission].active != 0
-                   && currentMissions[shipData[i].specialMission].shipBehav == kMissionModeEscort) {
-            onEscortMission[i] = 1;
-        }
+            isPlayerEscort[i] = 1;
         if (onEscortMission[i] == 0) {
             if (shipData[i].parentShip == 0
                 || (isPlayerEscort[i] != 0
@@ -56,7 +59,7 @@ short FindNextTarget(short cur, short system)
                 eligible[i] = 1;
         }
         i++;
-    } while (i < kMaxShips);
+    }
 
     if (cur != -1) {
         i = (cur + 1);
@@ -66,8 +69,8 @@ short FindNextTarget(short cur, short system)
                     || (eligible[i] != 0 && wantHostile != 0)) {
                     if (shipData[i].curSystem == system
                         && !AIShipIsEmergingFromHypergate(&shipData[i])
-                        && ((gShipTypes[shipData[i].type].flags2
-                             & kShipFlag2NoTarget) == 0 || canUntarget != 0)
+                        && ((shipClass[shipData[i].type].flags2
+                             & kShipUntargetable) == 0 || canUntarget != 0)
                         && eligible[i] == wantHostile)
                         return i;
                 }
@@ -76,20 +79,20 @@ short FindNextTarget(short cur, short system)
         }
     } else {
         i = 1;
-        do {
+        while (i < kMaxShips) {
             if (shipData[i].active != 0 && !IsDying(&shipData[i])) {
                 if (!ShipIsCloaked(&shipData[i]) || canCloaked != 0
                     || (eligible[i] != 0 && wantHostile != 0)) {
                     if (shipData[i].curSystem == system
                         && !AIShipIsEmergingFromHypergate(&shipData[i])
-                        && ((gShipTypes[shipData[i].type].flags2
-                             & kShipFlag2NoTarget) == 0 || canUntarget != 0)
+                        && ((shipClass[shipData[i].type].flags2
+                             & kShipUntargetable) == 0 || canUntarget != 0)
                         && eligible[i] == wantHostile)
                         return i;
                 }
             }
             i++;
-        } while (i < kMaxShips);
+        }
     }
     return cur;
 }

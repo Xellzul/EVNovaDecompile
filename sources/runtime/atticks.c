@@ -110,7 +110,7 @@ unsigned long TimerGetElapsedSeconds(void)
     err = 0;
     seconds = TimerGetMilliseconds() - gPlatformTime;
     seconds = seconds / kMillisPerSecond;
-    return (ULong)seconds;
+    return seconds;
 }
 
 /* Milliseconds since boot. */
@@ -270,7 +270,7 @@ long TimerCreate(void *ref, void *arg, TimerProc proc)
     PlatformTimer **old;
     ULong i;
 
-    timer = (PlatformTimer *)ref;
+    timer = ref;
     err = 0;
     thread = 0;
     old = 0;
@@ -280,7 +280,7 @@ long TimerCreate(void *ref, void *arg, TimerProc proc)
     MemoryClear(timer, sizeof(PlatformTimer));
     timer->arg = arg;
     timer->proc = proc;
-    list = (PlatformTimer **)MemoryAllocate((gTimerCount + 1) * sizeof(PlatformTimer *));
+    list = MemoryAllocate((gTimerCount + 1) * sizeof(PlatformTimer *));
     if (list == 0)
         goto nomem;
     AtomicEnterCritical(token);
@@ -294,7 +294,7 @@ long TimerCreate(void *ref, void *arg, TimerProc proc)
         MemoryDeallocate(old);
     thread = 0;
 
-    thread = (TimerThread *)MemoryAllocateClear(sizeof(TimerThread));
+    thread = MemoryAllocateClear(sizeof(TimerThread));
     timer->thread = thread;
     if (timer->thread == 0)
         goto nomem;
@@ -335,7 +335,7 @@ long TimerPrime(void *ref, long period)
     long request;
     long elapsed;
 
-    timer = (PlatformTimer *)ref;
+    timer = ref;
     err = 0;
     result = 0;
     thread = timer->thread;
@@ -382,7 +382,7 @@ long TimerDispose(void *ref)
     TimerThread *dead;
     TimerThread *thread;
 
-    timer = (PlatformTimer *)ref;
+    timer = ref;
     err = 0;
     result = 0;
     old = 0;

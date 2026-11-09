@@ -25,6 +25,7 @@
 
 /* ResetMissionOfferVenue (mac _ResetMissionOfferVenue). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00448660
+// MAC: _ResetMissionOfferVenue i386 0x00099f02 ppc 0x000a5d00
 void ResetMissionOfferVenue(void)
 {
     lastPortMissionLoc = -1;
@@ -32,10 +33,11 @@ void ResetMissionOfferVenue(void)
 
 /* OfferMissionFromPort (mac _OfferMissionFromPort). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00448670
-char OfferMissionFromPort(short stellar)
+// MAC: _OfferMissionFromPort i386 0x000a369e ppc 0x000af148
+Boolean OfferMissionFromPort(short stellar)
 {
-    short i;
     short slot;
+    short i;
     short mission;
     short first;
 
@@ -46,7 +48,8 @@ char OfferMissionFromPort(short stellar)
         }
         lastPortMissionLoc = stellar;
     }
-    if ((first = dockedPortMissions[1][0]) < 0 || first >= kMaxMissions)
+    first = dockedPortMissions[1][0];
+    if (first < 0 || first >= kMaxMissions)
         return 0;
 
     slot = -1;

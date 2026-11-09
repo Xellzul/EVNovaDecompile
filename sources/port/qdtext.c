@@ -7,6 +7,7 @@
 #include "gametypes.h"
 #include "burger.h"
 #include "player.h"
+#include "cefix.h"
 #define DT_SINGLELINE 0x0020
 #define DT_WORDBREAK  0x0010
 #define DT_NOCLIP     0x0100
@@ -38,7 +39,11 @@ void DrawTextRun(const void *text, unsigned long byteCount, Rect *box, char clip
     if (text == NULL || byteCount == 0)
         return;
 
+#ifdef CEFIX /* F08.02 */
+    buf = AllocAPointer(byteCount * sizeof(unsigned short));
+#else
     buf = AllocAPointer(byteCount);
+#endif
     n = byteCount;
     outPtr = (char *)text;
     lines = 0;
@@ -49,7 +54,11 @@ void DrawTextRun(const void *text, unsigned long byteCount, Rect *box, char clip
     } while (n != 0);
     inLeft = outLeft = byteCount;
     outPtr = buf;
+#ifdef CEFIX /* F08.03 */
+    CE_MacRomanToWide(text, inLeft, outPtr, outLeft);
+#else
     iconv(gMacRomanToCP1252, (char **)&text, &inLeft, &outPtr, &outLeft);
+#endif
 
     width = CurrentGrafPort->pnLoc.h - CurrentGrafPort->pix.bounds.left;
     vpos = CurrentGrafPort->pnLoc.v - CurrentGrafPort->pix.bounds.top;
@@ -95,12 +104,21 @@ void DrawTextRun(const void *text, unsigned long byteCount, Rect *box, char clip
         r.top -= height;
     }
     flags |= DT_NOPREFIX;
+#ifdef CEFIX /* F08.04 */
+    CE_DrawTextW(hdc, buf, byteCount, &r, flags);
+#else
     DrawTextA(hdc, buf, byteCount, &r, flags);
+#endif
     if (clipped != 0) {
         SelectClipRgn(hdc, NULL);
     } else {
+#ifdef CEFIX /* F08.05 */
+        if (CE_DrawTextW(hdc, buf, byteCount, &r, DT_CALCRECT) != 0)
+            CurrentGrafPort->pnLoc.h += (r.right - r.left);
+#else
         if (DrawTextA(hdc, buf, byteCount, &r, DT_CALCRECT) != 0)
             CurrentGrafPort->pnLoc.h += (r.right - r.left);
+#endif
     }
 
     DeallocAPointer(buf);

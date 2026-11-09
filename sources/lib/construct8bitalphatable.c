@@ -4,20 +4,25 @@
 #include "burger.h"
 #include "spriteworld.h"
 
+#if defined(MACBUILD) && !defined(MAC1010)
+#define kAlphaTableType     0x74c3a462      /* 'Tt\xe4b' saved as UTF-8: gcc keeps the last four bytes */
+#else
 #define kAlphaTableType     0x54748a62      /* 'Tt\xe4b' */
+#endif
 #define kAlphaTableID       128
 
 
 /* The resource is five 256x256 byte blocks; one block is one blend level. */
-typedef unsigned char AlphaBlock[256][256];
+typedef unsigned char AlphaTable[5][256][256];
 
 
 /* Construct8BitAlphaTable (mac _Construct8BitAlphaTable). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004740d0
+// MAC: _Construct8BitAlphaTable i386 0x000c1c05 ppc 0x000cdd60
 short Construct8BitAlphaTable(void)
 {
-    Handle tableH;
     short level, i, j;
+    Handle tableH;
 
     tableH = GetResource(kAlphaTableType, kAlphaTableID);
 
@@ -32,7 +37,7 @@ short Construct8BitAlphaTable(void)
 
             for (j = 0; j < 256; j++) {
                 alphaTable[level][i][j] =
-                        ((AlphaBlock *)*tableH)[4 - level][i][j];
+                        (*(AlphaTable *)*tableH)[4 - level][i][j];
             }
         }
     }

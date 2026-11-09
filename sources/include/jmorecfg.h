@@ -38,6 +38,9 @@ typedef unsigned int JDIMENSION;
 
 #define FAR
 
+#ifndef HAVE_BOOLEAN
+typedef int boolean;
+#endif
 #ifndef FALSE
 #define FALSE	0
 #endif

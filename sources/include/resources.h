@@ -48,11 +48,11 @@ typedef struct OutfRecord {
     char availability[255];
     char onPurchase[255];
     char onSell[255];
-    char unk367;
+    Boolean pad367;
     long contributes[2];
     long requires[2];
-    char persistent;
-    char unk379[3];
+    Boolean persistent;
+    char pad379[3];
 } OutfRecord;
 
 struct ShipRec;
@@ -62,9 +62,13 @@ extern long AdjustedItemCost(OutfRecord *outf, struct ShipRec *ship);
 extern long AdjustedItemMass(OutfRecord *outf, struct ShipRec *ship);
 extern void GetShipPaintColor(struct ShipObj *ship, unsigned short *red,
                          unsigned short *green, unsigned short *blue);
-extern void MungeBriefing(char briefing, short which);
+extern void MungeBriefing(Boolean briefing, short which);
 extern unsigned char LaunchFighter(struct ShipObj *parent, short fighterType);
+#ifdef MACBUILD
+extern void SpawnSmoke(FloatPoint pos, short type, short sprite);
+#else
 extern void SpawnSmoke(float x, float y, long type, short sprite);
+#endif
 
 typedef struct ShipRec {
     short cargo;
@@ -80,7 +84,7 @@ typedef struct ShipRec {
     short defOutfID[8];
     short defOutfCount[8];
     short fuelRegen;
-    char unk36[2];
+    char pad36[2];
     float turnRate;
     float accel;
     float maxSpeed;
@@ -101,7 +105,7 @@ typedef struct ShipRec {
     char appearOn[255];
     char onCapture[255];
     char onRetire[255];
-    char unk5E7;
+    Boolean pad5E7;
     short weapCount[256];
     short weapAmmo[256];
     short flags;
@@ -125,7 +129,7 @@ typedef struct ShipRec {
     short targetPictID;
     short dispWeight;
     short aiSkill;
-    unsigned short blinkMode;
+    short blinkMode;
     short blinkValue[4];
     short explode1;
     short explode2;
@@ -136,15 +140,15 @@ typedef struct ShipRec {
     unsigned short buyRandom;
     unsigned short dailyHireRoll;
     unsigned short dailySaleRoll;
-    char unkA2E[2];
+    char padA2E[2];
     long contributes[2];
     long requires[2];
-    char cargoNotFixed;
-    char canAppear;
-    short weapPos[4][4][2];
+    Boolean cargoNotFixed;
+    unsigned char canAppear;
+    ShortPoint weapPos[4][4];
     short weapPosZ[4][4];
-    char unkAA2[2];
-    float compress[2][2];
+    char padAA2[2];
+    FloatPoint compress[2];
     short *frameAngles;
     short registered;
     short hacked;
@@ -181,6 +185,552 @@ typedef struct ShipRec {
 #define kResAbsent          (-9999)
 #define kResUnloaded        9999
 
+/* the resource records as stored (Nova Bible layouts) */
+#pragma options align=mac68k
+
+typedef struct SpinRec {
+    short spriteID;
+    short maskID;
+    short xSize;
+    short ySize;
+    short xTiles;
+    short yTiles;
+} SpinRec, **SpinHandle;
+
+/* resized to 0xc0 on the way out */
+typedef struct ShanRec {
+    short baseImageID;
+    short baseMaskID;
+    short baseSetCount;
+    short baseXSize;
+    short baseYSize;
+    short baseTransparency;
+    short altImageID;
+    short altMaskID;
+    short altSetCount;
+    short altXSize;
+    short altYSize;
+    short glowImageID;
+    short glowMaskID;
+    short glowXSize;
+    short glowYSize;
+    short lightImageID;
+    short lightMaskID;
+    short lightXSize;
+    short lightYSize;
+    short weapImageID;
+    short weapMaskID;
+    short weapXSize;
+    short weapYSize;
+    short flags;
+    short animDelay;
+    short weapDecay;
+    short framesPer;
+    short blinkMode;
+    short blinkValue[4];
+    short shieldImageID;
+    short shieldMaskID;
+    short shieldXSize;
+    short shieldYSize;
+    struct {
+        short x[4];             /* gun/turret/guided/beam X, four lanes */
+        short y[4];             /* ... and Y */
+    } mountPos[4];
+    short upCompressX;
+    short upCompressY;
+    short downCompressX;
+    short downCompressY;
+    short mountPosZ[4][4];
+    short unkB0[8];
+} ShanRec;
+
+/* one packed 24-bit colour, 3 bytes used of 4 */
+typedef union RawTriple {
+    unsigned short w;
+    unsigned long rgb;
+} RawTriple;
+
+typedef struct IntfRec {
+    RawTriple brightText;
+    RawTriple dimText;
+    Rect radarArea;
+    RawTriple brightRadar;
+    RawTriple dimRadar;
+    Rect shieldArea;
+    RawTriple shieldColor;
+    Rect armorArea;
+    RawTriple armorColor;
+    Rect fuelArea;
+    RawTriple fuelFull;
+    RawTriple fuelPartial;
+    Rect navArea;
+    Rect weapArea;
+    Rect targArea;
+    Rect cargoArea;
+    char statusFont[64];
+    short statFontSize[2];
+    short statusBkgnd;
+} IntfRec;
+
+typedef struct OopsRes {
+    short stellar;
+    short commodity;
+    short priceDelta;
+    short duration;
+    short freq;
+    char activateOn[256];
+    short reserved[8];
+} OopsRes;
+
+typedef struct BoomRes {
+    short frameAdvance;
+    short soundIndex;
+    short graphicIndex;
+} BoomRes;
+
+typedef struct NebuRes {
+    short xPos;
+    short yPos;
+    short xSize;
+    short ySize;
+    char activeOn[255];
+    char onExplore[255];
+} NebuRes;
+
+typedef struct MisnRes {
+    short availStel;
+    short unused02;
+    short availLoc;
+    short availRecord;
+    short availRating;
+    short availRandom;
+    short travelStel;
+    short returnStel;
+    short cargoType;
+    short cargoQty;
+    short pickupMode;
+    short dropOffMode;
+    short scanMask;
+    short unused1A;
+    long payVal;
+    short shipCount;
+    short shipSyst;
+    short shipDude;
+    short shipGoal;
+    short shipBehav;
+    short shipNameID;
+    short shipStart;
+    short compGovt;
+    short compReward;
+    short shipSubtitle;
+    short briefText;
+    short quickBrief;
+    short loadCargText;
+    short dumpCargoText;
+    short compText;
+    short failText;
+    short timeLimit;
+    short canAbort;
+    short shipDoneText;
+    short unused46;
+    short auxShipCount;
+    short auxShipDude;
+    short auxShipSyst;
+    short unused4E;
+    short flags;
+    short flags2;
+    short unused54;
+    short unused56;
+    short refuseText;
+    short availShipType;
+    char availBits[255];
+    char onAccept[255];
+    char onRefuse[255];
+    char onSuccess[255];
+    char onFailure[255];
+    char onAbort[255];
+    unsigned long require1;
+    unsigned long require2;
+    short datePostInc;
+    char onShipDone[255];
+    char acceptButton[32];
+    char refuseButton[32];
+    short dispWeight;
+    short reserved[8];
+} MisnRes;
+
+typedef struct SpobRes {
+    short xPos;
+    short yPos;
+    short type;
+    unsigned long flags;
+    short tribute;
+    short techLevel;
+    short specialTech[3];
+    short govt;
+    short minStatus;
+    short custPicID;
+    short custSndID;
+    short defenseDude;
+    short defCount;
+    short flags2;
+    short animDelay;
+    short frame0Bias;
+    short hyperLink[8];
+    char onDominate[255];
+    char onRelease[255];
+    long fee;
+    short gravity;
+    short weapon;
+    long strength;
+    short deadType;
+    short deadTime;
+    short explodType;
+    char onDestroy[255];
+    char onRegen[255];
+    short specialTech2[5];
+    short reserved[8];
+} SpobRes;
+
+typedef struct OutfRes {
+    short dispWeight;
+    short mass;
+    short techLevel;
+    short modType;
+    short modVal;
+    short max;
+    short flags;
+    long cost;
+    short modType2;
+    short modVal2;
+    short modType3;
+    short modVal3;
+    short modType4;
+    short modVal4;
+    unsigned long contribute1;
+    unsigned long contribute2;
+    unsigned long require1;
+    unsigned long require2;
+    char availability[255];
+    char onPurchase[255];
+    char onSell[255];
+    char shortName[64];
+    char lcName[64];
+    char lcPlural[65];
+    short itemClass;
+    short scanMask;
+    short buyRandom;
+    short require3;
+    short reserved[8];
+} OutfRes;
+
+typedef struct RankRes {
+    short weight;
+    short attachTo;
+    short flags;
+    long salary;
+    long salaryCap;
+    unsigned long contribute[2];
+    short priceMod;
+    char name[64];
+    char shortName[64];
+} RankRes;
+
+typedef struct SystRes {
+    short xPos;
+    short yPos;
+    short con[16];
+    short nav[16];
+    short dudeTypes[8];
+    short probs[8];
+    short avgShips;
+    short govt;
+    short message;
+    short asteroids;
+    short interference;
+    short person[8];
+    short personProb[8];
+    unsigned long bkgndColor;
+    short murk;
+    short astTypes;
+    char visibility[256];
+    short reinfFleet;
+    short reinfTime;
+    short reinfInterval;
+    short reserved[8];
+} SystRes;
+
+typedef struct WeapRes {
+    short reload;
+    short count;
+    short massDmg[2];
+    short guidance;
+    short speed;
+    short ammoType;
+    short graphic;
+    short inaccuracy;
+    short sound;
+    short impact;
+    short explodType;
+    short proxRadius;
+    short blastRadius;
+    short flags;
+    short seeker;
+    short smokeSet;
+    short decay;
+    short particles;
+    short partVel;
+    short partLifeMin;
+    short partLifeMax;
+    unsigned long partColor;
+    short beamLength;
+    short beamWidth;
+    short falloff;
+    unsigned long beamColor;
+    unsigned long coronaColor;
+    short subCount;
+    short subType;
+    short subTheta;
+    short subLimit;
+    short proxSafety;
+    short flags2;
+    short ionization;
+    short hitParticles;
+    short hitPartLife;
+    short hitPartVel;
+    unsigned long hitPartColor;
+    short recoil;
+    short exitType;
+    short burstCount;
+    short burstReload;
+    short jamVuln[4];
+    short flags3;
+    short durability;
+    short guidedTurn;
+    short maxAmmo;
+    short liCohesive;
+    short liAmplitude;
+    unsigned long liColor;
+    short reserved[8];
+} WeapRes;
+
+typedef struct DudeRes {
+    short aiType;
+    short govt;
+    short booty;
+    short infoTypes;
+    short shipTypes[16];
+    short probs[16];
+    short reserved[8];
+} DudeRes;
+
+typedef struct GovtRes {
+    short voiceType;
+    short flags;
+    short flags2;
+    short scanFine;
+    short crimeTol;
+    short penalty[5];
+    short initialRec;
+    short maxOdds;
+    short classes[4];
+    short allies[4];
+    short enemies[4];
+    short skillMult;
+    short scanMask;
+    char commName[16];
+    char targetCode[16];
+    unsigned long require[2];
+    short inhJam[4];
+    char mediumName[64];
+    unsigned long color;
+    unsigned long shipColor;
+    short interfaceID;
+    short newsPic;
+    short reserved[8];
+} GovtRes;
+
+typedef struct FletRes {
+    short leadShip;
+    short escortShip[4];
+    short minCount[4];
+    short maxCount[4];
+    short govt;
+    short linkSyst;
+    char activateOn[256];
+    short quote;
+    short flags;
+    short reserved[8];
+} FletRes;
+
+typedef struct JunkRes {
+    short soldAt[8];
+    short boughtAt[8];
+    short basePrice;
+    short flags;
+    short scanMask;
+    char lcName[64];
+    char abbrev[64];
+    char buyOn[255];
+    char sellOn[255];
+} JunkRes;
+
+typedef struct CronRes {
+    short firstDay;
+    short firstMonth;
+    short firstYear;
+    short lastDay;
+    short lastMonth;
+    short lastYear;
+    short random;
+    short duration;
+    short preHoldoff;
+    short postHoldoff;
+    short flags;
+    short indNewsStr;
+    char enableOn[255];
+    char onStart[255];
+    char onEnd[255];
+    unsigned long contribute[2];
+    unsigned long require[2];
+    short newsGovt[4];
+    short govtNewsStr[4];
+} CronRes;
+
+typedef struct RoidRes {
+    short strength;
+    short spinRate;
+    short yieldType;
+    short yieldQty;
+    short partCount;
+    unsigned long partColor;
+    short fragType[2];
+    short fragCount;
+    short explodType;
+    short mass;
+    short reserved[8];
+} RoidRes;
+
+typedef struct ColrRes {
+    unsigned long buttonColor[3];
+    char menuFont[64];
+    short menuFontSize;
+    unsigned long menuColor[2];
+    unsigned long gridColor[2];
+    Rect progressBar;
+    unsigned long progressColor[3];
+    short buttonPos[12];
+    unsigned long floatingMapColor;
+    unsigned long listColor[3];
+    unsigned long escortHiliteColor;
+    char buttonFont[64];
+    short buttonFontSize;
+    short logoPos[2];
+    short rolloverPos[2];
+    short slidePos[6];
+} ColrRes;
+
+typedef struct ShipRes {
+    short cargo;
+    short shield;
+    short accel;
+    short speed;
+    short turn;
+    short energy;
+    short freeSpace;
+    short armor;
+    short shieldRe;
+    short wType[4];
+    short wCount[4];
+    short ammo[4];
+    short maxGun;
+    short maxTur;
+    short techLevel;
+    long cost;
+    short deathDelay;
+    short armorRe;
+    short explode[2];
+    short dispWeight;
+    short mass;
+    short length;
+    short inherentAI;
+    short crew;
+    short strength;
+    short inherentGovt;
+    short flags;
+    short podCount;
+    short defaultItems[4];
+    short itemCount[4];
+    short fuelRegen;
+    short skillVar;
+    short flags2;
+    unsigned long contribute1;
+    unsigned long contribute2;
+    char availability[255];
+    char appearOn[255];
+    char onPurchase[255];
+    short deionize;
+    short ionizeMax;
+    short keyCarried;
+    short defaultItems2[4];
+    short itemCount2[4];
+    unsigned long require1;
+    unsigned long require2;
+    short buyRandom;
+    short hireRandom;
+    short unused38C[34];
+    char onCapture[255];
+    char onRetire[255];
+    char shortName[64];
+    char commName[32];
+    char longName[128];
+    char movieName[31];
+    short wType2[4];
+    short wCount2[4];
+    short ammo2[4];
+    char subtitle[64];
+    short flags3;
+    short upgradeTo;
+    unsigned long escUpgrdCost;
+    unsigned long escSellValue;
+    short escortType;
+    short reserved[8];
+} ShipRes;
+
+typedef struct PersRes {
+    short linkSyst;
+    short govt;
+    short aiType;
+    short aggress;
+    short coward;
+    short shipType;
+    Rect weapType;
+    Rect weapCount;
+    Rect ammoLoad;
+    long credits;
+    short shieldMod;
+    short hailPict;
+    short commQuote;
+    short hailQuote;
+    short linkMission;
+    short flags;
+    char activateOn[256];
+    short grantClass;
+    short grantCount;
+    short grantProb;
+    char subtitle[64];
+    unsigned long shipColor;
+    short flags2;
+    short reserved[8];
+} PersRes;
+
+/* the text, then (when the resource is longer) the PICT id, the movie name and the flags */
+typedef struct DescRes {
+    unsigned char text[1];
+} DescRes;
+
+#pragma options align=reset
+
 /* WeapRecord.guidance, the Nova Bible's wëap Guidance values */
 #define kGuidanceUnguided   (-1)
 #define kGuidanceBeam       0
@@ -196,8 +746,8 @@ typedef struct ShipRec {
 #define kGuidanceBay        99      /* carried ship: a fighter bay */
 
 typedef struct CronRecord {
-    char active;
-    char loaded;
+    Boolean active;
+    Boolean loaded;
     short firstYear;
     short firstMonth;
     short firstDay;
@@ -216,7 +766,7 @@ typedef struct CronRecord {
     short govtValues[4];
     short indNewsStr;
     unsigned short flags;
-    char unk3E[2];
+    char pad3E[2];
     long contributes[2];
     long requires[2];
     char enableOn[255];
@@ -242,31 +792,34 @@ typedef struct PersRecord {
     short weapAmmo[256];
     long credits;
     float shieldMod;
-    char loaded;
-    char grudge;
-    char canAppear;
-    char prepared;
-    unsigned char name[31];
-    char unk643;
+    Boolean loaded;
+    Boolean grudge;
+    Boolean canAppear;
+    Boolean prepared;
+    char name[31];
+    Boolean unk643;
     char activeOn[255];
     char subtitle[65];
     short grantClass;
     short grantProb;
     short grantCount;
     short sameNameIndex;
+#ifdef MAC1010
+    union {
+        unsigned short rgb5[3];
+        RGBColor shipColor;
+    };
+#else
     unsigned short rgb5[3];
-    char unk792[2];
+#endif
+    char pad792[2];
 } PersRecord;
 
-#define kGovtXenophobic 0x1
-#define kShipArmorDisableTenth 0x10
-#define kGovtAlwaysDisabled 0x800
 #define kPersCaptainHector 1023 /* the hand-built shareware enforcer */
 #define kPersBountyHunter  1022
 
 typedef struct SystRecord {
-    short xPos;
-    short yPos;
+    MapScroll pos;
     short influenceX;
     short influenceY;
     short govt;
@@ -292,16 +845,16 @@ typedef struct SystRecord {
     short reinforceTime;
     short reinforceInterval;
     short reinforceDaysLeft;
-    char unkC6[2];
+    char padC6[2];
     float reinforceTimer;
     unsigned char name[32];
     char visibility[255];
-    char loaded;
-    char known;
-    char prepared;
+    Boolean loaded;
+    Boolean known;
+    Boolean prepared;
     RGBColor rgb;
     unsigned short astTypes;
-    char unk1F6[2];
+    char pad1F6[2];
     unsigned long mapPixel;
 } SystRecord;
 
@@ -310,16 +863,16 @@ typedef struct NebuRecord {
     short yPos;
     short width;
     short height;
-    char loaded;
-    char explored;
+    Boolean loaded;
+    Boolean explored;
     char activeOn[255];
     char onExplore[255];
 } NebuRecord;
 
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern NebuRecord *nebulaData;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 typedef struct DudeRecord {
@@ -329,14 +882,14 @@ typedef struct DudeRecord {
     short shipProbs[16];
     unsigned short flags;
     unsigned short adviceFlags;
-    char loaded;
-    char unk49;
+    Boolean loaded;
+    Boolean pad49;
 } DudeRecord;
 
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern DudeRecord *dudeData;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 typedef struct JunkRecord {
@@ -354,21 +907,21 @@ typedef struct JunkRecord {
 } JunkRecord;
 
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern JunkRecord *junkData;
 extern BoomRecord *explodType;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 /* rank runtime record, stride 0x120 in the rankData array. */
 typedef struct RankRecord {
-    char active;
-    char loaded;
+    Boolean active;
+    Boolean loaded;
     short index;
     short priority;
     short govt;
     short priceMod;
-    char unkA[2];
+    char padA[2];
     long salary;
     long salaryCap;
     long contributes[2];
@@ -379,9 +932,9 @@ typedef struct RankRecord {
 } RankRecord;
 
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern RankRecord *rankData;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 typedef struct OopsRecord {
@@ -394,15 +947,15 @@ typedef struct OopsRecord {
     short countdown;
     char text[255];
     unsigned char name[256];
-    char unk20D;
-    char loaded;
-    char unk20F;
+    Boolean unk20D;
+    Boolean loaded;
+    Boolean pad20F;
 } OopsRecord;
 
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern OopsRecord *disasterData;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 typedef struct FletRecord {
@@ -414,19 +967,20 @@ typedef struct FletRecord {
     short linkSyst;
     short quoteStrList;
     char activateOn[255];
-    char unk11F;
+    Boolean pad11F;
     unsigned short flags;
-    char usable;
-    char unk123;
+    Boolean usable;
+    Boolean pad123;
 } FletRecord;
 
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern FletRecord *fleetData;
-}
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 /* chär resource, 0x16a bytes, read in place through charFileHand. */
+#pragma options align=mac68k
 typedef struct CharRecord {
     long cash;
     short shipType;
@@ -444,44 +998,291 @@ typedef struct CharRecord {
     short startYear;
     char prefix[0x10];
     char suffix[0x10];
-    char unk15a[0x10];
+    short unk15a[8];
 } CharRecord;
+#pragma options align=reset
 
-#define kSpobCanLand   0x00000001UL
-#define kSpobHasBar    0x00000040UL
-#define kSpobHypergate 0x1000          /* flags2 */
-#define kSpobWormhole  0x2000          /* flags2 */
+/* Resource flag bits, one name per bit, named for the Nova Bible's meaning.
+   Table and the uses that read a bit differently: Research/flag-names.md */
+
+/* gövt Flags */
+#define kGovtXenophobic         0x0001
+#define kGovtEnforcesAbroad     0x0002  /* attacks a criminal player outside its own systems */
+#define kGovtAlwaysAttacksPlayer 0x0004
+#define kGovtImmuneToPlayer     0x0008  /* the player's shots don't hit its ships */
+#define kGovtRetreatsWhenHurt   0x0010  /* warships retreat below 25% shields */
+#define kGovtIgnoredByNosy      0x0020  /* nosy non-allied ships ignore its ships under attack */
+#define kGovtNeverAttacksPlayer 0x0040
+#define kGovtFreighterHalfJam   0x0080  /* freighters get half the warships' jamming */
+#define kGovtPersNoEscapePod    0x0100  /* përs ships act as if they used an escape pod */
+#define kGovtWarshipsBribable   0x0200
+#define kGovtNoComm             0x0400  /* can't hail its ships */
+#define kGovtAlwaysDisabled     0x0800  /* its ships start disabled (derelicts) */
+#define kGovtPlunders           0x1000
+#define kGovtFreightersBribable 0x2000
+#define kGovtPlanetsBribable    0x4000
+#define kGovtGreedy             0x8000  /* larger bribes; its planets always take one */
+
+/* gövt Flags2 */
+#define kGovtNotTalkative       0x0001  /* no request-assistance / beg-for-mercy button */
+#define kGovtMinor              0x0002  /* a minor govt on the map's political boundaries */
+#define kGovtNoInfluence        0x0004  /* its systems don't affect the boundaries */
+#define kGovtSilent             0x0008  /* no distress calls, no greetings */
+#define kGovtRoadsideAssistance 0x0010
+#define kGovtNoHypergates       0x0020
+#define kGovtPrefersHypergates  0x0040
+#define kGovtPrefersWormholes   0x0080
+
+/* spöb Flags (SpobRecord.flags is unsigned long) */
+#define kSpobCanLand            0x00000001UL
+#define kSpobTradeCenter        0x00000002UL  /* commodity exchange */
+#define kSpobHasOutfitter       0x00000004UL
+#define kSpobHasShipyard        0x00000008UL
+#define kSpobIsStation          0x00000010UL
+#define kSpobUninhabited        0x00000020UL  /* no traffic control or refuelling */
+#define kSpobHasBar             0x00000040UL
+#define kSpobLandOnlyWhenDestroyed 0x00000080UL
+#define kSpobPriceBits          0x77777700UL  /* the six commodities' price levels */
+#define kSpobDemandLow0         0x10000000UL
+#define kSpobDemandMedium0      0x20000000UL
+#define kSpobDemandHigh0        0x40000000UL
+#define kSpobDemandLow1         0x01000000UL
+#define kSpobDemandMedium1      0x02000000UL
+#define kSpobDemandHigh1        0x04000000UL
+#define kSpobDemandLow2         0x00100000UL
+#define kSpobDemandMedium2      0x00200000UL
+#define kSpobDemandHigh2        0x00400000UL
+#define kSpobDemandLow3         0x00010000UL
+#define kSpobDemandMedium3      0x00020000UL
+#define kSpobDemandHigh3        0x00040000UL
+#define kSpobDemandLow4         0x00001000UL
+#define kSpobDemandMedium4      0x00002000UL
+#define kSpobDemandHigh4        0x00004000UL
+#define kSpobDemandLow5         0x00000100UL
+#define kSpobDemandMedium5      0x00000200UL
+#define kSpobDemandHigh5        0x00000400UL
+
+/* spöb Flags2 */
+#define kSpobFrame0Between      0x0001  /* the first frame shows after each later one */
+#define kSpobRandomFrames       0x0002
+#define kSpobLoopSound          0x0010
+#define kSpobAlwaysDominated    0x0020
+#define kSpobStartsDestroyed    0x0040
+#define kSpobAnimWhenDestroyed  0x0080
+#define kSpobDeadly             0x0100  /* ships that touch it are destroyed */
+#define kSpobFiresWhenProvoked  0x0200
+#define kSpobBuysAnyOutfit      0x0400  /* buys any nonpermanent outfit, whatever the tech level */
+#define kSpobHypergate          0x1000
+#define kSpobWormhole           0x2000
+#define kSpobGateOrWormhole     (kSpobHypergate | kSpobWormhole)
+
+/* shïp Flags */
+#define kShipSlowJump           0x0001
+#define kShipSemiFastJump       0x0002
+#define kShipFastJump           0x0004
+#define kShipFuelRegen          0x0008  /* the player's ship uses FuelRegen */
+#define kShipArmorDisableTenth  0x0010  /* disabled at 10% armor, not 33% */
+#define kShipAfterburnerIfRated 0x0020  /* afterburner once the player's combat rating is high */
+#define kShipAlwaysAfterburner  0x0040  /* AI ships only */
+#define kShipShowArmorPercent   0x0100  /* "% armor" on the target display, not "Shields Down" */
+#define kShipHideStatus         0x0200  /* no armor or shield state on the status display */
+#define kShipPlanetType         0x0400  /* hit only by planet-type weapons */
+#define kShipTurretBlindFront   0x1000
+#define kShipTurretBlindSide    0x2000
+#define kShipTurretBlindRear    0x4000
+#define kShipEscapeShip         0x8000  /* ejecting flies a carried ship of this type */
+
+/* shïp Flags2 */
+#define kShipSwarms             0x0001
+#define kShipStandoff           0x0002  /* prefers standoff attacks */
+#define kShipUntargetable       0x0004
+#define kShipPDTarget           0x0008  /* point defence may fire on it */
+#define kShipNoFighterVoice     0x0010
+#define kShipJumpsAtSpeed       0x0020  /* jumps without slowing down */
+#define kShipInertialess        0x0040
+#define kShipAmmoAware          0x0080  /* AI runs away or docks when out of ammo */
+#define kShipCloaksToJump       0x0400  /* AI cloaks when hyperspacing */
+#define kShipCloaksWhenAttacked 0x4000  /* AI cloaks when preemptively attacked */
+
+/* shïp Flags3 */
+#define kShipDestroysAsteroids  0x0001
+#define kShipScoopsDebris       0x0002
+#define kShipMiner              (kShipDestroysAsteroids | kShipScoopsDebris)
+#define kShipIgnoresDeadly      0x0020  /* ignores deadly stellars */
+#define kShipTurretShotsAbove   0x0040
+#define kShipHideIfUnavailable  0x0100  /* not in the shipyard while Availability is false */
+#define kShipHideIfRequireUnmet 0x0200
+#define kShipSupersedes         0x4000  /* blocks higher-numbered ships of equal DispWeight */
+
+/* shän Flags (ShipRec.shanFlags) */
+#define kShanBanks              0x0001
+#define kShanFoldingParts       0x0002
+#define kShanKeyCarriedFrames   0x0004  /* second frame set while no KeyCarried ship is aboard */
+#define kShanAnimatedBase       0x0008  /* extra base frames shown in sequence */
+#define kShanStopAnimDisabled   0x0010
+#define kShanHideAltDisabled    0x0020
+#define kShanHideLightsDisabled 0x0040
+#define kShanUnfoldsWhenFiring  0x0080
+#define kShanSkewCorrect        0x0100  /* corrects off-axis rendering by UpCompressY/DnCompressY */
+
+/* wëap Flags */
+#define kWeapSpins              0x0001
+#define kWeapSecondary          0x0002  /* fired by the second trigger */
+#define kWeapCycleFromFirstFrame 0x0004
+#define kWeapNoFastTargets      0x0008  /* guided: won't fire at fast ships */
+#define kWeapLoopSound          0x0010
+#define kWeapPassesShields      0x0020
+#define kWeapFireSimultaneously 0x0040
+#define kWeapNoPDTarget         0x0080  /* point defence can't target it */
+#define kWeapBlastSparesPlayer  0x0100
+#define kWeapSmallSmoke         0x0200
+#define kWeapBigSmoke           0x0400
+#define kWeapPersistentSmoke    0x0800
+#define kWeapTurretBlindFront   0x1000
+#define kWeapTurretBlindSide    0x2000
+#define kWeapTurretBlindRear    0x4000
+#define kWeapDetonatesAtEnd     0x8000  /* detonates at the end of its lifespan */
+
+/* wëap Seeker */
+#define kWeapSeekPassesAsteroids 0x0001
+#define kWeapSeekDecoyedByAsteroids 0x0002
+#define kWeapSeekTurnsAwayJammed 0x0010
+#define kWeapSeekNoFireIonized  0x0020
+#define kWeapSeekLosesLock      0x4000  /* loses lock if the target is not ahead */
+#define kWeapSeekAttacksParent  0x8000  /* may attack its parent ship if jammed */
+
+/* wëap Flags2 */
+#define kWeapHoldFirstFrame     0x0001  /* cycling: first frame until ProxSafety expires */
+#define kWeapStopOnLastFrame    0x0002
+#define kWeapProxHitsAnyShip    0x0008
+#define kWeapSubsSeekNearest    0x0010
+#define kWeapNoSubsOnExpire     0x0020
+#define kWeapNoAmmoDisplay      0x0040
+#define kWeapNeedsKeyCarried    0x0080
+#define kWeapFlagAIRestricted   0x0100  /* AI ships won't use it */
+#define kWeapUsesShipSprite     0x0200
+#define kWeapPlanetType         0x0400  /* hits only planet-type ships */
+#define kWeapHideIfNoAmmo       0x0800  /* not selectable or shown when out of ammo */
+#define kWeapNotDestroying      0x1000  /* can disable but not destroy */
+#define kWeapBeamUnderShip      0x2000
+#define kWeapFireWhileCloaked   0x4000
+#define kWeapBigRockDamage      0x8000  /* x10 mass damage to asteroids */
+
+/* wëap Flags3 */
+#define kWeapAmmoAtBurstEnd     0x0001  /* uses ammo only at the end of a burst */
+#define kWeapTranslucent        0x0002
+#define kWeapOneShotAtATime     0x0004
+#define kWeapClosestExit        0x0010
+#define kWeapExclusive          0x0020
+
+/* mïsn Flags (copied to MissionRecord, MissionState and MissionAvailRec .flags) */
+#define kMissionAutoAbort       0x0001
+#define kMissionNoDestArrows    0x0002
+#define kMissionCantRefuse      0x0004
+#define kMissionTakesFuel       0x0008  /* takes 100 units of fuel on success */
+#define kMissionInfiniteAuxShips 0x0010
+#define kMissionFailIfScanned   0x0020
+#define kMissionAbortPenalty    0x0040  /* -5x CompReward on abort */
+#define kMissionBriefingArrow   0x0100  /* green arrow on the briefing map */
+#define kMissionExtraArrow      0x0200  /* also mark the mission's system */
+#define kMissionHidden          0x0400
+#define kMissionFixedShipType   0x0800  /* special ships' type picked once at start */
+#define kMissionNotForFreighters 0x2000
+#define kMissionNotForWarships  0x4000
+#define kMissionFailIfBoarded   0x8000  /* by pirates */
+
+/* mïsn Flags2 */
+#define kMissionNeedsCargoSpace 0x0001
+#define kMissionPaysOnAbort     0x0002
+#define kMissionFailIfDisabled  0x0004  /* fails if the player is disabled or destroyed */
+
+/* përs Flags */
+#define kPersHoldsGrudge        0x0001
+#define kPersEscapePod          0x0002  /* escape pod and afterburner */
+#define kPersQuoteIfGrudge      0x0004
+#define kPersQuoteIfLikes       0x0008
+#define kPersQuoteOnAttack      0x0010
+#define kPersQuoteIfDisabled    0x0020
+#define kPersSwapsShip          0x0040  /* replaces the LinkMission's single special ship */
+#define kPersQuoteOnce          0x0080
+#define kPersDeactivateOnAccept 0x0100
+#define kPersOfferWhenBoarded   0x0200  /* LinkMission offered on boarding, not hailing */
+#define kPersQuoteNeedsMission  0x0400
+#define kPersLeavesOnAccept     0x0800
+#define kPersNotForWimpyFreighter 0x1000
+#define kPersNotForBeefyFreighter 0x2000
+#define kPersNotForWarship      0x4000
+#define kPersShowsDisasters     0x8000
+
+/* përs Flags2 */
+#define kPersStartsNoFuel       0x0001
+
+/* düde Flags */
+#define kDudeCargoMask          0x003f  /* the six cargo-class bits */
+#define kDudeCarriesMoney       0x0040  /* the amount depends on the ship's price */
+#define kDudeUntouchable        0x0100  /* can't hit or be hit by the player */
+
+/* düde InfoTypes (DudeRecord.adviceFlags) */
+#define kDudeInfoPrices         0x1000  /* good prices */
+#define kDudeInfoDisasters      0x2000
+#define kDudeInfoAdvice         0x4000  /* specific advice: STR# 7500 + the low 12 bits */
+#define kDudeInfoGovtHail       0x8000  /* generic govt hail messages */
+#define kDudeInfoAny            (kDudeInfoPrices | kDudeInfoDisasters | kDudeInfoAdvice | kDudeInfoGovtHail)
+
+/* ränk Flags */
+#define kRankGrantDropsSameGovt 0x0001
+#define kRankDropsSameGovt      0x0002
+#define kRankLostOnAttack       0x0004  /* lost on destroying or disabling the govt's ships */
+#define kRankNeverDropped       0x0008  /* permanent */
+#define kRankGrantDropsLowerPriority 0x0010
+#define kRankDropsLowerPriority 0x0020
+#define kRankLostOnCrime        0x0040
+#define kRankNotAttacked        0x0100
+#define kRankCanAlwaysLand      0x0200
+#define kRankCallsAssistance    0x0400
+#define kRankFreeRepair         0x0800
+
+/* jünk, flët, crön and chär Flags */
+#define kJunkTribbles           0x0001
+#define kJunkPerishable         0x0002
+#define kFleetFlagRandomCargo   0x0001
+#define kCronIterateOnActivate  0x0001
+#define kCronIterateOnEnd       0x0002
+#define kCharIsDefault          0x0001
 
 /* flag-test wrappers (house style) */
 #define SpobCanLand(s)  ((s)->flags & kSpobCanLand)
 #define SpobHasBar(s)   ((s)->flags & kSpobHasBar)
 #define SpobIsHyperOrWorm(s) ((s)->flags2 & (kSpobHypergate | kSpobWormhole))
-#define kSpobUninhabited 0x00000020UL
 #define SpobUninhabited(s) ((s)->flags & kSpobUninhabited)
-#define kSpobLandOnlyWhenDestroyed 0x00000080UL
 #define SpobLandOnlyWhenDestroyed(s) ((s)->flags & kSpobLandOnlyWhenDestroyed)
 
-extern char StellarIsDestroyed(SpobRecord *spob);
-extern char StellarIsLandable(SpobRecord *spob);
-extern char StellarIsNormalLandable(SpobRecord *spob);
-extern char PlayerBlessedByGovt(short govt, short which);
+extern Boolean StellarIsDestroyed(SpobRecord *spob);
+extern Boolean StellarIsLandable(SpobRecord *spob);
+extern Boolean StellarIsNormalLandable(SpobRecord *spob);
+extern unsigned char PlayerBlessedByGovt(short govt, short which);
 
 #pragma cplusplus on
-extern "C++" {
+EXTERN_CPP_BEGIN
 extern SpobRecord *stellarData;
-extern SystRecord *gSystems;
+extern SystRecord *systemData;
 extern GovtRecord *govtData;
-extern ShipRec *gShipTypes;
-extern OutfRecord *gOutfits;
+extern ShipRec *shipClass;
+extern OutfRecord *outfitSystem;
 extern PersRecord *personData;
-extern WeapRecord *gWeapons;
-extern CronRecord *gCrons;
-}
+extern WeapRecord *weaponStats;
+extern CronRecord *cronEvent;
+EXTERN_CPP_END
 #pragma cplusplus reset
 
 #define SpobHasShipyard(s)  ((s)->flags & kSpobHasShipyard)
 #define kGameStrList        2002
 #define kButtonStrList      150     /* STR# 150: the button labels */
+#define kKeyNameStrList     129     /* STR# 129: the key names */
+#define kAlertStrList       140
+#define kSpecialValueStrList 141   /* STR# 141: the words a preference shows for its special values */
+#define kHintStrList        7000
+#define kHackedStrList      30000   /* STR# 30000: what the ships say to a hacked copy */
 #define kFirstJunkItem     6
 #define kFirstResourceID 128
 /* an ID field that also carries a class: 128 + 1000 * class + index */
@@ -489,13 +1290,8 @@ extern CronRecord *gCrons;
 #define ResClassBase(cls)   (kFirstResourceID + (cls) * kResClassStep)
 #define InGovtClass(id, cls) ((id) >= ResClassBase(cls) \
                               && (id) < ResClassBase(cls) + kMaxGovts)
-#define kGovtAlwaysAttacksPlayer   0x0004
 #define kGovtClasses    4
-#define kMissionAvailHasDest      0x0100
 #define kMissionDescBase     0x0fa0
-#define kMissionFlagRearmShips  0x10    /* loaddata.c's name */
-#define kMissionHidden 0x0400
-#define kMissionHideFromList      0x0400
 #define kMissionKindDisable     3       /* mïsn +0x0a: disable the ship */
 #define kMissionModeEscort     1
 #define kModTypeFakeID     21
@@ -508,7 +1304,6 @@ extern CronRecord *gCrons;
 #define kOutfModType17  0x11
 #define kOutfModWeapon 1
 #define kOutfMods           4
-#define kPersNeedsFuel           1     /* PersRecord flags2: starts with no fuel */
 #define kStrOf                 0x187   /* STR# 2002: "of" */
 #define kStrAnd                0x188   /* STR# 2002: "and" */
 #define kPrefsStrList   0x82
@@ -516,79 +1311,13 @@ extern CronRecord *gCrons;
 #define kRankFlags                  0x1c
 #define kRankGovt                   6
 #define kRankInUse                  1
-#define kRankNeverDropped            0x0008  /* immune to the sweeps below */
-#define kShipAltAnim            0x0008
-#define kShipAltWhenDisabled    0x0010  /* +0xa24: show it while disabled */
-#define kShipAmmoAware      0x80    /* ai.c's name */
-#define kShipAngleTable         0x0100  /* +0xa24: frameAngles is populated */
-#define kShipBayAnim            0x0004
-#define kShipFlag2NoTarget     4
-#define kShipFlag2Untargetable 4
-#define kShipFlagHalfArmor  0x0010      /* ShipRec flags +0x9e8: recovers 0.1 */
-#define kShipFlagNoMove         0x400
-#define kShipFlagNoVoice        0x10
-#define kShipFlags3Trader       0x0002
-#define kShipKeepFireGroup 0x80
-#define kShipLightsOffDisabled  0x0040
-#define kShipNoAltDisabled      0x0020
-#define kShipRecRollable    0x0001
-#define kShipTypeA24Bit1        0x0002
 #define kShipTypeEscort         6       /* aiType: a hired escort */
 #define kShipTypeSpecial    0x2ff
-#define kSpobAmbientLoop    0x0010      /* flags2 (tradedlg.c's name) */
-#define kSpobFlag2Bit5        0x20
-#define kSpobFlagMissions 0x40
-#define kSpobFlagNoShips 0x20
-#define kSpobFlagOutfit     2
-#define kSpobFlagShipyard   4
-#define kSpobFlagTrade      8
-#define kSpobHasShipyard   0x00000008UL  /* spob flags (Nova Bible); name TBC */
-#define kSpobTradeCenter 0x00000002UL
-#define kWeapAmmoFlag           0x1
 #define kWeapAmmoFuelBase   1000
-#define kWeapArcMatch           0x400
-#define kWeapBigRockDamage      0x8000
-#define kWeapFireWhileCloaked   0x4000
-#define kWeapTranslucent       0x2
-#define kWeapClosestExit  0x10
-#define kWeapOneShotAtATime  0x4
-#define kWeapExclusive         0x20
-#define kWeapFlagAIRestricted   0x100
-#define kWeapFlagAIUsable       0x0400
-#define kWeapFlagHitsOwner      0x100   /* WeapRecord flags bit 8 (name TBC) */
-#define kWeapFlagIonizing       0x20
-#define kWeapFlagTurret     0x0002
-#define kWeapSeekPassesAsteroids      1
-#define kWeapNotDestroying  0x1000     /* WeapRecord flags2 bit 12: can disable but not destroy */
 #define kWeapTypeTop            0x100
-#define kWeapSeekNoFireIonized    0x0020
 
 #define kDemandHigh         4
 #define kDemandLow          1
-#define kShipCarriesMission 0x3
-#define kShipEscortBonus    0x10  /* the 1.333x disable threshold */
-#define kShipInvincible     0x100
-#define kShipNoGovtString   0x200 /* suppress the government line */
-#define kSpobDemandHigh0    0x40000000UL
-#define kSpobDemandHigh1    0x04000000UL
-#define kSpobDemandHigh2    0x00400000UL
-#define kSpobDemandHigh3    0x00040000UL
-#define kSpobDemandHigh4    0x00004000UL
-#define kSpobDemandHigh5    0x00000400UL
-#define kSpobDemandLow0     0x10000000UL
-#define kSpobDemandLow1     0x01000000UL
-#define kSpobDemandLow2     0x00100000UL
-#define kSpobDemandLow3     0x00010000UL
-#define kSpobDemandLow4     0x00001000UL
-#define kSpobDemandLow5     0x00000100UL
-#define kSpobNoNav          0x3000
-#define kWeapNoAmmoDisplay  0x40
-
-#define kSpobHidden         0x00000020UL
-
-#define kGovtPirateWarships 0x1000
-#define kWeapPlanetType        0x400
-#define kSpobDestroyed      0x00000010UL
 
 #ifdef __cplusplus
 }

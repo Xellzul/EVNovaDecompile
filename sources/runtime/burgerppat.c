@@ -51,7 +51,7 @@ Word ImageParsePPat(Image_t *ImagePtr, const Word8 *InputPtr)
         const Word32 *HeaderPtr;
 
         HeaderPtr = (const Word32 *)InputPtr;
-        Version = SwapShort(((const Word16 *)HeaderPtr)[0]);
+        Version = SwapShort((HeaderPtr)[0]);
         PixMapOffset = SwapLong(HeaderPtr[1]);
         PixelDataOffset = SwapLong(HeaderPtr[2]);
         if (Version != kFullColorPattern || PixMapOffset < kMinPatMap ||

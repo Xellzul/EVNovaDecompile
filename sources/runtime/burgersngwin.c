@@ -232,7 +232,7 @@ static void DigitalMusicForegroundTask(void *Data)
                     DigitalMusicReset(&Input->ReadState);
                 } else {
                     FastMemSet(Dest, DigitalMusicGetSilenceVal(Input->ReadState.DataType), Room);
-                    BurgerLastSong = (Word)-1;
+                    BurgerLastSong = -1;
                     Input->State = kMusicStateIdle;
                     break;
                 }

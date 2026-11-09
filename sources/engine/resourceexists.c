@@ -10,7 +10,7 @@
 /* engine-facing wrapper; lives at 0x0047b7a0, grouped here by topic */
 /* ResourceExists (mac _ResourceExists). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047b7a0
-char ResourceExists(unsigned long type, short id)
+Boolean ResourceExists(unsigned long type, short id)
 {
     return nv_ResourceExists(type, id);
 }

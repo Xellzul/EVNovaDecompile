@@ -9,7 +9,7 @@
 
 /* nv_ResourceExists (mac (port layer)). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ce640
-char nv_ResourceExists(unsigned long type, short id)
+Boolean nv_ResourceExists(unsigned long type, short id)
 {
     return nv_FindResourceRecord(type, id) != NULL;
 }

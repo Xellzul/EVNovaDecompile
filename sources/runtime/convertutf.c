@@ -23,7 +23,13 @@ typedef unsigned char UTF8;
 #define kByteMask           0xbf
 #define kByteMark           0x80
 
-signed char trailingBytesForUTF8[256] = {                /* 0x00582050 trailing bytes for UTF-8 */
+#ifdef MAC1010      /* the exe holds them with the code */
+#define UTF_TABLE static const
+#else
+#define UTF_TABLE
+#endif
+
+UTF_TABLE signed char trailingBytesForUTF8[256] = {                /* 0x00582050 trailing bytes for UTF-8 */
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -34,12 +40,12 @@ signed char trailingBytesForUTF8[256] = {                /* 0x00582050 trailing 
     2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5
 };
 
-UTF32 offsetsFromUTF8[6] = {                        /* 0x00582150 offsets from UTF-8 */
+UTF_TABLE UTF32 offsetsFromUTF8[6] = {                        /* 0x00582150 offsets from UTF-8 */
     0x00000000UL, 0x00003080UL, 0x000e2080UL,
     0x03c82080UL, 0xfa082080UL, 0x82082080UL
 };
 
-UTF8 firstByteMark[7] = {                         /* 0x00582168 first byte mark */
+UTF_TABLE UTF8 firstByteMark[7] = {                         /* 0x00582168 first byte mark */
     0x00, 0x00, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc
 };
 
@@ -47,7 +53,7 @@ UTF8 firstByteMark[7] = {                         /* 0x00582168 first byte mark 
    exe 95 / obj 95, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00541330
 long ConvertUTF32toUTF16(const UTF32 **sourceStart, const UTF32 *sourceEnd,
-                  UTF16 **targetStart, UTF16 *targetEnd, long *budget, ULong flags)
+                  UTF16 **targetStart, UTF16 *targetEnd, UTFBudget *budget, UTFFlags flags)
 {
     long result = kSourceExhausted;
     const UTF32 *source = *sourceStart;
@@ -115,14 +121,14 @@ long ConvertUTF32toUTF16(const UTF32 **sourceStart, const UTF32 *sourceEnd,
    exe 142 / obj 142, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0054144b
 long ConvertUTF16toUTF8(const UTF16 **sourceStart, const UTF16 *sourceEnd,
-                  UTF8 **targetStart, UTF8 *targetEnd, long *budget, ULong flags)
+                  UTF8 **targetStart, UTF8 *targetEnd, UTFBudget *budget, UTFFlags flags)
 {
     long result = kSourceExhausted;
     const UTF16 *source = *sourceStart;
     UTF8 *target = *targetStart;
     long writing = *targetStart ? true : false;
-    const UTF16 *oldSource;
     UTF32 ch;
+    const UTF16 *oldSource;
     UTF32 ch2;
     unsigned short bytesToWrite;
 
@@ -200,7 +206,7 @@ long ConvertUTF16toUTF8(const UTF16 **sourceStart, const UTF16 *sourceEnd,
 
 /* isLegalUTF8 (isLegalUTF8). STATE: MATCH 100%, exe 66 / obj 66, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005415f1
-Word isLegalUTF8(const UTF8 *source, long length)
+long isLegalUTF8(const UTF8 *source, long length)
 {
     UTF8 a;
     const UTF8 *srcptr;
@@ -248,15 +254,20 @@ Word isLegalUTF8(const UTF8 *source, long length)
    exe 146 / obj 146, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00541684
 long ConvertUTF8toUTF16(const UTF8 **sourceStart, const UTF8 *sourceEnd,
-                  UTF16 **targetStart, UTF16 *targetEnd, long *budget, ULong flags)
+                  UTF16 **targetStart, UTF16 *targetEnd, UTFBudget *budget, UTFFlags flags)
 {
+#ifdef MAC1010      /* 1.0.10 spelling */
+    long length;
+#endif
     long result = kSourceExhausted;
     const UTF8 *source = *sourceStart;
     UTF16 *target = *targetStart;
     long writing = *targetStart ? true : false;
     UTF32 ch;
     unsigned short extraBytesToRead;
+#ifndef MAC1010     /* 1.0.10 spelling */
     long length;
+#endif
 
     while (source < sourceEnd) {
         if (*budget == 0) {
@@ -326,7 +337,8 @@ long ConvertUTF8toUTF16(const UTF8 **sourceStart, const UTF8 *sourceEnd,
                     result = kTargetExhausted;
                     break;
                 }
-                target[0] = (UTF16)(((ch - kHalfBase) >> kHalfShift) + kSurHighStart);
+                ch -= kHalfBase;
+                target[0] = (UTF16)((ch >> kHalfShift) + kSurHighStart);
                 target[1] = (UTF16)((ch & kHalfMask) + kSurLowStart);
                 target += 2;
             } else {

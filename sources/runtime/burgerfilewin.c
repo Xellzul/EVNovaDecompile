@@ -253,7 +253,7 @@ void ExpandAPathToBufferNative(char *out, const char *name)
         }
     }
     if (device != kNoVolume) {
-        out[0] = (char)(device + 'A');
+        out[0] = (device + 'A');
         out[1] = ':';
         out[2] = '\\';
         out += 3;
@@ -408,7 +408,7 @@ char *ConvertNativePathToPath(const char *path)
     while (c != 0) {
         if (c == kBackslash)
             c = kColon;
-        *dst = (char)c;
+        *dst = c;
         ++src;
         c = *src;
         ++dst;

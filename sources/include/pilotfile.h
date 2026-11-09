@@ -4,73 +4,11 @@
 #ifndef PILOTFILE_H
 #define PILOTFILE_H
 
+#ifdef MACBUILD
+#pragma options align=mac68k
+#else
 #pragma options align=packed
-
-/* one entry of the mission table, stride 0x8e6 (currentMissions' element) */
-typedef struct MissionRec {
-    short travelStellar;
-    short unk2;
-    short returnStellar;
-    short shipCount;
-    short shipDude;
-    short shipGoal;
-    short shipBehav;
-    short shipStart;
-    short shipSyst;
-    short cargoType;
-    short cargoQty;
-    short pickupMode;
-    short dropoffMode;
-    short scanMask;
-    short compGovt;
-    short compReward;
-    short datePostIncrement;
-    long payment;
-    short specialShipsKilled;
-    short specialShipsBoarded;
-    short specialShipsDisabled;
-    short specialShipsJumpedIn;
-    short specialShipsJumpedOut;
-    short initialShipCount;
-    char canAbort;
-    char hasCargo;
-    char unk34;
-    short briefDesc;
-    short quickBriefDesc;
-    short loadCargoDesc;
-    short dropCargoDesc;
-    short compDesc;
-    short failDesc;
-    short refuseDesc;
-    short shipDoneDesc;
-    short timeLimit;           /* +0x045 fed to DateAfterDays */
-    short destStrList;          /* +0x047 STR# id of the destination name */
-    short destStrIndex;         /* +0x049 */
-    short shipDelay;
-    short misnIndex;
-    short shipStrList;          /* +0x04f STR# id of the mission ship name */
-    short shipStrIndex;         /* +0x051 */
-    short shipTypeIndex;
-    unsigned short flags;       /* +0x055 */
-    short flags2;
-    struct { long a; long b; } unk59;
-    short auxShipCount;            /* +0x061 */
-    short auxShipDude;
-    short auxShipSyst;
-    short auxShipsSpawned;
-    short auxShipDelay;
-    short auxShipsLeft;            /* +0x06b */
-    MStr64 shipName;            /* +0x06d rebuilt from destStrList/Index */
-    MStr64 shipSubtitle;        /* +0x0ad rebuilt from shipStrList/Index */
-    MStr255 unkED;              /* +0x0ed */
-    MStr255 beginSetString;     /* +0x1ec */
-    MStr255 setString2;         /* +0x2eb */
-    MStr255 succSetString;      /* +0x3ea */
-    MStr255 failSetString;      /* +0x4e9 */
-    MStr255 abortSetString;     /* +0x5e8 */
-    MStr255 shipDoneSetString;  /* +0x6e7 */
-    MStr256 name;               /* +0x7e6 */
-} MissionRec;
+#endif
 
 /* first resource: the player record, 0xe952 bytes */
 typedef struct PilotRec {
@@ -89,9 +27,9 @@ typedef struct PilotRec {
     short weapAmmo[0x100];      /* +0x0261a */
     long credits;               /* +0x0281a */
     MissionState objectives[16];   /* +0x0281e */
-    MissionRec missions[16];        /* +0x0295e */
+    MissionRecord missions[16];        /* +0x0295e */
     char missionBits[0x2710];   /* +0x0b7be */
-    char spobFlag[0x800];       /* +0x0dece */
+    Boolean spobFlag[0x800];       /* +0x0dece */
     short escortType[0x40];     /* +0x0e6ce */
     short fighterType[0x40];    /* +0x0e74e */
     short escortA[0x40];        /* +0x0e7ce */
@@ -110,13 +48,12 @@ typedef struct PilotRec2 {
     short persB[0x400];         /* +0x1806 */
     short unk2006[0x40];        /* +0x2006 */
     short tribute[0x800];       /* +0x2086 */
-    char seenIntro;             /* +0x3086 */
-    char unk3087;               /* +0x3087 */
+    Boolean seenIntro;             /* +0x3086 */
+    Boolean unk3087;               /* +0x3087 */
     short newsC[0x100];         /* +0x3088 */
     short newsB[0x100];         /* +0x3288 */
     short junkHeld[0x80];       /* +0x3488 */
-    short globalFlux[2];        /* +0x3588 */
-    short localFlux[2];         /* +0x358c */
+    short priceFlux[2][2];      /* +0x3588 global, +0x358c local */
     short cronA[0x200];         /* +0x3590 */
     short cronB[0x200];         /* +0x3990 */
     short systState[0x800];     /* +0x3d90 */

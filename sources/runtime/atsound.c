@@ -184,7 +184,7 @@ long ST_PlaySound(void *snd, unsigned short priority, unsigned short level)
 
     err = 0;
     result = 0;
-    req.handle = (void **)snd;
+    req.handle = snd;
     req.priority = priority;
     req.leftLevel = level;
     req.rightLevel = level;
@@ -293,7 +293,7 @@ SoundRequest gSoundVoiceStatus;                       /* 0x008707dc, callback re
 /* Counts the channels this sound occupies; a null sound counts them all. */
 /* ST_IsSoundPlaying. STATE: MATCH 100%, exe 33 / obj 33, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004d6770
-short ST_IsSoundPlaying(void *sound)
+unsigned short ST_IsSoundPlaying(void *sound)
 {
     long found;
     ULong i;

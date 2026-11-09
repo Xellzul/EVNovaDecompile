@@ -1,5 +1,5 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
-/* showintroscreen.c -- ShowIntroScreen, MainScreenIdle, LoadMainScreenSounds; exe 0x0048adc0..0x0048b250. Notes: Research/notes/mainscreen.md */
+/* showintroscreen.c -- ShowIntroScreen, MainScreenAppearStart, MainScreenAppear; exe 0x0048adc0..0x0048b250. Notes: Research/notes/mainscreen.md */
 
 #include <stddef.h>
 #include "prototypes.h"
@@ -30,16 +30,181 @@
  * mode/maskRgn arguments, not a separate zeroed local.
  */
 #define kIntroPictSlots 4
+#ifdef MACBUILD
+#define kKeyReturn MacKey(0x24)
+#define kKeySpace  MacKey(0x31)
+#endif
 
 
 
 /* ShowIntroScreen. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048adc0
+// MAC: _ShowIntroScreen i386 0x00016cf1 ppc 0x0001a9bc
+#ifdef MACBUILD
+void ShowIntroScreen(void)
+{
+    long startTick;
+    short i;
+    Boolean pictSkipped;
+    Boolean hit;
+    PicHandle picHandle;
+    void *snd;
+    Rect rect;
+    Point pt;
+
+#ifdef MAC1010
+    HandleIntroMusic(1);
+#endif
+    FadeScreenOut();
+
+    pictSkipped = 0;
+    if (KeyCheck(keyPrefs.pause))
+        pictSkipped = 1;
+
+    if (!settings.windowed)
+        HideTheCursor();
+
+    for (i = 0; i < kIntroPictSlots; i++) {
+        if (introPictID[i] > 0)
+            picHandle = GetPicture(introPictID[i]);
+        else
+            picHandle = NULL;
+
+        SetGWorldContainer(&loadPort);
+        ForeColor(blackColor);
+        PaintRect(&loadPort.bounds);
+
+        rect = loadPort.bounds;
+
+        if (picHandle != NULL) {
+            CenterPict(picHandle, &rect);
+            DrawPicHandle(picHandle, &rect);
+            HPurge((Handle)picHandle);
+            ReleaseResource((Handle)picHandle);
+        }
+
+        UnsetGWorldContainer(&loadPort);
+
+        SWSetPortToWindow(gSpriteWorld);
+        ForeColor(blackColor);
+        PaintRect(GetCWindowPortRect(gWind));
+        CopyBits(GWorldContainerBits(&loadPort), GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                 &rect, &rect, 0, NULL);
+        QDFlushPortBuffer(GetWindowPort(gWind), NULL);
+
+        SWSetPortToWindow(gSpriteWorld);
+
+        if (introPictID[i] > 0) {
+            snd = ST_LoadSndResource(0x7533);
+            if (snd != NULL) {
+#ifndef MAC1010
+                CancelMusicThread();
+#endif
+                PlaySound(snd, 0xa, gSoundVolume, gSoundVolume);
+            }
+
+#ifdef MAC1010
+            HandleIntroMusic(1);
+#endif
+            FadeScreenIn();
+
+#ifdef MAC1010
+            while (Button() || KeyCheck(kKeyReturn) || KeyCheck(kKeySpace) || KeyCheck(keyPrefs.pause)) {
+                BusyIdle();
+                HandleIntroMusic(0);
+            }
+#else
+            while (Button() || KeyCheck(kKeyReturn) || KeyCheck(kKeySpace) || KeyCheck(keyPrefs.pause))
+                BusyIdle();
+#endif
+
+            hit = 0;
+            startTick = TickCount();
+
+            while (TickCount() - startTick < (introPictDelay[i] * 0x3c)
+                   && !hit && !KeyCheck(kKeyReturn) && !KeyCheck(kKeySpace) && !pictSkipped) {
+                BusyIdle();
+#ifdef MAC1010
+                HandleIntroMusic(0);
+#endif
+                if (Button()) {
+                    rect = *GetCWindowPortRect(gWind);
+#if !defined(MAC1010) || TARGET_API_MAC_CARBON
+                    SectRect(&rect, &screenMinusDockRect, &rect);
+#endif
+                    GetMouse(&pt);
+                    if (PtInRectPoint(pt, &rect)) {
+                        hit = 1;
+                    } else {
+                        while (Button()) {
+                            BusyIdle();
+#ifdef MAC1010
+                            HandleIntroMusic(0);
+#endif
+                            if (TickCount() - startTick > (introPictDelay[i] * 0x3c))
+                                break;
+                            if (KeyCheck(kKeyReturn) || KeyCheck(kKeySpace))
+                                break;
+                            if (KeyCheck(keyPrefs.pause)) {
+                                pictSkipped = 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (KeyCheck(keyPrefs.pause))
+                    pictSkipped = 1;
+            }
+
+            if (snd != NULL) {
+                ST_HaltSound(snd);
+                ST_DisposeSound(snd);
+            }
+
+#ifdef MAC1010
+            HandleIntroMusic(1);
+#endif
+            FadeScreenOut();
+
+            if (pictSkipped)
+                break;
+        }
+    }
+
+#ifdef MAC1010
+    HandleIntroMusic(1);
+#endif
+    if (!pictSkipped) {
+#ifdef MAC1010
+        StopIntroMusic(1);
+#else
+        CancelMusicThread();
+#endif
+        if (introTextID != -1) {
+            ShowTheCursor();
+            showingIntroText = 1;
+            LoadDescription(briefingTextPtr, introTextID);
+            MungeBriefing(0, -1);
+            strcpy(textShowString, briefingTextPtr);
+            ShowTextDialog(0, 0, 1);
+            showingIntroText = 0;
+        }
+    }
+
+    FlushEvents(3, 0);
+    FlushEvents(5, 0);
+    FlushEvents(1, 0);
+    FlushEvents(2, 0);
+    ForeColor(blackColor);
+    SWSetPortToWindow(gSpriteWorld);
+    ForeColor(blackColor);
+}
+#else
 void ShowIntroScreen(void)
 {
     short i;
-    char pictSkipped;
-    char hit;
+    Boolean pictSkipped;
+    Boolean hit;
     void *picHandle;
     void *snd;
     Rect rect;
@@ -53,7 +218,7 @@ void ShowIntroScreen(void)
     if (KeyCheck(keyPrefs.pause))
         pictSkipped = 1;
 
-    if (!windowedPref)
+    if (!settings.windowed)
         HideTheCursor();
 
     for (i = 0; i < kIntroPictSlots; i++) {
@@ -63,7 +228,7 @@ void ShowIntroScreen(void)
             picHandle = NULL;
 
         SetGWorldContainer(&loadPort);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         PaintRect(&loadPort.bounds);
 
         rect.top = loadPort.bounds.top;
@@ -80,7 +245,7 @@ void ShowIntroScreen(void)
         UnsetGWorldContainer(&loadPort);
 
         SWSetPortToWindow(gSpriteWorld);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         PaintRect(GetCWindowPortRect(gWind));
         CopyBits(GetGWCPixMap(&loadPort), GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                  &rect, &rect, 0, NULL);
@@ -89,7 +254,7 @@ void ShowIntroScreen(void)
         SWSetPortToWindow(gSpriteWorld);
 
         if ((gViewSlot + 1)[i] > 0) {
-            snd = LoadSoundResource(0x7533);
+            snd = ST_LoadSndResource(0x7533);
             if (snd != NULL)
                 PlaySound(snd, 0xa, gSoundVolume, gSoundVolume);
 
@@ -157,7 +322,7 @@ void ShowIntroScreen(void)
             showingIntroText = 1;
             LoadDescription(briefingTextPtr, gViewSlot[0]);
             MungeBriefing(0, -1);
-            strcpy(gTextShowString, briefingTextPtr);
+            strcpy(textShowString, briefingTextPtr);
             ShowTextDialog(0, 0, 1);
             showingIntroText = 0;
         }
@@ -167,28 +332,34 @@ void ShowIntroScreen(void)
     FlushEvents(5, 0);
     FlushEvents(1, 0);
     FlushEvents(2, 0);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     SWSetPortToWindow(gSpriteWorld);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
 }
+#endif
 
 /* the main screen's idle tick */
-/* MainScreenIdle. STATE: MATCH, byte-identical. OPEN: none */
+/* MainScreenAppearStart. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048b230
-void MainScreenIdle(void)
+// MAC: _MainScreenAppearStart i386 0x00018af1 ppc 0x0001c6f4
+void MainScreenAppearStart(void)
 {
     MainScreenAnimDraw();
     MainScreenUpdate(1);
+#if V111
+#else
     HandleIntroMusic(1);
     FadeScreenIn();
+#endif
 }
 
-/* LoadMainScreenSounds. STATE: MATCH, byte-identical. OPEN: none */
+/* MainScreenAppear. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048b250
-void LoadMainScreenSounds(void)
+// MAC: _MainScreenAppear i386 0x00016c7e ppc 0x0001a910
+void MainScreenAppear(void)
 {
     short i;
 
     for (i = 0; i < kMainScreenSoundCount; i++)
-        mainScreenSnd[i] = LoadSoundResource((i + kFirstMainScreenSound));
+        mainScreenSnd[i] = ST_LoadSndResource((i + kFirstMainScreenSound));
 }

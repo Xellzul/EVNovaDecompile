@@ -13,7 +13,6 @@ extern long FT_PathCreate(struct FolderSpec **where, const char *name,
                          struct FolderSpec ***result);                   /* atfilespec.c */
 extern long PT_ParseTreeLoad(void **text, const char *rawTags, const char *emptyTags,
                          void **errors, ITElement **out);                /* itmarkup.c */
-extern ULong _PT_ParseAdvance(const unsigned char *s, ULong *ch, ULong *code);  /* itmarkup.c */
 extern unsigned char *U2CStringCopySafe(unsigned char *dst, const unsigned short *src,
                                    ULong dstBytes, ULong maxChars);      /* atcharset.c */
 extern unsigned short *UTF32_2UStringCopySafe(unsigned short *dst, const ULong *src, ULong dstBytes,
@@ -21,20 +20,20 @@ extern unsigned short *UTF32_2UStringCopySafe(unsigned short *dst, const ULong *
 extern long DT_DrawTextAt(ITImage *image, long x, long y, const char *text,
                          long length);                                   /* itgfx.c */
 
-long IT_ViewGoToPage(WindowNode *window, const char *name);
+long IT_ViewGoToPage(void *windowRef, const char *name);
 unsigned char _IT_ViewValidateFocus(WindowNode *window, long self);
 
 ITControlList *_IT_ItemListCreate(WindowNode *window, ITElement *first);
 void _IT_ItemListDispose(WindowNode *window, ITControlList *list);
 long _IT_GetItemIndex(ITControlList *list, ITControl *control);
-long _IT_GetObjectItem(WindowNode *window, ITControlList *list, long item, WindowNode **ownerOut,
+long _IT_GetObjectItem(WindowNode *window, ITControlList *list, ULong item, WindowNode **ownerOut,
                   ITControl **controlOut);
 long _IT_ItemListQueryFocus(WindowNode *window, ITControlList *list, void **items);
 long _IT_ItemListHandleIdle(WindowNode *window, ITControlList *list);
 long _IT_ItemListHandleKey(WindowNode *window, ITControlList *list, const ITKeyEvent *key,
                   ITClick *click);
 long _IT_ItemListHandleEdit(WindowNode *window, ITControlList *list, short event, ITClick *click);
-long _IT_ItemListHandleClick(WindowNode *window, ITControlList *list, ITInputEvent *event,
+long _IT_ItemListHandleClick(WindowNode *window, ITControlList *list, ULong event,
                   ITClick *click);
 long _IT_ItemListHandleTest(WindowNode *window, ITControlList *list, ULong item, unsigned char *hit);
 long _IT_ItemListHandleDraw(WindowNode *window, ITControlList *list, const ITRect *area);

@@ -15,6 +15,7 @@
    obj 345, byte-identical yes.
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00448090
+// MAC: _PropagateMissionBitEffects i386 0x00099676 ppc 0x000a52a0
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
 void PropagateMissionBitEffects(void)
 {
@@ -22,46 +23,46 @@ void PropagateMissionBitEffects(void)
     short j;
     short k;
     short navDest;
-    char seen[kMaxSystems];
+    Boolean seen[kMaxSystems];
 
     for (i = 0; i < kMaxStellars; i++)
         stellarData[i].system = -1;
 
     for (i = 0; i < kMaxSystems; i++) {
-        if (gSystems[i].prepared)
-            gSystems[i].loaded = EvalMissionBitTestString(gSystems[i].visibility);
+        if (systemData[i].prepared)
+            systemData[i].loaded = EvalMissionBitTestString(systemData[i].visibility);
         else
-            gSystems[i].loaded = 0;
+            systemData[i].loaded = 0;
     }
 
     for (i = 0; i < kMaxSystems; i++)
         seen[i] = 0;
 
     for (i = 0; i < kMaxSystems; i++) {
-        if (!gSystems[i].prepared)
+        if (!systemData[i].prepared)
             continue;
-        if (!gSystems[i].loaded)
+        if (!systemData[i].loaded)
             continue;
         if (seen[i])
             continue;
-        for (k = 0; k < kNavSlots; k++) {
-            navDest = gSystems[i].navDefault[k];
-            if (navDest != -1 && stellarData[navDest].system == -1)
-                stellarData[navDest].system = i;
+        for (navDest = 0; navDest < kNavSlots; navDest++) {
+            k = systemData[i].navDefault[navDest];
+            if (k != -1 && stellarData[k].system == -1)
+                stellarData[k].system = i;
         }
-        k = gSystems[i].colocNext;
+        navDest = systemData[i].colocNext;
         seen[i] = 1;
-        while (k != -1) {
-            seen[k] = 1;
-            k = gSystems[k].colocNext;
+        while (navDest != -1) {
+            seen[navDest] = 1;
+            navDest = systemData[navDest].colocNext;
         }
     }
 
     for (i = 0; i < kMaxShipTypes; i++) {
-        if (gShipTypes[i].techLevel != kResAbsent)
-            gShipTypes[i].canAppear = EvalMissionBitTestString(gShipTypes[i].appearOn);
+        if (shipClass[i].techLevel != kResAbsent)
+            shipClass[i].canAppear = EvalMissionBitTestString(shipClass[i].appearOn);
         else
-            gShipTypes[i].canAppear = 0;
+            shipClass[i].canAppear = 0;
     }
 
     for (i = 0; i < kMaxPersons; i++) {
@@ -79,10 +80,10 @@ void PropagateMissionBitEffects(void)
     }
 
     for (i = 0; i < kMaxMissions; i++) {
-        if (missionAvailData[i].availStel == (short)0x8300)
-            missionAvailData[i].avail = 0;
-        else
+        if (missionAvailData[i].availStel != (short)0x8300)
             missionAvailData[i].avail = EvalMissionBitTestString(missionAvailData[i].availBits);
+        else
+            missionAvailData[i].avail = 0;
     }
 
     for (i = 0; i < kMaxNebulae; i++) {
@@ -93,7 +94,7 @@ void PropagateMissionBitEffects(void)
     }
 
     if (shipData[0].curSystem >= 0 && shipData[0].curSystem < kMaxSystems &&
-        !gSystems[shipData[0].curSystem].loaded) {
+        !systemData[shipData[0].curSystem].loaded) {
         navDest = FindActiveCoLocatedSystem(shipData[0].curSystem);
         if (navDest == -1) {
             navDest = FindFirstCoLocatedSystem(shipData[0].curSystem);
@@ -104,7 +105,7 @@ void PropagateMissionBitEffects(void)
             crashlog_print(" and no active equivalent could be found - reactivating system ");
             crashlog_print_num(navDest + 128);
             crashlog_print(" instead\n");
-            gSystems[navDest].loaded = 1;
+            systemData[navDest].loaded = 1;
         }
         if (navDest != -1) {
             shipData[0].curSystem = navDest;
@@ -112,13 +113,13 @@ void PropagateMissionBitEffects(void)
                 if (shipData[j].active)
                     shipData[j].curSystem = navDest;
             }
-            for (i = 0; i < kMaxShots; i++) {
-                if (shotData[i].life > -2.0f)
-                    shotData[i].curSystem = navDest;
+            for (j = 0; j < kMaxShots; j++) {
+                if (shotData[j].life > -2.0f)
+                    shotData[j].curSystem = navDest;
             }
-            for (i = 0; i < kMaxBoxes; i++) {
-                if (boxData[i].timer >= 0.0f)
-                    boxData[i].system = navDest;
+            for (j = 0; j < kMaxBoxes; j++) {
+                if (boxData[j].timer >= 0.0f)
+                    boxData[j].system = navDest;
             }
         }
     }

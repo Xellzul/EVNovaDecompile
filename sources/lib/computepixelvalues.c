@@ -8,15 +8,28 @@
 #include "shipobj.h"
 #include "spriteworld.h"
 
+#ifdef MACBUILD
+RGBColor gSWTransparentColor = {0xFFFF, 0xFFFF, 0xFFFF};
+
+static unsigned short SWMaskedRGBValue;
+static unsigned short SWTransparentRGBValue;
+
+static short gSWStickyError;
+#else
 unsigned short SWMaskedRGBValue;
 unsigned short SWTransparentRGBValue;
 short gSWStickyError;
 unsigned char DAT_007d0506[18];
+#endif
 
 
 /* ComputePixelValues (mac _ComputePixelValues). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00479210
+#ifdef MACBUILD
+static void ComputePixelValues(short pixelSize)
+#else
 void ComputePixelValues(short pixelSize)
+#endif
 {
     if (pixelSize <= 8) {
         SWMaskedRGBValue = 0x0000;

@@ -16,11 +16,14 @@
 #include "shipobj.h"
 #include "gametypes.h"
 #include "gameconst.h"
+#include "cefix.h"
 #include "burger.h"
 #include "spriteworld.h"
 #include "burgerplat.h"
 #include "player.h"
+#include "endianswap.h"
 
+#ifndef MACBUILD
 /* CopyBitsCopy24. STATE: MATCH, exe 376 / obj 376 instrs, byte-identical yes (1216 bytes).
    OPEN: none */
 // FUNCTION: EVNOVA 0x004b76d0
@@ -531,17 +534,29 @@ typedef void (*BlitProc)(PixMapPtr srcBits, PixMapPtr dstBits,
 BlitProc copyBitsProcs[5][5] = {             /* 0x00575b28 same-size srcCopy */
     { NULL, NULL,             NULL,                NULL,             NULL             },
     { NULL, BP CopyBitsNone, BP CopyBitsCopy8,    BP CopyBitsNone, BP CopyBitsNone },
+#ifdef CEFIX /* F10.02-06 */
+    { NULL, BP CopyBitsNone, BP CopyBitsCopy16,     BP CopyBitsNone, BP CE_Blit16    },
+    { NULL, BP CopyBitsNone, BP CE_Blit24,        BP CopyBitsNone, BP CE_Blit24    },
+    { NULL, BP CopyBitsNone, BP CE_Blit32,        BP CopyBitsNone, BP CE_Blit32    }
+#else
     { NULL, BP CopyBitsNone, BP CopyBitsCopy16,     BP CopyBitsNone, BP CopyBitsNone },
     { NULL, BP CopyBitsNone, BP CopyBitsCopy24,   BP CopyBitsNone, BP CopyBitsNone },
     { NULL, BP CopyBitsNone, BP CopyBitsNone,     BP CopyBitsNone, BP CopyBitsNone }
+#endif
 };
 
 BlitProc scaleBitsCopyProcs[5][5] = {        /* 0x00575b8c scaled srcCopy */
     { NULL, NULL,             NULL,                NULL,             NULL             },
     { NULL, BP CopyBitsNone, BP CopyBitsScale8,   BP CopyBitsNone, BP CopyBitsNone },
+#ifdef CEFIX /* F10.07-12 */
+    { NULL, BP CopyBitsNone, BP CE_Blit16,        BP CopyBitsNone, BP CE_Blit16    },
+    { NULL, BP CopyBitsNone, BP CE_Blit24,        BP CopyBitsNone, BP CE_Blit24    },
+    { NULL, BP CopyBitsNone, BP CE_Blit32,        BP CopyBitsNone, BP CE_Blit32    }
+#else
     { NULL, BP CopyBitsNone, BP CopyBitsScale16Average,     BP CopyBitsNone, BP CopyBitsNone },
     { NULL, BP CopyBitsNone, BP CopyBitsScale24,     BP CopyBitsNone, BP CopyBitsNone },
     { NULL, BP CopyBitsNone, BP CopyBitsNone,     BP CopyBitsNone, BP CopyBitsNone }
+#endif
 };
 
 BlitProc copyBitsAddOverProcs[5][5] = {      /* 0x00575bf0 same-size addOver */
@@ -801,17 +816,6 @@ void AcquireScreenDC(void)
    coalesces the pair). */
 
 
-/* same shape as BurgerLib's SwapEndian, which is a C++ inline a C translation
-   unit cannot reach */
-static __inline short SwapEndianShort(const unsigned short *p)
-{
-    register unsigned short t;
-
-    t = *p;
-    asm { ror t, 8 }
-    return t;
-}
-
 /* GetIndString (mac _GetIndString). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b8ca0
 void GetIndString(unsigned char *str, int strListID, int index)
@@ -1019,7 +1023,11 @@ PicHandle LoadPictResource(int picID, char gamma)
 // FUNCTION: EVNOVA 0x004b9050
 PicHandle GetPicture(int picID)
 {
+#ifdef CEFIX /* F10.01 */
+    return LoadPictResource(picID, 0);
+#else
     return LoadPictResource(picID, 1);
+#endif
 }
 
 /*
@@ -1082,21 +1090,32 @@ void QDGetPictureBounds(PicHandle pic, Rect *r)
     SetRect(r, 0, 0, pic->Width, pic->Height);
 }
 
+#endif
+
 /* two more of the port's compiled-away QuickDraw calls */
 /* GetPortVisRgn. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b9160
 void *GetPortVisRgn(void *port)
 {
+#ifdef MACBUILD
+    return GetPortVisibleRegion(port, gVisRgn);
+#else
     return NULL;
+#endif
 }
 
 /* GetCWindowVisRgn (mac _GetCWindowVisRgn). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b9170
 void *GetCWindowVisRgn(void *window)
 {
+#ifdef MACBUILD
+    return GetPortVisibleRegion(GetWindowPort(window), gVisRgn);
+#else
     return 0;
+#endif
 }
 
+#ifndef MACBUILD
 /* Classic Toolbox parameter order (srcBits, maskBits, dstBits, srcRect, maskRect,
    dstRect) with a 16.16 scale accumulator appended; reached only from the
    mode-indexed table at 0x00575d20, so there is no mac twin. */
@@ -1230,7 +1249,11 @@ typedef void (*BlitMaskProc)(PixMapPtr srcBits, PixMapPtr maskBits,
 BlitMaskProc copyMaskProcs[5][5] = {    /* 0x00575cb8 */
     { NULL, NULL,                      NULL,                      NULL,                      NULL                      },
     { NULL, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone },
+#ifdef CEFIX /* F10.13 */
+    { NULL, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMask16,   (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CE_Blit16Mask },
+#else
     { NULL, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMask16,   (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone },
+#endif
     { NULL, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone },
     { NULL, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone }
 };
@@ -1238,7 +1261,11 @@ BlitMaskProc copyMaskProcs[5][5] = {    /* 0x00575cb8 */
 BlitMaskProc scaleMaskProcs[5][5] = {   /* 0x00575d1c */
     { NULL, NULL,                      NULL,                      NULL,                      NULL                      },
     { NULL, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone },
+#ifdef CEFIX /* F10.14-15 */
+    { NULL, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CE_Blit16Mask, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CE_Blit16Mask },
+#else
     { NULL, (BlitMaskProc)CopyMaskNone, CopyMaskScale16, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone },
+#endif
     { NULL, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone },
     { NULL, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone, (BlitMaskProc)CopyMaskNone }
 };
@@ -1711,10 +1738,14 @@ void LineTo(short h, short v)
 // FUNCTION: EVNOVA 0x004ba2f0
 void MoveTo(short h, short v)
 {
+#ifdef CEFIX /* F12.83 */
+    CE_MoveTo(h, v);
+#else
     if (CurrentGrafPort == NULL)
         return;
     CurrentGrafPort->pnLoc.h = h;
     CurrentGrafPort->pnLoc.v = v;
+#endif
 }
 
 /* PenSize. STATE: MATCH, byte-identical. OPEN: none */
@@ -2410,11 +2441,19 @@ PixMapPtr GetGWorldPixMap(CGrafPtr world)
     return (PixMapPtr)world;
 }
 
+#endif
+
 /* GetWindowPortRect. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004bba80
 Rect *GetWindowPortRect(CWindowPtr window)
 {
+#ifdef MACBUILD
+    GetWindowBounds(window, kWindowContentRgn, &gPortRect);
+    OffsetRect(&gPortRect, -gPortRect.left, -gPortRect.top);
+    return &gPortRect;
+#else
     return &window->pix.bounds;
+#endif
 }
 
 /* GetCWindowPortRect (mac _GetCWindowPortRect). STATE: MATCH, byte-identical. OPEN: none */
@@ -2428,9 +2467,14 @@ Rect *GetCWindowPortRect(CWindowPtr window)
 // FUNCTION: EVNOVA 0x004bbaa0
 CGrafPtr GetCWindowGrafPort(CWindowPtr window)
 {
+#ifdef MACBUILD
+    return GetWindowPort(window);
+#else
     return window;
+#endif
 }
 
+#ifndef MACBUILD
 /* SetPortWindowPort. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004bbab0
 void SetPortWindowPort(CWindowPtr window)
@@ -2444,21 +2488,31 @@ void *GetGWorldDevice(CGrafPtr port)
 {
     return NULL;
 }
+#endif
 
 /* GetCWindowPixMap (mac _GetCWindowPixMap). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004bbae0
 PixMapPtr GetCWindowPixMap(CWindowPtr window)
 {
+#ifdef MACBUILD
+    return GetPortPixMap(GetWindowPort(window));
+#else
     return &window->pix;
+#endif
 }
 
 /* GetWindowPixMap (mac _GetWindowPixMap). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004bbaf0
 PixMapPtr GetWindowPixMap(CWindowPtr window)
 {
+#ifdef MACBUILD
+    return GetPortPixMap(GetWindowPort(window));
+#else
     return GetCWindowPixMap(GetCWindowGrafPort(window));
+#endif
 }
 
+#ifndef MACBUILD
 /* GetTime (mac (Toolbox GetTime shim)). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004bbb10
 void GetTime(DateTimeRec *dtr)
@@ -2545,7 +2599,11 @@ void NumToString(long value, unsigned char *str)
 {
     char text[256];
 
+#ifdef CEFIX /* F21.16 */
+    CE_NumberToAscii(text, value, 0);
+#else
     NumberToAscii(text, value, 0);
+#endif
     CStr2PStr((char *)str, text);
 }
 
@@ -2582,7 +2640,11 @@ Image_t *GetPixPat(short id)
     if (h != NULL) {
         pat = (Image_t *)AllocAPointer(sizeof(Image_t));
         LockAHandle(h);
+#ifdef CEFIX /* F18.01 */
+        err = CE_ImageParsePPat(pat, *h);
+#else
         err = ImageParsePPat(pat, (Word8 *)*h);
+#endif
         UnlockAHandle(h);
         ReleaseResource(h);
         if (err != 0) {
@@ -2766,9 +2828,9 @@ long ReplaceInHandle(char **h, long offset, const char *find, long findLen,
     return -1;
 }
 
-/* LoadSoundResource. STATE: MATCH, byte-identical. OPEN: none */
+/* ST_LoadSndResource. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004bc2a0
-void *LoadSoundResource(short id)
+void *ST_LoadSndResource(short id)
 {
     char **h;
     void **copy;
@@ -2811,3 +2873,4 @@ void BuildGammaRamp(register float gamma)
             gGammaRamp[i] = kGammaRampMax;
     }
 }
+#endif

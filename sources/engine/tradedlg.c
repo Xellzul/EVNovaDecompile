@@ -23,6 +23,7 @@
 #include "ships.h"
 #include "burger.h"
 #include "sound.h"
+#include "cefix.h"
 #include "ai.h"
 #include "space.h"
 
@@ -32,7 +33,7 @@
 #define kBuyItem       13
 #define kSellItem      14
 
-PictCacheSlot pictCache[128];
+PictCacheSlot iconCache[128];
 DialogPtr alertDialog;
 DialogPtr depthDialog;
 DialogPtr loadingDialog;
@@ -46,63 +47,91 @@ DialogPtr shipyardDialog;
 DialogPtr shipDescDialog;
 DialogPtr infoDialog;
 DialogPtr captureDialog;
-char gItemDescText[8192];
-short gStellarPictID;
-short gSelectedOutfit;
-short gSelectedShip;
-short gOutfitGridPos;
-short playerInfoPage;
-short gShipGridPos;
-short gLastClickPos;
+char dialogDescTextPtr[8192];
+short planetPicId;
+short selOutfitItem;
+short selShipyardItem;
+short selOutfitListItem;
+short selPlayerInfoMode;
+short selShipListItem;
+short lastClickItem;
 short outfitScroll;
-short gShipGridScroll;
+short shipyardScroll;
 short shipBuyMode;
-short gMovieRefNum;
+short loopingMovieResRefNum;
 short junkType[2];
-unsigned long gLastClickTime;
+unsigned long lastClickTime;
 float priceFluxMult[2];
-PicHandle gStellarDialogPict;
-PicHandle gShipDescPict;
-PicHandle gShipyardDialogPict;
-PicHandle gOutfitDialogPict;
-PicHandle gShipDescBackdrop;
-PicHandle captureDialogPict;
+PicHandle portBackgroundPic;
+PicHandle bigShipPic;
+PicHandle shipyardBackgroundPic;
+PicHandle outfitBackgroundPic;
+PicHandle shipDescBackgroundPic;
+PicHandle captureBackgroundPic;
 PicHandle tradeBackgroundPic;
 PicHandle playerInfoBackgroundPic[3];
 PicHandle textDialogBackgroundPic[3];
 PicHandle previewPic;
-void *gAmbientSound;
-char canBuy;
-char canSell;
-char gSpobInhabited;
-char shipyardEgg;
-char didOutfit;
-char didBuyShip;
+void *planetSnd;
+Boolean canBuy;
+Boolean canSell;
+Boolean canDoMissions;
+Boolean shipyardEgg;
+Boolean didOutfit;
+Boolean didBuyShip;
+#ifndef MACBUILD
 unsigned char DAT_007d4c06[2];
-char boughtMap;
-char boughtID;
-char onPlanet;
-char canScrollTextUp;
-char canScrollTextDown;
-char portBuysNoOutfits;
-unsigned char gTextInputResult[256];
-Rect pictCacheRect[128];
-Rect gCellRects[20];
-Rect gIconRects[20];
-void *loopingMovie;
+#endif
+Boolean boughtMap;
+Boolean boughtID;
+Boolean onPlanet = 0;
+Boolean canScrollTextUp;
+Boolean canScrollTextDown;
+Boolean portBuysNoOutfits;
+unsigned char textInputString[256];
+Rect listPicOffRect[128];
+Rect listScreenRect[20];
+Rect listPicScreenRect[20];
+void *loopingMovie = NULL;
 TEHandle textDialogTextHandle;
 unsigned long lastTextScrollTime;
-unsigned long gAmbientDeadline;
-GWorldContainer pictCachePort;
-GWorldContainer gStellarImage;
+unsigned long ambientNoiseDelay;
+GWorldContainer iconsPort;
+GWorldContainer planetPicContainer;
 char playerInfoText[3][4096];
+#ifdef MACBUILD
+AEEventHandlerUPP OAPPHandlerUPP;
+AEEventHandlerUPP ODOCHandlerUPP;
+AEEventHandlerUPP PDOCHandlerUPP;
+AEEventHandlerUPP QUITHandlerUPP;
+AEEventHandlerUPP PREFHandlerUPP;
+#endif
 short nagCount;
 short previewPicID;
 RGBColor shopGridColor[2];
+#ifndef MACBUILD
 void *gIntroMovieData;
 Rect gMovieBox;
+#endif
+#ifdef MACBUILD
+extern long gSystemVersion;
+extern Boolean introMusicPaused;
+extern void SetRetainedWindow(WindowRef window, Boolean retained);
+extern void KeepMenuBarHidden(GrafPtr port);
+extern void AdjustMenus(void);
+extern void DoMenuClick(long menuResult);
+extern void KeyDialogUpdate(void);
+void GetWindowDragBounds(Rect *bounds, Point where);
+void ForceWindowOnscreen(void);
+#endif
+/* the menu icon cache draws into a port on mac, into the port's container on win */
+#ifdef MACBUILD
+#define MenuIconPort(gwc) ((gwc)->world)
+#else
+#define MenuIconPort(gwc) (gwc)
+#endif
 
-extern "C" {
+EXTERN_C_BEGIN
 
 #define kTradeDlogID   0x3e9
 #define kTradePictID   0x213e
@@ -121,12 +150,34 @@ extern "C" {
 #define kPortEmbargo  4
 
 
+/* the mac engine invalidates a dialog item through the caller's own GetDialogItem locals */
+#ifdef MACBUILD
+#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, (void **)&item, &box), InvalWindowRect(GetDialogWindow(dlg), &box))
+#endif
 /* DoTradeDialog (mac _DoTradeDialog). STATE: MATCH, 628/628, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0048c730
+// MAC: _DoTradeDialog i386 0x0005dbe1 ppc 0x000657f4
 void DoTradeDialog(void)
 {
-    char done;
+#ifdef MACBUILD
+    short i;
+    short savedStellar;
+    short savedRoute;
+    short itemHit;
+    short itemType;
+    Handle item;
+    Rect box;
+    short mods;
+    double mult;
+    short j;
+    short space;
+    short maxSell;
+    long afford;
+    long qty;
+    Boolean done;
+#else
+    Boolean done;
     short savedStellar;
     short savedRoute;
     short mods;
@@ -138,13 +189,14 @@ void DoTradeDialog(void)
     short maxSell;
     long afford;
     long qty;
+#endif
 
     done = 0;
     savedStellar = shipData->targetStellar;
     savedRoute = shipData->navTargetKind;
     mult = 1.25;
     if (dockedPort->govt != -1
-        && playerLegalStatus[dockedPort->system] < 0) {
+        && playerRecord[dockedPort->system] < 0) {
         mult = 1.1;
     }
     if (dockedPort->dominated != 0) {
@@ -166,7 +218,7 @@ void DoTradeDialog(void)
     }
     for (i = 0; i < 0x100; i++) {
         if (disasterData[i].loaded != 0 && disasterData[i].countdown > 0
-            && shipData->targetStellar == disasterData[i].stellarID) {
+            && disasterData[i].stellarID == shipData->targetStellar) {
             tradePrice[disasterData[i].commodity] =
                 basePrice[disasterData[i].commodity];
             tradePrice[disasterData[i].commodity] += disasterData[i].amount;
@@ -176,11 +228,10 @@ void DoTradeDialog(void)
     }
     junkType[0] = -1;
     junkType[1] = -1;
-    tradePrice[7] = 0;
-    tradePrice[6] = tradePrice[7];
+    tradePrice[6] = tradePrice[7] = 0;
     for (i = 0; i < 0x80; i++) {
         for (j = 0; j < 8; j++) {
-            if (shipData->targetStellar == junkData[i].boughtAt[j]) {
+            if (junkData[i].boughtAt[j] == shipData->targetStellar) {
                 if (EvalMissionBitTestString(junkData[i].buyOn) != 0) {
                     junkType[0] = i;
                     tradePrice[6] = junkData[i].basePrice * mult;
@@ -191,7 +242,7 @@ void DoTradeDialog(void)
     }
     for (i = 0; i < 0x80; i++) {
         for (j = 0; j < 8; j++) {
-            if (shipData->targetStellar == junkData[i].soldAt[j]) {
+            if (junkData[i].soldAt[j] == shipData->targetStellar) {
                 if (EvalMissionBitTestString(junkData[i].sellOn) != 0) {
                     junkType[1] = i;
                     tradePrice[7] = junkData[i].basePrice / mult;
@@ -200,12 +251,12 @@ void DoTradeDialog(void)
             }
         }
     }
-    missionListVenue = kTradeVenue;
+    missionsOutside = kTradeVenue;
     offeringFromShip = 0;
     missionOfferTime = ReadTick() + Rand(0x1e) + 0x1e;
     tradeDialog = NULL;
-    tradeDialog = GetNewDialog(kTradeDlogID, UpdateTradeDialog,
-                               TradeDialogEvent);
+    tradeDialog = GetNewDialog(kTradeDlogID, TradeDialogUpdate,
+                               TradeFilter);
     if (tradeDialog == NULL)
         return;
     tradeBackgroundPic = GetPicture(kTradePictID);
@@ -214,15 +265,15 @@ void DoTradeDialog(void)
     TradeDialogTabKey(0);
     ShowWindowNoFlash(FrontWindow(tradeDialog));
     SetDialogGWorld(tradeDialog);
-    UpdateTradeDialog();
-    FrontWindow(tradeDialog);
-    FrontWindow(tradeDialog);
+    TradeDialogUpdate();
+    SelectWindow(FrontWindow(tradeDialog));
+    BringToFront(FrontWindow(tradeDialog));
     OfferMissionFromPort(kTradeVenue);
     RedrawDialog(tradeDialog);
     do {
         if (gQuit)
             done = 1;
-        RunModalDialog(tradeDialog, TradeDialogEvent, &itemHit, &mods);
+        MyModalDialog(tradeDialog, TradeFilter, &itemHit, &mods);
         if (itemHit == 1)
             done = 1;
         if (itemHit == 2) {
@@ -250,17 +301,27 @@ void DoTradeDialog(void)
             if (qty > 0) {
                 DoMissionInfoDialog();
                 SetDialogGWorld(portDialog);
+#ifdef MACBUILD
+                /* BUG: invalidates the trade window by the port dialog's bounds */
+                InvalWindowRect(GetDialogWindow(tradeDialog), GetDialogPortRect(portDialog));
+#else
                 RedrawDialog(tradeDialog);
+#endif
                 UpdateAllPortDialogs();
                 SetDialogGWorld(tradeDialog);
                 RedrawDialog(tradeDialog);
             }
         }
         if (itemHit == kBuyItem) {
+#ifdef MACBUILD
+            InvalDialogItem(tradeDialog, kBuyItem);
+            InvalDialogItem(tradeDialog, kSellItem);
+#else
             RedrawDialog(tradeDialog);
+#endif
             space = TotalFleetHolds() - TotalCargo(shipData);
             if (space > 0) {
-                afford = shipData->credits / (double)tradePrice[selTradeItem];
+                afford = shipData->credits / (float)tradePrice[selTradeItem];
                 if ((mods & optionKey) != 0) {
                     if (afford > space)
                         qty = space;
@@ -269,7 +330,7 @@ void DoTradeDialog(void)
                     if (qty > kMaxTradeQty)
                         qty = kMaxTradeQty;
                     qty = DoQuantityDialog(qty, 0);
-                    UpdateTradeDialog();
+                    TradeDialogUpdate();
                 } else {
                     qty = 10;
                     if (afford < 10)
@@ -278,15 +339,18 @@ void DoTradeDialog(void)
                         qty = space;
                 }
                 if (qty > 0) {
-                    if (selTradeItem > kLastCommodity) {
-                        if (junkType[selTradeItem - kFirstJunkItem] != -1)
-                            junkData[junkType[selTradeItem - kFirstJunkItem]]
-                                .held += qty;
-                    } else
+                    if (selTradeItem <= kLastCommodity)
                         shipData->cargo[selTradeItem] += qty;
+                    else if (junkType[selTradeItem - kFirstJunkItem] != -1)
+                        junkData[junkType[selTradeItem - kFirstJunkItem]]
+                            .held += qty;
                     shipData->credits -= tradePrice[selTradeItem] * qty;
                 }
+#ifdef MACBUILD
+                InvalDialogItem(tradeDialog, selTradeItem + kFirstRowItem);
+#else
                 RedrawDialog(tradeDialog);
+#endif
                 statusRedraw[2] = 1;
                 DrawStatus();
                 SetDialogGWorld(tradeDialog);
@@ -294,7 +358,12 @@ void DoTradeDialog(void)
             RedrawDialog(tradeDialog);
         }
         if (itemHit == kSellItem) {
+#ifdef MACBUILD
+            InvalDialogItem(tradeDialog, kBuyItem);
+            InvalDialogItem(tradeDialog, kSellItem);
+#else
             RedrawDialog(tradeDialog);
+#endif
             /* BUG: an empty junk row leaves qty unset, so maxSell comes from garbage */
             if (selTradeItem <= kLastCommodity)
                 qty = shipData->cargo[selTradeItem];
@@ -308,7 +377,7 @@ void DoTradeDialog(void)
             if (maxSell > 0) {
                 if ((mods & optionKey) != 0) {
                     qty = DoQuantityDialog(maxSell, 1);
-                    UpdateTradeDialog();
+                    TradeDialogUpdate();
                 } else {
                     qty = 10;
                     if (selTradeItem <= kLastCommodity) {
@@ -322,15 +391,18 @@ void DoTradeDialog(void)
                     }
                 }
                 if (qty > 0) {
-                    if (selTradeItem > kLastCommodity) {
-                        if (junkType[selTradeItem - kFirstJunkItem] != -1)
-                            junkData[junkType[selTradeItem - kFirstJunkItem]]
-                                .held -= qty;
-                    } else
+                    if (selTradeItem <= kLastCommodity)
                         shipData->cargo[selTradeItem] -= qty;
+                    else if (junkType[selTradeItem - kFirstJunkItem] != -1)
+                        junkData[junkType[selTradeItem - kFirstJunkItem]]
+                            .held -= qty;
                     shipData->credits += tradePrice[selTradeItem] * qty;
                 }
+#ifdef MACBUILD
+                InvalDialogItem(tradeDialog, selTradeItem + kFirstRowItem);
+#else
                 RedrawDialog(tradeDialog);
+#endif
                 statusRedraw[2] = 1;
                 DrawStatus();
                 SetDialogGWorld(tradeDialog);
@@ -350,26 +422,33 @@ void DoTradeDialog(void)
         QDReleaseResource(tradeBackgroundPic);
         tradeBackgroundPic = NULL;
     }
+#ifdef MACBUILD
+    RefreshSAT();
+#endif
     shipData->targetStellar = savedStellar;
     shipData->navTargetKind = savedRoute;
     statusRedraw[0] = 1;
     ResetMissionOfferVenue();
 }
 
-/* TradeDialogEvent. STATE: MATCH, byte-identical. OPEN: none */
+/* TradeFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048d190
-char TradeDialogEvent(long unused, EventRecord *ev, short *itemHit)
+// MAC: _TradeFilter i386 0x0004e092 ppc 0x00056d08
+Boolean TradeFilter(long unused, EventRecord *ev, short *itemHit)
 {
     Rect box;
     short itemType;
-    Point mouse;
     Point where;
-    void *item;
+    Point mouse;
+    Handle item;
     short j;
     short last;
     short i;
-    int c;
-    int key;
+#if V111
+    short key;
+#else
+    EventChar c;
+#endif
     short button;
 
     SetDialogGWorld(tradeDialog);
@@ -392,9 +471,37 @@ char TradeDialogEvent(long unused, EventRecord *ev, short *itemHit)
             *itemHit = 17;
             return 1;
         }
-        c = ev->message & kCharCodeMask;
+#if V111
+        key = (ev->message & kKeyCodeMask) >> 8;
         if ((int)ev->what == kKeyDown) {
-            if (c == kReturnChar || c == kEscapeChar) {
+            if (key == kReturnKeyCode || key == kEnterKeyCode || key == kEscapeKeyCode) {
+                ev->what = kMouseDown;
+                *itemHit = 1;
+                return 1;
+            }
+        }
+        if (key == kTabKeyCode) {
+            if ((ev->modifiers & shiftKey) != 0)
+                TradeDialogTabKey(1);
+            else
+                TradeDialogTabKey(0);
+        }
+        if (key == kDownArrowKeyCode)
+            TradeDialogTabKey(0);
+        if (key == kUpArrowKeyCode)
+            TradeDialogTabKey(1);
+        if (key == kBKeyCode) {
+            *itemHit = kBuyItem;
+            return 1;
+        }
+        if (key == kSKeyCode) {
+            *itemHit = kSellItem;
+            return 1;
+        }
+#else
+        c = EventCharOf(ev);
+        if ((int)ev->what == kKeyDown) {
+            if (IsReturnChar(c) || c == kEscapeChar) {
                 ev->what = kMouseDown;
                 *itemHit = 1;
                 return 1;
@@ -410,23 +517,26 @@ char TradeDialogEvent(long unused, EventRecord *ev, short *itemHit)
             TradeDialogTabKey(0);
         if (c == kUpArrowChar)
             TradeDialogTabKey(1);
-        key = tolower(c);
-        if (key == 'b') {
+        c = tolower(c);
+        if (c == 'b') {
             *itemHit = kBuyItem;
             return 1;
         }
-        if (key == 's') {
+        if (c == 's') {
             *itemHit = kSellItem;
             return 1;
         }
+#endif
     }
     if ((int)ev->what == kMouseDown) {
         SetDialogGWorld(tradeDialog);
-        where.v = ev->where.v;
-        where.h = ev->where.h;
+        where = ev->where;
+#ifdef MACBUILD
+        GlobalToLocal(&where);
+#endif
         for (i = kFirstRowItem; i <= kLastRowItem; i++) {
-            GetDialogItem(tradeDialog, i, &itemType, &item, &box);
-            if (PtInRect(where.h, where.v, &box) &&
+            GetDialogItem(tradeDialog, i, &itemType, (void **)&item, &box);
+            if (PtInRectPoint(where, &box) &&
                 tradePrice[i - kFirstRowItem] != 0) {
                 InvalDialogItem(tradeDialog, selTradeItem + kFirstRowItem);
                 InvalDialogItem(tradeDialog, kBuyItem);
@@ -438,13 +548,13 @@ char TradeDialogEvent(long unused, EventRecord *ev, short *itemHit)
                         InvalDialogItem(tradeDialog,
                                      selTradeItem + kFirstRowItem);
                         InvalDialogItem(tradeDialog, last + kFirstRowItem);
-                        UpdateTradeDialog();
+                        TradeDialogUpdate();
                     }
                     GetMouse(&mouse);
                     for (j = 0; j <= kLastRow; j++) {
                         GetDialogItem(tradeDialog, j + kFirstRowItem, &itemType,
-                                      &item, &box);
-                        if (PtInRect(mouse.h, mouse.v, &box) &&
+                                      (void **)&item, &box);
+                        if (PtInRectPoint(mouse, &box) &&
                             tradePrice[j] != 0) {
                             last = selTradeItem;
                             selTradeItem = j;
@@ -457,7 +567,7 @@ char TradeDialogEvent(long unused, EventRecord *ev, short *itemHit)
                 return 0;
             }
         }
-        UpdateTradeDialog();
+        TradeDialogUpdate();
         button = TrackTradeButtons(where);
         if (button == 0) {
             *itemHit = 1;
@@ -480,20 +590,31 @@ char TradeDialogEvent(long unused, EventRecord *ev, short *itemHit)
         return 1;
     }
     if ((int)ev->what == kUpdateEvt) {
-        UpdateTradeDialog();
+#ifdef MACBUILD
+        BeginUpdate(GetDialogWindow(tradeDialog));
+#endif
+        TradeDialogUpdate();
+#ifdef MACBUILD
+        EndUpdate(GetDialogWindow(tradeDialog));
+#endif
         return 0;
     }
     return 0;
 }
+#ifdef MACBUILD
+#undef InvalDialogItem
+#endif
 
 #define kMapFilterCount 8
 
 
 /* TradeDialogTabKey. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048d5a0
-void TradeDialogTabKey(char back)
+// MAC: _TradeDialogTabKey i386 0x0004cd81 ppc 0x00055cc0
+void TradeDialogTabKey(Boolean back)
 {
-    Rect box[2];
+    Rect box;
+    Rect bounds;
     short itemType;
     void *item;
 
@@ -515,32 +636,90 @@ void TradeDialogTabKey(char back)
         if (selTradeItem < 0)
             selTradeItem = kMapFilterCount - 1;
     }
+#ifdef MACBUILD
+    GetDialogItem(tradeDialog, 13, &itemType, &item, &box);
+    InvalWindowRect(GetDialogWindow(tradeDialog), &box);
+    GetDialogItem(tradeDialog, 14, &itemType, &item, &box);
+    InvalWindowRect(GetDialogWindow(tradeDialog), &box);
+#else
     InvalDialogItem(tradeDialog, 13);
     InvalDialogItem(tradeDialog, 14);
-    GetDialogItem(tradeDialog, 3, &itemType, &item, &box[0]);
-    box[1].top = box[0].top;
-    box[1].left = box[0].left;
-    box[1].bottom = box[0].bottom;
-    box[1].right = box[0].right;
-    GetDialogItem(tradeDialog, 12, &itemType, &item, &box[0]);
-    box[1].bottom = box[0].bottom;
-    InvalDialogRect(tradeDialog, &box[1]);
+#endif
+    GetDialogItem(tradeDialog, 3, &itemType, &item, &box);
+    bounds = box;
+    GetDialogItem(tradeDialog, 12, &itemType, &item, &box);
+    bounds.bottom = box.bottom;
+    InvalDialogRect(tradeDialog, &bounds);
 }
 
-/* UpdateTradeDialog (mac _TradeDialogUpdate). STATE: MATCH, 1241/1241, byte-identical yes.
+/* TradeDialogUpdate (mac _TradeDialogUpdate). STATE: MATCH, 1241/1241, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0048d6f0
-void UpdateTradeDialog(void)
+// MAC: _TradeDialogUpdate i386 0x0004ceea ppc 0x00055e5c
+void TradeDialogUpdate(void)
 {
     extern char *strcpy(char *, const char *);   /* MSL, CALLED not inlined */
 
+#ifdef MAC1010
+    Rect box;
+    Boolean seen[256];
+    Handle item;
+    short itemType;
+    short available;
+    short missionTons;
+    short junkTons;
+    short missionSlots;
+    Boolean junkSeen[0x80];
+    short junkSlots;
+    short k;
+    long row;
+    Rect insetBox;
+    unsigned char num[256];
+    char message[255];
+    char text[2048];
+    short i;
+    Boolean found;
+    short j;
+    short qty;
+    short p;
+    short fleetHolds;
+    short holds;
+    short totalCargo;
+    short over;
+#elif defined(MACBUILD)
+    Rect box;
+    char message[255];
+    Boolean seen[256];
+    Handle item;
+    short itemType;
+    short missionTons;
+    short junkTons;
+    short missionSlots;
+    Boolean junkSeen[0x80];
+    short junkSlots;
+    short k;
+    long row;
+    Rect insetBox;
+    unsigned char num[256];
+    char text[2048];
+    Boolean found;
+    short i;
+    short j;
+    short qty;
+    short p;
+    short fleetHolds;
+    short holds;
+    short totalCargo;
+    short available;
+    short over;
+#else
     unsigned char message[256];
     void *item;
     short itemType;
     short missionTons;
     short junkTons;
     short missionSlots;
-    char seen[256];
+    Boolean seen[256];
     short junkSlots;
     short k;
     long row;
@@ -548,8 +727,7 @@ void UpdateTradeDialog(void)
     unsigned char num[256];
     Rect box;
     unsigned char text[2048];
-    unsigned char *rowName;
-    char found;
+    Boolean found;
     short i;
     short j;
     short qty;
@@ -559,50 +737,62 @@ void UpdateTradeDialog(void)
     short totalCargo;
     short available;
     short missionCargo;
+#endif
 
     SetGWorldContainer(&loadPort);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetDialogPortRect(tradeDialog));
     if (tradeBackgroundPic != NULL)
         DrawPicHandle(tradeBackgroundPic, GetDialogPortRect(tradeDialog));
 
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     TextFont(smallTextFont);
     TextSize(smallTextSize);
     GetDialogItem(tradeDialog, kHoldsItem, &itemType, &item, &box);
-    if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(tradeDialog)))) {
+    if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(tradeDialog)))) {
         RGBForeColor(&rgbDarkGrey);
         FrameRect(&box);
         RGBForeColor(&rgbLightGrey);
+#ifdef CEFIX /* F12.42 */
+        CE_SetPen(box.left + CE_Scale(7), box.top + CE_Scale(12));
+#else
         MoveTo((box.left + 7), (box.top + 12));
+#endif
         DrawIndString(kGameStrList, 0xc5);
+#ifdef CEFIX /* F12.43 */
+        CE_SetPen(box.right - CE_Scale(0x7b), box.top + CE_Scale(12));
+#else
         MoveTo((box.right - 0x7b), (box.top + 12));
+#endif
         if (TotalFleetHolds() > ShipTotalHolds())
             DrawIndString(kGameStrList, 0xc6);
         else
             DrawIndString(kGameStrList, 0xc7);
+#ifdef CEFIX /* F12.44 */
+        CE_SetPen(box.right - CE_Scale(0x46), box.top + CE_Scale(12));
+#else
         MoveTo((box.right - 0x46), (box.top + 12));
+#endif
         DrawIndString(kGameStrList, 0xc8);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
     }
 
-    i = 0;
-    rowName = cargoName[0];
-    for (; i <= kLastRow; i++, rowName += 0x100) {
+    for (i = 0; i <= kLastRow; i++) {
+#ifdef MAC1010
+        GetDialogItem(tradeDialog, i + kFirstRowItem, &itemType, &item, &box);
+#else
         row = i;
         GetDialogItem(tradeDialog, row + kFirstRowItem, &itemType, &item, &box);
-        if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(tradeDialog)))) {
-            insetBox.top = box.top;
-            insetBox.left = box.left;
-            insetBox.bottom = box.bottom;
-            insetBox.right = box.right;
+#endif
+        if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(tradeDialog)))) {
+            insetBox = box;
             InsetRect(&insetBox, 1, 1);
             if (i == selTradeItem)
                 RGBForeColor(&ldefColors[2]);
             else
                 RGBForeColor(&ldefColors[1]);
             PaintRect(&insetBox);
-            RGBForeColor(blackColor);
+            ForeColor(blackColor);
 
             RGBForeColor(&rgbDarkGrey);
             MoveTo(box.left, box.top);
@@ -618,34 +808,75 @@ void UpdateTradeDialog(void)
                 LineTo((box.right - 1), (box.bottom - 1));
             }
 
+#ifdef MAC1010
+            row = i;
+            if (tradePrice[row] != 0) {
+#else
             if (tradePrice[i] != 0) {
+#endif
                 RGBForeColor(&ldefColors[0]);
                 if (i <= kLastCommodity) {
+#ifdef CEFIX /* F12.49 */
+                    CE_SetPen(box.left + CE_Scale(7), box.top + CE_Scale(10));
+#else
                     MoveTo((box.left + 7), (box.top + 10));
-                    DrawString(rowName);
+#endif
+#ifdef MAC1010
+                    DrawString(cargoName[row]);
+                    qty = shipData->cargo[row];
+#else
+                    DrawString(cargoName[i]);
                     qty = shipData->cargo[i];
+#endif
                     if (qty > 0) {
                         NumToString(qty, text);
+#ifdef CEFIX /* F12.50 */
+                        CE_SetPen(box.right - (StringWidth(text) + CE_Scale(0x6e)),
+                                  box.top + CE_Scale(10));
+#else
                         MoveTo((box.right -
                                        (StringWidth(text) + 0x6e)),
                                (box.top + 10));
+#endif
                         DrawString(text);
                     }
+#ifdef MAC1010
+                } else if (junkType[i - kFirstJunkItem] != -1) {
+#else
                 } else if (junkType[(int)row - kFirstJunkItem] != -1) {
                     int junkIdx = row - kFirstJunkItem;
+#endif
+#ifdef CEFIX /* F12.45 */
+                    CE_SetPen(box.left + CE_Scale(6), box.top + CE_Scale(10));
+#else
                     MoveTo((box.left + 6), (box.top + 10));
+#endif
+#ifdef MAC1010
+                    DrawString(junkData[junkType[i - kFirstJunkItem]].name);
+                    qty = junkData[junkType[i - kFirstJunkItem]].held;
+#else
                     DrawString(junkData[junkType[junkIdx]].name);
                     qty = junkData[junkType[junkIdx]].held;
+#endif
                     if (qty > 0) {
                         NumToString(qty, text);
+#ifdef CEFIX /* F12.46 */
+                        CE_SetPen(box.right - (StringWidth(text) + CE_Scale(0x6e)),
+                                  box.top + CE_Scale(10));
+#else
                         MoveTo((box.right -
                                        (StringWidth(text) + 0x6e)),
                                (box.top + 10));
+#endif
                         DrawString(text);
                     }
                 }
 
+#ifdef CEFIX /* F12.47 */
+                CE_SetPen(box.right - CE_Scale(0x46), box.top + CE_Scale(10));
+#else
                 MoveTo((box.right - 0x46), (box.top + 10));
+#endif
                 found = 0;
                 for (k = 0; k < 0x100; k++) {
                     if (disasterData[k].loaded != 0 && disasterData[k].countdown > 0 &&
@@ -661,6 +892,15 @@ void UpdateTradeDialog(void)
                 }
                 if (!found) {
                     if (i <= kLastCommodity) {
+#ifdef MAC1010
+                        if (portDemand[row] == kPortShortage)
+                            DrawIndString(kGameStrList, 0xc9);
+                        if (portDemand[row] == kPortSurplus)
+                            DrawIndString(kGameStrList, 0xca);
+                        if (portDemand[row] == kPortEmbargo)
+                            DrawIndString(kGameStrList, 0xcb);
+                    } else if (junkType[i - kFirstJunkItem] != -1) {
+#else
                         if (portDemand[i] == kPortShortage)
                             DrawIndString(kGameStrList, 0xc9);
                         if (portDemand[i] == kPortSurplus)
@@ -668,6 +908,7 @@ void UpdateTradeDialog(void)
                         if (portDemand[i] == kPortEmbargo)
                             DrawIndString(kGameStrList, 0xcb);
                     } else if (junkType[(int)row - kFirstJunkItem] != -1) {
+#endif
                         if (i == kFirstJunkItem)
                             DrawIndString(kGameStrList, 0xcb);
                         if (i == kLastRow)
@@ -675,25 +916,72 @@ void UpdateTradeDialog(void)
                     }
                 }
 
+#ifdef MAC1010
+                NumToString(tradePrice[row], text);
+#else
                 NumToString(tradePrice[i], text);
+#endif
+#ifdef CEFIX /* F12.48 */
+                CE_SetPen(box.right - (StringWidth(text) + CE_Scale(10)),
+                          box.top + CE_Scale(10));
+#else
                 MoveTo((box.right - (StringWidth(text) + 10)),
                        (box.top + 10));
+#endif
                 DrawString(text);
             }
-            RGBForeColor(blackColor);
+            ForeColor(blackColor);
         }
     }
 
     GetDialogItem(tradeDialog, kCargoItem, &itemType, &item, &box);
-    if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(tradeDialog)))) {
-        RGBForeColor(blackColor);
-        insetBox.top = box.top;
-        insetBox.left = box.left;
-        insetBox.bottom = box.bottom;
-        insetBox.right = box.right;
+    if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(tradeDialog)))) {
+        ForeColor(blackColor);
+        insetBox = box;
         InsetRect(&insetBox, 5, 3);
         strcpy((char *)text, "");
 
+#ifdef MACBUILD
+        available = 0;
+        k = 0;
+        missionTons = 0;
+        junkTons = 0;
+        missionSlots = 0;
+        junkSlots = 0;
+
+        for (i = 0; i < 0x100; i++)
+            seen[i] = 0;
+#ifdef MAC1010 /* 1.0.10 spelling */
+        for (i = 0; i < 0x80; i++)
+#else
+        for (i = 0; i < sizeof(junkSeen); i++)
+#endif
+            junkSeen[i] = 0;
+        for (i = 0; i <= 1; i++)
+            if (junkType[i] != -1)
+                junkSeen[junkType[i]] = 1;
+        for (j = 0; j < 16; j++) {
+            if (currentMissionObjectives[j].active && currentMissions[j].hasCargo &&
+                currentMissions[j].cargoType != -1 && currentMissions[j].cargoQty >= 0) {
+                available++;
+                missionSlots++;
+                missionTons += currentMissions[j].cargoQty;
+                if (seen[currentMissions[j].cargoType] == 0) {
+                    seen[currentMissions[j].cargoType] = 1;
+                    k++;
+                }
+            }
+        }
+        for (p = 0; p < 0x80; p++) {
+            if (junkData[p].held > 0 && p != junkType[0] && p != junkType[1]) {
+                available++;
+                junkTons += junkData[p].held;
+                junkSlots++;
+                k++;
+            }
+        }
+        if (available > 0) {
+#else
         missionCargo = 0;
         k = 0;
         missionTons = 0;
@@ -724,8 +1012,9 @@ void UpdateTradeDialog(void)
             }
         }
         if (missionCargo > 0) {
+#endif
             if (missionSlots + junkSlots > 0) {
-                AppendIndString((char *)text, kGameStrList, 0x16b);
+                StrcatIndCString((char *)text, kGameStrList, 0x16b);
                 strcat((char *)text, " ");
                 if (missionTons + junkTons > 0) {
                     NumToString(missionTons + junkTons, num);
@@ -739,19 +1028,19 @@ void UpdateTradeDialog(void)
                     PtoCstr(num);
                     strcat((char *)text, (char *)num);
                     strcat((char *)text, " ");
-                    AppendIndString((char *)text, kGameStrList, 0x187);
+                    StrcatIndCString((char *)text, kGameStrList, 0x187);
                     strcat((char *)text, " ");
                 }
                 if (missionSlots > 0) {
-                    AppendIndString((char *)text, kGameStrList, 0x16f);
+                    StrcatIndCString((char *)text, kGameStrList, 0x16f);
                     if (junkSlots > 0) {
                         strcat((char *)text, " ");
-                        AppendIndString((char *)text, kGameStrList, 0x188);
+                        StrcatIndCString((char *)text, kGameStrList, 0x188);
                         strcat((char *)text, " ");
                     }
                 }
                 if (junkSlots > 0)
-                    AppendIndString((char *)text, kGameStrList, 0x170);
+                    StrcatIndCString((char *)text, kGameStrList, 0x170);
                 strcat((char *)text, "\r\r");
             }
         }
@@ -759,18 +1048,26 @@ void UpdateTradeDialog(void)
         holds = ShipTotalHolds();
         fleetHolds = TotalFleetHolds();
         totalCargo = TotalCargo(shipData);
-        AppendIndString((char *)text, kGameStrList, 0x16c);
+        StrcatIndCString((char *)text, kGameStrList, 0x16c);
         if (fleetHolds > holds) {
             strcat((char *)text, " ");
-            AppendIndString((char *)text, kGameStrList, 0x16d);
+            StrcatIndCString((char *)text, kGameStrList, 0x16d);
         }
         strcat((char *)text, ": ");
         if (fleetHolds > holds) {
+#ifdef MACBUILD
+            over = totalCargo - missionTons;
+            over -= fleetHolds - holds;
+            if (over < 0)
+                over = 0;
+            available = holds - (over + missionTons);
+#else
             available = totalCargo - missionTons;
             available -= fleetHolds - holds;
             if (available < 0)
                 available = 0;
             available = holds - (available + missionTons);
+#endif
             if (available < 0)
                 available = 0;
         } else {
@@ -789,19 +1086,19 @@ void UpdateTradeDialog(void)
         PtoCstr(num);
         strcat((char *)text, (char *)num);
         if (fleetHolds > holds) {
-            fleetHolds = fleetHolds - totalCargo;
-            if (fleetHolds < 0)
-                fleetHolds = 0;
+            available = fleetHolds - totalCargo;
+            if (available < 0)
+                available = 0;
             strcat((char *)text, "\r");
-            AppendIndString((char *)text, kGameStrList, 0x16c);
+            StrcatIndCString((char *)text, kGameStrList, 0x16c);
             strcat((char *)text, " ");
-            AppendIndString((char *)text, kGameStrList, 0x16e);
+            StrcatIndCString((char *)text, kGameStrList, 0x16e);
             strcat((char *)text, ": ");
-            NumToString(fleetHolds, num);
+            NumToString(available, num);
             PtoCstr(num);
             strcat((char *)text, (char *)num);
             strcat((char *)text, " ");
-            if (fleetHolds == 1)
+            if (available == 1)
                 pstrcpy(num, tonString);
             else
                 pstrcpy(num, tonsString);
@@ -813,15 +1110,15 @@ void UpdateTradeDialog(void)
         InvertRect(&insetBox);
         RGBForeColor(&rgbDarkGrey);
         FrameRect(&box);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
     }
     DrawTradeButtons(-1);
 
     GetDialogItem(tradeDialog, kNewsItem, &itemType, &item, &box);
-    if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(tradeDialog)))) {
+    if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(tradeDialog)))) {
         for (p = 0; p < 0x100; p++) {
             if (disasterData[p].loaded != 0 && disasterData[p].countdown > 0 &&
-                shipData->targetStellar == disasterData[p].stellarID) {
+                disasterData[p].stellarID == shipData->targetStellar) {
                 if (cheatsActive) {
                     strcpy((char *)text, "Disaster ID ");
                     NumToString(p + 0x80, num);
@@ -832,14 +1129,14 @@ void UpdateTradeDialog(void)
                     PtoCstr(text);
                 }
                 strcat((char *)text, " ");
-                AppendIndString((char *)text, kGameStrList, 0xc0);
+                StrcatIndCString((char *)text, kGameStrList, 0xc0);
                 strcat((char *)text, " ");
                 if (disasterData[p].amount > 0)
-                    AppendIndString((char *)text, kGameStrList, 0xc1);
+                    StrcatIndCString((char *)text, kGameStrList, 0xc1);
                 else
-                    AppendIndString((char *)text, kGameStrList, 0xc2);
+                    StrcatIndCString((char *)text, kGameStrList, 0xc2);
                 strcat((char *)text, " ");
-                AppendIndString((char *)text, kGameStrList, 0xb5);
+                StrcatIndCString((char *)text, kGameStrList, 0xb5);
                 strcat((char *)text, " ");
                 strncpy((char *)num, (char *)lcCargoName[disasterData[p].commodity], 0x40);
                 PtoCstr(num);
@@ -847,7 +1144,7 @@ void UpdateTradeDialog(void)
                 strcat((char *)text, ".");
 
                 strcpy((char *)message, (char *)text);
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
                 TextFont(smallTextFont);
                 TextSize(smallTextSize);
                 TETextBox(message, strlen((char *)message), &box, 0);
@@ -859,42 +1156,47 @@ void UpdateTradeDialog(void)
 
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(tradeDialog);
-    RGBForeColor(blackColor);
-    CopyBits(GetGWCPixMap(&loadPort),
+    ForeColor(blackColor);
+    CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(tradeDialog)),
              GetDialogPortRect(tradeDialog), GetDialogPortRect(tradeDialog), 0,
-             GetCWindowVisRgn(FrontWindow(tradeDialog)));
+             GetWindowVisRgn(FrontWindow(tradeDialog)));
 }
 
 #define kStellarBackdropPictID 0x2134
 
 /* PreloadPortDialog. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048e970
+// MAC: _PreloadPortDialog i386 0x0004e5c7 ppc 0x000571c0
 void PreloadPortDialog(SpobRecord *spob, short stellar)
 {
     Rect rect;
     PicHandle pic;
 
-    gStellarDialogPict = GetPicture(kStellarBackdropPictID);
-    gStellarImage.world = NULL;
+    portBackgroundPic = GetPicture(kStellarBackdropPictID);
+    planetPicContainer.world = NULL;
 
     if (spob->customPict >= 128)
-        gStellarPictID = spob->customPict;
+        planetPicId = spob->customPict;
     else
-        gStellarPictID = spob->type + 10000;
+        planetPicId = spob->type + 10000;
 
-    pic = GetPicture(gStellarPictID);
+    pic = GetPicture(planetPicId);
     if (pic != NULL) {
         QDGetPictureBounds(pic, &rect);
         OffsetRect(&rect, -rect.left, -rect.top);
-        CreateGWorldContainer(&gStellarImage, 0, gSpriteWorld->pixelDepth, &rect);
-        if (gStellarImage.world != NULL) {
-            SetGWorldContainer(&gStellarImage);
-            RGBForeColor(blackColor);
-            PaintRect(&gStellarImage.bounds);
-            DrawPicHandle(pic, &gStellarImage.bounds);
+#ifdef MACBUILD
+        CreateGWorldContainer(&planetPicContainer, GetMainDevice(), gSpriteWorld->pixelDepth, &rect);
+#else
+        CreateGWorldContainer(&planetPicContainer, 0, gSpriteWorld->pixelDepth, &rect);
+#endif
+        if (planetPicContainer.world != NULL) {
+            SetGWorldContainer(&planetPicContainer);
+            ForeColor(blackColor);
+            PaintRect(&planetPicContainer.bounds);
+            DrawPicHandle(pic, &planetPicContainer.bounds);
             QDReleaseResource(pic);
-            UnsetGWorldContainer(&gStellarImage);
+            UnsetGWorldContainer(&planetPicContainer);
         }
     }
 }
@@ -914,41 +1216,45 @@ void PreloadPortDialog(SpobRecord *spob, short stellar)
    OPEN: none. The order of the address-taken locals decides the frame's use-5 tie between
    weapID and the sell quantity (see notes). */
 // FUNCTION: EVNOVA 0x0048ea70
+// MAC: _DoOutfitDialog i386 0x0005bacf ppc 0x00063b20
+#ifdef MACBUILD
+#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, &item, &box), InvalWindowRect(GetDialogWindow(dlg), &box))
+#endif
 void DoOutfitDialog(void)
+#ifdef MAC1010
 {
+    short i;
+    short j;
+    short count;
+    short shortfall;
+    short ammo;
+    short weapID;
+    Boolean shown;
     short itemHit;
+    long cost;
     short itemType;
-    void *item;
-    short filterKey;
     short savedUnk6C;
     short savedUnk6A;
     long qtyLimit;
     int have;
-    short count;
-    short weapID;
-    short ammo;
-    char done;
-    short shortfall;
-    short n;
+    Boolean done;
+    short filterKey;
+    Handle item;
     short maxAfford;
     short savedOutfits[kMaxOutfits];
     Rect box;
+    unsigned char msg[256];
     unsigned char nameBuf[256];
-    char msg[256];
-    short i;
-    short j;
-    short k;
     short m;
-    char shown;
-    long cost;
+    short k;
 
     done = 0;
     for (i = 0; i < kMaxOutfits; i++)
         savedOutfits[i] = shipSystems[i];
     savedUnk6C = shipData->targetStellar;
     savedUnk6A = shipData->navTargetKind;
-    gSelectedOutfit = -1;
-    gOutfitGridPos = -1;
+    selOutfitItem = -1;
+    selOutfitListItem = -1;
     outfitScroll = 0;
     boughtMap = boughtID = 0;
     canBuy = canSell = 0;
@@ -964,6 +1270,608 @@ void DoOutfitDialog(void)
         }
     } else
         portBuysNoOutfits = 0;
+    m = 0;
+    for (i = 0; i < kMaxOutfits; i++) {
+        if (dockedPortItems[i] != -1) {
+            m++;
+            break;
+        }
+    }
+    if (m == 0) {
+        extern char *strcpy(char *, const char *);
+
+        strcpy(textShowString, "");
+        StrcatIndCString(textShowString, kGameStrList, 0xce);
+        ShowTextDialog(0, 0, 0);
+        return;
+    }
+    previewPic = NULL;
+    previewPicID = -1;
+    missionsOutside = kOutfitVenue;
+    offeringFromShip = 0;
+    missionOfferTime = ReadTick() + Rand(30) + 30;
+    outfitDialog = NULL;
+    outfitDialog = GetNewDialog(kOutfitDlogID, OutfitDialogUpdate, OutfitFilter);
+    if (outfitDialog == NULL)
+        return;
+    outfitBackgroundPic = GetPicture(kOutfitPictID);
+    CenterWindow(FrontWindow(outfitDialog), FrontWindow(portDialog));
+    GetDialogItem(outfitDialog, kGridItem, &itemType, &item, &box);
+    SetupListRects(&box);
+    strncpy(dialogDescTextPtr, "", 3);
+    ShowWindowNoFlash(FrontWindow(outfitDialog));
+    SetDialogGWorld(outfitDialog);
+    FlushEvents(everyEvent - diskMask, 0);
+    ForeColor(blackColor);
+    OutfitDialogUpdate();
+    SelectWindow(FrontWindow(outfitDialog));
+    BringToFront(FrontWindow(outfitDialog));
+    OfferMissionFromPort(kOutfitVenue);
+    RedrawDialog(outfitDialog);
+
+    do {
+        if (gQuit)
+            done = 1;
+        MyModalDialog(outfitDialog, OutfitFilter, &itemHit, &filterKey);
+        if (itemHit == 1)
+            done = 1;
+        if (itemHit == 2) {
+            hypergateMapMode = 0;
+            DoSystemMap();
+            shipData->targetStellar = savedUnk6C;
+            shipData->navTargetKind = savedUnk6A;
+            SetDialogGWorld(portDialog);
+            RedrawDialog(portDialog);
+            UpdateAllPortDialogs();
+            SetDialogGWorld(outfitDialog);
+            RedrawDialog(outfitDialog);
+        }
+        if (itemHit == 13) {
+            count = 0;
+            for (i = 0; i < kMaxActiveMissions; i++) {
+                if (currentMissionObjectives[i].active != 0
+                    && (currentMissionObjectives[i].flags & kMissionHidden) == 0)
+                    count++;
+            }
+            if (count > 0) {
+                DoMissionInfoDialog();
+                SetDialogGWorld(portDialog);
+                RedrawDialog(portDialog);
+                UpdateAllPortDialogs();
+                SetDialogGWorld(outfitDialog);
+                RedrawDialog(portDialog);
+            }
+        }
+        if (itemHit == 8) {
+            if (OfferMissionFromPort(kOutfitVenue)) {
+                SetDialogGWorld(portDialog);
+                UpdateAllPortDialogs();
+                SetDialogGWorld(outfitDialog);
+            }
+        }
+        if (itemHit == 7) {
+            if (selOutfitItem != -1)
+                canBuy = CanBuyOutfitItem(selOutfitItem);
+            else
+                canBuy = 0;
+            if (canBuy && selOutfitItem != -1) {
+                count = 1;
+                if ((filterKey & optionKey) != 0) {
+                    cost = ApplyPriceAndTechnologyFlux(
+                        outfitSystem[selOutfitItem].cost, priceFluxMult[0],
+                        outfitSystem[selOutfitItem].techLevel,
+                        stellarData[shipData->targetStellar].techLevel);
+                    cost = AdjustedItemCost(&outfitSystem[selOutfitItem],
+                                            &shipClass[shipData->type]);
+                    if (cost > 0) {
+                        qtyLimit = shipData->credits / cost;
+                        if (qtyLimit > 32000)
+                            qtyLimit = 32000;
+                    } else
+                        qtyLimit = 32000;
+                    if (outfitSystem[selOutfitItem].maxCount
+                        > shipSystems[selOutfitItem]) {
+                        if (qtyLimit > outfitSystem[selOutfitItem].maxCount
+                                       - shipSystems[selOutfitItem])
+                            qtyLimit = outfitSystem[selOutfitItem].maxCount
+                                       - shipSystems[selOutfitItem];
+                    }
+                    if (qtyLimit > 1) {
+                        HasMaxOfItem(selOutfitItem, 0, &maxAfford);
+                        if (maxAfford < qtyLimit)
+                            qtyLimit = maxAfford;
+                        if (maxAfford - shipSystems[selOutfitItem] < qtyLimit)
+                            qtyLimit = maxAfford - shipSystems[selOutfitItem];
+                    }
+                    if (qtyLimit > 1) {
+                        count = DoQuantityDialog(qtyLimit, 0);
+                        OutfitDialogUpdate();
+                    }
+                }
+                for (i = 0; i < count; i++) {
+                    if (canBuy) {
+                        cost = ApplyPriceAndTechnologyFlux(
+                            outfitSystem[selOutfitItem].cost, priceFluxMult[0],
+                            outfitSystem[selOutfitItem].techLevel,
+                            stellarData[shipData->targetStellar].techLevel);
+                        cost = AdjustedItemCost(&outfitSystem[selOutfitItem],
+                                                &shipClass[shipData->type]);
+                        GrantOutfitItem(selOutfitItem);
+                        shipData->credits -= cost;
+                        crashlog_mission_bit_set(
+                            "purchasing outfit",
+                            outfitSystem[selOutfitItem].name, 1,
+                            selOutfitItem + kFirstResourceID,
+                            outfitSystem[selOutfitItem].onPurchase);
+                        if (shipData->credits < 0) {
+                            crashlog("warning: player's cash went below zero");
+                            shipData->credits = 0;
+                            i = count;
+                        }
+                        EvalMissionBitSetString(outfitSystem[selOutfitItem].onPurchase);
+                    }
+                    if (selOutfitItem != -1)
+                        canBuy = CanBuyOutfitItem(selOutfitItem);
+                    else
+                        canBuy = 0;
+                }
+                SystemInfoToShipStats();
+                if (SetupPortAvailableItems(dockedPort)) {
+                    selOutfitItem = 0;
+                    selOutfitListItem = -1;
+                    outfitScroll = 0;
+                    canBuy = canSell = 0;
+                    strncpy(dialogDescTextPtr, "", 3);
+                    InvalDialogItem(outfitDialog, 6);
+                    InvalDialogItem(outfitDialog, 8);
+                    m = 0;
+                    for (i = 0; i < kMaxOutfits; i++) {
+                        if (dockedPortItems[i] != -1) {
+                            m++;
+                            break;
+                        }
+                    }
+                    if (m == 0)
+                        done = 1;
+                }
+                InvalDialogItem(outfitDialog, 4);
+                InvalDialogItem(outfitDialog, 5);
+                InvalDialogItem(outfitDialog, 7);
+                InvalDialogItem(outfitDialog, 9);
+                didOutfit = 1;
+                if (shipSystems[selOutfitItem] > 0) {
+                    if ((outfitSystem[selOutfitItem].flags & kOutfCantSell) != 0)
+                        canSell = 0;
+                    else
+                        canSell = 1;
+                } else
+                    canSell = 0;
+                statusRedraw[2] = 1;
+                DrawStatus();
+                SetDialogGWorld(outfitDialog);
+                DrawOutfitButtons(-1);
+            }
+        }
+        if (itemHit == 4 && canSell) {
+            count = 1;
+            if ((filterKey & optionKey) != 0) {
+                qtyLimit = shipSystems[selOutfitItem];
+                if (qtyLimit > 32000)
+                    qtyLimit = 32000;
+                if (qtyLimit > 1) {
+                    count = DoQuantityDialog(qtyLimit, 1);
+                    OutfitDialogUpdate();
+                }
+            }
+            shown = 0;
+            for (i = 0; i < count; i++) {
+                if (canSell) {
+                    have = AdjustedItemMass(&outfitSystem[selOutfitItem],
+                                            &shipClass[shipData->type]);
+                    if (have < 0 && ShipFreeMass() + have < 0) {
+                        if (!shown) {
+                            GetIndString(msg, kGameStrList, 0xcf);
+                            PtoCstr(msg);
+                            strcpy(textShowString, msg);
+                            ShowTextDialog(0, 0, 0);
+                            shown = 1;
+                        }
+                        canSell = 0;
+                    }
+                }
+                if (canSell) {
+                    for (j = 0; j < kOutfMods; j++) {
+                        if (outfitSystem[selOutfitItem].modType[j] == 0x1b
+                            && outfitSystem[selOutfitItem].modVal[j] >= kFirstResourceID
+                            && outfitSystem[selOutfitItem].modVal[j] < kFirstResourceID + kMaxOutfits) {
+                            k = (shipSystems[selOutfitItem] - count)
+                                * outfitSystem[outfitSystem[selOutfitItem].modVal[j] - kFirstResourceID].maxCount;
+                            shortfall = shipSystems[outfitSystem[selOutfitItem].modVal[j] - kFirstResourceID] - k;
+                            if (shortfall > 0) {
+                                if (!shown) {
+                                    strcpy(msg,"");
+
+                                    StrcatIndCString(msg,kGameStrList, 0xd0);
+                                    strcat(msg," ");
+                                    if (shortfall > 3)
+                                        StrcatCommaNumber(shortfall, msg);
+                                    else
+                                        StrcatOrdinalNumber(shortfall, msg,0);
+                                    strcat(msg," ");
+                                    if (shortfall > 1)
+                                        pstrcpy(nameBuf,
+                                            lcPluralOutfitName[outfitSystem[selOutfitItem].modVal[j] - kFirstResourceID]);
+                                    else
+                                        pstrcpy(nameBuf,
+                                            lcOutfitName[outfitSystem[selOutfitItem].modVal[j] - kFirstResourceID]);
+                                    PtoCstr(nameBuf);
+                                    strcat(msg,nameBuf);
+                                    strcat(msg," ");
+                                    StrcatIndCString(msg,kGameStrList, 0xd4);
+                                    strcat(msg," ");
+                                    if (i < count - 1)
+                                        pstrcpy(nameBuf, lcPluralOutfitName[selOutfitItem]);
+                                    else
+                                        pstrcpy(nameBuf, lcOutfitName[selOutfitItem]);
+                                    PtoCstr(nameBuf);
+                                    strcat(msg,nameBuf);
+                                    strcat(msg,".");
+                                    strcpy(textShowString, msg);
+                                    ShowTextDialog(0, 0, 0);
+                                    shown = 1;
+                                }
+                                canSell = 0;
+                            }
+                        }
+                    }
+                    weapID = -1;
+                    for (j = 0; j < kOutfMods; j++) {
+                        if (outfitSystem[selOutfitItem].modType[j] == 1) {
+                            weapID = outfitSystem[selOutfitItem].modVal[j];
+                            break;
+                        }
+                    }
+                    if (weapID != -1 && weaponStats[weapID].maxAmmo > 0) {
+                        if (weaponStats[weapID].ammoType >= 0
+                            && weaponStats[weapID].ammoType < 256
+                            && weaponStats[weapID].guidance != kGuidanceBay)
+                            ammo = shipData->weap[weaponStats[weapID].ammoType].ammo;
+                        else
+                            ammo = shipData->weap[weapID].ammo;
+                        if (weaponStats[weapID].guidance == kGuidanceBay) {
+                            for (j = 1; j < kMaxShips; j++) {
+                                if (shipData[j].active != 0
+                                    && shipData[j].parentShip == 0
+                                    && shipData[j].aiType == 5
+                                    && shipData[j].type
+                                       == weaponStats[weapID].ammoType - kFirstResourceID
+                                    && !IsDisabled(&shipData[j]))
+                                    ammo++;
+                            }
+                        }
+                        shortfall = ammo
+                            - ((shipSystems[selOutfitItem] - (i + 1))
+                                      * weaponStats[weapID].maxAmmo);
+                        if (shortfall > 0 && ammo > 0) {
+                            if (!shown) {
+                                strcpy(msg,"");
+
+                                StrcatIndCString(msg,kGameStrList, 0xd0);
+                                strcat(msg," ");
+                                if (shortfall > 3)
+                                    StrcatCommaNumber(shortfall, msg);
+                                else
+                                    StrcatOrdinalNumber(shortfall, msg,0);
+                                strcat(msg," ");
+                                k = -1;
+                                for (j = 0; j < kMaxOutfits; j++) {
+                                    for (m = 0; m < kOutfMods; m++) {
+                                        if (outfitSystem[j].modType[m] == 3
+                                            && outfitSystem[j].modVal[m] == weapID) {
+                                            k = j;
+                                            break;
+                                        }
+                                    }
+                                    if (k != -1)
+                                        break;
+                                }
+                                if (k != -1) {
+                                    if (shortfall > 1)
+                                        pstrcpy(nameBuf, lcPluralOutfitName[k]);
+                                    else
+                                        pstrcpy(nameBuf, lcOutfitName[k]);
+                                    PtoCstr(nameBuf);
+                                    strcat(msg,nameBuf);
+                                } else {
+                                    if (shortfall > 1)
+                                        StrcatIndCString(msg,kGameStrList, 0xd2);
+                                    else
+                                        StrcatIndCString(msg,kGameStrList, 0xd1);
+                                    strcat(msg," ");
+                                    StrcatIndCString(msg,kGameStrList, 0xd3);
+                                }
+                                strcat(msg," ");
+                                StrcatIndCString(msg,kGameStrList, 0xd4);
+                                strcat(msg," ");
+                                if (i < count - 1)
+                                    pstrcpy(nameBuf, lcPluralOutfitName[selOutfitItem]);
+                                else
+                                    pstrcpy(nameBuf, lcOutfitName[selOutfitItem]);
+                                PtoCstr(nameBuf);
+                                strcat(msg,nameBuf);
+                                strcat(msg,".");
+                                strcpy(textShowString, msg);
+                                ShowTextDialog(0, 0, 0);
+                                shown = 1;
+                            }
+                            canSell = 0;
+                        }
+                    }
+                }
+                if (canSell) {
+                    cost = ApplyPriceAndTechnologyFlux(
+                        outfitSystem[selOutfitItem].cost, priceFluxMult[0],
+                        outfitSystem[selOutfitItem].techLevel,
+                        stellarData[shipData->targetStellar].techLevel);
+                    cost = AdjustedItemCost(&outfitSystem[selOutfitItem],
+                                            &shipClass[shipData->type]);
+                    if (shipSystems[selOutfitItem]
+                        <= savedOutfits[selOutfitItem])
+                        cost *= 0.5;
+                    have = ShipFreeMass();
+                    shipSystems[selOutfitItem] -= 1;
+                    if (ShipFreeMass() < 0 && have >= 0) {
+                        shipSystems[selOutfitItem] += 1;
+                        PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
+                        break;
+                    } else {
+                        shipData->credits += cost;
+                        for (j = 0; j < kOutfMods; j++) {
+                            if (shipSystems[selOutfitItem] <= 0) {
+                                if (outfitSystem[selOutfitItem].modType[j] == 1
+                                    && shipData->selectedWeapon
+                                       == outfitSystem[selOutfitItem].modVal[j]) {
+                                    shipData->selectedWeapon = -1;
+                                    statusRedraw[3] = 1;
+                                    break;
+                                }
+                            }
+                        }
+                        crashlog_mission_bit_set(
+                            "selling outfit",
+                            outfitSystem[selOutfitItem].name, 1,
+                            selOutfitItem + kFirstResourceID,
+                            outfitSystem[selOutfitItem].onSell);
+                        EvalMissionBitSetString(outfitSystem[selOutfitItem].onSell);
+                        SystemInfoToShipStats();
+                        if (SetupPortAvailableItems(dockedPort)) {
+                            selOutfitItem = 0;
+                            selOutfitListItem = -1;
+                            outfitScroll = 0;
+                            canBuy = canSell = 0;
+                            strncpy(dialogDescTextPtr, "", 3);
+                            InvalDialogItem(outfitDialog, 6);
+                            InvalDialogItem(outfitDialog, 8);
+                            m = 0;
+                            for (i = 0; i < kMaxOutfits; i++) {
+                                if (dockedPortItems[i] != -1) {
+                                    m++;
+                                    break;
+                                }
+                            }
+                            if (m == 0)
+                                done = 1;
+                        }
+                    }
+                }
+                if (selOutfitItem != -1 && shipSystems[selOutfitItem] > 0) {
+                    if ((outfitSystem[selOutfitItem].flags & kOutfCantSell) != 0)
+                        canSell = 0;
+                    else
+                        canSell = 1;
+                } else
+                    canSell = 0;
+            }
+            if (selOutfitItem != -1)
+                canBuy = CanBuyOutfitItem(selOutfitItem);
+            else
+                canBuy = 0;
+            InvalDialogItem(outfitDialog, 4);
+            InvalDialogItem(outfitDialog, 5);
+            InvalDialogItem(outfitDialog, 7);
+            InvalDialogItem(outfitDialog, 9);
+            didOutfit = 1;
+            statusRedraw[2] = 1;
+            DrawStatus();
+            SetDialogGWorld(outfitDialog);
+            DrawOutfitButtons(-1);
+        }
+        if (itemHit == 10 && outfitScroll >= kGridCols) {
+            outfitScroll -= kGridCols;
+            if (selOutfitListItem >= 0 && selOutfitListItem < kGridCells - kGridCols) {
+                selOutfitListItem += kGridCols;
+                selOutfitItem =
+                    dockedPortItems[outfitScroll + selOutfitListItem];
+                LoadDescription(dialogDescTextPtr, selOutfitItem + kOutfitDescBase);
+            } else {
+                selOutfitItem = selOutfitListItem = -1;
+                strncpy(dialogDescTextPtr, "", 3);
+            }
+            SetDialogGWorld(outfitDialog);
+            InvalDialogItem(outfitDialog, 4);
+            InvalDialogItem(outfitDialog, 7);
+            InvalDialogItem(outfitDialog, 5);
+            InvalDialogItem(outfitDialog, 6);
+            InvalDialogItem(outfitDialog, 8);
+            InvalDialogItem(outfitDialog, 9);
+            InvalDialogItem(outfitDialog, 10);
+            InvalDialogItem(outfitDialog, 11);
+            InvalDialogItem(outfitDialog, 13);
+        }
+        if (itemHit == 11) {
+            count = 0;
+            for (i = 0; i < kMaxOutfits; i++) {
+                if (dockedPortItems[i] != -1)
+                    count++;
+            }
+            if (outfitScroll < count - kGridCells) {
+                outfitScroll += kGridCols;
+                if (selOutfitListItem >= kGridCols) {
+                    selOutfitListItem -= kGridCols;
+                    selOutfitItem =
+                        dockedPortItems[outfitScroll + selOutfitListItem];
+                    LoadDescription(dialogDescTextPtr, selOutfitItem + kOutfitDescBase);
+                } else {
+                    selOutfitItem = selOutfitListItem = -1;
+                    strncpy(dialogDescTextPtr, "", 3);
+                }
+                SetDialogGWorld(outfitDialog);
+                InvalDialogItem(outfitDialog, 4);
+                InvalDialogItem(outfitDialog, 7);
+                InvalDialogItem(outfitDialog, 5);
+                InvalDialogItem(outfitDialog, 6);
+                InvalDialogItem(outfitDialog, 8);
+                InvalDialogItem(outfitDialog, 9);
+                InvalDialogItem(outfitDialog, 10);
+                InvalDialogItem(outfitDialog, 11);
+                InvalDialogItem(outfitDialog, 13);
+            }
+        }
+    } while (!done);
+
+    k = ShipFuelCapacity(shipData);
+    if (shipData->fuel > k) {
+        shipData->fuel = k;
+        statusRedraw[4] = 1;
+    }
+    count = ShipShieldCapacity(shipData);
+    if (shipData->shield > count) {
+        shipData->shield = count;
+        statusRedraw[1] = 1;
+    }
+    count = ShipArmorCapacity(shipData);
+    if (shipData->armor > count) {
+        shipData->armor = count;
+        statusRedraw[1] = 1;
+    }
+    for (i = 0; i < kMaxOutfits; i++) {
+        if (shipSystems[i] > 0 && (outfitSystem[i].flags & kOutfRemoveAfterBuy) != 0)
+            shipSystems[i] = 0;
+    }
+    SystemInfoToShipStats();
+    DisposeDialogNoFlash(outfitDialog);
+    outfitDialog = NULL;
+    if (outfitBackgroundPic != NULL) {
+        QDReleaseResource(outfitBackgroundPic);
+        outfitBackgroundPic = NULL;
+    }
+    if (previewPic != NULL) {
+        HUnlock(previewPic);
+        QDReleaseResource(previewPic);
+        previewPic = NULL;
+    }
+    SWSetPortToBackground(gSpriteWorld);
+    SetSystemBackgroundColor();
+    PaintRect(&gSpriteWorld->backFrameP->frameRect);
+    ForeColor(blackColor);
+#if !TARGET_API_MAC_CARBON
+    RedrawStatus(0);
+#endif
+    SWSetPortToWindow(gSpriteWorld);
+    RefreshSAT();
+    shipData->targetStellar = savedUnk6C;
+    shipData->navTargetKind = savedUnk6A;
+    statusRedraw[0] = 1;
+    ResetMissionOfferVenue();
+}
+#else
+{
+#ifdef MACBUILD
+    short shortfall;
+    short itemHit;
+    long cost;
+    short itemType;
+    short savedUnk6C;
+    short savedUnk6A;
+    long qtyLimit;
+    int have;
+    short count;
+    short weapID;
+    Boolean shown;
+    Boolean done;
+    short filterKey;
+    Handle item;
+    short maxAfford;
+    short savedOutfits[kMaxOutfits];
+    Rect box;
+    unsigned char nameBuf[256];
+    unsigned char msg[256];
+    short i;
+    short j;
+    short k;
+    short m;
+    short ammo;
+    short n;
+#else
+    short itemHit;
+    short itemType;
+    void *item;
+    short filterKey;
+    short savedUnk6C;
+    short savedUnk6A;
+    long qtyLimit;
+    int have;
+    short count;
+    short weapID;
+    short ammo;
+    Boolean done;
+    short shortfall;
+    short n;
+    short maxAfford;
+    short savedOutfits[kMaxOutfits];
+    Rect box;
+    unsigned char nameBuf[256];
+    char msg[256];
+    short i;
+    short j;
+    short k;
+    short m;
+    Boolean shown;
+    long cost;
+#endif
+
+    done = 0;
+    for (i = 0; i < kMaxOutfits; i++)
+        savedOutfits[i] = shipSystems[i];
+    savedUnk6C = shipData->targetStellar;
+    savedUnk6A = shipData->navTargetKind;
+    selOutfitItem = -1;
+    selOutfitListItem = -1;
+    outfitScroll = 0;
+    boughtMap = boughtID = 0;
+    canBuy = canSell = 0;
+    ShipStatsToSystemInfo();
+    SetupPortAvailableItems(dockedPort);
+    if (dockedPort->techLevel == 0) {
+        portBuysNoOutfits = 1;
+        for (i = 0; i < 8; i++) {
+            if (dockedPort->specialTech[i] > 0) {
+                portBuysNoOutfits = 0;
+                break;
+            }
+        }
+    } else
+        portBuysNoOutfits = 0;
+#ifdef MACBUILD
+    m = 0;
+    for (count = 0; count < kMaxOutfits; count++) {
+        if (dockedPortItems[count] != -1) {
+            m++;
+            break;
+        }
+    }
+    if (m == 0) {
+#else
     count = 0;
     for (i = 0; i < kMaxOutfits; i++) {
         if (dockedPortItems[i] != -1) {
@@ -972,41 +1880,42 @@ void DoOutfitDialog(void)
         }
     }
     if (count == 0) {
+#endif
         extern char *strcpy(char *, const char *);
 
-        strcpy(gTextShowString, "");
-        AppendIndString(gTextShowString, kGameStrList, 0xce);
+        strcpy(textShowString, "");
+        StrcatIndCString(textShowString, kGameStrList, 0xce);
         ShowTextDialog(0, 0, 0);
         return;
     }
     previewPic = NULL;
     previewPicID = -1;
-    missionListVenue = kOutfitVenue;
+    missionsOutside = kOutfitVenue;
     offeringFromShip = 0;
     missionOfferTime = ReadTick() + Rand(30) + 30;
     outfitDialog = NULL;
     outfitDialog = GetNewDialog(kOutfitDlogID, OutfitDialogUpdate, OutfitFilter);
     if (outfitDialog == NULL)
         return;
-    gOutfitDialogPict = GetPicture(kOutfitPictID);
+    outfitBackgroundPic = GetPicture(kOutfitPictID);
     CenterWindow(FrontWindow(outfitDialog), FrontWindow(portDialog));
     GetDialogItem(outfitDialog, kGridItem, &itemType, &item, &box);
     SetupListRects((Point *)&box);
-    strncpy(gItemDescText, "", 3);
+    strncpy(dialogDescTextPtr, "", 3);
     ShowWindowNoFlash(FrontWindow(outfitDialog));
     SetDialogGWorld(outfitDialog);
     FlushEvents(everyEvent - diskMask, 0);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     OutfitDialogUpdate();
-    FrontWindow(outfitDialog);
-    FrontWindow(outfitDialog);
+    SelectWindow(FrontWindow(outfitDialog));
+    BringToFront(FrontWindow(outfitDialog));
     OfferMissionFromPort(kOutfitVenue);
     RedrawDialog(outfitDialog);
 
     do {
         if (gQuit)
             done = 1;
-        RunModalDialog(outfitDialog, OutfitFilter, &itemHit, &filterKey);
+        MyModalDialog(outfitDialog, OutfitFilter, &itemHit, &filterKey);
         if (itemHit == 1)
             done = 1;
         if (itemHit == 2) {
@@ -1044,19 +1953,21 @@ void DoOutfitDialog(void)
             }
         }
         if (itemHit == 7) {
-            if (gSelectedOutfit == -1)
-                canBuy = 0;
+            if (selOutfitItem != -1)
+                canBuy = CanBuyOutfitItem(selOutfitItem);
             else
-                canBuy = CanBuyOutfitItem(gSelectedOutfit);
-            if (canBuy && gSelectedOutfit != -1) {
+                canBuy = 0;
+            if (canBuy && selOutfitItem != -1) {
                 count = 1;
-                if ((filterKey & 0x800) != 0) {
+                if ((filterKey & optionKey) != 0) {
+#ifndef V111
                     cost = ApplyPriceAndTechnologyFlux(
-                        gOutfits[gSelectedOutfit].cost, priceFluxMult[0],
-                        gOutfits[gSelectedOutfit].techLevel,
+                        outfitSystem[selOutfitItem].cost, priceFluxMult[0],
+                        outfitSystem[selOutfitItem].techLevel,
                         stellarData[shipData->targetStellar].techLevel);
-                    cost = AdjustedItemCost(&gOutfits[gSelectedOutfit],
-                                            &gShipTypes[shipData->type]);
+#endif
+                    cost = AdjustedItemCost(&outfitSystem[selOutfitItem],
+                                            &shipClass[shipData->type]);
                     if (cost <= 0)
                         qtyLimit = 32000;
                     else {
@@ -1064,19 +1975,19 @@ void DoOutfitDialog(void)
                         if (qtyLimit > 32000)
                             qtyLimit = 32000;
                     }
-                    if (gOutfits[gSelectedOutfit].maxCount
-                        > shipSystems[gSelectedOutfit]) {
-                        if (qtyLimit > gOutfits[gSelectedOutfit].maxCount
-                                       - shipSystems[gSelectedOutfit])
-                            qtyLimit = gOutfits[gSelectedOutfit].maxCount
-                                       - shipSystems[gSelectedOutfit];
+                    if (outfitSystem[selOutfitItem].maxCount
+                        > shipSystems[selOutfitItem]) {
+                        if (qtyLimit > outfitSystem[selOutfitItem].maxCount
+                                       - shipSystems[selOutfitItem])
+                            qtyLimit = outfitSystem[selOutfitItem].maxCount
+                                       - shipSystems[selOutfitItem];
                     }
                     if (qtyLimit > 1) {
-                        HasMaxOfItem(gSelectedOutfit, 0, &maxAfford);
+                        HasMaxOfItem(selOutfitItem, 0, &maxAfford);
                         if (maxAfford < qtyLimit)
                             qtyLimit = maxAfford;
-                        if (maxAfford - shipSystems[gSelectedOutfit] < qtyLimit)
-                            qtyLimit = maxAfford - shipSystems[gSelectedOutfit];
+                        if (maxAfford - shipSystems[selOutfitItem] < qtyLimit)
+                            qtyLimit = maxAfford - shipSystems[selOutfitItem];
                     }
                     if (qtyLimit > 1) {
                         count = DoQuantityDialog(qtyLimit, 0);
@@ -1085,39 +1996,46 @@ void DoOutfitDialog(void)
                 }
                 for (m = 0; m < count; m++) {
                     if (canBuy) {
+#ifndef V111
                         cost = ApplyPriceAndTechnologyFlux(
-                            gOutfits[gSelectedOutfit].cost, priceFluxMult[0],
-                            gOutfits[gSelectedOutfit].techLevel,
+                            outfitSystem[selOutfitItem].cost, priceFluxMult[0],
+                            outfitSystem[selOutfitItem].techLevel,
                             stellarData[shipData->targetStellar].techLevel);
-                        cost = AdjustedItemCost(&gOutfits[gSelectedOutfit],
-                                                &gShipTypes[shipData->type]);
-                        GrantOutfitItem(gSelectedOutfit);
+#endif
+                        cost = AdjustedItemCost(&outfitSystem[selOutfitItem],
+                                                &shipClass[shipData->type]);
+                        GrantOutfitItem(selOutfitItem);
                         shipData->credits -= cost;
                         crashlog_mission_bit_set(
                             "purchasing outfit",
-                            (char *)gOutfits[gSelectedOutfit].name, 1,
-                            gSelectedOutfit + kFirstResourceID,
-                            gOutfits[gSelectedOutfit].onPurchase);
+                            (char *)outfitSystem[selOutfitItem].name, 1,
+                            selOutfitItem + kFirstResourceID,
+                            outfitSystem[selOutfitItem].onPurchase);
                         if (shipData->credits < 0) {
                             crashlog("warning: player's cash went below zero");
                             shipData->credits = 0;
                             m = count;
                         }
-                        EvalMissionBitSetString(gOutfits[gSelectedOutfit].onPurchase);
+                        EvalMissionBitSetString(outfitSystem[selOutfitItem].onPurchase);
                     }
-                    if (gSelectedOutfit == -1)
-                        canBuy = 0;
+                    if (selOutfitItem != -1)
+                        canBuy = CanBuyOutfitItem(selOutfitItem);
                     else
-                        canBuy = CanBuyOutfitItem(gSelectedOutfit);
+                        canBuy = 0;
                 }
                 SystemInfoToShipStats();
                 if (SetupPortAvailableItems(dockedPort)) {
-                    gSelectedOutfit = 0;
-                    gOutfitGridPos = -1;
+                    selOutfitItem = 0;
+                    selOutfitListItem = -1;
                     outfitScroll = 0;
                     canBuy = canSell = 0;
-                    strncpy(gItemDescText, "", 3);
+                    strncpy(dialogDescTextPtr, "", 3);
+#ifdef MACBUILD
+                    InvalDialogItem(outfitDialog, 6);
+                    InvalDialogItem(outfitDialog, 8);
+#else
                     RedrawDialog(outfitDialog);
+#endif
                     m = 0;
                     for (i = 0; i < kMaxOutfits; i++) {
                         if (dockedPortItems[i] != -1) {
@@ -1128,10 +2046,17 @@ void DoOutfitDialog(void)
                     if (m == 0)
                         done = 1;
                 }
+#ifdef MACBUILD
+                InvalDialogItem(outfitDialog, 4);
+                InvalDialogItem(outfitDialog, 5);
+                InvalDialogItem(outfitDialog, 7);
+                InvalDialogItem(outfitDialog, 9);
+#else
                 RedrawDialog(outfitDialog);
+#endif
                 didOutfit = 1;
-                if (shipSystems[gSelectedOutfit] > 0) {
-                    if ((gOutfits[gSelectedOutfit].flags & kOutfCantSell) != 0)
+                if (shipSystems[selOutfitItem] > 0) {
+                    if ((outfitSystem[selOutfitItem].flags & kOutfCantSell) != 0)
                         canSell = 0;
                     else
                         canSell = 1;
@@ -1144,26 +2069,26 @@ void DoOutfitDialog(void)
             }
         }
         if (itemHit == 4 && canSell) {
-            count = 1;
-            if ((filterKey & 0x800) != 0) {
-                qtyLimit = shipSystems[gSelectedOutfit];
+            n = 1;
+            if ((filterKey & optionKey) != 0) {
+                qtyLimit = shipSystems[selOutfitItem];
                 if (qtyLimit > 32000)
                     qtyLimit = 32000;
                 if (qtyLimit > 1) {
-                    count = DoQuantityDialog(qtyLimit, 1);
+                    n = DoQuantityDialog(qtyLimit, 1);
                     OutfitDialogUpdate();
                 }
             }
             shown = 0;
-            for (n = 0; n < count; n++) {
+            for (count = 0; count < n; count++) {
                 if (canSell) {
-                    have = AdjustedItemMass(&gOutfits[gSelectedOutfit],
-                                            &gShipTypes[shipData->type]);
-                    if (have < 0 && FreeMass() + have < 0) {
+                    have = AdjustedItemMass(&outfitSystem[selOutfitItem],
+                                            &shipClass[shipData->type]);
+                    if (have < 0 && ShipFreeMass() + have < 0) {
                         if (!shown) {
                             GetIndString((unsigned char *)msg, kGameStrList, 0xcf);
                             PtoCstr((unsigned char *)msg);
-                            strcpy(gTextShowString, msg);
+                            strcpy(textShowString, (char *)msg);
                             ShowTextDialog(0, 0, 0);
                             shown = 1;
                         }
@@ -1172,42 +2097,42 @@ void DoOutfitDialog(void)
                 }
                 if (canSell) {
                     for (i = 0; i < kOutfMods; i++) {
-                        if (gOutfits[gSelectedOutfit].modType[i] == 0x1b
-                            && gOutfits[gSelectedOutfit].modVal[i] >= kFirstResourceID
-                            && gOutfits[gSelectedOutfit].modVal[i] < kFirstResourceID + kMaxOutfits) {
-                            shortfall = shipSystems[gOutfits[gSelectedOutfit].modVal[i] - kFirstResourceID]
-                                - ((shipSystems[gSelectedOutfit] - count)
-                                          * gOutfits[gOutfits[gSelectedOutfit].modVal[i] - kFirstResourceID].maxCount);
+                        if (outfitSystem[selOutfitItem].modType[i] == 0x1b
+                            && outfitSystem[selOutfitItem].modVal[i] >= kFirstResourceID
+                            && outfitSystem[selOutfitItem].modVal[i] < kFirstResourceID + kMaxOutfits) {
+                            shortfall = shipSystems[outfitSystem[selOutfitItem].modVal[i] - kFirstResourceID]
+                                - ((shipSystems[selOutfitItem] - n)
+                                          * outfitSystem[outfitSystem[selOutfitItem].modVal[i] - kFirstResourceID].maxCount);
                             if (shortfall > 0) {
                                 if (!shown) {
-                                    strcpy(msg, "");
+                                    strcpy((char *)msg,"");
 
-                                    AppendIndString(msg, kGameStrList, 0xd0);
-                                    strcat(msg, " ");
+                                    StrcatIndCString((char *)msg,kGameStrList, 0xd0);
+                                    strcat((char *)msg," ");
                                     if (shortfall > 3)
-                                        StrcatCommaNumber(shortfall, msg);
+                                        StrcatCommaNumber(shortfall, (char *)msg);
                                     else
-                                        StrcatOrdinalNumber(shortfall, msg, 0);
-                                    strcat(msg, " ");
+                                        StrcatOrdinalNumber(shortfall, (char *)msg,0);
+                                    strcat((char *)msg," ");
                                     if (shortfall > 1)
                                         pstrcpy(nameBuf,
-                                            lcPluralOutfitName[gOutfits[gSelectedOutfit].modVal[i] - kFirstResourceID]);
+                                            lcPluralOutfitName[outfitSystem[selOutfitItem].modVal[i] - kFirstResourceID]);
                                     else
                                         pstrcpy(nameBuf,
-                                            lcOutfitName[gOutfits[gSelectedOutfit].modVal[i] - kFirstResourceID]);
+                                            lcOutfitName[outfitSystem[selOutfitItem].modVal[i] - kFirstResourceID]);
                                     PtoCstr(nameBuf);
-                                    strcat(msg, (char *)nameBuf);
-                                    strcat(msg, " ");
-                                    AppendIndString(msg, kGameStrList, 0xd4);
-                                    strcat(msg, " ");
-                                    if (n < count - 1)
-                                        pstrcpy(nameBuf, lcPluralOutfitName[gSelectedOutfit]);
+                                    strcat((char *)msg,(char *)nameBuf);
+                                    strcat((char *)msg," ");
+                                    StrcatIndCString((char *)msg,kGameStrList, 0xd4);
+                                    strcat((char *)msg," ");
+                                    if (count < n - 1)
+                                        pstrcpy(nameBuf, lcPluralOutfitName[selOutfitItem]);
                                     else
-                                        pstrcpy(nameBuf, lcOutfitName[gSelectedOutfit]);
+                                        pstrcpy(nameBuf, lcOutfitName[selOutfitItem]);
                                     PtoCstr(nameBuf);
-                                    strcat(msg, (char *)nameBuf);
-                                    strcat(msg, ".");
-                                    strcpy(gTextShowString, msg);
+                                    strcat((char *)msg,(char *)nameBuf);
+                                    strcat((char *)msg,".");
+                                    strcpy(textShowString, (char *)msg);
                                     ShowTextDialog(0, 0, 0);
                                     shown = 1;
                                 }
@@ -1217,48 +2142,48 @@ void DoOutfitDialog(void)
                     }
                     weapID = -1;
                     for (i = 0; i < kOutfMods; i++) {
-                        if (gOutfits[gSelectedOutfit].modType[i] == 1) {
-                            weapID = gOutfits[gSelectedOutfit].modVal[i];
+                        if (outfitSystem[selOutfitItem].modType[i] == 1) {
+                            weapID = outfitSystem[selOutfitItem].modVal[i];
                             break;
                         }
                     }
-                    if (weapID != -1 && gWeapons[weapID].maxAmmo > 0) {
-                        if (gWeapons[weapID].ammoType >= 0
-                            && gWeapons[weapID].ammoType < 256
-                            && gWeapons[weapID].guidance != kGuidanceBay)
-                            ammo = shipData->weap[gWeapons[weapID].ammoType].ammo;
+                    if (weapID != -1 && weaponStats[weapID].maxAmmo > 0) {
+                        if (weaponStats[weapID].ammoType >= 0
+                            && weaponStats[weapID].ammoType < 256
+                            && weaponStats[weapID].guidance != kGuidanceBay)
+                            ammo = shipData->weap[weaponStats[weapID].ammoType].ammo;
                         else
                             ammo = shipData->weap[weapID].ammo;
-                        if (gWeapons[weapID].guidance == kGuidanceBay) {
+                        if (weaponStats[weapID].guidance == kGuidanceBay) {
                             for (m = 1; m < kMaxShips; m++) {
                                 if (shipData[m].active != 0
                                     && shipData[m].parentShip == 0
                                     && shipData[m].aiType == 5
                                     && shipData[m].type
-                                       == gWeapons[weapID].ammoType - kFirstResourceID
+                                       == weaponStats[weapID].ammoType - kFirstResourceID
                                     && !IsDisabled(&shipData[m]))
                                     ammo++;
                             }
                         }
                         shortfall = ammo
-                            - ((shipSystems[gSelectedOutfit] - (n + 1))
-                                      * gWeapons[weapID].maxAmmo);
+                            - ((shipSystems[selOutfitItem] - (count + 1))
+                                      * weaponStats[weapID].maxAmmo);
                         if (shortfall > 0 && ammo > 0) {
                             if (!shown) {
-                                strcpy(msg, "");
+                                strcpy((char *)msg,"");
 
-                                AppendIndString(msg, kGameStrList, 0xd0);
-                                strcat(msg, " ");
+                                StrcatIndCString((char *)msg,kGameStrList, 0xd0);
+                                strcat((char *)msg," ");
                                 if (shortfall > 3)
-                                    StrcatCommaNumber(shortfall, msg);
+                                    StrcatCommaNumber(shortfall, (char *)msg);
                                 else
-                                    StrcatOrdinalNumber(shortfall, msg, 0);
-                                strcat(msg, " ");
+                                    StrcatOrdinalNumber(shortfall, (char *)msg,0);
+                                strcat((char *)msg," ");
                                 k = -1;
                                 for (m = 0; m < kMaxOutfits; m++) {
                                     for (j = 0; j < kOutfMods; j++) {
-                                        if (gOutfits[m].modType[j] == 3
-                                            && gOutfits[m].modVal[j] == weapID) {
+                                        if (outfitSystem[m].modType[j] == 3
+                                            && outfitSystem[m].modVal[j] == weapID) {
                                             k = m;
                                             break;
                                         }
@@ -1272,26 +2197,26 @@ void DoOutfitDialog(void)
                                     else
                                         pstrcpy(nameBuf, lcOutfitName[k]);
                                     PtoCstr(nameBuf);
-                                    strcat(msg, (char *)nameBuf);
+                                    strcat((char *)msg,(char *)nameBuf);
                                 } else {
                                     if (shortfall > 1)
-                                        AppendIndString(msg, kGameStrList, 0xd2);
+                                        StrcatIndCString((char *)msg,kGameStrList, 0xd2);
                                     else
-                                        AppendIndString(msg, kGameStrList, 0xd1);
-                                    strcat(msg, " ");
-                                    AppendIndString(msg, kGameStrList, 0xd3);
+                                        StrcatIndCString((char *)msg,kGameStrList, 0xd1);
+                                    strcat((char *)msg," ");
+                                    StrcatIndCString((char *)msg,kGameStrList, 0xd3);
                                 }
-                                strcat(msg, " ");
-                                AppendIndString(msg, kGameStrList, 0xd4);
-                                strcat(msg, " ");
-                                if (n < count - 1)
-                                    pstrcpy(nameBuf, lcPluralOutfitName[gSelectedOutfit]);
+                                strcat((char *)msg," ");
+                                StrcatIndCString((char *)msg,kGameStrList, 0xd4);
+                                strcat((char *)msg," ");
+                                if (count < n - 1)
+                                    pstrcpy(nameBuf, lcPluralOutfitName[selOutfitItem]);
                                 else
-                                    pstrcpy(nameBuf, lcOutfitName[gSelectedOutfit]);
+                                    pstrcpy(nameBuf, lcOutfitName[selOutfitItem]);
                                 PtoCstr(nameBuf);
-                                strcat(msg, (char *)nameBuf);
-                                strcat(msg, ".");
-                                strcpy(gTextShowString, msg);
+                                strcat((char *)msg,(char *)nameBuf);
+                                strcat((char *)msg,".");
+                                strcpy(textShowString, (char *)msg);
                                 ShowTextDialog(0, 0, 0);
                                 shown = 1;
                             }
@@ -1300,24 +2225,30 @@ void DoOutfitDialog(void)
                     }
                 }
                 if (canSell) {
+#ifndef V111
                     cost = ApplyPriceAndTechnologyFlux(
-                        gOutfits[gSelectedOutfit].cost, priceFluxMult[0],
-                        gOutfits[gSelectedOutfit].techLevel,
+                        outfitSystem[selOutfitItem].cost, priceFluxMult[0],
+                        outfitSystem[selOutfitItem].techLevel,
                         stellarData[shipData->targetStellar].techLevel);
-                    cost = AdjustedItemCost(&gOutfits[gSelectedOutfit],
-                                            &gShipTypes[shipData->type]);
-                    if (shipSystems[gSelectedOutfit]
-                        <= savedOutfits[gSelectedOutfit])
+#endif
+                    cost = AdjustedItemCost(&outfitSystem[selOutfitItem],
+                                            &shipClass[shipData->type]);
+                    if (shipSystems[selOutfitItem]
+                        <= savedOutfits[selOutfitItem])
                         cost *= 0.5;
-                    have = FreeMass();
-                    shipSystems[gSelectedOutfit] -= 1;
-                    if (FreeMass() >= 0 || have < 0) {
+                    have = ShipFreeMass();
+                    shipSystems[selOutfitItem] -= 1;
+                    if (ShipFreeMass() < 0 && have >= 0) {
+                        shipSystems[selOutfitItem] += 1;
+                        PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
+                        break;
+                    } else {
                         shipData->credits += cost;
                         for (j = 0; j < kOutfMods; j++) {
-                            if (shipSystems[gSelectedOutfit] <= 0) {
-                                if (gOutfits[gSelectedOutfit].modType[j] == 1
+                            if (shipSystems[selOutfitItem] <= 0) {
+                                if (outfitSystem[selOutfitItem].modType[j] == 1
                                     && shipData->selectedWeapon
-                                       == gOutfits[gSelectedOutfit].modVal[j]) {
+                                       == outfitSystem[selOutfitItem].modVal[j]) {
                                     shipData->selectedWeapon = -1;
                                     statusRedraw[3] = 1;
                                     break;
@@ -1326,21 +2257,26 @@ void DoOutfitDialog(void)
                         }
                         crashlog_mission_bit_set(
                             "selling outfit",
-                            (char *)gOutfits[gSelectedOutfit].name, 1,
-                            gSelectedOutfit + kFirstResourceID,
-                            gOutfits[gSelectedOutfit].onSell);
-                        EvalMissionBitSetString(gOutfits[gSelectedOutfit].onSell);
+                            (char *)outfitSystem[selOutfitItem].name, 1,
+                            selOutfitItem + kFirstResourceID,
+                            outfitSystem[selOutfitItem].onSell);
+                        EvalMissionBitSetString(outfitSystem[selOutfitItem].onSell);
                         SystemInfoToShipStats();
                         if (SetupPortAvailableItems(dockedPort)) {
-                            gSelectedOutfit = 0;
-                            gOutfitGridPos = -1;
+                            selOutfitItem = 0;
+                            selOutfitListItem = -1;
                             outfitScroll = 0;
                             canBuy = canSell = 0;
-                            strncpy(gItemDescText, "", 3);
+                            strncpy(dialogDescTextPtr, "", 3);
+#ifdef MACBUILD
+                            InvalDialogItem(outfitDialog, 6);
+                            InvalDialogItem(outfitDialog, 8);
+#else
                             RedrawDialog(outfitDialog);
+#endif
                             k = 0;
-                            for (n = 0; n < kMaxOutfits; n++) {
-                                if (dockedPortItems[n] != -1) {
+                            for (count = 0; count < kMaxOutfits; count++) {
+                                if (dockedPortItems[count] != -1) {
                                     k++;
                                     break;
                                 }
@@ -1348,25 +2284,28 @@ void DoOutfitDialog(void)
                             if (k == 0)
                                 done = 1;
                         }
-                    } else {
-                        shipSystems[gSelectedOutfit] += 1;
-                        PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
-                        break;
                     }
                 }
-                if (gSelectedOutfit != -1 && shipSystems[gSelectedOutfit] > 0) {
-                    if ((gOutfits[gSelectedOutfit].flags & kOutfCantSell) != 0)
+                if (selOutfitItem != -1 && shipSystems[selOutfitItem] > 0) {
+                    if ((outfitSystem[selOutfitItem].flags & kOutfCantSell) != 0)
                         canSell = 0;
                     else
                         canSell = 1;
                 } else
                     canSell = 0;
             }
-            if (gSelectedOutfit == -1)
-                canBuy = 0;
+            if (selOutfitItem != -1)
+                canBuy = CanBuyOutfitItem(selOutfitItem);
             else
-                canBuy = CanBuyOutfitItem(gSelectedOutfit);
+                canBuy = 0;
+#ifdef MACBUILD
+            InvalDialogItem(outfitDialog, 4);
+            InvalDialogItem(outfitDialog, 5);
+            InvalDialogItem(outfitDialog, 7);
+            InvalDialogItem(outfitDialog, 9);
+#else
             RedrawDialog(outfitDialog);
+#endif
             didOutfit = 1;
             statusRedraw[2] = 1;
             DrawStatus();
@@ -1375,17 +2314,29 @@ void DoOutfitDialog(void)
         }
         if (itemHit == 10 && outfitScroll >= kGridCols) {
             outfitScroll -= kGridCols;
-            if (gOutfitGridPos >= 0 && gOutfitGridPos < kGridCells - kGridCols) {
-                gOutfitGridPos += kGridCols;
-                gSelectedOutfit =
-                    dockedPortItems[outfitScroll + gOutfitGridPos];
-                LoadDescription(gItemDescText, gSelectedOutfit + kOutfitDescBase);
+            if (selOutfitListItem >= 0 && selOutfitListItem < kGridCells - kGridCols) {
+                selOutfitListItem += kGridCols;
+                selOutfitItem =
+                    dockedPortItems[outfitScroll + selOutfitListItem];
+                LoadDescription(dialogDescTextPtr, selOutfitItem + kOutfitDescBase);
             } else {
-                gSelectedOutfit = gOutfitGridPos = -1;
-                strncpy(gItemDescText, "", 3);
+                selOutfitItem = selOutfitListItem = -1;
+                strncpy(dialogDescTextPtr, "", 3);
             }
             SetDialogGWorld(outfitDialog);
+#ifdef MACBUILD
+            InvalDialogItem(outfitDialog, 4);
+            InvalDialogItem(outfitDialog, 7);
+            InvalDialogItem(outfitDialog, 5);
+            InvalDialogItem(outfitDialog, 6);
+            InvalDialogItem(outfitDialog, 8);
+            InvalDialogItem(outfitDialog, 9);
+            InvalDialogItem(outfitDialog, 10);
+            InvalDialogItem(outfitDialog, 11);
+            InvalDialogItem(outfitDialog, 13);
+#else
             RedrawDialog(outfitDialog);
+#endif
         }
         if (itemHit == 11) {
             m = 0;
@@ -1395,17 +2346,29 @@ void DoOutfitDialog(void)
             }
             if (outfitScroll < m - kGridCells) {
                 outfitScroll += kGridCols;
-                if (gOutfitGridPos < kGridCols) {
-                    gSelectedOutfit = gOutfitGridPos = -1;
-                    strncpy(gItemDescText, "", 3);
+                if (selOutfitListItem >= kGridCols) {
+                    selOutfitListItem -= kGridCols;
+                    selOutfitItem =
+                        dockedPortItems[outfitScroll + selOutfitListItem];
+                    LoadDescription(dialogDescTextPtr, selOutfitItem + kOutfitDescBase);
                 } else {
-                    gOutfitGridPos -= kGridCols;
-                    gSelectedOutfit =
-                        dockedPortItems[outfitScroll + gOutfitGridPos];
-                    LoadDescription(gItemDescText, gSelectedOutfit + kOutfitDescBase);
+                    selOutfitItem = selOutfitListItem = -1;
+                    strncpy(dialogDescTextPtr, "", 3);
                 }
                 SetDialogGWorld(outfitDialog);
+#ifdef MACBUILD
+                InvalDialogItem(outfitDialog, 4);
+                InvalDialogItem(outfitDialog, 7);
+                InvalDialogItem(outfitDialog, 5);
+                InvalDialogItem(outfitDialog, 6);
+                InvalDialogItem(outfitDialog, 8);
+                InvalDialogItem(outfitDialog, 9);
+                InvalDialogItem(outfitDialog, 10);
+                InvalDialogItem(outfitDialog, 11);
+                InvalDialogItem(outfitDialog, 13);
+#else
                 RedrawDialog(outfitDialog);
+#endif
             }
         }
     } while (!done);
@@ -1426,71 +2389,105 @@ void DoOutfitDialog(void)
         statusRedraw[1] = 1;
     }
     for (i = 0; i < kMaxOutfits; i++) {
-        if (shipSystems[i] > 0 && (gOutfits[i].flags & kOutfRemoveAfterBuy) != 0)
+        if (shipSystems[i] > 0 && (outfitSystem[i].flags & kOutfRemoveAfterBuy) != 0)
             shipSystems[i] = 0;
     }
     SystemInfoToShipStats();
     DisposeDialogNoFlash(outfitDialog);
     outfitDialog = NULL;
-    if (gOutfitDialogPict != NULL) {
-        QDReleaseResource(gOutfitDialogPict);
-        gOutfitDialogPict = NULL;
+    if (outfitBackgroundPic != NULL) {
+        QDReleaseResource(outfitBackgroundPic);
+        outfitBackgroundPic = NULL;
     }
     if (previewPic != NULL) {
+#ifdef MACBUILD
+        HUnlock((Handle)previewPic);
+#endif
         QDReleaseResource(previewPic);
         previewPic = NULL;
     }
     SWSetPortToBackground(gSpriteWorld);
     SetSystemBackgroundColor();
     PaintRect(&gSpriteWorld->backFrameP->frameRect);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
+#ifndef V111
     RedrawStatus(0);
+#endif
     SWSetPortToWindow(gSpriteWorld);
+#ifdef MACBUILD
+    RefreshSAT();
+#endif
     shipData->targetStellar = savedUnk6C;
     shipData->navTargetKind = savedUnk6A;
     statusRedraw[0] = 1;
     ResetMissionOfferVenue();
 }
+#endif
+#ifdef MACBUILD
+#undef InvalDialogItem
+#endif
 
+/* the grid filters' arrow keys: virtual key codes in 1.1.1, characters on win */
+#if V111
+#define kGridLeftKey        0x7b
+#define kGridRightKey       0x7c
+#define kGridUpKey          kUpArrowKeyCode
+#define kGridDownKey        kDownArrowKeyCode
+#define kGridPageUpKey      kPageUpKeyCode
+#define kGridPageDownKey    kPageDownKeyCode
+#else
+#define kGridLeftKey        kLeftArrowChar
+#define kGridRightKey       kRightArrowChar
+#define kGridUpKey          kUpArrowChar
+#define kGridDownKey        kDownArrowChar
+#define kGridPageUpKey      kPageUpChar
+#define kGridPageDownKey    kPageDownChar
+#endif
+#ifdef MACBUILD
+#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, (void **)&item, &r), InvalWindowRect(GetDialogWindow(dlg), &r))
+#endif
 /* OutfitFilter. STATE: MATCH 100%, 562/562, relocregcheck 0 of 154.
    OPEN: none. */
 // FUNCTION: EVNOVA 0x004903c0
-char OutfitFilter(long unused, EventRecord *ev, short *itemHit)
+// MAC: _OutfitFilter i386 0x00058039 ppc 0x00060298
+Boolean OutfitFilter(long unused, EventRecord *ev, short *itemHit)
 {
     Rect box;
+#ifdef MACBUILD
+    Rect r;
+#endif
     short itemType;
-    void *item;
+    Handle item;
     Point where;
-    int c;
+    EventKey c;
     short i;
     short count;
     long slot;
     short old;
     short oldPos;
-    short col;
     short row;
     short button;
     int what;
 
-    if (absquatulateStr[0] != 0) {
+    if ((absquatulateStr)[0] != 0) {
         ev->what = kMouseDown;
         *itemHit = 1;
         return 1;
     }
     *itemHit = -1;
-    if (gSelectedOutfit == -1) {
-        canSell = 0;
-        canBuy = 0;
-    } else {
-        canBuy = CanBuyOutfitItem(gSelectedOutfit);
-        if (shipSystems[gSelectedOutfit] > 0) {
-            if ((gOutfits[gSelectedOutfit].flags & kOutfCantSell) != 0)
+    if (selOutfitItem != -1) {
+        canBuy = CanBuyOutfitItem(selOutfitItem);
+        if (shipSystems[selOutfitItem] > 0) {
+            if ((outfitSystem[selOutfitItem].flags & kOutfCantSell) != 0)
                 canSell = 0;
             else
                 canSell = 1;
         } else {
             canSell = 0;
         }
+    } else {
+        canSell = 0;
+        canBuy = 0;
     }
     if ((int)ev->what == kKeyDown || (int)ev->what == kAutoKey) {
         QuickKeyCheckHandler();
@@ -1502,8 +2499,32 @@ char OutfitFilter(long unused, EventRecord *ev, short *itemHit)
             *itemHit = 13;
             return 1;
         }
-        c = ev->message & kCharCodeMask;
-        if (((int)ev->what == kKeyDown && c == kReturnChar) || c == kEscapeChar) {
+#if V111
+        c = (ev->message & kKeyCodeMask) >> 8;
+        if ((int)ev->what == kKeyDown) {
+            if (c == kReturnKeyCode || c == kEnterKeyCode || c == kEscapeKeyCode) {
+                ev->what = kMouseDown;
+                *itemHit = 1;
+                return 1;
+            }
+        }
+        if (c == kBKeyCode) {
+            ev->what = kMouseDown;
+            *itemHit = 7;
+            return 1;
+        }
+        if (c == kSKeyCode) {
+            ev->what = kMouseDown;
+            *itemHit = 4;
+            return 1;
+        }
+#else
+        c = EventCharOf(ev);
+#ifdef MAC1010 /* 1.0.10 real: 0x10037490 the what test jumps over all three chars, escape too */
+        if ((int)ev->what == kKeyDown && (IsReturnChar(c) || c == kEscapeChar)) {
+#else
+        if (((int)ev->what == kKeyDown && IsReturnChar(c)) || c == kEscapeChar) {
+#endif
             ev->what = kMouseDown;
             *itemHit = 1;
             return 1;
@@ -1519,80 +2540,86 @@ char OutfitFilter(long unused, EventRecord *ev, short *itemHit)
             *itemHit = 4;
             return 1;
         }
-        if (c == kLeftArrowChar || c == kRightArrowChar || c == kUpArrowChar ||
-            c == kDownArrowChar || c == kPageUpChar || c == kPageDownChar) {
-            old = gSelectedOutfit;
-            if (gOutfitGridPos != -1) {
+#endif
+#ifdef MAC1010 /* 1.0.10 spelling */
+        if ((c >= kGridLeftKey && c <= kGridDownKey) || c == kGridPageUpKey || c == kGridPageDownKey) {
+#else
+        if (c == kGridLeftKey || c == kGridRightKey || c == kGridUpKey ||
+            c == kGridDownKey || c == kGridPageUpKey || c == kGridPageDownKey) {
+#endif
+            old = selOutfitItem;
+            if (selOutfitListItem != -1) {
                 count = 0;
                 for (i = 0; i < 512; i++) {
                     if (dockedPortItems[i] != -1)
                         count++;
                 }
-                if (c == kRightArrowChar) {
-                    if (gOutfitGridPos < kGridCells - 1) {
-                        if (dockedPortItems[outfitScroll + gOutfitGridPos
+                if (c == kGridRightKey) {
+                    if (selOutfitListItem < kGridCells - 1) {
+                        if (dockedPortItems[outfitScroll + selOutfitListItem
                                             + 1] != -1)
-                            gOutfitGridPos++;
+                            selOutfitListItem++;
                     } else if (outfitScroll < count - kGridCells) {
                         outfitScroll += kGridCols;
-                        gOutfitGridPos -= kGridCols - 1;
+                        selOutfitListItem -= kGridCols - 1;
                     }
-                } else if (c == kLeftArrowChar) {
-                    if (gOutfitGridPos > 0) {
-                        gOutfitGridPos--;
+                } else if (c == kGridLeftKey) {
+                    if (selOutfitListItem > 0) {
+                        selOutfitListItem--;
                     } else if (outfitScroll > 0) {
                         outfitScroll -= kGridCols;
-                        gOutfitGridPos += kGridCols - 1;
+                        selOutfitListItem += kGridCols - 1;
                     }
-                } else if (c == kUpArrowChar || c == kPageUpChar) {
-                    if (gOutfitGridPos < kGridCols) {
-                        if (outfitScroll > 0)
-                            outfitScroll -= kGridCols;
-                    } else {
-                        gOutfitGridPos -= kGridCols;
-                    }
-                } else if (c == kDownArrowChar || c == kPageDownChar) {
-                    if (gOutfitGridPos < kGridCells - kGridCols) {
-                        if (dockedPortItems[outfitScroll + gOutfitGridPos
+                } else if (c == kGridUpKey || c == kGridPageUpKey) {
+                    if (selOutfitListItem >= kGridCols)
+                        selOutfitListItem -= kGridCols;
+                    else if (outfitScroll > 0)
+                        outfitScroll -= kGridCols;
+                } else if (c == kGridDownKey || c == kGridPageDownKey) {
+                    if (selOutfitListItem < kGridCells - kGridCols) {
+                        if (dockedPortItems[outfitScroll + selOutfitListItem
                                             + kGridCols] != -1)
-                            gOutfitGridPos += kGridCols;
+                            selOutfitListItem += kGridCols;
                     } else if (outfitScroll < count - kGridCells) {
                         outfitScroll += kGridCols;
                     }
                 }
-                slot = gOutfitGridPos;
-                slot += outfitScroll;
-                gSelectedOutfit = dockedPortItems[slot];
-                while (gSelectedOutfit == -1 && gOutfitGridPos > 0) {
-                    slot--;
-                    gOutfitGridPos--;
-                    gSelectedOutfit = dockedPortItems[slot];
+                selOutfitItem = dockedPortItems[outfitScroll + selOutfitListItem];
+                while (selOutfitItem == -1 && selOutfitListItem > 0) {
+                    selOutfitListItem--;
+                    selOutfitItem = dockedPortItems[outfitScroll + selOutfitListItem];
                 }
             } else {
-                if (c == kRightArrowChar || c == kDownArrowChar ||
-                    c == kPageDownChar)
-                    gOutfitGridPos = 0;
+                if (c == kGridRightKey || c == kGridDownKey ||
+                    c == kGridPageDownKey)
+                    selOutfitListItem = 0;
                 else
-                    gOutfitGridPos = kGridCells - 1;
-                what = gOutfitGridPos;
-                what += outfitScroll;
-                gSelectedOutfit = dockedPortItems[what];
-                while (gSelectedOutfit == -1 && gOutfitGridPos > 0) {
-                    what--;
-                    gOutfitGridPos--;
-                    gSelectedOutfit = dockedPortItems[what];
+                    selOutfitListItem = kGridCells - 1;
+#ifdef MACBUILD
+                selOutfitItem = dockedPortItems[outfitScroll + selOutfitListItem];
+                while (selOutfitItem == -1 && selOutfitListItem > 0) {
+                    selOutfitListItem--;
+                    selOutfitItem = dockedPortItems[outfitScroll + selOutfitListItem];
                 }
+#else
+                what = selOutfitListItem;
+                what += outfitScroll;
+                selOutfitItem = dockedPortItems[what];
+                while (selOutfitItem == -1 && selOutfitListItem > 0) {
+                    what--;
+                    selOutfitListItem--;
+                    selOutfitItem = dockedPortItems[what];
+                }
+#endif
             }
-            if (gSelectedOutfit != old) {
-                if (gOutfitGridPos == -1) {
-                    canBuy = canSell = 0;
-                } else {
-                    LoadDescription(gItemDescText,
-                                    gSelectedOutfit + kOutfitDescBase);
+            if (selOutfitItem != old) {
+                if (selOutfitListItem != -1) {
+                    LoadDescription(dialogDescTextPtr,
+                                    selOutfitItem + kOutfitDescBase);
                     RedrawDialog(outfitDialog);
-                    canBuy = CanBuyOutfitItem(gSelectedOutfit);
-                    if (shipSystems[gSelectedOutfit] > 0) {
-                        if ((gOutfits[gSelectedOutfit].flags
+                    canBuy = CanBuyOutfitItem(selOutfitItem);
+                    if (shipSystems[selOutfitItem] > 0) {
+                        if ((outfitSystem[selOutfitItem].flags
                              & kOutfCantSell) != 0)
                             canSell = 0;
                         else
@@ -1600,6 +2627,8 @@ char OutfitFilter(long unused, EventRecord *ev, short *itemHit)
                     } else {
                         canSell = 0;
                     }
+                } else {
+                    canBuy = canSell = 0;
                 }
             }
         }
@@ -1608,23 +2637,30 @@ char OutfitFilter(long unused, EventRecord *ev, short *itemHit)
     if (what == kMouseDown) {
         SetDialogGWorld(outfitDialog);
         RedrawDialog(outfitDialog);
-        where.v = ev->where.v;
-        where.h = ev->where.h;
-        GetDialogItem(outfitDialog, kGridItem, &itemType, &item, &box);
-        if (PtInRect(where.h, where.v, &box)) {
-            col = (where.h - box.left) / kGridCellWide;
+        where = ev->where;
+#ifdef MACBUILD
+        GlobalToLocal(&where);
+#endif
+        GetDialogItem(outfitDialog, kGridItem, &itemType, (void **)&item, &box);
+        if (PtInRectPoint(where, &box)) {
+#ifdef CEFIX /* F13.01 */
+            count = CE_GridDivide(where.h - box.left, ceGridCellWidth);
+            row = CE_GridDivide(where.v - box.top, ceGridCellHeight);
+#else
+            count = (where.h - box.left) / kGridCellWide;
             row = (where.v - box.top) / kGridCellHigh;
-            if (col >= 0 && col <= kGridCols - 1 && row >= 0 &&
+#endif
+            if (count >= 0 && count <= kGridCols - 1 && row >= 0 &&
                 row <= kGridCells / kGridCols - 1) {
-                oldPos = gOutfitGridPos;
-                gOutfitGridPos = row * kGridCols + col;
-                if (dockedPortItems[gOutfitGridPos + outfitScroll] == -1) {
-                    gOutfitGridPos = gSelectedOutfit = -1;
+                oldPos = selOutfitListItem;
+                selOutfitListItem = row * kGridCols + count;
+                if (dockedPortItems[selOutfitListItem + outfitScroll] == -1) {
+                    selOutfitListItem = selOutfitItem = -1;
                 } else {
-                    gSelectedOutfit =
-                        dockedPortItems[gOutfitGridPos + outfitScroll];
+                    selOutfitItem =
+                        dockedPortItems[selOutfitListItem + outfitScroll];
                 }
-                if (gOutfitGridPos != oldPos) {
+                if (selOutfitListItem != oldPos) {
                     SetDialogGWorld(outfitDialog);
                     InvalDialogItem(outfitDialog, 1);
                     InvalDialogItem(outfitDialog, 4);
@@ -1635,10 +2671,10 @@ char OutfitFilter(long unused, EventRecord *ev, short *itemHit)
                     InvalDialogItem(outfitDialog, 9);
                     InvalDialogItem(outfitDialog, 10);
                     InvalDialogItem(outfitDialog, 11);
-                    if (gSelectedOutfit != -1) {
-                        canBuy = CanBuyOutfitItem(gSelectedOutfit);
-                        if (shipSystems[gSelectedOutfit] > 0) {
-                            if ((gOutfits[gSelectedOutfit].flags
+                    if (selOutfitItem != -1) {
+                        canBuy = CanBuyOutfitItem(selOutfitItem);
+                        if (shipSystems[selOutfitItem] > 0) {
+                            if ((outfitSystem[selOutfitItem].flags
                                  & kOutfCantSell) != 0)
                                 canSell = 0;
                             else
@@ -1646,15 +2682,15 @@ char OutfitFilter(long unused, EventRecord *ev, short *itemHit)
                         } else {
                             canSell = 0;
                         }
-                        LoadDescription(gItemDescText,
-                                        gSelectedOutfit + kOutfitDescBase);
+                        LoadDescription(dialogDescTextPtr,
+                                        selOutfitItem + kOutfitDescBase);
                     } else {
                         canBuy = canSell = 0;
-                        strncpy(gItemDescText, "", 3);
+                        strncpy(dialogDescTextPtr, "", 3);
                     }
                 }
-                gLastClickPos = gOutfitGridPos;
-                gLastClickTime = ev->when;
+                lastClickItem = selOutfitListItem;
+                lastClickTime = ev->when;
                 *itemHit = -1;
                 return 1;
             }
@@ -1685,7 +2721,13 @@ char OutfitFilter(long unused, EventRecord *ev, short *itemHit)
         return 1;
     }
     if (what == kUpdateEvt) {
+#ifdef MACBUILD
+        BeginUpdate(GetDialogWindow(outfitDialog));
+#endif
         OutfitDialogUpdate();
+#ifdef MACBUILD
+        EndUpdate(GetDialogWindow(outfitDialog));
+#endif
         return 1;
     }
     if (ReadTick() >= missionOfferTime) {
@@ -1695,16 +2737,41 @@ char OutfitFilter(long unused, EventRecord *ev, short *itemHit)
     }
     return 0;
 }
+#ifdef MACBUILD
+#undef InvalDialogItem
+#endif
+
+/* win reads the character once; on the mac the two ctype calls read it each */
+#if V111 /* V111 spelling */
+#define LineLeadChar(line)
+#define LineLeadsAlnum(line) (isalpha((line)[1]) || isdigit((line)[1]))
+#else
+#define LineLeadChar(line) c = (line)[1]
+#define LineLeadsAlnum(line) (isalpha(c) || isdigit(c))
+#endif
 
 /* OutfitDialogUpdate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00490c70
+// MAC: _OutfitDialogUpdate i386 0x000572cb ppc 0x0005f680
 void OutfitDialogUpdate(void)
 {
+#ifdef MACBUILD
     int c;
-    RGBColor *cellColor;
+    short skipped;
+    Handle item;
+    short itemType;
+    unsigned char line1[256];
+    Rect box;
+    unsigned char line2[256];
+    short i;
+    short drawn;
+    long mass;
+    long freeMass;
+#else
+    int c;
     short drawn;
     short skipped;
-    void *item;
+    Handle item;
     short itemType;
     unsigned char line1[256];
     Rect box;
@@ -1712,31 +2779,29 @@ void OutfitDialogUpdate(void)
     short i;
     long mass;
     long freeMass;
+#endif
 
     SetGWorldContainer(&loadPort);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetDialogPortRect(outfitDialog));
-    if (gOutfitDialogPict != NULL)
-        DrawPicHandle(gOutfitDialogPict, GetDialogPortRect(outfitDialog));
-    RGBForeColor(blackColor);
+    if (outfitBackgroundPic != NULL)
+        DrawPicHandle(outfitBackgroundPic, GetDialogPortRect(outfitDialog));
+    ForeColor(blackColor);
     skipped = 0;
-    GetDialogItem(outfitDialog, kGridItem, &itemType, &item, &box);
-    if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(outfitDialog)))) {
+    GetDialogItem(outfitDialog, kGridItem, &itemType, (void **)&item, &box);
+    if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(outfitDialog)))) {
         TextFont(smallTextFont);
         TextSize(smallTextSize);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         drawn = 0;
-        i = outfitScroll;
-        if (i < 512) {
-            cellColor = &shopGridColor[1];
-            do {
-            if (drawn < kGridCells && i >= 0 && dockedPortItems[i] != -1) {
+        for (i = outfitScroll; i < 512; i++) {
+            if (drawn < kGridCells && (i >= 0 && dockedPortItems[i] != -1)) {
                 if (skipped < 3) {
                     if (i - outfitScroll >= 0 &&
                         i - outfitScroll < kGridCells) {
-                        if (!DrawCachedPict(dockedPortItems[i] + kOutfitPictBase,
-                                            &loadPort,
-                                            &gIconRects[i - outfitScroll]))
+                        if (!RetrieveMenuIcon(dockedPortItems[i] + kOutfitPictBase,
+                                            MenuIconPort(&loadPort),
+                                            &listPicScreenRect[i - outfitScroll]))
                             skipped++;
                     } else {
                         skipped++;
@@ -1747,85 +2812,122 @@ void OutfitDialogUpdate(void)
                 }
                 if (shipSystems[dockedPortItems[i]] > 0) {
                     NumToString(shipSystems[dockedPortItems[i]], line1);
-                    RGBForeColor(whiteColor);
-                    MoveTo((gCellRects[i - outfitScroll].right
+                    ForeColor(whiteColor);
+#ifdef CEFIX /* F12.54 */
+                    CE_SetPen(listScreenRect[i - outfitScroll].right
+                                  - (StringWidth(line1) + CE_Scale(3)),
+                              listScreenRect[i - outfitScroll].top + CE_Scale(12));
+#else
+                    MoveTo((listScreenRect[i - outfitScroll].right
                                    - (StringWidth(line1) + 3)),
-                           (gCellRects[i - outfitScroll].top + 12));
+                           (listScreenRect[i - outfitScroll].top + 12));
+#endif
                     DrawString(line1);
-                    RGBForeColor(blackColor);
+                    ForeColor(blackColor);
                 }
                 if (cheatsActive) {
                     NumToString(dockedPortItems[i] + kFirstResourceID, line1);
-                    RGBForeColor(whiteColor);
-                    MoveTo(((gCellRects[i - outfitScroll].left
-                                    + gCellRects[i - outfitScroll].right
+                    ForeColor(whiteColor);
+                    MoveTo(((listScreenRect[i - outfitScroll].left
+                                    + listScreenRect[i - outfitScroll].right
                                     - StringWidth(line1)) / 2),
-                           (gCellRects[i - outfitScroll].top + 24));
+                           (listScreenRect[i - outfitScroll].top + 24));
                     DrawString(line1);
-                    RGBForeColor(blackColor);
+                    ForeColor(blackColor);
                 }
-                if (SplitTwoLineString(gOutfShortNames[dockedPortItems[i]],
+                if (SplitTwoLineString(outfitShortNames[dockedPortItems[i]],
                                        line1, line2)) {
-                    c = line1[1];
-                    if (isalpha(c) || isdigit(c))
-                        RGBForeColor(whiteColor);
+                    LineLeadChar(line1);
+                    if (LineLeadsAlnum(line1))
+                        ForeColor(whiteColor);
                     else
                         RGBForeColor(&rgbLessDarkGrey);
-                    MoveTo(((gCellRects[i - outfitScroll].left
-                                    + gCellRects[i - outfitScroll].right) / 2
+#ifdef CEFIX /* F12.51 */
+                    CE_SetPen((listScreenRect[i - outfitScroll].left
+                                   + listScreenRect[i - outfitScroll].right) / 2
+                                  - StringWidth(line1) / 2,
+                              listScreenRect[i - outfitScroll].bottom - CE_Scale(14));
+#else
+                    MoveTo(((listScreenRect[i - outfitScroll].left
+                                    + listScreenRect[i - outfitScroll].right) / 2
                                    - StringWidth(line1) / 2),
-                           (gCellRects[i - outfitScroll].bottom - 14));
+                           (listScreenRect[i - outfitScroll].bottom - 14));
+#endif
                     DrawString(line1);
-                    c = line2[1];
-                    if (isalpha(c) || isdigit(c))
-                        RGBForeColor(whiteColor);
+                    LineLeadChar(line2);
+                    if (LineLeadsAlnum(line2))
+                        ForeColor(whiteColor);
                     else
                         RGBForeColor(&rgbLessDarkGrey);
-                    MoveTo(((gCellRects[i - outfitScroll].left
-                                    + gCellRects[i - outfitScroll].right) / 2
+#ifdef CEFIX /* F12.52 */
+                    CE_SetPen((listScreenRect[i - outfitScroll].left
+                                   + listScreenRect[i - outfitScroll].right) / 2
+                                  - StringWidth(line2) / 2,
+                              listScreenRect[i - outfitScroll].bottom - CE_Scale(3));
+#else
+                    MoveTo(((listScreenRect[i - outfitScroll].left
+                                    + listScreenRect[i - outfitScroll].right) / 2
                                    - StringWidth(line2) / 2),
-                           (gCellRects[i - outfitScroll].bottom - 3));
+                           (listScreenRect[i - outfitScroll].bottom - 3));
+#endif
                     DrawString(line2);
+                    ForeColor(blackColor);
                 } else {
-                    MoveTo(((gCellRects[i - (long)outfitScroll].left
-                                    + gCellRects[i - (long)outfitScroll].right) / 2
+#ifdef CEFIX /* F12.53 */
+                    CE_SetPen((listScreenRect[i - outfitScroll].left
+                                   + listScreenRect[i - outfitScroll].right) / 2
+                                  - StringWidth(line1) / 2,
+                              listScreenRect[i - outfitScroll].bottom - CE_Scale(6));
+#else
+                    MoveTo(((listScreenRect[i - outfitScroll].left
+                                    + listScreenRect[i - outfitScroll].right) / 2
                                    - StringWidth(line1) / 2),
-                           (gCellRects[i - (long)outfitScroll].bottom - 6));
-                    RGBForeColor(whiteColor);
+                           (listScreenRect[i - outfitScroll].bottom - 6));
+#endif
+                    ForeColor(whiteColor);
                     DrawString(line1);
+                    ForeColor(blackColor);
                 }
-                RGBForeColor(blackColor);
-                RGBForeColor(cellColor);
-                FrameRect(&gCellRects[i - outfitScroll]);
-                RGBForeColor(blackColor);
+                RGBForeColor(&shopGridColor[1]);
+                FrameRect(&listScreenRect[i - outfitScroll]);
+                ForeColor(blackColor);
                 drawn++;
             }
-            i++;
-            } while (i < 512);
         }
-        if (gOutfitGridPos != -1) {
+        if (selOutfitListItem != -1) {
             RGBForeColor(&shopGridColor[0]);
-            FrameRect(&gCellRects[gOutfitGridPos]);
-            RGBForeColor(blackColor);
+            FrameRect(&listScreenRect[selOutfitListItem]);
+            ForeColor(blackColor);
         }
     }
-    if (gOutfitGridPos != -1) {
-        GetDialogItem(outfitDialog, 8, &itemType, &item, &box);
-        if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(outfitDialog)))) {
-            if (previewPicID != gSelectedOutfit + kOutfitPictBase) {
+    if (selOutfitListItem != -1) {
+        GetDialogItem(outfitDialog, 8, &itemType, (void **)&item, &box);
+        if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(outfitDialog)))) {
+            if (previewPicID != selOutfitItem + kOutfitPictBase) {
                 if (previewPic != NULL) {
+#ifdef MACBUILD
+                    HUnlock((Handle)previewPic);
+#endif
                     QDReleaseResource(previewPic);
                     previewPic = NULL;
                 }
-                previewPicID = gSelectedOutfit + kOutfitPictBase;
+                previewPicID = selOutfitItem + kOutfitPictBase;
+#ifdef MACBUILD
+                if (previewPicID >= kFirstResourceID) {
+                    previewPic = GetPicture(previewPicID);
+                    if (previewPic != NULL)
+                        HLock((Handle)previewPic);
+                }
+#else
                 if (previewPicID >= kFirstResourceID)
                     previewPic = GetPicture(previewPicID);
+#endif
             }
             if (previewPic != NULL) {
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
                 DrawPicHandle(previewPic, &box);
             } else {
-                RGBForeColor(whiteColor);
+                ForeColor(whiteColor);
                 TextFont(smallTextFont);
                 TextSize(smallTextSize);
                 GetIndString(line1, kGameStrList, 0xd5);
@@ -1834,22 +2936,22 @@ void OutfitDialogUpdate(void)
                 GetIndString(line1, kGameStrList, 0xd6);
                 DrawStringCentered(line1, box.left, box.right,
                                    ((box.bottom + box.top) / 2 + 6));
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
             }
         }
-        GetDialogItem(outfitDialog, 9, &itemType, &item, &box);
-        if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(outfitDialog)))) {
+        GetDialogItem(outfitDialog, 9, &itemType, (void **)&item, &box);
+        if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(outfitDialog)))) {
             TextFont(smallTextFont);
             TextSize(smallTextSize);
-            RGBForeColor(whiteColor);
+            ForeColor(whiteColor);
             MoveTo(box.left, (box.top + 12));
             DrawIndString(kGameStrList, 0xd7);
             MoveTo((box.left + 0x46), (box.top + 12));
-            ApplyPriceAndTechnologyFlux(gOutfits[gSelectedOutfit].cost, priceFluxMult[0],
-                            gOutfits[gSelectedOutfit].techLevel,
+            ApplyPriceAndTechnologyFlux(outfitSystem[selOutfitItem].cost, priceFluxMult[0],
+                            outfitSystem[selOutfitItem].techLevel,
                             stellarData[shipData->targetStellar].techLevel);
-            DrawCommaNumber(AdjustedItemCost(&gOutfits[gSelectedOutfit],
-                                             &gShipTypes[shipData->type]));
+            DrawCommaNumber(AdjustedItemCost(&outfitSystem[selOutfitItem],
+                                             &shipClass[shipData->type]));
             DrawString("\p ");
             DrawIndString(kGameStrList, 0x22);
             MoveTo(box.left, (box.top + 0x18));
@@ -1858,12 +2960,12 @@ void OutfitDialogUpdate(void)
             DrawCommaNumber(shipData->credits);
             DrawString("\p ");
             DrawIndString(kGameStrList, 0x22);
-            if (gOutfits[gSelectedOutfit].mass > 0) {
+            if (outfitSystem[selOutfitItem].mass > 0) {
                 MoveTo(box.left, (box.top + 0x30));
                 DrawIndString(kGameStrList, 0xd8);
                 MoveTo((box.left + 0x46), (box.top + 0x30));
-                mass = AdjustedItemMass(&gOutfits[gSelectedOutfit],
-                                        &gShipTypes[shipData->type]);
+                mass = AdjustedItemMass(&outfitSystem[selOutfitItem],
+                                        &shipClass[shipData->type]);
                 DrawCommaNumber(mass);
                 DrawString("\p ");
                 if (mass == 1)
@@ -1873,7 +2975,7 @@ void OutfitDialogUpdate(void)
                 MoveTo(box.left, (box.top + 0x3c));
                 DrawIndString(kGameStrList, 0xda);
                 MoveTo((box.left + 0x46), (box.top + 0x3c));
-                freeMass = FreeMass();
+                freeMass = ShipFreeMass();
                 if (freeMass < 0)
                     freeMass = 0;
                 DrawCommaNumber(freeMass);
@@ -1884,123 +2986,128 @@ void OutfitDialogUpdate(void)
                     DrawString(tonsString);
             }
             MoveTo(box.left, (box.top + 0x5d));
-            if (HasMaxOfItem(gSelectedOutfit, NULL, NULL)) {
-                if (shipSystems[gSelectedOutfit] > 0)
+            if (HasMaxOfItem(selOutfitItem, NULL, NULL)) {
+                if (shipSystems[selOutfitItem] > 0)
                     DrawIndString(kGameStrList, 0xdb);
                 else
                     DrawIndString(kGameStrList, 0xdc);
             } else {
-                mass = AdjustedItemMass(&gOutfits[gSelectedOutfit],
-                                        &gShipTypes[shipData->type]);
-                if (mass > 0 && mass > FreeMass()) {
-                    if (shipSystems[gSelectedOutfit] > 0)
+                mass = AdjustedItemMass(&outfitSystem[selOutfitItem],
+                                        &shipClass[shipData->type]);
+                if (mass > 0 && mass > ShipFreeMass()) {
+                    if (shipSystems[selOutfitItem] > 0)
                         DrawIndString(kGameStrList, 0xdd);
                     else
                         DrawIndString(kGameStrList, 0xde);
                 }
             }
-            RGBForeColor(blackColor);
+            ForeColor(blackColor);
         }
     }
-    GetDialogItem(outfitDialog, 6, &itemType, &item, &box);
-    if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(outfitDialog)))) {
+    GetDialogItem(outfitDialog, 6, &itemType, (void **)&item, &box);
+    if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(outfitDialog)))) {
         TextFont(smallTextFont);
         TextSize(smallTextSize);
-        TETextBox(gItemDescText, strlen(gItemDescText), &box, 0);
+        TETextBox(dialogDescTextPtr, strlen(dialogDescTextPtr), &box, 0);
         InvertRect(&box);
     }
     DrawOutfitButtons(-1);
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(outfitDialog);
-    CopyBits(GetGWCPixMap(&loadPort),
+    CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(outfitDialog)),
              GetDialogPortRect(outfitDialog), GetDialogPortRect(outfitDialog), 0,
              NULL);
+#ifdef MAC1010
+    QDFlushPortBuffer(GetWindowGrafPort(GetDialogWindow(outfitDialog)), NULL);
+#else
+#if V111
+    QDFlushPortBuffer(GetWindowGrafPort(FrontWindow(outfitDialog)), NULL);
+#endif
+#endif
 }
 
 #define kSpecialTechCount  8
 
 #define kPortDlogID         0x3e8
-#define kPriceMultipliers   2
+#define kLastPriceMult      1
 #define kPortVenue          3
 #define kMissionOfferSpread 30
 #define kLandTimeSteps      3
 #define kAllButtonsOff      -8
 
-/* spob Flags; resources.h already names kSpobUninhabited and kSpobHasBar */
-#define kSpobHasTrade       0x00000002UL
-#define kSpobHasOutfitter   0x00000004UL
-
-#define SpobHasTrade(s)     ((s)->flags & kSpobHasTrade)
+#define SpobHasTrade(s)     ((s)->flags & kSpobTradeCenter)
 #define SpobHasOutfitter(s) ((s)->flags & kSpobHasOutfitter)
-#define SpobAmbientLoop(s)  ((s)->flags2 & kSpobAmbientLoop)
+#define SpobAmbientLoop(s)  ((s)->flags2 & kSpobLoopSound)
 
 
 
 /* CanBuyOutfitItem (mac _CanBuyOutfitItem). STATE: MATCH, 391/391, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00491950
-char CanBuyOutfitItem(short outfit)
+// MAC: _CanBuyOutfitItem i386 0x0004e7c4 ppc 0x00057448
+Boolean CanBuyOutfitItem(short outfit)
 {
+    Boolean isCargo;
+    Boolean isMap;
+#ifndef MAC1010
+    short cargoDelta;
+#endif
     long freeMass;
     long mass;
-    char isMap;
-    char can;
-    char found;
-    char isCargo;
-    char isFakeID;
-    char avail;
-    short cargoDelta;
+    Boolean can;
+    Boolean isFakeID;
+    Boolean avail;
     short i;
     short stellar;
+#ifdef MAC1010
+    short cargoDelta;
+#endif
 
-    if (outfit == -1) {
-        can = 0;
-    } else {
-        freeMass = FreeMass();
-        if (gOutfits[outfit].techLevel != -1) {
-            found = 0;
-            if (gOutfits[outfit].techLevel >
+    if (outfit != -1) {
+        freeMass = ShipFreeMass();
+        if (outfitSystem[outfit].techLevel != -1) {
+            can = 0;
+            if (outfitSystem[outfit].techLevel <=
                     stellarData[shipData[0].targetStellar].techLevel) {
+                can = 1;
+            } else {
                 for (i = 0; i < kSpecialTechCount; i++) {
-                    if (gOutfits[outfit].techLevel ==
-                            stellarData[shipData[0].targetStellar]
-                                .specialTech[i]) {
-                        found = 1;
+                    if (stellarData[shipData[0].targetStellar]
+                                .specialTech[i] == outfitSystem[outfit].techLevel) {
+                        can = 1;
                         break;
                     }
                 }
-            } else {
-                found = 1;
             }
-            if (!found)
+            if (!can)
                 return 0;
         }
-        mass = AdjustedItemMass(&gOutfits[outfit],
-                                &gShipTypes[shipData[0].type]);
+        mass = AdjustedItemMass(&outfitSystem[outfit],
+                                &shipClass[shipData[0].type]);
         if (!HasMaxOfItem(outfit, 0, 0)
                 && (freeMass >= mass || mass <= 0)) {
             isCargo = 0;
             cargoDelta = 0;
-            isFakeID = 0;
             isMap = 0;
+            isFakeID = 0;
             for (i = 0; i < kOutfMods; i++) {
-                if (gOutfits[outfit].modType[i] == kOutfModCargo) {
+                if (outfitSystem[outfit].modType[i] == kOutfModCargo) {
                     isCargo = 1;
-                    cargoDelta = gOutfits[outfit].modVal[i];
+                    cargoDelta = outfitSystem[outfit].modVal[i];
                 }
-                if (gOutfits[outfit].modType[i] == kModTypeMap)
+                if (outfitSystem[outfit].modType[i] == kModTypeMap)
                     isMap = 1;
-                if (gOutfits[outfit].modType[i] == kModTypeFakeID)
+                if (outfitSystem[outfit].modType[i] == kModTypeFakeID)
                     isFakeID = 1;
             }
-            if (gOutfits[outfit].modType[0] == kOutfModAmmo) {
-                if (gOutfits[outfit].modVal[0] >= 0) {
-                    if (gWeapons[gOutfits[outfit].modVal[0]].guidance ==
+            if (outfitSystem[outfit].modType[0] == kOutfModAmmo) {
+                if (outfitSystem[outfit].modVal[0] >= 0) {
+                    if (weaponStats[outfitSystem[outfit].modVal[0]].guidance ==
                             kGuidanceBay) {
                         if (CanBuyFighter(
-                                gWeapons[gOutfits[outfit].modVal[0]].ammoType
+                                weaponStats[outfitSystem[outfit].modVal[0]].ammoType
                                     - kFirstResourceID,
-                                outfit, gOutfits[outfit].modVal[0]))
+                                outfit, outfitSystem[outfit].modVal[0]))
                             can = 1;
                         else
                             can = 0;
@@ -2011,15 +3118,17 @@ char CanBuyOutfitItem(short outfit)
                     can = 1;
                 }
             } else if (isCargo) {
-                if (cargoDelta >= 0) {
-                    can = 1;
-                } else if (gShipTypes[shipData[0].type].cargoNotFixed == 0) {
-                    can = 0;
-                } else if (ShipTotalHolds() - TotalCargo(shipData) >=
-                        abs(cargoDelta)) {
-                    can = 1;
+                if (cargoDelta < 0) {
+                    if (shipClass[shipData[0].type].cargoNotFixed == 0) {
+                        can = 0;
+                    } else if (ShipTotalHolds() - TotalCargo(shipData) >=
+                            abs(cargoDelta)) {
+                        can = 1;
+                    } else {
+                        can = 0;
+                    }
                 } else {
-                    can = 0;
+                    can = 1;
                 }
             } else if (isMap) {
                 if (boughtMap == 0)
@@ -2042,47 +3151,47 @@ char CanBuyOutfitItem(short outfit)
             if (playerIsLanded != 0) {
                 stellar = shipData[0].targetStellar;
                 if (stellar != -1) {
-                    if (InGovtClass(gOutfits[outfit].govtRestrict, 0)) {
+                    if (InGovtClass(outfitSystem[outfit].govtRestrict, 0)) {
                         avail = 0;
                         if (stellarData[stellar].govt ==
-                                gOutfits[outfit].govtRestrict - ResClassBase(0))
+                                outfitSystem[outfit].govtRestrict - ResClassBase(0))
                             avail = 1;
                         else if (stellarData[stellar].govt != -1
                                  && GovtAllies(stellarData[stellar].govt,
-                                               gOutfits[outfit].govtRestrict
+                                               outfitSystem[outfit].govtRestrict
                                                    - ResClassBase(0)))
                             avail = 1;
-                    } else if (InGovtClass(gOutfits[outfit].govtRestrict, 1)) {
+                    } else if (InGovtClass(outfitSystem[outfit].govtRestrict, 1)) {
                         avail = 0;
                         if (stellarData[stellar].govt ==
-                                gOutfits[outfit].govtRestrict - ResClassBase(1)) {
+                                outfitSystem[outfit].govtRestrict - ResClassBase(1)) {
                             avail = 1;
                         } else if (stellarData[stellar].govt != -1) {
                             if (GovtAllies(stellarData[stellar].govt,
-                                           gOutfits[outfit].govtRestrict
+                                           outfitSystem[outfit].govtRestrict
                                                - ResClassBase(1)))
                                 avail = 1;
                         } else {
                             avail = 1;
                         }
-                    } else if (InGovtClass(gOutfits[outfit].govtRestrict, 2)) {
+                    } else if (InGovtClass(outfitSystem[outfit].govtRestrict, 2)) {
                         avail = 1;
                         if (stellarData[stellar].govt ==
-                                gOutfits[outfit].govtRestrict - ResClassBase(2))
+                                outfitSystem[outfit].govtRestrict - ResClassBase(2))
                             avail = 0;
                         else if (stellarData[stellar].govt != -1
                                  && GovtAllies(stellarData[stellar].govt,
-                                               gOutfits[outfit].govtRestrict
+                                               outfitSystem[outfit].govtRestrict
                                                    - ResClassBase(2)))
                             avail = 0;
-                    } else if (InGovtClass(gOutfits[outfit].govtRestrict, 3)) {
+                    } else if (InGovtClass(outfitSystem[outfit].govtRestrict, 3)) {
                         avail = 1;
                         if (stellarData[stellar].govt ==
-                                gOutfits[outfit].govtRestrict - ResClassBase(3)) {
+                                outfitSystem[outfit].govtRestrict - ResClassBase(3)) {
                             avail = 0;
                         } else if (stellarData[stellar].govt != -1) {
                             if (GovtAllies(stellarData[stellar].govt,
-                                           gOutfits[outfit].govtRestrict
+                                           outfitSystem[outfit].govtRestrict
                                                - ResClassBase(3)))
                                 avail = 0;
                         } else {
@@ -2092,42 +3201,58 @@ char CanBuyOutfitItem(short outfit)
                 }
             }
             if (avail) {
-                if (!PlayerMeetsRequirements(gOutfits[outfit].requires[0],
-                                             gOutfits[outfit].requires[1]))
+                if (!PlayerMeetsRequirements(outfitSystem[outfit].requires[0],
+                                             outfitSystem[outfit].requires[1]))
                     can = 0;
             }
         }
         if (can) {
-            if (!EvalMissionBitTestString(gOutfits[outfit].availability))
+            if (!EvalMissionBitTestString(outfitSystem[outfit].availability))
                 can = 0;
         }
         if (can) {
-            ApplyPriceAndTechnologyFlux(gOutfits[gSelectedOutfit].cost, priceFluxMult[0],
-                            gOutfits[gSelectedOutfit].techLevel,
+            ApplyPriceAndTechnologyFlux(outfitSystem[selOutfitItem].cost, priceFluxMult[0],
+                            outfitSystem[selOutfitItem].techLevel,
                             stellarData[shipData[0].targetStellar].techLevel);
-            if (shipData[0].credits <
-                    AdjustedItemCost(&gOutfits[gSelectedOutfit],
-                                     &gShipTypes[shipData[0].type]))
-                can = 0;
+            {
+                long cost = AdjustedItemCost(&outfitSystem[selOutfitItem],
+                                             &shipClass[shipData[0].type]);
+
+                if (shipData[0].credits < cost)
+                    can = 0;
+            }
         }
+    } else {
+        can = 0;
     }
     return can;
 }
 
+/* the mac engine invalidates a dialog item through the caller's own GetDialogItem locals */
+#ifdef MACBUILD
+#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, (void **)&item, &box), InvalWindowRect(GetDialogWindow(dlg), &box))
+#endif
 /* DoPortDialog (mac _DoPortDialog). STATE: MATCH 561/561, byte-identical yes (2413 bytes),
    relocregcheck 0 of 237. `n' holds the fuel call's result and counts the shown missions;
-   the sound handle is stored straight into gAmbientSound. OPEN: none. */
+   the sound handle is stored straight into planetSnd. OPEN: none. */
 // FUNCTION: EVNOVA 0x00491f30
+// MAC: _DoPortDialog i386 0x0005f911 ppc 0x000675a4
 void DoPortDialog(SpobRecord *spob, short stellar)
 {
+    Boolean uninhabited;
     short i;
-    char quit;
     short itemHit;
     short savedStellar;
     short savedRoute;
     short n;
     short j;
     unsigned short vol;
+    Boolean quit;
+#ifdef MACBUILD
+    short itemType;
+    Handle item;
+    Rect box;
+#endif
 
     quit = 0;
     if (screenFaded != 0)
@@ -2135,53 +3260,53 @@ void DoPortDialog(SpobRecord *spob, short stellar)
     onPlanet = 1;
     dockedPort = spob;
     didOutfit = didBuyShip = 0;
-    strncpy(gDescText, "", 5);
-    LoadDescription(gDescText, stellar + kFirstResourceID);
-    for (j = 0; j < kPriceMultipliers; j++)
-        priceFluxMult[j] = 1.0f;
+    strncpy(descTextPtr, "", 5);
+    LoadDescription(descTextPtr, stellar + kFirstResourceID);
+    for (i = 0; i <= kLastPriceMult; i++)
+        priceFluxMult[i] = 1.0f;
     if (spob->govt != -1) {
         for (i = 0; i < kMaxRanks; i++) {
             if (rankData[i].active != 0 && rankData[i].loaded != 0
                     && GovtAllies(spob->govt, rankData[i].govt)) {
-                for (j = 0; j < kPriceMultipliers; j++)
-                    priceFluxMult[j] *= rankData[i].priceMod
+                for (j = 0; j <= kLastPriceMult; j++)
+                    priceFluxMult[j] *= (float)rankData[i].priceMod
                                         * kPortPriceScale;
             }
         }
     }
     portDialog = NULL;
-    portDialog = GetNewDialog(kPortDlogID, UpdateStellarDialog,
-                                  StellarDialogEvent);
+    portDialog = GetNewDialog(kPortDlogID, PortDialogUpdate,
+                                  PortFilter);
     if (portDialog == NULL)
         return;
-    if (spob->customSound >= kFirstResourceID && planetSoundsPref != 0) {
-        gAmbientSound = LoadSoundResource(spob->customSound);
-        planetSoundSpec.handle = (void **)gAmbientSound;
+    if (spob->customSound >= kFirstResourceID && settings.ambientSounds != 0) {
+        planetSnd = ST_LoadSndResource(spob->customSound);
+        planetSoundSpec.handle = (void **)planetSnd;
         vol = gSoundVolume;
         planetSoundSpec.leftLevel = vol;
         planetSoundSpec.rightLevel = vol;
-        gAmbientDeadline = 0;
+        ambientNoiseDelay = 0;
     } else {
-        gAmbientSound = NULL;
+        planetSnd = NULL;
     }
     CenterWindow(FrontWindow(portDialog), gWind);
     if (SpobUninhabited(dockedPort) != 0)
-        gSpobInhabited = 0;
+        canDoMissions = 0;
     else
-        gSpobInhabited = 1;
+        canDoMissions = 1;
     SetDialogGWorld(portDialog);
     BackColor(blackColor);
     ShowWindowNoFlash(FrontWindow(portDialog));
     BackColor(whiteColor);
     SetDialogGWorld(portDialog);
     FlushEvents(everyEvent - diskMask, 0);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     RedrawDialog(portDialog);
-    UpdateStellarDialog();
-    FrontWindow(portDialog);
-    FrontWindow(portDialog);
+    PortDialogUpdate();
+    SelectWindow(FrontWindow(portDialog));
+    BringToFront(FrontWindow(portDialog));
     SWSetPortToWorkArea(gSpriteWorld);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(&gSpriteWorld->workFrameP->frameRect);
     SWSetPortToWindow(gSpriteWorld);
     DrawStatusRadar(1);
@@ -2192,15 +3317,24 @@ void DoPortDialog(SpobRecord *spob, short stellar)
     HandleStellarSystemVisibility();
     DrawStatusCargo();
     UpdateAllPortDialogs();
-    missionListVenue = kPortVenue;
+    missionsOutside = kPortVenue;
     offeringFromShip = 0;
     missionOfferTime = ReadTick() + Rand(kMissionOfferSpread)
                        + kMissionOfferSpread;
     OfferMissionFromPort(kPortVenue);
+#if V111
+    if (!useLegacyRenderingPipeline) {
+        statusRedraw[4] = 1;
+        statusRedraw[2] = 1;
+        gSpriteWorld->fastBlit = 1;
+        DrawStatus();
+        gSpriteWorld->fastBlit = 0;
+    }
+#endif
     do {
         if (gQuit)
             quit = 1;
-        RunModalDialog(portDialog, StellarDialogEvent, &itemHit, 0);
+        MyModalDialog(portDialog, PortFilter, &itemHit, 0);
         if (gQuit)
             quit = 1;
         if (itemHit == 12) {
@@ -2220,7 +3354,8 @@ void DoPortDialog(SpobRecord *spob, short stellar)
             SetDialogGWorld(portDialog);
             RedrawDialog(portDialog);
         } else if (itemHit == 4) {
-            if ((char)SpobUninhabited(dockedPort) == 0) {
+            uninhabited = SpobUninhabited(dockedPort);
+            if (uninhabited == 0) {
                 n = ShipFuelCapacity(shipData);
                 shipData->fuel = (short)shipData->fuel;
                 n -= shipData->fuel;
@@ -2240,7 +3375,7 @@ void DoPortDialog(SpobRecord *spob, short stellar)
             SetDialogGWorld(portDialog);
             RedrawDialog(portDialog);
         } else if (itemHit == 5) {
-            if (gAmbientSound != NULL
+            if (planetSnd != NULL
                     && SpobAmbientLoop(dockedPort) == 0)
                 ST_PlaySoundParam(&planetSoundSpec);
         } else if (itemHit == 7) {
@@ -2271,14 +3406,20 @@ void DoPortDialog(SpobRecord *spob, short stellar)
                 DoShipyardDialog();
                 statusRedraw[2] = 1;
                 SetDialogGWorld(portDialog);
+#ifndef MACBUILD
                 RedrawDialog(portDialog);
+#endif
             }
         } else if (itemHit == 10) {
-            if (gSpobInhabited != 0) {
+            if (canDoMissions != 0) {
                 savedStellar = shipData->targetStellar;
                 savedRoute = shipData->navTargetKind;
                 SetDialogGWorld(portDialog);
+#ifdef MACBUILD
+                InvalDialogItem(portDialog, 10);
+#else
                 RedrawDialog(portDialog);
+#endif
                 UpdateAllPortDialogs();
                 reenterMissionDialog = 0;
                 do {
@@ -2297,7 +3438,11 @@ void DoPortDialog(SpobRecord *spob, short stellar)
             }
         } else if (itemHit == 11) {
             SetDialogGWorld(portDialog);
+#ifdef MACBUILD
+            InvalDialogItem(portDialog, 11);
+#else
             RedrawDialog(portDialog);
+#endif
             UpdateAllPortDialogs();
             if (SpobHasBar(dockedPort) != 0) {
                 DoBarDialog();
@@ -2325,15 +3470,15 @@ void DoPortDialog(SpobRecord *spob, short stellar)
         }
     } while (quit == 0);
     DoEscortLand();
-    if (gStellarImage.world != NULL)
-        DisposeGWorldContainer(&gStellarImage);
-    if (gStellarDialogPict != NULL) {
-        QDReleaseResource(gStellarDialogPict);
-        gStellarDialogPict = NULL;
+    if (planetPicContainer.world != NULL)
+        DisposeGWorldContainer(&planetPicContainer);
+    if (portBackgroundPic != NULL) {
+        QDReleaseResource(portBackgroundPic);
+        portBackgroundPic = NULL;
     }
-    if (gAmbientSound != NULL) {
-        ST_HaltSound(gAmbientSound);
-        ST_DisposeSound(gAmbientSound);
+    if (planetSnd != NULL) {
+        ST_HaltSound(planetSnd);
+        ST_DisposeSound(planetSnd);
     }
     if (didOutfit != 0)
         IncrementGameTime();
@@ -2349,6 +3494,9 @@ void DoPortDialog(SpobRecord *spob, short stellar)
     portDialog = NULL;
     onPlanet = 0;
 }
+#ifdef MACBUILD
+#undef InvalDialogItem
+#endif
 
 #define kActivateEvt  8
 
@@ -2363,41 +3511,46 @@ void DoPortDialog(SpobRecord *spob, short stellar)
  * whatever button the tracker thought it was over.
  */
 
-/* StellarDialogEvent. STATE: MATCH, byte-identical. OPEN: none */
+/* PortFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004928a0
-char StellarDialogEvent(long unused, EventRecord *ev, short *itemHit)
+// MAC: _PortFilter i386 0x0004f041 ppc 0x00057c18
+Boolean PortFilter(long unused, EventRecord *ev, short *itemHit)
 {
     Rect box;
     short itemType;
     void *item;
     Point where;
     short button;
-    int c;
+#if V111
+    short key;
+#else
+    EventChar c;
+#endif
 
     *itemHit = -1;
-    if (absquatulateStr[0] != 0) {
+    if ((absquatulateStr)[0] != 0) {
         ev->what = kMouseDown;
         *itemHit = 12;
         return 1;
     }
     if (SpobUninhabited(dockedPort))
-        gSpobInhabited = 0;
+        canDoMissions = 0;
     else
-        gSpobInhabited = 1;
-    if ((int)ev->what == kActivateEvt && gAmbientDeadline != 0)
-        gAmbientDeadline = ReadTick() + kAmbientPeriod + Rand(kAmbientPeriod);
-    if (gAmbientSound != NULL) {
-        if ((dockedPort->flags2 & kSpobAmbientLoop) != 0) {
-            if (ST_IsSoundPlaying(gAmbientSound) == 0)
+        canDoMissions = 1;
+    if ((int)ev->what == kActivateEvt && ambientNoiseDelay != 0)
+        ambientNoiseDelay = ReadTick() + kAmbientPeriod + Rand(kAmbientPeriod);
+    if (planetSnd != NULL) {
+        if ((dockedPort->flags2 & kSpobLoopSound) != 0) {
+            if (ST_IsSoundPlaying(planetSnd) == 0)
                 ST_PlaySoundParam(&planetSoundSpec);
-        } else if (ReadTick() >= gAmbientDeadline) {
+        } else if (ReadTick() >= ambientNoiseDelay) {
             ST_PlaySoundParam(&planetSoundSpec);
-            gAmbientDeadline = ReadTick() + kAmbientPeriod + Rand(kAmbientPeriod);
+            ambientNoiseDelay = ReadTick() + kAmbientPeriod + Rand(kAmbientPeriod);
         }
     }
     *itemHit = -1;
     if ((int)ev->what == kActivateEvt)
-        gAmbientDeadline = ReadTick() + kAmbientPeriod + Rand(kAmbientPeriod);
+        ambientNoiseDelay = ReadTick() + kAmbientPeriod + Rand(kAmbientPeriod);
     if ((int)ev->what == kKeyDown) {
         if (KeyCheck(keyPrefs.map) && mapDialog == NULL) {
             *itemHit = 3;
@@ -2411,9 +3564,41 @@ char StellarDialogEvent(long unused, EventRecord *ev, short *itemHit)
             *itemHit = 14;
             return 1;
         }
-        c = ev->message & kCharCodeMask;
+#if V111
+        key = (ev->message & kKeyCodeMask) >> 8;
+        if (key == kReturnKeyCode || key == kEnterKeyCode || key == kEscapeKeyCode) {
+            ev->what = kMouseDown;
+            *itemHit = 12;
+            return 1;
+        }
+        if (key == kRKeyCode || key == kFKeyCode) {
+            *itemHit = 4;
+            return 1;
+        }
+        if (key == kCKeyCode || key == kTKeyCode) {
+            *itemHit = 7;
+            return 1;
+        }
+        if (key == kOKeyCode) {
+            *itemHit = 8;
+            return 1;
+        }
+        if (key == kSKeyCode) {
+            *itemHit = 9;
+            return 1;
+        }
+        if (key == kNKeyCode) {
+            *itemHit = 10;
+            return 1;
+        }
+        if (key == kBKeyCode) {
+            *itemHit = 11;
+            return 1;
+        }
+#else
+        c = EventCharOf(ev);
         c = tolower(c);
-        if (c == kReturnChar || c == kEscapeChar) {
+        if (IsReturnChar(c) || c == kEscapeChar) {
             ev->what = kMouseDown;
             *itemHit = 12;
             return 1;
@@ -2442,14 +3627,17 @@ char StellarDialogEvent(long unused, EventRecord *ev, short *itemHit)
             *itemHit = 11;
             return 1;
         }
+#endif
     }
     if ((int)ev->what == kMouseDown) {
-        where.v = ev->where.v;
-        where.h = ev->where.h;
-        UpdateStellarDialog();
+        where = ev->where;
+#ifdef MACBUILD
+        GlobalToLocal(&where);
+#endif
+        PortDialogUpdate();
         button = TrackPlanetButtons(where);
         GetDialogItem(portDialog, 5, &itemType, &item, &box);
-        if (PtInRect(where.h, where.v, &box)) {
+        if (PtInRectPoint(where, &box)) {
             *itemHit = 5;
             return 1;
         }
@@ -2485,62 +3673,97 @@ char StellarDialogEvent(long unused, EventRecord *ev, short *itemHit)
         return 1;
     }
     if ((int)ev->what == kUpdateEvt) {
-        UpdateStellarDialog();
+#ifdef MACBUILD
+        BeginUpdate(GetDialogWindow(portDialog));
+#endif
+        PortDialogUpdate();
+#ifdef MACBUILD
+        EndUpdate(GetDialogWindow(portDialog));
+#endif
         return 1;
     }
     return 0;
 }
 
-/* UpdateStellarDialog. STATE: MATCH, byte-identical. OPEN: none */
+/* PortDialogUpdate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00492c40
-void UpdateStellarDialog(void)
+// MAC: _PortDialogUpdate i386 0x0004ebbd ppc 0x00057884
+void PortDialogUpdate(void)
 {
+#ifdef MACBUILD
+    Rect memBox;
+    Str255 memText;
+#endif
     Rect box;
     short itemType;
-    void *item;
-    char inside;
+    Handle item;
+    Boolean inside;
 
     SetGWorldContainer(&loadPort);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetDialogPortRect(portDialog));
-    if (gStellarDialogPict != NULL)
-        DrawPicHandle(gStellarDialogPict, GetDialogPortRect(portDialog));
-    GetDialogItem(portDialog, 3, &itemType, &item, &box);
-    inside = RectInRgn(&box, GetCWindowVisRgn(FrontWindow(portDialog)));
+    if (portBackgroundPic != NULL)
+        DrawPicHandle(portBackgroundPic, GetDialogPortRect(portDialog));
+    GetDialogItem(portDialog, 3, &itemType, (void **)&item, &box);
+    inside = RectInRgn(&box, GetWindowVisRgn(FrontWindow(portDialog)));
     if (inside) {
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         PaintRect(&box);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo(box.left, (box.top + kNameBaseline));
         TextFont(gTimesFont);
         TextSize(kNameSize);
+#ifdef CEFIX /* F12.55 */
+        DrawStringCentered(dockedPort->name, box.left, box.right,
+                           box.top + CE_Scale(kNameBaseline));
+#else
         DrawStringCentered(dockedPort->name, box.left, box.right,
                            (box.top + kNameBaseline));
-        RGBForeColor(blackColor);
+#endif
+        ForeColor(blackColor);
     }
-    GetDialogItem(portDialog, 5, &itemType, &item, &box);
-    inside = RectInRgn(&box, GetCWindowVisRgn(FrontWindow(portDialog)));
-    if (inside && gStellarImage.world != NULL) {
-        CopyBits(GetGWCPixMap(&gStellarImage),
-                 (BitMapPtr)GetGWCPixMap(&loadPort),
-                 &gStellarImage.bounds, &box, 0,
-                 GetCWindowVisRgn(FrontWindow(portDialog)));
-    }
-    GetDialogItem(portDialog, 6, &itemType, &item, &box);
-    inside = RectInRgn(&box, GetCWindowVisRgn(FrontWindow(portDialog)));
+    GetDialogItem(portDialog, 5, &itemType, (void **)&item, &box);
+    inside = RectInRgn(&box, GetWindowVisRgn(FrontWindow(portDialog)));
     if (inside) {
-        RGBForeColor(blackColor);
+        if (planetPicContainer.world != NULL)
+            CopyBits(GWorldContainerBits(&planetPicContainer),
+                     (BitMapPtr)GWorldContainerBits(&loadPort),
+                     &planetPicContainer.bounds, &box, 0,
+                     GetWindowVisRgn(FrontWindow(portDialog)));
+#ifdef MACBUILD
+        if (cheatsActive) {
+            memBox.top = box.top + 3;
+            memBox.left = box.left + 3;
+            memBox.right = memBox.left + 64;
+            memBox.bottom = memBox.top + 11;
+            ForeColor(blackColor);
+            PaintRect(&memBox);
+            MoveTo(memBox.left + 3, memBox.top + 9);
+            TextFont(smallTextFont);
+            TextSize(smallTextSize);
+            ForeColor(whiteColor);
+            NumToString(FreeMem() / 1000, memText);
+            DrawString(memText);
+            DrawString("\pK free");
+            ForeColor(blackColor);
+        }
+#endif
+    }
+    GetDialogItem(portDialog, 6, &itemType, (void **)&item, &box);
+    inside = RectInRgn(&box, GetWindowVisRgn(FrontWindow(portDialog)));
+    if (inside) {
+        ForeColor(blackColor);
         TextFont(smallTextFont);
         TextSize(smallTextSize);
-        TETextBox(gDescText, strlen(gDescText), &box, 0);
+        TETextBox(descTextPtr, strlen(descTextPtr), &box, 0);
         InvertRect(&box);
     }
     SetGWorldContainer(&loadPort);
     DrawPlanetButtons(-8);
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(portDialog);
-    RGBForeColor(blackColor);
-    CopyBits(GetGWCPixMap(&loadPort),
+    ForeColor(blackColor);
+    CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(portDialog)),
              GetDialogPortRect(portDialog), GetDialogPortRect(portDialog),
              0, NULL);
@@ -2553,17 +3776,200 @@ void UpdateStellarDialog(void)
  * picked up from there — and the fourth is an optional out-slot for the
  * modifier state that GetKeyModifiers reports.
  */
-/* RunModalDialog. STATE: MATCH, byte-identical. OPEN: none */
+/* MyModalDialog. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00492f10
-void RunModalDialog(DialogPtr dlg, void *eventProc, short *itemHit,
+// MAC: _MyModalDialog i386 0x00059954 ppc 0x00061ac4
+void MyModalDialog(DialogPtr dlg, void *eventProc, short *itemHit,
                     short *modifiers)
+#ifdef MACBUILD
+{
+    EventRecord ev;
+    Rect r;
+    GrafPtr savedPort;
+    WindowPtr window;
+    long sleep;
+
+    *itemHit = -1;
+#ifdef MAC1010
+    HandleIntroMusic(0);
+    sleep = inBackground ? ((gameLoaded && inBackground) ? 30 : 0) : 0;
+    WaitNextEvent(everyEvent, &ev, sleep, NULL);
+#else
+    WaitNextEvent(everyEvent, &ev, (inBackground && gameLoaded) ? 30 : 0, NULL);
+#endif
+    if (ev.what == kHighLevelEvent)
+        AEProcessAppleEvent(&ev);
+    if (ev.what == activateEvt && (ev.modifiers & activeFlag))
+        SwitchedIn(&ev);
+    if (ev.what == osEvt && (ev.message & (suspendResumeMessage << 24))) {
+        if (ev.message & resumeFlag) {
+            inBackground = 0;
+            InitCursor();
+            cursorHidden = 0;
+            ShowTheCursor();
+            if (!settings.windowed) {
+#if V111
+                SetSystemUIMode(kUIModeAllHidden, kUIOptionAutoShowMenuBar);
+#else
+                HideTheMenuBar();
+#endif
+                mBarHidden = 1;
+                r = *GetCWindowPortRect(gWind);
+                r.top -= 30;
+                InvalWindowRect(gWind, &r);
+                if (gSystemVersion < 0x1000 && mBarHidden && SWIsWindowInForeground(gSpriteWorld))
+                    KeepMenuBarHidden(gSpriteWorld->windowFrameP->framePort);
+            }
+            SwitchedIn(&ev);
+        } else {
+            if (!settings.windowed) {
+#if V111
+                SetSystemUIMode(kUIModeNormal, 0);
+#else
+                ShowTheMenuBar();
+#endif
+                mBarHidden = 0;
+            }
+            inBackground = 1;
+            InitCursor();
+            cursorHidden = 0;
+            ShowTheCursor();
+            SwitchedOut(&ev);
+        }
+    }
+    if (!inBackground) {
+        SelectWindow(GetDialogWindow(dlg));
+        SetPort(GetDialogPort(dlg));
+    }
+    if (ev.what == updateEvt) {
+        GetPort(&savedPort);
+        window = (WindowPtr)ev.message;
+        BeginUpdate(window);
+        if (window == gWind) {
+            SetPort(GetCWindowGrafPort(gWind));
+            if (gPause) {
+                if (showingIntroText) {
+                    SetGWorldContainer(&loadPort);
+                    ForeColor(blackColor);
+                    PaintRect(&loadPort.bounds);
+                    SWSetPortToWindow(gSpriteWorld);
+                    ForeColor(blackColor);
+                    PaintRect(GetWindowPortRect(gWind));
+                } else {
+                    mainScreenBackgroundDirty = 1;
+                    MainScreenUpdate(1);
+                }
+            } else {
+                RedrawStatus(0);
+                RefreshSAT();
+            }
+        }
+        if (portDialog != NULL && window == GetDialogWindow(portDialog)) {
+            SetPort(GetDialogPort(portDialog));
+            PortDialogUpdate();
+        }
+        if (shipyardDialog != NULL && window == GetDialogWindow(shipyardDialog)) {
+            SetPort(GetDialogPort(shipyardDialog));
+            ShipyardDialogUpdate();
+        }
+        if (shipDescDialog != NULL && window == GetDialogWindow(shipDescDialog)) {
+            SetPort(GetDialogPort(shipDescDialog));
+            ShipDescDialogUpdate();
+        }
+        if (outfitDialog != NULL && window == GetDialogWindow(outfitDialog)) {
+            SetPort(GetDialogPort(outfitDialog));
+            OutfitDialogUpdate();
+        }
+        if (tradeDialog != NULL && window == GetDialogWindow(tradeDialog)) {
+            SetPort(GetDialogPort(tradeDialog));
+            TradeDialogUpdate();
+        }
+        if (textDialog != NULL && window == GetDialogWindow(textDialog)) {
+            SetPort(GetDialogPort(textDialog));
+            TextDialogUpdate();
+        }
+        if (infoDialog != NULL && window == GetDialogWindow(infoDialog)) {
+            SetPort(GetDialogPort(infoDialog));
+            PlayerInfoDialogUpdate();
+        }
+        if (missionDialog != NULL && window == GetDialogWindow(missionDialog)) {
+            SetPort(GetDialogPort(missionDialog));
+            if (missionsOutside == 0 && portDialog != NULL)
+                MissionDialogUpdate();
+            else
+                SingleMissionDialogUpdate();
+        }
+        if (missionInfoDialog != NULL && window == GetDialogWindow(missionInfoDialog)) {
+            SetPort(GetDialogPort(missionInfoDialog));
+            MissionInfoDialogUpdate();
+        }
+        if (barDialog != NULL && window == GetDialogWindow(barDialog)) {
+            SetPort(GetDialogPort(barDialog));
+            BarDialogUpdate();
+        }
+        if (raceDialog != NULL && window == GetDialogWindow(raceDialog)) {
+            SetPort(GetDialogPort(raceDialog));
+            RaceDialogUpdate();
+        }
+        if (newsDialog != NULL && window == GetDialogWindow(newsDialog)) {
+            SetPort(GetDialogPort(newsDialog));
+            NewsDialogUpdate();
+        }
+        if (commDialog != NULL && window == GetDialogWindow(commDialog)) {
+            SetPort(GetDialogPort(commDialog));
+            if (commDialogMode == 1) {
+                PlanetCommDialogUpdate();
+            } else if (commShip != NULL) {
+                if (commDialogMode == 2)
+                    EscortDialogUpdate();
+                else
+                    CommDialogUpdate();
+            }
+        }
+        if (haggleDialog != NULL && window == GetDialogWindow(haggleDialog)) {
+            SetPort(GetDialogPort(haggleDialog));
+            HaggleDialogUpdate();
+        }
+        if (plunderDialog != NULL && window == GetDialogWindow(plunderDialog)) {
+            SetPort(GetDialogPort(plunderDialog));
+            PlunderDialogUpdate();
+        }
+        if (mapDialog != NULL && window == GetDialogWindow(mapDialog)) {
+            SetPort(GetDialogPort(mapDialog));
+            MapDialogUpdate();
+        }
+        if (captureDialog != NULL && window == GetDialogWindow(captureDialog)) {
+            SetPort(GetDialogPort(captureDialog));
+            CapturedAssignmentDialogUpdate();
+        }
+        if (newsDialog != NULL && window == GetDialogWindow(newsDialog)) {
+            SetPort(GetDialogPort(newsDialog));
+            NewsDialogUpdate();
+        }
+        if (keyDialog != NULL && window == GetDialogWindow(keyDialog)) {
+            SetPort(GetDialogPort(keyDialog));
+            KeyDialogUpdate();
+        }
+        EndUpdate(window);
+        SetPort(savedPort);
+    }
+    if (ev.what != osEvt && !inBackground) {
+        if (eventProc != NULL) {
+            ((ModalFilterProcPtr)eventProc)(dlg, &ev, itemHit);
+            if (modifiers != NULL)
+                *modifiers = ev.modifiers;
+        }
+    }
+}
+#else
 {
     ModalDialog(NULL, itemHit);
     if (modifiers != NULL)
         *modifiers = GetKeyModifiers();
 }
+#endif
 
-#define kShipDescBase 13000     /* desc ID of ship 0's shipyard blurb */
+#define kShipDescBase 13000    /* desc ID of ship 0's shipyard blurb */
 #define kHireDescBase 14000     /* ...and of its hire-an-escort blurb */
 
 /* the item grid: four across, five down, out of item 5's box */
@@ -2573,35 +3979,39 @@ void RunModalDialog(DialogPtr dlg, void *eventProc, short *itemHit,
 #define kShipyardPictID 0x2135
 
 /* per-mission state, stride 0x14; buttons.c's MissionState only names +0x00 */
-#define kMissionAwayFromHome 0x400               /* effect-named: excluded from the "outside" count (TBC) */
-
 
 /* DoShipyardDialog (mac _DoShipyardDialog). STATE: MATCH 100%, exe 981 / obj 981, frame 0x32c,
    byte-identical yes (2026-09-25). `weap' also counts the first scan, the name digits and the
    default outfits; `itemType' and `digitBuf' are declared last (a compound: neither alone). */
 // FUNCTION: EVNOVA 0x00492f30
+// MAC: _DoShipyardDialog i386 0x0005e679 ppc 0x00066438
 void DoShipyardDialog(void)
 {
     void *item;
-    char confirmed;
-    char msgText[256];
+    short halfHeight;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    unsigned char msgText[256];
     int hireCost;
-    char defaultName[256];
+    unsigned char defaultName[256];
+#else
+    unsigned char defaultName[256];
+    int hireCost;
+    unsigned char msgText[256];
+#endif
     Rect box;
     short itemHit;
-
     short i;
-    char done;
+    short itemType;
     short outf;
     long tradeIn;
     long cost;
     short weap;
-    char weapHasSlot;
-    short halfHeight;
+    Boolean weapHasSlot;
+    short savedTargetStellar;
     short n;
-    int savedTargetStellar;
-    int savedUnk6A;
-    short itemType;
+    short savedUnk6A;
+    Boolean confirmed;
+    Boolean done;
     char digitBuf[256];
 
     SetupPortAvailableShipTypes(dockedPort);
@@ -2613,43 +4023,43 @@ void DoShipyardDialog(void)
         }
     }
     if (done) {
-        strcpy(gTextShowString, "");
+        strcpy(textShowString, "");
         if (shipBuyMode == 0)
-            AppendIndString(gTextShowString, kGameStrList, 0xdf);
+            StrcatIndCString(textShowString, kGameStrList, 0xdf);
         else
-            AppendIndString(gTextShowString, kGameStrList, 0xe0);
+            StrcatIndCString(textShowString, kGameStrList, 0xe0);
         ShowTextDialog(0, 0, 0);
         return;
     }
     SWSetPortToWindow(gSpriteWorld);
-    gSelectedShip = -1;
-    gShipGridPos = -1;
-    gLastClickPos = -1;
-    gShipGridScroll = 0;
+    selShipyardItem = -1;
+    selShipListItem = -1;
+    lastClickItem = -1;
+    shipyardScroll = 0;
     canBuy = 0;
-    savedTargetStellar = (unsigned short)shipData->targetStellar;
-    savedUnk6A = (unsigned short)shipData->navTargetKind;
+    savedTargetStellar = shipData->targetStellar;
+    savedUnk6A = shipData->navTargetKind;
     previewPic = NULL;
     previewPicID = -1;
-    missionListVenue = 5;
+    missionsOutside = 5;
     offeringFromShip = 0;
     missionOfferTime = ReadTick() + Rand(30) + 30;
     shipyardDialog = NULL;
     shipyardDialog = GetNewDialog(0x3ec, ShipyardDialogUpdate, ShipyardFilter);
     if (shipyardDialog == NULL)
         return;
-    gShipyardDialogPict = GetPicture(kShipyardPictID);
+    shipyardBackgroundPic = GetPicture(kShipyardPictID);
     CenterWindow(FrontWindow(shipyardDialog), FrontWindow(portDialog));
     GetDialogItem(shipyardDialog, kGridItem, &itemType, &item, &box);
     SetupListRects((Point *)&box);
-    strncpy(gItemDescText, "", 3);
+    strncpy(dialogDescTextPtr, "", 3);
     ShowWindowNoFlash(FrontWindow(shipyardDialog));
     SetDialogGWorld(shipyardDialog);
     FlushEvents(everyEvent - diskMask, 0);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     ShipyardDialogUpdate();
-    FrontWindow(shipyardDialog);
-    FrontWindow(shipyardDialog);
+    SelectWindow(FrontWindow(shipyardDialog));
+    BringToFront(FrontWindow(shipyardDialog));
     if (shipBuyMode == 0)
         OfferMissionFromPort(5);
     RedrawDialog(shipyardDialog);
@@ -2658,60 +4068,63 @@ void DoShipyardDialog(void)
     do {
         if (gQuit)
             done = 1;
-        RunModalDialog(shipyardDialog, ShipyardFilter, &itemHit, 0);
+        MyModalDialog(shipyardDialog, ShipyardFilter, &itemHit, 0);
         if (itemHit == 1) {
-            if (gSelectedShip != -1) {
-                n = gSelectedShip;
+            if (selShipyardItem != -1) {
+                n = selShipyardItem;
                 if (canBuy != 0) {
                     if (shipBuyMode == 0) {
                         extern char *strcpy(char *, const char *);
 
                         RedrawDialog(shipyardDialog);
-                        strcpy(msgText, "");
-                        AppendIndString(msgText, kGameStrList, 0x78);
-                        strcat(msgText, " ");
-                        strncpy(defaultName, (char *)gShipLongNames[n], 200);
-                        PtoCstr((unsigned char *)defaultName);
-                        strcat(msgText, defaultName);
-                        strcat(msgText, ": ");
-                        CtoPstr(msgText);
-                        pstrcpy((unsigned char *)defaultName,
-                               gShipTypes[n].name);
-                        PtoCstr((unsigned char *)defaultName);
-                        strcat(defaultName, " ");
+                        strcpy((char *)msgText, "");
+                        StrcatIndCString((char *)msgText, kGameStrList, 0x78);
+                        strcat((char *)msgText, " ");
+                        strncpy((char *)defaultName, (char *)shipyardLongNames[n], 200);
+                        PtoCstr(defaultName);
+                        strcat((char *)msgText, (char *)defaultName);
+                        strcat((char *)msgText, ": ");
+                        CtoPstr((char *)msgText);
+                        pstrcpy(defaultName,
+                               shipClass[n].name);
+                        PtoCstr(defaultName);
+                        strcat((char *)defaultName, " ");
                         for (weap = 0; weap <= 2; weap++) {
                             NumToString(Rand(9) + 1, (unsigned char *)digitBuf);
                             PtoCstr((unsigned char *)digitBuf);
-                            strcat(defaultName, digitBuf);
+                            strcat((char *)defaultName, digitBuf);
                         }
-                        CtoPstr(defaultName);
-                        confirmed = EVTextInputDialog((unsigned char *)msgText,
-                                                      (unsigned char *)defaultName, 0x40);
+                        CtoPstr((char *)defaultName);
+                        confirmed = EVTextInputDialog(msgText,
+                                                      defaultName, 0x40);
+#ifdef MACBUILD
+                        RefreshSAT();
+#endif
                         SetDialogGWorld(shipyardDialog);
                         RedrawDialog(shipyardDialog);
                         if (confirmed != 0) {
                             didBuyShip = 1;
                             tradeIn = ApplyPriceAndTechnologyFlux(
                                 PlayerShipTradeInPrice(), priceFluxMult[0],
-                                gShipTypes[shipData->type].techLevel,
+                                shipClass[shipData->type].techLevel,
                                 stellarData[shipData->targetStellar].techLevel);
                             tradeIn = ApplyPriceAndTechnologyFlux(
                                 tradeIn, priceFluxMult[1],
-                                gShipTypes[shipData->type].techLevel,
+                                shipClass[shipData->type].techLevel,
                                 stellarData[shipData->targetStellar].techLevel);
                             shipData->credits += tradeIn;
                             crashlog_mission_bit_set(
-                                "retiring ship", (char *)gShipTypes[shipData->type].name,
+                                "retiring ship", (char *)shipClass[shipData->type].name,
                                 1, shipData->type + 128,
-                                gShipTypes[shipData->type].onRetire);
-                            EvalMissionBitSetString(gShipTypes[shipData->type].onRetire);
+                                shipClass[shipData->type].onRetire);
+                            EvalMissionBitSetString(shipClass[shipData->type].onRetire);
                             shipData->type = n;
                             cost = ApplyPriceAndTechnologyFlux(
-                                gShipTypes[n].cost, priceFluxMult[1],
-                                gShipTypes[n].techLevel,
+                                shipClass[n].cost, priceFluxMult[1],
+                                shipClass[n].techLevel,
                                 stellarData[shipData->targetStellar].techLevel);
                             shipData->credits -= cost;
-                            pstrcpy(shipName, gTextInputResult);
+                            pstrcpy(shipName, textInputString);
                             CullNameString(shipName);
                             for (weap = 1; weap < 0x40; weap++) {
                                 if (shipData[weap].active != 0 &&
@@ -2719,13 +4132,12 @@ void DoShipyardDialog(void)
                                     shipData[weap].aiType == 5)
                                     shipData[weap].active = 0;
                             }
-                            weap = 0;
-                            do {
+                            for (weap = 0; weap < 256; weap++) {
                                 weapHasSlot = 0;
                                 for (outf = 0; outf < 512; outf++) {
-                                    if (gOutfits[outf].modType[0] == 1 &&
-                                        gOutfits[outf].modVal[0] == weap &&
-                                        gOutfits[outf].persistent != 0) {
+                                    if (outfitSystem[outf].modType[0] == 1 &&
+                                        outfitSystem[outf].modVal[0] == weap &&
+                                        outfitSystem[outf].persistent != 0) {
                                         weapHasSlot = 1;
                                         break;
                                     }
@@ -2734,38 +4146,40 @@ void DoShipyardDialog(void)
                                     shipData->weap[weap].count = 0;
                                     shipData->weap[weap].ammo = 0;
                                 }
-                            } while (++weap < 256);
-                            for (outf = 0; outf < 512; outf++) {
-                                if (gOutfits[outf].persistent == 0)
-                                    shipSystems[outf] = 0;
                             }
-                            for (weap = 0; weap < 8; weap++) {
-                                if (gShipTypes[shipData->type].defOutfCount[weap] > 0)
-                                    shipSystems[gShipTypes[shipData->type].defOutfID[weap]] +=
-                                        gShipTypes[shipData->type].defOutfCount[weap];
+                            for (weap = 0; weap < 512; weap++) {
+                                if (outfitSystem[weap].persistent == 0)
+                                    shipSystems[weap] = 0;
+                            }
+                            for (outf = 0; outf < 8; outf++) {
+                                if (shipClass[shipData->type].defOutfCount[outf] > 0)
+                                    shipSystems[shipClass[shipData->type].defOutfID[outf]] +=
+                                        shipClass[shipData->type].defOutfCount[outf];
                             }
                             SystemInfoToShipStats();
                             for (weap = 0; weap < 256; weap++) {
-                                if (gShipTypes[shipData->type].weapCount[weap] >
+                                if (shipClass[shipData->type].weapCount[weap] >
                                     shipData->weap[weap].count)
                                     shipData->weap[weap].count =
-                                        gShipTypes[shipData->type].weapCount[weap];
-                                if (gShipTypes[shipData->type].weapAmmo[weap] > 0) {
-                                    i = gWeapons[weap].ammoType;
-                                    if (i < 0 || i >= 0x100 || gWeapons[weap].guidance == kGuidanceBay)
+                                        shipClass[shipData->type].weapCount[weap];
+                                if (shipClass[shipData->type].weapAmmo[weap] > 0) {
+                                    if (weaponStats[weap].ammoType >= 0 && weaponStats[weap].ammoType < 0x100
+                                        && weaponStats[weap].guidance != kGuidanceBay)
+                                        i = weaponStats[weap].ammoType;
+                                    else
                                         i = weap;
-                                    if (gShipTypes[shipData->type].weapAmmo[weap] >
+                                    if (shipClass[shipData->type].weapAmmo[weap] >
                                         shipData->weap[i].ammo)
                                         shipData->weap[i].ammo =
-                                            gShipTypes[shipData->type].weapAmmo[weap];
+                                            shipClass[shipData->type].weapAmmo[weap];
                                 }
                             }
                             DestroyPartialFleetCargo(0);
                             crashlog_mission_bit_set(
-                                "purchasing ship", (char *)gShipTypes[shipData->type].name,
+                                "purchasing ship", (char *)shipClass[shipData->type].name,
                                 1, shipData->type + 128,
-                                gShipTypes[shipData->type].onPurchase);
-                            EvalMissionBitSetString(gShipTypes[shipData->type].onPurchase);
+                                shipClass[shipData->type].onPurchase);
+                            EvalMissionBitSetString(shipClass[shipData->type].onPurchase);
                             shipData->targetShip = -1;
                             shipData->selectedWeapon = -1;
                             playerPaint.red = playerPaint.green =
@@ -2785,18 +4199,18 @@ void DoShipyardDialog(void)
                             SetDialogGWorld(shipyardDialog);
                             done = 1;
                         }
-                        gShipTypes[gSelectedShip].dailySaleRoll = Rand(100) + 1;
+                        shipClass[selShipyardItem].dailySaleRoll = Rand(100) + 1;
                         SetDialogGWorld(shipyardDialog);
                         RedrawDialog(shipyardDialog);
                     } else {
-                        hireCost = ApplyPriceAndTechnologyFlux(gShipTypes[gSelectedShip].cost,
+                        hireCost = ApplyPriceAndTechnologyFlux(shipClass[selShipyardItem].cost,
                                                    priceFluxMult[1],
-                                                   gShipTypes[gSelectedShip].techLevel,
+                                                   shipClass[selShipyardItem].techLevel,
                                                    stellarData[shipData->targetStellar].techLevel);
                         shipData->credits -= hireCost * 0.1;
                         statusRedraw[2] = 1;
-                        SpawnEscortOfType(gSelectedShip, shipData->targetStellar);
-                        gShipTypes[gSelectedShip].dailyHireRoll = Rand(100) + 1;
+                        SpawnEscort(selShipyardItem, shipData->targetStellar);
+                        shipClass[selShipyardItem].dailyHireRoll = Rand(100) + 1;
                         done = 1;
                     }
                 } else {
@@ -2807,8 +4221,8 @@ void DoShipyardDialog(void)
             }
         }
         if (itemHit == 3) {
-            savedTargetStellar = (unsigned short)shipData->targetStellar;
-            savedUnk6A = (unsigned short)shipData->navTargetKind;
+            savedTargetStellar = shipData->targetStellar;
+            savedUnk6A = shipData->navTargetKind;
             hypergateMapMode = 0;
             DoSystemMap();
             shipData->targetStellar = savedTargetStellar;
@@ -2830,50 +4244,56 @@ void DoShipyardDialog(void)
         if (itemHit == 8 && shipBuyMode == 0) {
             if (OfferMissionFromPort(5) != 0) {
                 SetDialogGWorld(portDialog);
+#ifdef MACBUILD
+                UpdateAllPortDialogs(portDialog);
+                SetDialogGWorld(shipyardDialog);
+                ShipyardDialogUpdate(shipyardDialog);
+#else
                 UpdateAllPortDialogs();
                 SetDialogGWorld(shipyardDialog);
                 ShipyardDialogUpdate();
+#endif
             }
         }
         if (itemHit == 0xb) {
             n = 0;
-            for (i = 0; i < 16; i++) {
-                if (currentMissionObjectives[i].active != 0 &&
-                    (currentMissionObjectives[i].flags & kMissionAwayFromHome) == 0)
+            for (weap = 0; weap < 16; weap++) {
+                if (currentMissionObjectives[weap].active != 0 &&
+                    (currentMissionObjectives[weap].flags & kMissionHidden) == 0)
                     n++;
             }
             if (n > 0) {
                 DoMissionInfoDialog();
                 SetDialogGWorld(portDialog);
                 RedrawDialog(portDialog);
-                UpdateStellarDialog();
+                PortDialogUpdate();
                 SetDialogGWorld(shipyardDialog);
                 RedrawDialog(shipyardDialog);
             }
         }
-        if (itemHit == 10 && gSelectedShip != -1) {
+        if (itemHit == 10 && selShipyardItem != -1) {
             ShipyardDialogUpdate();
-            DoShipyardDescription(gSelectedShip);
+            DoShipyardDescription(selShipyardItem);
             SetDialogGWorld(shipyardDialog);
             RedrawDialog(shipyardDialog);
         }
-        if (itemHit == 0xc && gShipGridScroll >= 4) {
-            gShipGridScroll -= 4;
-            gSelectedShip = gShipGridPos = -1;
-            strncpy(gItemDescText, "", 3);
+        if (itemHit == 0xc && shipyardScroll >= 4) {
+            shipyardScroll -= 4;
+            selShipyardItem = selShipListItem = -1;
+            strncpy(dialogDescTextPtr, "", 3);
             EndLoopingMovie();
             RedrawDialog(shipyardDialog);
         }
         if (itemHit == 0xd) {
             n = 0;
-            for (i = 0; i < 768; i++) {
-                if (dockedPortShipTypes[i] != -1)
+            for (weap = 0; weap < 768; weap++) {
+                if (dockedPortShipTypes[weap] != -1)
                     n++;
             }
-            if (gShipGridScroll < n - 20) {
-                gShipGridScroll += 4;
-                gSelectedShip = gShipGridPos = -1;
-                strncpy(gItemDescText, "", 3);
+            if (shipyardScroll < n - 20) {
+                shipyardScroll += 4;
+                selShipyardItem = selShipListItem = -1;
+                strncpy(dialogDescTextPtr, "", 3);
                 EndLoopingMovie();
                 RedrawDialog(shipyardDialog);
             }
@@ -2892,24 +4312,25 @@ void DoShipyardDialog(void)
     DisposeDialogNoFlash(shipyardDialog);
     shipyardDialog = NULL;
     shipyardEgg = 0;
-    if (gShipyardDialogPict != NULL) {
-        QDReleaseResource(gShipyardDialogPict);
-        gShipyardDialogPict = NULL;
+    if (shipyardBackgroundPic != NULL) {
+        QDReleaseResource(shipyardBackgroundPic);
+        shipyardBackgroundPic = NULL;
     }
     if (previewPic != NULL) {
+#ifdef MACBUILD
+        HUnlock((Handle)previewPic);
+#endif
         QDReleaseResource(previewPic);
         previewPic = NULL;
     }
     if (shipBuyMode != 0) {
-        box.right = ((GetCWindowPortRect(gWind)->left +
+        box.left = box.right = ((GetCWindowPortRect(gWind)->left +
                              GetCWindowPortRect(gWind)->right) / 2);
-        box.left = box.right;
-        box.bottom = ((GetCWindowPortRect(gWind)->top +
+        box.top = box.bottom = ((GetCWindowPortRect(gWind)->top +
                               GetCWindowPortRect(gWind)->bottom) / 2);
-        box.top = box.bottom;
         InsetRect(&box, n - 1, halfHeight - 1);
         SWSetPortToWindow(gSpriteWorld);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         PaintRect(&box);
         RedrawStatus(1);
         RedrawComm(0);
@@ -2917,37 +4338,43 @@ void DoShipyardDialog(void)
     SWSetPortToBackground(gSpriteWorld);
     SetSystemBackgroundColor();
     PaintRect(&gSpriteWorld->backFrameP->frameRect);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     RedrawStatus(0);
     SWSetPortToWindow(gSpriteWorld);
+#ifdef MACBUILD
+    RefreshSAT();
+#endif
     shipData->targetStellar = savedTargetStellar;
     shipData->navTargetKind = savedUnk6A;
     statusRedraw[0] = 1;
     ResetMissionOfferVenue();
 }
 
+#ifdef MACBUILD
+#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, (void **)&item, &movieBox), InvalWindowRect(GetDialogWindow(dlg), &movieBox))
+#endif
 /* ShipyardFilter (mac _ShipyardFilter). STATE: MATCH 587/587 (2026-09-24).
    OPEN: none */
 // FUNCTION: EVNOVA 0x00493fc0
-char ShipyardFilter(long unused, EventRecord *ev, short *itemHit)
+// MAC: _ShipyardFilter i386 0x00060449 ppc 0x00068154
+Boolean ShipyardFilter(long unused, EventRecord *ev, short *itemHit)
 {
     Rect box;
     Rect movieBox;
     short itemType;
-    void *item;
+    Handle item;
     Point where;
-    int c;
+    EventKey c;
     short i;
     short count;
     long slot;
     short old;
     short oldPos;
-    short col;
     short row;
     short button;
     long cell;
 
-    if (absquatulateStr[0] != 0) {
+    if ((absquatulateStr)[0] != 0) {
         ev->what = kMouseDown;
         *itemHit = 7;
         return 1;
@@ -2956,9 +4383,29 @@ char ShipyardFilter(long unused, EventRecord *ev, short *itemHit)
     *itemHit = -1;
     CalcShipCanBuy();
     if ((int)ev->what == kKeyDown || (int)ev->what == kAutoKey) {
-        c = ev->message & kCharCodeMask;
+#if V111
+        c = (ev->message & kKeyCodeMask) >> 8;
         if ((int)ev->what == kKeyDown) {
-            if (c == kReturnChar || c == kEscapeChar) {
+            if (c == kReturnKeyCode || c == kEnterKeyCode || c == kEscapeKeyCode) {
+                ev->what = kMouseDown;
+                *itemHit = 7;
+                return 1;
+            }
+            if ((c == kBKeyCode && shipBuyMode == 0) || (c == kHKeyCode && shipBuyMode == 1)) {
+                ev->what = kMouseDown;
+                *itemHit = 1;
+                return 1;
+            }
+            if (c == kSpaceKeyCode) {
+                ev->what = kMouseDown;
+                *itemHit = 10;
+                return 1;
+            }
+        }
+#else
+        c = EventCharOf(ev);
+        if ((int)ev->what == kKeyDown) {
+            if (IsReturnChar(c) || c == kEscapeChar) {
                 ev->what = kMouseDown;
                 *itemHit = 7;
                 return 1;
@@ -2969,92 +4416,96 @@ char ShipyardFilter(long unused, EventRecord *ev, short *itemHit)
                 *itemHit = 1;
                 return 1;
             }
+#ifdef CEFIX /* F19.01 */
+            if (c == ' ') {
+                ev->what = kMouseDown;
+                *itemHit = 10;
+                return 1;
+            }
+#endif
         }
-        if (c == kLeftArrowChar || c == kRightArrowChar || c == kUpArrowChar ||
-            c == kDownArrowChar || c == kPageUpChar || c == kPageDownChar) {
-            old = gSelectedShip;
-            if (gShipGridPos != -1) {
+#endif
+#ifdef MAC1010 /* 1.0.10 spelling */
+        if ((c >= kGridLeftKey && c <= kGridDownKey) || c == kGridPageUpKey || c == kGridPageDownKey) {
+#else
+        if (c == kGridLeftKey || c == kGridRightKey || c == kGridUpKey ||
+            c == kGridDownKey || c == kGridPageUpKey || c == kGridPageDownKey) {
+#endif
+            old = selShipyardItem;
+            if (selShipListItem != -1) {
                 count = 0;
                 for (i = 0; i < 512; i++) {
                     if (dockedPortShipTypes[i] != -1)
                         count++;
                 }
-                if (c == kRightArrowChar) {
-                    if (gShipGridPos < kGridCells - 1) {
-                        if (dockedPortShipTypes[gShipGridScroll + gShipGridPos
+                if (c == kGridRightKey) {
+                    if (selShipListItem < kGridCells - 1) {
+                        if (dockedPortShipTypes[shipyardScroll + selShipListItem
                                                 + 1] != -1)
-                            gShipGridPos++;
-                    } else if (gShipGridScroll < count - kGridCells) {
-                        gShipGridScroll += kGridCols;
-                        gShipGridPos -= kGridCols - 1;
+                            selShipListItem++;
+                    } else if (shipyardScroll < count - kGridCells) {
+                        shipyardScroll += kGridCols;
+                        selShipListItem -= kGridCols - 1;
                     }
-                } else if (c == kLeftArrowChar) {
-                    if (gShipGridPos > 0) {
-                        gShipGridPos--;
-                    } else if (gShipGridScroll > 0) {
-                        gShipGridScroll -= kGridCols;
-                        gShipGridPos += kGridCols - 1;
+                } else if (c == kGridLeftKey) {
+                    if (selShipListItem > 0) {
+                        selShipListItem--;
+                    } else if (shipyardScroll > 0) {
+                        shipyardScroll -= kGridCols;
+                        selShipListItem += kGridCols - 1;
                     }
-                } else if (c == kUpArrowChar || c == kPageUpChar) {
-                    if (gShipGridPos < kGridCols) {
-                        if (gShipGridScroll > 0)
-                            gShipGridScroll -= kGridCols;
-                    } else {
-                        gShipGridPos -= kGridCols;
-                    }
-                } else if (c == kDownArrowChar || c == kPageDownChar) {
-                    if (gShipGridPos < kGridCells - kGridCols) {
-                        if (dockedPortShipTypes[gShipGridScroll + gShipGridPos
+                } else if (c == kGridUpKey || c == kGridPageUpKey) {
+                    if (selShipListItem >= kGridCols)
+                        selShipListItem -= kGridCols;
+                    else if (shipyardScroll > 0)
+                        shipyardScroll -= kGridCols;
+                } else if (c == kGridDownKey || c == kGridPageDownKey) {
+                    if (selShipListItem < kGridCells - kGridCols) {
+                        if (dockedPortShipTypes[shipyardScroll + selShipListItem
                                                 + kGridCols] != -1)
-                            gShipGridPos += kGridCols;
-                    } else if (gShipGridScroll < count - kGridCells) {
-                        gShipGridScroll += kGridCols;
+                            selShipListItem += kGridCols;
+                    } else if (shipyardScroll < count - kGridCells) {
+                        shipyardScroll += kGridCols;
                     }
                 }
-                slot = gShipGridPos;
-                slot += gShipGridScroll;
-                gSelectedShip = dockedPortShipTypes[slot];
-                while (gSelectedShip == -1 && gShipGridPos > 0) {
-                    slot--;
-                    gShipGridPos--;
-                    gSelectedShip = dockedPortShipTypes[slot];
+                selShipyardItem = dockedPortShipTypes[shipyardScroll + selShipListItem];
+                while (selShipyardItem == -1 && selShipListItem > 0) {
+                    selShipListItem--;
+                    selShipyardItem = dockedPortShipTypes[shipyardScroll + selShipListItem];
                 }
             } else {
-                if (c == kRightArrowChar || c == kDownArrowChar ||
-                    c == kPageDownChar)
-                    gShipGridPos = 0;
+                if (c == kGridRightKey || c == kGridDownKey ||
+                    c == kGridPageDownKey)
+                    selShipListItem = 0;
                 else
-                    gShipGridPos = kGridCells - 1;
-                cell = gShipGridPos;
-                cell += gShipGridScroll;
-                gSelectedShip = dockedPortShipTypes[cell];
-                while (gSelectedShip == -1 && gShipGridPos > 0) {
-                    cell--;
-                    gShipGridPos--;
-                    gSelectedShip = dockedPortShipTypes[cell];
+                    selShipListItem = kGridCells - 1;
+                selShipyardItem = dockedPortShipTypes[shipyardScroll + selShipListItem];
+                while (selShipyardItem == -1 && selShipListItem > 0) {
+                    selShipListItem--;
+                    selShipyardItem = dockedPortShipTypes[shipyardScroll + selShipListItem];
                 }
             }
-            if (gSelectedShip != old) {
-                if (gSelectedShip == -1) {
-                    canBuy = 0;
-                } else {
+            if (selShipyardItem != old) {
+                if (selShipyardItem != -1) {
                     if (shipBuyMode != 0)
-                        LoadDescription(gItemDescText,
-                                        (gSelectedShip + kHireDescBase));
+                        LoadDescription(dialogDescTextPtr,
+                                        (selShipyardItem + kHireDescBase));
                     else
-                        LoadDescription(gItemDescText,
-                                        (gSelectedShip + kShipDescBase));
+                        LoadDescription(dialogDescTextPtr,
+                                        (selShipyardItem + kShipDescBase));
                     RedrawDialog(shipyardDialog);
                     CalcShipCanBuy();
                     EndLoopingMovie();
-                    if (gSelectedShip != -1 &&
-                        gShipMovieFiles[gSelectedShip][0] != 0) {
+                    if (selShipyardItem != -1 &&
+                        shipMovieFilenames[selShipyardItem][0] != 0) {
                         GetDialogItem(shipyardDialog, kMovieItem, &itemType,
-                                      &item, &movieBox);
-                        StartLoopingMovie(gShipMovieFiles[gSelectedShip],
+                                      (void **)&item, &movieBox);
+                        StartLoopingMovie(shipMovieFilenames[selShipyardItem],
                                           FrontWindow(shipyardDialog),
                                           &movieBox);
                     }
+                } else {
+                    canBuy = 0;
                 }
             }
         }
@@ -3073,62 +4524,74 @@ char ShipyardFilter(long unused, EventRecord *ev, short *itemHit)
             *itemHit = 11;
             return 1;
         }
-        c = tolower(ev->message & kCharCodeMask);
+#if V111
         return 0;
+#else
+        c = tolower(EventCharOf(ev));
+        return 0;
+#endif
     }
     if ((int)ev->what == kMouseDown) {
-        where.v = ev->where.v;
-        where.h = ev->where.h;
-        GetDialogItem(shipyardDialog, kGridItem, &itemType, &item, &box);
-        if (PtInRect(where.h, where.v, &box)) {
-            col = (where.h - box.left) / kGridCellWide;
+        where = ev->where;
+#ifdef MACBUILD
+        GlobalToLocal(&where);
+#endif
+        GetDialogItem(shipyardDialog, kGridItem, &itemType, (void **)&item, &box);
+        if (PtInRectPoint(where, &box)) {
+#ifdef CEFIX /* F13.02 */
+            count = CE_GridDivide(where.h - box.left, ceGridCellWidth);
+            row = CE_GridDivide(where.v - box.top, ceGridCellHeight);
+#else
+            count = (where.h - box.left) / kGridCellWide;
             row = (where.v - box.top) / kGridCellHigh;
-            if (col >= 0 && col <= kGridCols - 1 && row >= 0 &&
+#endif
+            if (count >= 0 && count <= kGridCols - 1 && row >= 0 &&
                 row <= kGridCells / kGridCols - 1) {
-                oldPos = gShipGridPos;
-                gShipGridPos = row * kGridCols + col;
-                if (dockedPortShipTypes[gShipGridPos + gShipGridScroll] != -1) {
-                    gSelectedShip =
-                        dockedPortShipTypes[gShipGridPos + gShipGridScroll];
+                oldPos = selShipListItem;
+                selShipListItem = row * kGridCols + count;
+                if (dockedPortShipTypes[selShipListItem + shipyardScroll] == -1) {
+                    selShipyardItem = selShipListItem = -1;
                 } else {
-                    gSelectedShip = gShipGridPos = -1;
+                    selShipyardItem =
+                        dockedPortShipTypes[selShipListItem + shipyardScroll];
                 }
-                if (gShipGridPos != oldPos) {
+                if (selShipListItem != oldPos) {
                     InvalDialogItem(shipyardDialog, 1);
                     InvalDialogItem(shipyardDialog, 5);
                     InvalDialogItem(shipyardDialog, 6);
                     InvalDialogItem(shipyardDialog, 8);
                     InvalDialogItem(shipyardDialog, 9);
                     InvalDialogItem(shipyardDialog, 10);
-                    if (gShipGridPos == -1) {
-                        strncpy(gItemDescText, "", 3);
-                    } else if (shipBuyMode != 0) {
-                        LoadDescription(gItemDescText,
-                                        (gSelectedShip + kHireDescBase));
+                    if (selShipListItem != -1) {
+                        if (shipBuyMode != 0)
+                            LoadDescription(dialogDescTextPtr,
+                                            (selShipyardItem + kHireDescBase));
+                        else
+                            LoadDescription(dialogDescTextPtr,
+                                            (selShipyardItem + kShipDescBase));
                     } else {
-                        LoadDescription(gItemDescText,
-                                        (gSelectedShip + kShipDescBase));
+                        strncpy(dialogDescTextPtr, "", 3);
                     }
                     CalcShipCanBuy();
                     EndLoopingMovie();
-                    if (gSelectedShip != -1 &&
-                        gShipMovieFiles[gSelectedShip][0] != 0) {
+                    if (selShipyardItem != -1 &&
+                        shipMovieFilenames[selShipyardItem][0] != 0) {
                         GetDialogItem(shipyardDialog, kMovieItem, &itemType,
-                                      &item, &movieBox);
-                        StartLoopingMovie(gShipMovieFiles[gSelectedShip],
+                                      (void **)&item, &movieBox);
+                        StartLoopingMovie(shipMovieFilenames[selShipyardItem],
                                           FrontWindow(shipyardDialog),
                                           &movieBox);
                     }
                 }
-                if (gShipGridPos == gLastClickPos && gShipGridPos != -1 &&
-                    ev->when - gLastClickTime <= 15) {
+                if (selShipListItem == lastClickItem && selShipListItem != -1 &&
+                    ev->when - lastClickTime <= 15) {
                     ShipyardDialogUpdate();
-                    DoShipyardDescription(gSelectedShip);
+                    DoShipyardDescription(selShipyardItem);
                     SetDialogGWorld(shipyardDialog);
                     RedrawDialog(shipyardDialog);
                 }
-                gLastClickPos = gShipGridPos;
-                gLastClickTime = ev->when;
+                lastClickItem = selShipListItem;
+                lastClickTime = ev->when;
             }
         }
         ShipyardDialogUpdate();
@@ -3164,21 +4627,44 @@ char ShipyardFilter(long unused, EventRecord *ev, short *itemHit)
         }
     }
     if ((int)ev->what == kUpdateEvt) {
+#ifdef MACBUILD
+        BeginUpdate(GetDialogWindow(shipyardDialog));
+#endif
         ShipyardDialogUpdate();
+#ifdef MACBUILD
+        EndUpdate(GetDialogWindow(shipyardDialog));
+#endif
         return 0;
     }
     return 0;
 }
+#ifdef MACBUILD
+#undef InvalDialogItem
+#endif
 
 /* ShipyardDialogUpdate (mac _ShipyardDialogUpdate). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004948b0
+// MAC: _ShipyardDialogUpdate i386 0x00058a10 ppc 0x00060d04
 void ShipyardDialogUpdate(void)
 {
+#ifdef MACBUILD
     int c;
-    RGBColor *cellColor;
+    short i;
+    Handle item;
+    short itemType;
+    unsigned char line1[256];
+    Rect box;
+    unsigned char line2[256];
     short drawn;
     short skipped;
-    void *item;
+    long price;
+    long tradeIn;
+    long net;
+#else
+    int c;
+    short drawn;
+    short skipped;
+    Handle item;
     short itemType;
     unsigned char line1[256];
     Rect box;
@@ -3187,35 +4673,33 @@ void ShipyardDialogUpdate(void)
     long price;
     long tradeIn;
     long net;
+#endif
 
     SetGWorldContainer(&loadPort);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetDialogPortRect(shipyardDialog));
-    if (gShipyardDialogPict != NULL)
-        DrawPicHandle(gShipyardDialogPict, GetDialogPortRect(shipyardDialog));
+    if (shipyardBackgroundPic != NULL)
+        DrawPicHandle(shipyardBackgroundPic, GetDialogPortRect(shipyardDialog));
     skipped = 0;
-    GetDialogItem(shipyardDialog, kGridItem, &itemType, &item, &box);
+    GetDialogItem(shipyardDialog, kGridItem, &itemType, (void **)&item, &box);
     box.right += 1;
     box.bottom += 1;
-    if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(shipyardDialog)))) {
+    if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipyardDialog)))) {
         TextFont(smallTextFont);
         TextSize(smallTextSize);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         drawn = 0;
-        i = gShipGridScroll;
-        if (i < 768) {
-            cellColor = &shopGridColor[1];
-            do {
-                if (RectInRgn(&gCellRects[i - gShipGridScroll],
-                              GetCWindowVisRgn(FrontWindow(shipyardDialog))) &&
-                    drawn < kGridCells && i >= 0 &&
-                    dockedPortShipTypes[i] != -1) {
+        for (i = shipyardScroll; i < 768; i++) {
+                if (RectInRgn(&listScreenRect[i - shipyardScroll],
+                              GetWindowVisRgn(FrontWindow(shipyardDialog))) &&
+                    drawn < kGridCells && (i >= 0 &&
+                    dockedPortShipTypes[i] != -1)) {
                     if (skipped < 3) {
-                        if (i - gShipGridScroll >= 0 &&
-                            i - gShipGridScroll < kGridCells) {
-                            if (!DrawCachedPict(
-                                    gShipTypes[dockedPortShipTypes[i]].shipyardPictID,
-                                    &loadPort, &gIconRects[i - gShipGridScroll]))
+                        if (i - shipyardScroll >= 0 &&
+                            i - shipyardScroll < kGridCells) {
+                            if (!RetrieveMenuIcon(
+                                    shipClass[dockedPortShipTypes[i]].shipyardPictID,
+                                    MenuIconPort(&loadPort), &listPicScreenRect[i - shipyardScroll]))
                                 skipped++;
                         } else {
                             skipped++;
@@ -3227,82 +4711,113 @@ void ShipyardDialogUpdate(void)
                     if (cheatsActive) {
                         NumToString(dockedPortShipTypes[i] + kFirstResourceID,
                                     line1);
-                        RGBForeColor(whiteColor);
-                        MoveTo(((gCellRects[i - gShipGridScroll].left
-                                        + gCellRects[i - gShipGridScroll].right
+                        ForeColor(whiteColor);
+                        MoveTo(((listScreenRect[i - shipyardScroll].left
+                                        + listScreenRect[i - shipyardScroll].right
                                         - StringWidth(line1)) / 2),
-                               (gCellRects[i - gShipGridScroll].top + 24));
+                               (listScreenRect[i - shipyardScroll].top + 24));
                         DrawString(line1);
-                        RGBForeColor(blackColor);
+                        ForeColor(blackColor);
                     }
-                    if (SplitTwoLineString(gShipShortNames[dockedPortShipTypes[i]],
+                    if (SplitTwoLineString(shipyardShortNames[dockedPortShipTypes[i]],
                                            line1, line2)) {
-                        c = line1[1];
-                        if (isalpha(c) || isdigit(c))
-                            RGBForeColor(whiteColor);
+                        LineLeadChar(line1);
+                        if (LineLeadsAlnum(line1))
+                            ForeColor(whiteColor);
                         else
                             RGBForeColor(&rgbLessDarkGrey);
-                        MoveTo(((gCellRects[i - gShipGridScroll].left
-                                        + gCellRects[i - gShipGridScroll].right) / 2
+#ifdef CEFIX /* F12.56 */
+                        CE_SetPen((listScreenRect[i - shipyardScroll].left
+                                       + listScreenRect[i - shipyardScroll].right) / 2
+                                      - StringWidth(line1) / 2,
+                                  listScreenRect[i - shipyardScroll].bottom - CE_Scale(14));
+#else
+                        MoveTo(((listScreenRect[i - shipyardScroll].left
+                                        + listScreenRect[i - shipyardScroll].right) / 2
                                        - StringWidth(line1) / 2),
-                               (gCellRects[i - gShipGridScroll].bottom - 14));
+                               (listScreenRect[i - shipyardScroll].bottom - 14));
+#endif
                         DrawString(line1);
-                        c = line2[1];
-                        if (isalpha(c) || isdigit(c))
-                            RGBForeColor(whiteColor);
+                        LineLeadChar(line2);
+                        if (LineLeadsAlnum(line2))
+                            ForeColor(whiteColor);
                         else
                             RGBForeColor(&rgbLessDarkGrey);
-                        MoveTo(((gCellRects[i - gShipGridScroll].left
-                                        + gCellRects[i - gShipGridScroll].right) / 2
+#ifdef CEFIX /* F12.57 */
+                        CE_SetPen((listScreenRect[i - shipyardScroll].left
+                                       + listScreenRect[i - shipyardScroll].right) / 2
+                                      - StringWidth(line2) / 2,
+                                  listScreenRect[i - shipyardScroll].bottom - CE_Scale(3));
+#else
+                        MoveTo(((listScreenRect[i - shipyardScroll].left
+                                        + listScreenRect[i - shipyardScroll].right) / 2
                                        - StringWidth(line2) / 2),
-                               (gCellRects[i - gShipGridScroll].bottom - 3));
+                               (listScreenRect[i - shipyardScroll].bottom - 3));
+#endif
                         DrawString(line2);
+                        ForeColor(blackColor);
                     } else {
-                        MoveTo(((gCellRects[i - (long)gShipGridScroll].left
-                                        + gCellRects[i - (long)gShipGridScroll].right) / 2
+#ifdef CEFIX /* F12.58 */
+                        CE_SetPen((listScreenRect[i - (long)shipyardScroll].left
+                                       + listScreenRect[i - (long)shipyardScroll].right) / 2
+                                      - StringWidth(line1) / 2,
+                                  listScreenRect[i - (long)shipyardScroll].bottom - CE_Scale(6));
+#else
+                        MoveTo(((listScreenRect[i - (long)shipyardScroll].left
+                                        + listScreenRect[i - (long)shipyardScroll].right) / 2
                                        - StringWidth(line1) / 2),
-                               (gCellRects[i - (long)gShipGridScroll].bottom - 6));
-                        RGBForeColor(whiteColor);
+                               (listScreenRect[i - (long)shipyardScroll].bottom - 6));
+#endif
+                        ForeColor(whiteColor);
                         DrawString(line1);
+                        ForeColor(blackColor);
                     }
-                    RGBForeColor(blackColor);
-                    RGBForeColor(cellColor);
-                    FrameRect(&gCellRects[i - gShipGridScroll]);
-                    RGBForeColor(blackColor);
+                    RGBForeColor(&shopGridColor[1]);
+                    FrameRect(&listScreenRect[i - shipyardScroll]);
+                    ForeColor(blackColor);
                     drawn++;
                 }
-                i++;
-            } while (i < 768);
         }
-        if (gShipGridPos != -1) {
+        if (selShipListItem != -1) {
             RGBForeColor(&shopGridColor[0]);
-            FrameRect(&gCellRects[gShipGridPos]);
-            RGBForeColor(blackColor);
+            FrameRect(&listScreenRect[selShipListItem]);
+            ForeColor(blackColor);
         }
     }
-    if (gSelectedShip != -1) {
-        GetDialogItem(shipyardDialog, kMovieItem, &itemType, &item, &box);
-        if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(shipyardDialog)))) {
+    if (selShipyardItem != -1) {
+        GetDialogItem(shipyardDialog, kMovieItem, &itemType, (void **)&item, &box);
+        if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipyardDialog)))) {
             if (loopingMovie != NULL) {
                 CopyBits((PixMapPtr)GetPortBitMapForCopyBits(
                              GetDialogPort(shipyardDialog)),
-                         (BitMapPtr)GetGWCPixMap(&loadPort), &box, &box, 0,
-                         GetCWindowVisRgn(FrontWindow(shipyardDialog)));
+                         (BitMapPtr)GWorldContainerBits(&loadPort), &box, &box, 0,
+                         GetWindowVisRgn(FrontWindow(shipyardDialog)));
             } else {
-                if (previewPicID != gShipTypes[gSelectedShip].shipyardPictID) {
+                if (previewPicID != shipClass[selShipyardItem].shipyardPictID) {
                     if (previewPic != NULL) {
+#ifdef MACBUILD
+                        HUnlock((Handle)previewPic);
+#endif
                         QDReleaseResource(previewPic);
                         previewPic = NULL;
                     }
-                    previewPicID = gShipTypes[gSelectedShip].shipyardPictID;
+                    previewPicID = shipClass[selShipyardItem].shipyardPictID;
+#ifdef MACBUILD
+                    if (previewPicID >= kFirstResourceID) {
+                        previewPic = GetPicture(previewPicID);
+                        if (previewPic != NULL)
+                            HLock((Handle)previewPic);
+                    }
+#else
                     if (previewPicID >= kFirstResourceID)
                         previewPic = GetPicture(previewPicID);
+#endif
                 }
                 if (previewPic != NULL) {
-                    RGBForeColor(blackColor);
+                    ForeColor(blackColor);
                     DrawPicHandle(previewPic, &box);
                 } else {
-                    RGBForeColor(whiteColor);
+                    ForeColor(whiteColor);
                     TextFont(smallTextFont);
                     TextSize(smallTextSize);
                     GetIndString(line1, kGameStrList, 0xd5);
@@ -3311,22 +4826,22 @@ void ShipyardDialogUpdate(void)
                     GetIndString(line1, kGameStrList, 0xd6);
                     DrawStringCentered(line1, box.left, box.right,
                                        ((box.bottom + box.top) / 2 + 6));
-                    RGBForeColor(blackColor);
+                    ForeColor(blackColor);
                 }
             }
         }
-        GetDialogItem(shipyardDialog, 9, &itemType, &item, &box);
-        if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(shipyardDialog)))) {
+        GetDialogItem(shipyardDialog, 9, &itemType, (void **)&item, &box);
+        if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipyardDialog)))) {
             TextFont(smallTextFont);
             TextSize(smallTextSize);
-            if (shipBuyMode == 0 && gSelectedShip != shipData->type) {
-                RGBForeColor(whiteColor);
+            if (shipBuyMode == 0 && selShipyardItem != shipData->type) {
+                ForeColor(whiteColor);
                 MoveTo(box.left, (box.top + 12));
                 DrawIndString(kGameStrList, 0xe1);
                 MoveTo((box.left + 0x46), (box.top + 12));
                 price = ApplyPriceAndTechnologyFlux(
-                    gShipTypes[gSelectedShip].cost, priceFluxMult[1],
-                    gShipTypes[gSelectedShip].techLevel,
+                    shipClass[selShipyardItem].cost, priceFluxMult[1],
+                    shipClass[selShipyardItem].techLevel,
                     stellarData[shipData->targetStellar].techLevel);
                 DrawCommaNumber(price);
                 DrawString("\p ");
@@ -3334,13 +4849,13 @@ void ShipyardDialogUpdate(void)
                 MoveTo(box.left, (box.top + 0x18));
                 DrawIndString(kGameStrList, 0xe2);
                 MoveTo((box.left + 0x46), (box.top + 0x18));
-                net = ApplyPriceAndTechnologyFlux(
+                net = tradeIn = ApplyPriceAndTechnologyFlux(
                     PlayerShipTradeInPrice(), priceFluxMult[0],
-                    gShipTypes[shipData->type].techLevel,
+                    shipClass[shipData->type].techLevel,
                     stellarData[shipData->targetStellar].techLevel);
                 tradeIn = ApplyPriceAndTechnologyFlux(
                     net, priceFluxMult[1],
-                    gShipTypes[shipData->type].techLevel,
+                    shipClass[shipData->type].techLevel,
                     stellarData[shipData->targetStellar].techLevel);
                 DrawCommaNumber(tradeIn);
                 DrawString("\p ");
@@ -3360,16 +4875,17 @@ void ShipyardDialogUpdate(void)
                 DrawCommaNumber(shipData->credits);
                 DrawString("\p ");
                 DrawIndString(kGameStrList, 0x22);
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
             } else if (shipBuyMode != 0) {
-                RGBForeColor(whiteColor);
+                ForeColor(whiteColor);
                 MoveTo(box.left, (box.top + 12));
                 DrawIndString(kGameStrList, 0xe4);
                 MoveTo((box.left + 0x46), (box.top + 12));
-                DrawCommaNumber((ApplyPriceAndTechnologyFlux(
-                    gShipTypes[gSelectedShip].cost, priceFluxMult[1],
-                    gShipTypes[gSelectedShip].techLevel,
-                    stellarData[shipData->targetStellar].techLevel) * 0.1));
+                tradeIn = ApplyPriceAndTechnologyFlux(
+                    shipClass[selShipyardItem].cost, priceFluxMult[1],
+                    shipClass[selShipyardItem].techLevel,
+                    stellarData[shipData->targetStellar].techLevel);
+                DrawCommaNumber(0.1 * tradeIn);
                 DrawString("\p ");
                 DrawIndString(kGameStrList, 0x22);
                 MoveTo(box.left, (box.top + 0x24));
@@ -3378,25 +4894,25 @@ void ShipyardDialogUpdate(void)
                 DrawCommaNumber(shipData->credits);
                 DrawString("\p ");
                 DrawIndString(kGameStrList, 0x22);
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
             }
         }
     }
-    GetDialogItem(shipyardDialog, 6, &itemType, &item, &box);
-    if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(shipyardDialog)))) {
+    GetDialogItem(shipyardDialog, 6, &itemType, (void **)&item, &box);
+    if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipyardDialog)))) {
         TextFont(smallTextFont);
         TextSize(smallTextSize);
-        TETextBox(gItemDescText, strlen(gItemDescText), &box, 0);
+        TETextBox(dialogDescTextPtr, strlen(dialogDescTextPtr), &box, 0);
         InvertRect(&box);
     }
     DrawShipyardButtons(-1);
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(shipyardDialog);
-    CopyBits(GetGWCPixMap(&loadPort),
+    CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(shipyardDialog)),
              GetDialogPortRect(shipyardDialog),
              GetDialogPortRect(shipyardDialog), 0,
-             GetCWindowVisRgn(FrontWindow(shipyardDialog)));
+             GetWindowVisRgn(FrontWindow(shipyardDialog)));
 }
 
 
@@ -3412,9 +4928,10 @@ void ShipyardDialogUpdate(void)
 
 /* DoShipyardDescription (mac _DoShipyardDescription). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004956a0
+// MAC: _DoShipyardDescription i386 0x0005b6d2 ppc 0x00063764
 void DoShipyardDescription(short ship)
 {
-    char done;
+    Boolean done;
     short itemHit;
     short savedStellar;
     short savedRoute;
@@ -3423,33 +4940,33 @@ void DoShipyardDescription(short ship)
 
     done = 0;
     shipDescDialog = NULL;
-    gShipDescPict = NULL;
+    bigShipPic = NULL;
     if (descResourcePictId >= kFirstResourceID)
-        gShipDescPict = GetPicture(descResourcePictId);
-    if (gShipDescPict != NULL)
-        shipDescDialog = GetNewDialog(kDescDlogID, ShipDescDialogUpdate, Dlg1005EventProc);
+        bigShipPic = GetPicture(descResourcePictId);
+    if (bigShipPic != NULL)
+        shipDescDialog = GetNewDialog(kDescDlogID, ShipDescDialogUpdate, ShipDescFilter);
     else
         shipDescDialog = GetNewDialog(kPlainDescDlogID, ShipDescDialogUpdate,
-                                Dlg1005EventProc);
+                                ShipDescFilter);
     if (shipDescDialog == NULL)
         return;
     if (descResourcePictId >= kFirstResourceID)
-        gShipDescBackdrop = GetPicture(kDescPictID);
+        shipDescBackgroundPic = GetPicture(kDescPictID);
     else
-        gShipDescBackdrop = GetPicture(kPlainDescPictID);
+        shipDescBackgroundPic = GetPicture(kPlainDescPictID);
     CenterWindow(FrontWindow(shipDescDialog), FrontWindow(portDialog));
     ShowWindowNoFlash(FrontWindow(shipDescDialog));
     SetDialogGWorld(shipDescDialog);
     FlushEvents(everyEvent - diskMask, 0);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     RedrawDialog(shipDescDialog);
     ShipDescDialogUpdate();
-    FrontWindow(shipDescDialog);
-    FrontWindow(shipDescDialog);
+    SelectWindow(FrontWindow(shipDescDialog));
+    BringToFront(FrontWindow(shipDescDialog));
     do {
         if (gQuit)
             done = 1;
-        RunModalDialog(shipDescDialog, Dlg1005EventProc, &itemHit, 0);
+        MyModalDialog(shipDescDialog, ShipDescFilter, &itemHit, 0);
         if (itemHit == 1)
             done = 1;
         if (itemHit == 4) {
@@ -3461,7 +4978,7 @@ void DoShipyardDescription(short ship)
             shipData->navTargetKind = savedRoute;
             SetDialogGWorld(portDialog);
             RedrawDialog(shipDescDialog);
-            UpdateStellarDialog();
+            PortDialogUpdate();
             SetDialogGWorld(shipDescDialog);
             RedrawDialog(shipDescDialog);
         }
@@ -3469,7 +4986,7 @@ void DoShipyardDescription(short ship)
             DoPlayerInfoDialog();
             SetDialogGWorld(portDialog);
             RedrawDialog(portDialog);
-            UpdateStellarDialog();
+            PortDialogUpdate();
             SetDialogGWorld(shipDescDialog);
             RedrawDialog(shipDescDialog);
         }
@@ -3484,7 +5001,7 @@ void DoShipyardDescription(short ship)
                 DoMissionInfoDialog();
                 SetDialogGWorld(portDialog);
                 RedrawDialog(portDialog);
-                UpdateStellarDialog();
+                PortDialogUpdate();
                 SetDialogGWorld(shipDescDialog);
                 RedrawDialog(shipDescDialog);
             }
@@ -3492,18 +5009,22 @@ void DoShipyardDescription(short ship)
     } while (done == 0);
     DisposeDialogNoFlash(shipDescDialog);
     shipDescDialog = NULL;
-    if (gShipDescBackdrop != NULL) {
-        QDReleaseResource(gShipDescBackdrop);
-        gShipDescBackdrop = NULL;
+    if (shipDescBackgroundPic != NULL) {
+        QDReleaseResource(shipDescBackgroundPic);
+        shipDescBackgroundPic = NULL;
     }
-    if (gShipDescPict != NULL)
-        QDReleaseResource(gShipDescPict);
-    gShipDescPict = NULL;
+    if (bigShipPic != NULL)
+        QDReleaseResource(bigShipPic);
+    bigShipPic = NULL;
+#ifdef MACBUILD
+    RefreshSAT();
+#endif
 }
 
-/* Dlg1005EventProc. STATE: MATCH, byte-identical. OPEN: none */
+/* ShipDescFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004959d0
-char Dlg1005EventProc(long unused, EventRecord *ev, short *itemHit)
+// MAC: _ShipDescFilter i386 0x000510e5 ppc 0x00059a0c
+Boolean ShipDescFilter(long unused, EventRecord *ev, short *itemHit)
 {
     short itemType;
     void *item;
@@ -3512,7 +5033,11 @@ char Dlg1005EventProc(long unused, EventRecord *ev, short *itemHit)
     Point where;
     short lastHit;
     short hit;
-    int c;
+#if V111
+    short key;
+#else
+    EventChar c;
+#endif
 
     if ((int)ev->what == kKeyDown) {
         QuickKeyCheckHandler();
@@ -3528,32 +5053,52 @@ char Dlg1005EventProc(long unused, EventRecord *ev, short *itemHit)
             *itemHit = 6;
             return 1;
         }
-        c = ev->message & kCharCodeMask;
+#if V111
+        key = (ev->message & kKeyCodeMask) >> 8;
+        if (key == kReturnKeyCode || key == kEnterKeyCode || key == kEscapeKeyCode
+                || key == kSpaceKeyCode) {
+#else
+        c = EventCharOf(ev);
         c = tolower(c);
-        if (c == kReturnChar || c == kEscapeChar) {
+#ifdef CEFIX /* F19.02 */
+        if (IsReturnChar(c) || c == kEscapeChar || c == ' ') {
+#else
+        if (IsReturnChar(c) || c == kEscapeChar) {
+#endif
+#endif
             ev->what = kMouseDown;
             *itemHit = 1;
             return 1;
         }
     }
     if ((int)ev->what == kUpdateEvt) {
+#ifdef MACBUILD
+        BeginUpdate(GetDialogWindow(shipDescDialog));
+#endif
         DrawDialog(shipDescDialog);
         ShipDescDialogUpdate();
+#ifdef MACBUILD
+        EndUpdate(GetDialogWindow(shipDescDialog));
+#endif
         return 0;
     }
     if ((int)ev->what == kMouseDown) {
-        where.v = ev->where.v;
-        where.h = ev->where.h;
+        where = ev->where;
+#ifdef MACBUILD
+        GlobalToLocal(&where);
+#endif
         GetDialogItem(shipDescDialog, 1, &itemType, &item, &box);
-        if (PtInRect(where.h, where.v, &box)) {
+        if (PtInRectPoint(where, &box)) {
             GetIndString(label, kLabelStrList, kLabelStrIdx);
             DrawButton(GetDialogPort(shipDescDialog), &box, label, 0, 1, 0);
+#ifndef MACBUILD
             nv_UpdateDialogWindow(0);
+#endif
             lastHit = 1;
             while (StillDown()) {
                 BusyIdle();
                 GetMouse(&where);
-                if (PtInRect(where.h, where.v, &box))
+                if (PtInRectPoint(where, &box))
                     hit = 1;
                 else
                     hit = -1;
@@ -3562,7 +5107,9 @@ char Dlg1005EventProc(long unused, EventRecord *ev, short *itemHit)
                         DrawButton(GetDialogPort(shipDescDialog), &box, label, 0, 1, 0);
                     else
                         DrawButton(GetDialogPort(shipDescDialog), &box, label, 0, 0, 0);
+#ifndef MACBUILD
                     nv_UpdateDialogWindow(0);
+#endif
                 }
                 lastHit = hit;
             }
@@ -3580,82 +5127,113 @@ char Dlg1005EventProc(long unused, EventRecord *ev, short *itemHit)
 
 /* ShipDescDialogUpdate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00495c80
+// MAC: _ShipDescDialogUpdate i386 0x0004f915 ppc 0x00058710
 void ShipDescDialogUpdate(void)
 {
+#ifdef MACBUILD
+    short numWeapTypes;
+    short drawn;
+    short itemType;
+    short sel;
+    Rect box;
+    Boolean hasPict;
+    char line[1024];
+    unsigned char buf[256];
+    Rect box2;
+    Handle item;
+    short i;
+    short j;
+    long freeMass;
+    long mass;
+#else
     long drawn;
     long numWeapTypes;
     short itemType;
     short sel;
     long lineV;
     Rect box2;
-    char hasPict;
+    Boolean hasPict;
     char line[1024];
     unsigned char buf[256];
     Rect box;
-    void *item;
+    Handle item;
     short i;
     short j;
     short jumps;
     long freeMass;
     long mass;
+#endif
 
     SetGWorldContainer(&loadPort);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetDialogPortRect(shipDescDialog));
-    if (gShipDescBackdrop != NULL)
-        DrawPicHandle(gShipDescBackdrop, GetDialogPortRect(shipDescDialog));
+    if (shipDescBackgroundPic != NULL)
+        DrawPicHandle(shipDescBackgroundPic, GetDialogPortRect(shipDescDialog));
     if (descResourcePictId >= 128)
         hasPict = 1;
     else
         hasPict = 0;
-    RGBForeColor(blackColor);
-    GetDialogItem(shipDescDialog, 3, &itemType, &item, &box);
-    if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(shipDescDialog)))) {
+    ForeColor(blackColor);
+    GetDialogItem(shipDescDialog, 3, &itemType, (void **)&item, &box);
+    if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipDescDialog)))) {
         TextFont(gTimesFont);
         TextSize(18);
         MoveTo(box.left, (box.top + 18));
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
+#ifdef CEFIX /* F12.59 */
         if (hasPict)
-            DrawStringCentered(gShipLongNames[gSelectedShip], box.left,
+            DrawStringCentered(shipyardLongNames[selShipyardItem], box.left,
+                               box.right, box.top + CE_Scale(18));
+        else
+            DrawStringCentered(shipClass[selShipyardItem].name, box.left,
+                               box.right, box.top + CE_Scale(18));
+#else
+        if (hasPict)
+            DrawStringCentered(shipyardLongNames[selShipyardItem], box.left,
                                box.right, (box.top + 18));
         else
-            DrawStringCentered(gShipTypes[gSelectedShip].name, box.left,
+            DrawStringCentered(shipClass[selShipyardItem].name, box.left,
                                box.right, (box.top + 18));
-        RGBForeColor(blackColor);
+#endif
+        ForeColor(blackColor);
     }
-    GetDialogItem(shipDescDialog, 5, &itemType, &item, &box);
-    if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(shipDescDialog)))) {
-        sel = gSelectedShip;
-        RGBForeColor(blackColor);
+    GetDialogItem(shipDescDialog, 5, &itemType, (void **)&item, &box);
+    if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipDescDialog)))) {
+        sel = selShipyardItem;
+        ForeColor(blackColor);
         PaintRect(&box);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         TextFont(smallTextFont);
         TextSize(smallTextSize);
 
         RGBForeColor(&rgbMedGrey);
         MoveTo(box.left, (box.top + 12));
         DrawIndString(kGameStrList, 229);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 45), (box.top + 12));
-        NumToString((gShipTypes[sel].maxSpeed * 100.0), buf);
+#ifdef CEFIX /* F29.01 */
+        NumToString(CE_RoundD(shipClass[sel].maxSpeed * 100.0), buf);
+#else
+        NumToString((shipClass[sel].maxSpeed * 100.0), buf);
+#endif
         DrawString(buf);
 
         RGBForeColor(&rgbMedGrey);
         MoveTo(box.left, (box.top + 24));
         DrawIndString(kGameStrList, 230);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 45), (box.top + 24));
-        if (gShipTypes[sel].accel > 0.073)
+        if (shipClass[sel].accel > 0.073)
             DrawIndString(kGameStrList, 245);
-        else if (gShipTypes[sel].accel > 0.055)
+        else if (shipClass[sel].accel > 0.055)
             DrawIndString(kGameStrList, 246);
-        else if (gShipTypes[sel].accel > 0.038)
+        else if (shipClass[sel].accel > 0.038)
             DrawIndString(kGameStrList, 247);
-        else if (gShipTypes[sel].accel > 0.025)
+        else if (shipClass[sel].accel > 0.025)
             DrawIndString(kGameStrList, 248);
-        else if (gShipTypes[sel].accel > 0.013)
+        else if (shipClass[sel].accel > 0.013)
             DrawIndString(kGameStrList, 249);
-        else if (gShipTypes[sel].accel > 0.0)
+        else if (shipClass[sel].accel > 0.0)
             DrawIndString(kGameStrList, 250);
         else
             DrawIndString(kGameStrList, 396);
@@ -3663,19 +5241,19 @@ void ShipDescDialogUpdate(void)
         RGBForeColor(&rgbMedGrey);
         MoveTo(box.left, (box.top + 36));
         DrawIndString(kGameStrList, 231);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 45), (box.top + 36));
-        if (gShipTypes[sel].turnRate <= 0.0f)
+        if (shipClass[sel].turnRate <= 0.0f)
             DrawIndString(kGameStrList, 396);
-        else if (gShipTypes[sel].turnRate <= 1.0f)
+        else if (shipClass[sel].turnRate <= 1.0f)
             DrawIndString(kGameStrList, 250);
-        else if (gShipTypes[sel].turnRate <= 2.0f)
+        else if (shipClass[sel].turnRate <= 2.0f)
             DrawIndString(kGameStrList, 249);
-        else if (gShipTypes[sel].turnRate <= 3.0f)
+        else if (shipClass[sel].turnRate <= 3.0f)
             DrawIndString(kGameStrList, 248);
-        else if (gShipTypes[sel].turnRate <= 4.0f)
+        else if (shipClass[sel].turnRate <= 4.0f)
             DrawIndString(kGameStrList, 247);
-        else if (gShipTypes[sel].turnRate <= 5.0f)
+        else if (shipClass[sel].turnRate <= 5.0f)
             DrawIndString(kGameStrList, 246);
         else
             DrawIndString(kGameStrList, 245);
@@ -3683,30 +5261,30 @@ void ShipDescDialogUpdate(void)
         RGBForeColor(&rgbMedGrey);
         MoveTo(box.left, (box.top + 48));
         DrawString(shieldString[0]);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 45), (box.top + 48));
-        if (gShipTypes[sel].shield > 0)
-            DrawCommaNumber(gShipTypes[sel].shield);
+        if (shipClass[sel].shield > 0)
+            DrawCommaNumber(shipClass[sel].shield);
         else
             DrawIndString(kGameStrList, 335);
 
         RGBForeColor(&rgbMedGrey);
         MoveTo(box.left, (box.top + 60));
         DrawString(armorString[0]);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 45), (box.top + 60));
-        if (gShipTypes[sel].armor > 0)
-            DrawCommaNumber(gShipTypes[sel].armor);
+        if (shipClass[sel].armor > 0)
+            DrawCommaNumber(shipClass[sel].armor);
         else
             DrawIndString(kGameStrList, 335);
 
         RGBForeColor(&rgbMedGrey);
         MoveTo(box.left, (box.top + 72));
         DrawIndString(kGameStrList, 232);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 45), (box.top + 72));
-        if (gShipTypes[sel].maxGuns > 0) {
-            NumToString(gShipTypes[sel].maxGuns, buf);
+        if (shipClass[sel].maxGuns > 0) {
+            NumToString(shipClass[sel].maxGuns, buf);
             DrawIndString(kGameStrList, 238);
             DrawString("\p ");
             DrawString(buf);
@@ -3716,67 +5294,67 @@ void ShipDescDialogUpdate(void)
         RGBForeColor(&rgbMedGrey);
         MoveTo(box.left, (box.top + 84));
         DrawIndString(kGameStrList, 233);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 45), (box.top + 84));
-        if (gShipTypes[sel].maxTurrets > 0) {
-            NumToString(gShipTypes[sel].maxTurrets, buf);
+        if (shipClass[sel].maxTurrets > 0) {
+            NumToString(shipClass[sel].maxTurrets, buf);
             DrawIndString(kGameStrList, 238);
             DrawString("\p ");
             DrawString(buf);
         } else
             DrawIndString(kGameStrList, 335);
 
-        freeMass = gShipTypes[sel].freeMass;
+        freeMass = shipClass[sel].freeMass;
         for (i = 0; i < 256; i++) {
-            if (gShipTypes[sel].weapCount[i] > 0) {
+            if (shipClass[sel].weapCount[i] > 0) {
                 for (j = 0; j < 512; j++) {
-                    if (gOutfits[j].modType[0] == 1
-                        && i == gOutfits[j].modVal[0]
-                        && gOutfits[j].techLevel < kOutfTechAbsent) {
-                        mass = AdjustedItemMass(&gOutfits[j], &gShipTypes[sel])
-                               * gShipTypes[sel].weapCount[i];
-                        if (mass <= freeMass)
-                            freeMass -= mass;
-                        else
+                    if (outfitSystem[j].modType[0] == 1
+                        && i == outfitSystem[j].modVal[0]
+                        && outfitSystem[j].techLevel < kOutfTechAbsent) {
+                        mass = AdjustedItemMass(&outfitSystem[j], &shipClass[sel]);
+                        mass = shipClass[sel].weapCount[i] * mass;
+                        if (mass > freeMass)
                             freeMass = 0;
+                        else
+                            freeMass -= mass;
                         break;
                     }
                 }
             }
-            if (gShipTypes[sel].weapAmmo[i] > 0) {
+            if (shipClass[sel].weapAmmo[i] > 0) {
                 for (j = 0; j < 512; j++) {
-                    if (gOutfits[j].modType[0] == 3
-                        && i == gOutfits[j].modVal[0]
-                        && gOutfits[j].techLevel < kOutfTechAbsent) {
-                        mass = AdjustedItemMass(&gOutfits[j], &gShipTypes[sel])
-                               * gShipTypes[sel].weapAmmo[i];
-                        if (mass <= freeMass)
-                            freeMass -= mass;
-                        else
+                    if (outfitSystem[j].modType[0] == 3
+                        && i == outfitSystem[j].modVal[0]
+                        && outfitSystem[j].techLevel < kOutfTechAbsent) {
+                        mass = AdjustedItemMass(&outfitSystem[j], &shipClass[sel]);
+                        mass = shipClass[sel].weapAmmo[i] * mass;
+                        if (mass > freeMass)
                             freeMass = 0;
+                        else
+                            freeMass -= mass;
                         break;
                     }
                 }
             }
         }
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[sel].defOutfID[i] != -1
-                && gShipTypes[sel].defOutfCount[i] > 0
-                && gOutfits[gShipTypes[sel].defOutfID[i]].techLevel < kOutfTechAbsent) {
-                mass = AdjustedItemMass(&gOutfits[gShipTypes[sel].defOutfID[i]],
-                                        &gShipTypes[sel])
-                       * gShipTypes[sel].defOutfCount[i];
-                if (mass <= freeMass)
-                    freeMass -= mass;
-                else
+            if (shipClass[sel].defOutfID[i] != -1
+                && shipClass[sel].defOutfCount[i] > 0
+                && outfitSystem[shipClass[sel].defOutfID[i]].techLevel < kOutfTechAbsent) {
+                mass = AdjustedItemMass(&outfitSystem[shipClass[sel].defOutfID[i]],
+                                        &shipClass[sel]);
+                mass = shipClass[sel].defOutfCount[i] * mass;
+                if (mass > freeMass)
                     freeMass = 0;
+                else
+                    freeMass -= mass;
             }
         }
 
         MoveTo((box.left + 130), (box.top + 12));
         RGBForeColor(&rgbMedGrey);
         DrawIndString(kGameStrList, 234);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 175), (box.top + 12));
         NumToString(freeMass, buf);
         DrawString(buf);
@@ -3789,12 +5367,12 @@ void ShipDescDialogUpdate(void)
         RGBForeColor(&rgbMedGrey);
         MoveTo((box.left + 130), (box.top + 24));
         DrawIndString(kGameStrList, 110);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 175), (box.top + 24));
-        NumToString(gShipTypes[sel].cargo, buf);
+        NumToString(shipClass[sel].cargo, buf);
         DrawString(buf);
         DrawString("\p ");
-        if (gShipTypes[sel].cargo == 1)
+        if (shipClass[sel].cargo == 1)
             DrawString(tonString);
         else
             DrawString(tonsString);
@@ -3802,54 +5380,61 @@ void ShipDescDialogUpdate(void)
         RGBForeColor(&rgbMedGrey);
         MoveTo((box.left + 130), (box.top + 36));
         DrawString(fuelString[4]);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 175), (box.top + 36));
-        if (gShipTypes[sel].fuel != 0) {
-            jumps = gShipTypes[sel].fuel / 100;
+        if (shipClass[sel].fuel == 0)
+            DrawIndString(kGameStrList, 335);
+        else {
+#ifdef MACBUILD
+            numWeapTypes = shipClass[sel].fuel / 100;
+            NumToString(numWeapTypes, buf);
+            DrawString(buf);
+            DrawString("\p ");
+            if (numWeapTypes == 1)
+#else
+            jumps = shipClass[sel].fuel / 100;
             NumToString(jumps, buf);
             DrawString(buf);
             DrawString("\p ");
             if (jumps == 1)
+#endif
                 DrawIndString(kGameStrList, 239);
             else
                 DrawIndString(kGameStrList, 240);
-        } else
-            DrawIndString(kGameStrList, 335);
+        }
 
         numWeapTypes = 0;
         for (i = 0; i < 256; i++) {
-            if (gShipTypes[sel].weapCount[i] > 0)
+            if (shipClass[sel].weapCount[i] > 0)
                 numWeapTypes++;
         }
         if ((short)numWeapTypes == 0) {
-            RGBForeColor(whiteColor);
+            ForeColor(whiteColor);
             if (hasPict) {
-                GetDialogItem(shipDescDialog, 8, &itemType, &item, &box2);
+                GetDialogItem(shipDescDialog, 8, &itemType, (void **)&item, &box2);
                 MoveTo(box2.left, (box2.top + 12));
             } else {
                 MoveTo(box.left, (box.top + 108));
             }
             DrawIndString(kGameStrList, 242);
         } else {
-            RGBForeColor(whiteColor);
+            ForeColor(whiteColor);
             drawn = 0;
-            if (!hasPict) {
-                MoveTo(box.left, (box.top + 108));
-            } else {
+            if (hasPict) {
                 strcpy(line, "");
-                GetDialogItem(shipDescDialog, 8, &itemType, &item, &box2);
+                GetDialogItem(shipDescDialog, 8, &itemType, (void **)&item, &box2);
                 MoveTo(box2.left, (box2.top + 12));
                 box2.top += 16;
+            } else {
+                MoveTo(box.left, (box.top + 108));
             }
             DrawIndString(kGameStrList, 241);
-            lineV = 0;
             for (i = 0; i < 256; i++) {
-                if (gShipTypes[sel].weapCount[i] > 0) {
+                if (shipClass[sel].weapCount[i] > 0) {
                     if (!hasPict)
-                        MoveTo((box.left + 8),
-                               (box.top + 120 + lineV));
-                    if (gWeapons[i].guidance != kGuidanceBay) {
-                        NumToString(gShipTypes[sel].weapCount[i], buf);
+                        MoveTo(box.left + 8, box.top + 120 + drawn * 12);
+                    if (weaponStats[i].guidance != kGuidanceBay) {
+                        NumToString(shipClass[sel].weapCount[i], buf);
                         if (hasPict) {
                             PtoCstr(buf);
                             strcat(line, (char *)buf);
@@ -3859,32 +5444,32 @@ void ShipDescDialogUpdate(void)
                             DrawString("\p ");
                         }
                         for (j = 0; j < 512; j++) {
-                            if (gOutfits[j].modType[0] == 1
-                                && i == gOutfits[j].modVal[0]) {
+                            if (outfitSystem[j].modType[0] == 1
+                                && i == outfitSystem[j].modVal[0]) {
                                 if (hasPict) {
-                                    pstrcpy(buf, gOutfits[j].name);
+                                    pstrcpy(buf, outfitSystem[j].name);
                                     PtoCstr(buf);
                                     strcat(line, (char *)buf);
                                 } else {
-                                    DrawString(gOutfits[j].name);
+                                    DrawString(outfitSystem[j].name);
                                 }
                                 break;
                             }
                         }
-                        if (gShipTypes[sel].weapCount[i] > 1) {
+                        if (shipClass[sel].weapCount[i] > 1) {
                             if (hasPict)
                                 strcat(line, "s");
                             else
                                 DrawString("\ps");
                         }
-                        if (gShipTypes[sel].weapAmmo[i] > 0) {
-                            NumToString(gShipTypes[sel].weapAmmo[i], buf);
+                        if (shipClass[sel].weapAmmo[i] > 0) {
+                            NumToString(shipClass[sel].weapAmmo[i], buf);
                             if (hasPict) {
                                 strcat(line, " + ");
                                 PtoCstr(buf);
                                 strcat(line, (char *)buf);
                                 strcat(line, " ");
-                                AppendIndString(line, kGameStrList, 243);
+                                StrcatIndCString(line, kGameStrList, 243);
                             } else {
                                 DrawString("\p + ");
                                 DrawString(buf);
@@ -3893,7 +5478,7 @@ void ShipDescDialogUpdate(void)
                             }
                         }
                     } else {
-                        NumToString(gShipTypes[sel].weapAmmo[i], buf);
+                        NumToString(shipClass[sel].weapAmmo[i], buf);
                         if (hasPict) {
                             PtoCstr(buf);
                             strcat(line, (char *)buf);
@@ -3903,19 +5488,19 @@ void ShipDescDialogUpdate(void)
                             DrawString("\p ");
                         }
                         for (j = 0; j < 512; j++) {
-                            if (gOutfits[j].modType[0] == 3
-                                && i == gOutfits[j].modVal[0]) {
+                            if (outfitSystem[j].modType[0] == 3
+                                && i == outfitSystem[j].modVal[0]) {
                                 if (hasPict) {
-                                    pstrcpy(buf, gOutfits[j].name);
+                                    pstrcpy(buf, outfitSystem[j].name);
                                     PtoCstr(buf);
                                     strcat(line, (char *)buf);
                                 } else {
-                                    DrawString(gOutfits[j].name);
+                                    DrawString(outfitSystem[j].name);
                                 }
                                 break;
                             }
                         }
-                        if (gShipTypes[sel].weapAmmo[i] > 1) {
+                        if (shipClass[sel].weapAmmo[i] > 1) {
                             if (hasPict)
                                 strcat(line, "s");
                             else
@@ -3925,12 +5510,11 @@ void ShipDescDialogUpdate(void)
                     if (hasPict && (short)numWeapTypes > 1
                         && (short)drawn < (short)numWeapTypes - 1)
                         strcat(line, ", ");
-                    lineV += 12;
                     drawn++;
                 }
             }
             if (hasPict) {
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
                 TETextBox(line, strlen(line), &box2, 0);
                 InvertRect(&box2);
             }
@@ -3939,9 +5523,9 @@ void ShipDescDialogUpdate(void)
         RGBForeColor(&rgbMedGrey);
         MoveTo((box.left + 130), (box.top + 48));
         DrawIndString(kGameStrList, 235);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 175), (box.top + 48));
-        NumToString(gShipTypes[sel].shipLength, buf);
+        NumToString(shipClass[sel].shipLength, buf);
         DrawString(buf);
         DrawString("\p ");
         DrawIndString(kGameStrList, 244);
@@ -3949,51 +5533,52 @@ void ShipDescDialogUpdate(void)
         RGBForeColor(&rgbMedGrey);
         MoveTo((box.left + 130), (box.top + 60));
         DrawIndString(kGameStrList, 236);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 175), (box.top + 60));
-        NumToString(gShipTypes[sel].mass, buf);
+        NumToString(shipClass[sel].mass, buf);
         DrawString(buf);
         DrawString("\p ");
-        if (gShipTypes[sel].mass == 1)
+        if (shipClass[sel].mass == 1)
             DrawString(tonString);
         else
             DrawString(tonsString);
 
-        if (gShipTypes[sel].crew > 0) {
+        if (shipClass[sel].crew > 0) {
             RGBForeColor(&rgbMedGrey);
             MoveTo((box.left + 130), (box.top + 72));
             DrawIndString(kGameStrList, 237);
-            RGBForeColor(whiteColor);
+            ForeColor(whiteColor);
             MoveTo((box.left + 175), (box.top + 72));
-            NumToString(gShipTypes[sel].crew, buf);
+            NumToString(shipClass[sel].crew, buf);
             DrawString(buf);
         }
     }
-    GetDialogItem(shipDescDialog, 1, &itemType, &item, &box);
-    if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(shipDescDialog)))) {
-        GetIndString(buf, 150, 5);
+    GetDialogItem(shipDescDialog, 1, &itemType, (void **)&item, &box);
+    if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipDescDialog)))) {
+        GetIndString(buf, kButtonStrList, 5);
         DrawButton(GetDialogPort(shipDescDialog), &box, buf, 0, 0, 0);
     }
-    if (gShipDescPict != NULL) {
-        GetDialogItem(shipDescDialog, 7, &itemType, &item, &box);
-        if (RectInRgn(&box, GetCWindowVisRgn(FrontWindow(shipDescDialog))))
-            DrawPicHandle(gShipDescPict, &box);
+    if (bigShipPic != NULL) {
+        GetDialogItem(shipDescDialog, 7, &itemType, (void **)&item, &box);
+        if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipDescDialog))))
+            DrawPicHandle(bigShipPic, &box);
     }
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(shipDescDialog);
-    RGBForeColor(blackColor);
-    CopyBits(GetGWCPixMap(&loadPort),
+    ForeColor(blackColor);
+    CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(shipDescDialog)),
              GetDialogPortRect(shipDescDialog), GetDialogPortRect(shipDescDialog), 0, 0);
 }
 
 /* UpdateAllPortDialogs. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00497430
+// MAC: _UpdateAllPortDialogs i386 0x000598a6 ppc 0x000619d8
 void UpdateAllPortDialogs(void)
 {
     if (portDialog != NULL) {
         SetDialogGWorld(portDialog);
-        UpdateStellarDialog();
+        PortDialogUpdate();
     }
     if (shipyardDialog != NULL) {
         SetDialogGWorld(shipyardDialog);
@@ -4005,22 +5590,220 @@ void UpdateAllPortDialogs(void)
     }
     if (missionDialog != NULL) {
         SetDialogGWorld(missionDialog);
-        if (missionListVenue != 0)
-            UpdateMissionDialog();
+        if (missionsOutside != 0)
+            SingleMissionDialogUpdate();
         else if (portDialog != NULL)
             MissionDialogUpdate();
     }
+#ifndef MACBUILD
     if (portDialog != NULL || shipyardDialog != NULL || outfitDialog != NULL
             || missionDialog != NULL)
         nv_UpdateDialogWindow(1);
+#endif
 }
+
+#define kFileMenu 128
 
 /* IterateInGameEventLoop (mac _IterateInGameEventLoop). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00497500
+// MAC: _IterateInGameEventLoop i386 0x00056859 ppc 0x0005ebe0
 void IterateInGameEventLoop(short tickCount)
+#ifdef MACBUILD
 {
-    char exitLoop;
-    char depthMismatch;
+    EventRecord ev;
+    WindowPtr window;
+    Rect dragBounds;
+    Str255 str;
+    short i;
+    Boolean exitLoop;
+    Boolean gotEvent;
+    long menuChoice;
+    Boolean depthMismatch;
+#if !TARGET_API_MAC_CARBON
+    Point where;
+#endif
+
+    exitLoop = false;
+    i = 0;
+    while (!exitLoop) {
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+        HandleIntroMusic(0);
+#endif
+        gotEvent = WaitNextEvent(everyEvent, &ev, (gameLoaded && inBackground) ? 30 : 0, NULL);
+        i++;
+        if (!gotEvent && ev.what != nullEvent)
+            continue;
+        switch (ev.what) {
+        case kHighLevelEvent:
+            AEProcessAppleEvent(&ev);
+            break;
+        case mouseDown:
+            switch (FindWindow(ev.where, &window)) {
+            case inDrag:
+                if (gameInProgress && gameLoaded)
+                    RefreshSAT();
+                if (window == gWind) {
+                    if (useLegacyRenderingPipeline) {
+                        GetWindowDragBounds(&dragBounds, ev.where);
+                        if (dragBounds.right > dragBounds.left && dragBounds.bottom > dragBounds.top) {
+                            DragWindow(window, ev.where, &dragBounds);
+                            ForceWindowOnscreen();
+                            SWWindowMoved(gSpriteWorld);
+                            if (gameInProgress && gameLoaded)
+                                RefreshSAT();
+                        }
+                    } else {
+                        DragWindow(window, ev.where, NULL);
+                        ForceWindowOnscreen();
+                        SWWindowMoved(gSpriteWorld);
+                        if (gameInProgress && gameLoaded)
+                            RefreshSAT();
+                    }
+                }
+                break;
+            case inMenuBar:
+                InitCursor();
+                cursorHidden = 0;
+                ShowTheCursor();
+                AdjustMenus();
+                DoMenuClick(MenuSelect(ev.where));
+                break;
+            case inGoAway:
+                if (gameLoaded) {
+                    if ((FrontWindow)() == gWind && !screenFaded) {
+                        ShowTheCursor();
+                        GetIndString(str, kAlertStrList, 10);
+                        if (EVYesNoDialog(str))
+                            gQuit = 1;
+                        else
+                            RedrawStatus(1);
+                    }
+                } else {
+                    SysBeep(0);
+                }
+                break;
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+            case inSysWindow:
+                SystemClick(&ev, window);
+                break;
+#endif
+            }
+            break;
+        case keyDown:
+        case autoKey:
+            if (ev.modifiers & cmdKey) {
+                AdjustMenus();
+#ifdef MAC1010
+                menuChoice = MenuKey(ev.message);
+                if ((short)(menuChoice >> 16) == kFileMenu && (short)menuChoice == 1 && gameInProgress && gameLoaded) {
+                    PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
+                    ShowTheCursor();
+                    HideCursorSprite();
+                    RefreshSAT();
+                    if (!screenFaded) {
+                        GetIndString(str, kAlertStrList, 10);
+                        if (EVYesNoDialog(str))
+                            gQuit = 1;
+                        else
+                            RedrawStatus(1);
+                    }
+                    RefreshSAT();
+                }
+#else
+                MenuKey(ev.message);
+#endif
+            }
+            break;
+        case updateEvt:
+            depthMismatch = 0;
+            if (useLegacyRenderingPipeline && gSpriteWorld->mainSWGDH != NULL
+                    && (*(*(GDHandle)gSpriteWorld->mainSWGDH)->gdPMap)->pixelSize
+                        != gSpriteWorld->pixelDepth)
+                depthMismatch = 1;
+            if (depthMismatch)
+                break;
+            SWSetPortToWindow(gSpriteWorld);
+            BeginUpdate(gWind);
+            if (!creatingPilotFile) {
+                if (gameInProgress && gameLoaded) {
+                    if (onPlanet || inBackground) {
+                        if (useLegacyRenderingPipeline) {
+                            RedrawStatus(1);
+                            RefreshSAT();
+                            RedrawComm(1);
+                        } else {
+                            RedrawStatus(0);
+                            RefreshSAT();
+                            RedrawComm(0);
+                        }
+                    }
+                } else {
+                    CopyBits(GWorldContainerBits(&loadPort),
+                             GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                             GetCWindowPortRect(gWind), GetCWindowPortRect(gWind), 0, NULL);
+                }
+            }
+            SWSetPortToWindow(gSpriteWorld);
+            EndUpdate(gWind);
+            SWSetPortToWindow(gSpriteWorld);
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+            ValidRect(GetCWindowPortRect(gWind));
+#else
+            ValidWindowRect(gWind, GetWindowPortRect(gWind));
+#endif
+            break;
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+        case diskEvt:
+            if ((long)ev.message >> 16) {
+                where.v = where.h = 100;
+                DILoad();
+                DIBadMount(where, ev.message);
+                DIUnload();
+            }
+            break;
+#endif
+        case osEvt:
+            if (ev.message & (suspendResumeMessage << 24)) {
+                if (ev.message & resumeFlag) {
+#ifdef MAC1010
+                    HideTheMenuBar();
+#endif
+                    inBackground = 0;
+                    InitCursor();
+                    cursorHidden = 0;
+                    ShowTheCursor();
+                    if (gSystemVersion < 0x1000 && mBarHidden && SWIsWindowInForeground(gSpriteWorld))
+                        KeepMenuBarHidden(gSpriteWorld->windowFrameP->framePort);
+                    SwitchedIn(&ev);
+                    if (gameLoaded) {
+                        RefreshSAT();
+                        RedrawStatus(1);
+                    }
+                } else {
+                    inBackground = 1;
+                    InitCursor();
+                    cursorHidden = 0;
+                    ShowTheCursor();
+                    SwitchedOut(&ev);
+                    if (gameInProgress && gameLoaded)
+                        RefreshSAT();
+                }
+            }
+            break;
+        case nullEvent:
+            if (gSystemVersion < 0x1000 && mBarHidden && SWIsWindowInForeground(gSpriteWorld))
+                KeepMenuBarHidden(gSpriteWorld->windowFrameP->framePort);
+            exitLoop = true;
+            break;
+        }
+        if (tickCount > 0 && i >= tickCount)
+            exitLoop = true;
+    }
+}
+#else
+{
+    Boolean exitLoop;
+    Boolean depthMismatch;
     short i;
     Str255 str;
 
@@ -4045,7 +5828,7 @@ void IterateInGameEventLoop(short tickCount)
                             RedrawComm(1);
                         }
                     } else {
-                        CopyBits(GetGWCPixMap(&loadPort),
+                        CopyBits(GWorldContainerBits(&loadPort),
                                  GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                                  GetCWindowPortRect(gWind), GetCWindowPortRect(gWind),
                                  0, 0);
@@ -4060,7 +5843,7 @@ void IterateInGameEventLoop(short tickCount)
             closeRequested = 0;
             if (!screenFaded) {
                 ShowTheCursor();
-                GetIndString(str, 140, 10);
+                GetIndString(str, kAlertStrList, 10);
                 if (EVYesNoDialog(str))
                     gQuit = 1;
             }
@@ -4069,19 +5852,24 @@ void IterateInGameEventLoop(short tickCount)
             exitLoop = 1;
     } while (!exitLoop);
 }
+#endif
 
 /* the port's body takes no arguments and answers the single window; every
    caller still passes the dialog, so it is declared that way here */
 
 /* EVNoteAlert (mac _EVNoteAlert). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004976b0
+// MAC: _EVNoteAlert i386 0x00055710 ppc 0x0005d994
 void EVNoteAlert(const unsigned char *text)
 {
-    char done;
+    Boolean done;
     Rect box;
     short itemHit;
     short itemType;
-    void *item;
+    Handle item;
+#ifdef MACBUILD
+    Str255 str;
+#endif
 
     done = 0;
     alertDialog = NULL;
@@ -4092,12 +5880,19 @@ void EVNoteAlert(const unsigned char *text)
     SetDialogDefaultItem(alertDialog, 1);
     ShowMacWindow(FrontWindow(alertDialog));
     SetDialogGWorld(alertDialog);
-    FrontWindow(alertDialog);
+    SelectWindow(FrontWindow(alertDialog));
     SetDialogGWorld(alertDialog);
     DrawDialog(alertDialog);
     FrameDefaultButton(alertDialog, 1);
-    GetDialogItem(alertDialog, 3, &itemType, &item, &box);
+#ifdef MACBUILD
+    strncpy((char *)str, (const char *)text, 254);
+#endif
+    GetDialogItem(alertDialog, 3, &itemType, (void **)&item, &box);
+#ifdef MACBUILD
+    SetDialogItemText(item, str);
+#else
     SetDialogItemText((ControlPtr)item,text);
+#endif
     FlushEvents(everyEvent - diskMask, 0);
     ShowTheCursor();
     do {
@@ -4105,20 +5900,27 @@ void EVNoteAlert(const unsigned char *text)
         if (itemHit == 1)
             done = 1;
     } while (done == 0);
+#ifdef MACBUILD
+    HideWindow(GetDialogWindow(alertDialog));
+#endif
     DisposeDialog(alertDialog);
     alertDialog = NULL;
 }
 
 /* EVYesNoDialog (mac _EVYesNoDialog). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004977d0
-char EVYesNoDialog(unsigned char *text)
+// MAC: _EVYesNoDialog i386 0x0005558c ppc 0x0005d84c
+Boolean EVYesNoDialog(unsigned char *text)
 {
-    char done;
-    char result;
+    Boolean done;
+    Boolean result;
     Rect box;
     short itemHit;
     short itemType;
-    void *item;
+    Handle item;
+#ifdef MACBUILD
+    Str255 str;
+#endif
 
     done = 0;
     alertDialog = NULL;
@@ -4127,11 +5929,18 @@ char EVYesNoDialog(unsigned char *text)
         return 0;
     SetDialogDefaultItem(alertDialog, 1);
     ShowMacWindow(FrontWindow(alertDialog));
-    FrontWindow(alertDialog);
+    SelectWindow(FrontWindow(alertDialog));
     SetDialogGWorld(alertDialog);
     FrameDefaultButton(alertDialog, 1);
-    GetDialogItem(alertDialog, 3, &itemType, &item, &box);
+#ifdef MACBUILD
+    strncpy((char *)str, (const char *)text, 254);
+#endif
+    GetDialogItem(alertDialog, 3, &itemType, (void **)&item, &box);
+#ifdef MACBUILD
+    SetDialogItemText(item, str);
+#else
     SetDialogItemText((ControlPtr)item,text);
+#endif
     FlushEvents(everyEvent - diskMask, 0);
     ShowTheCursor();
     do {
@@ -4146,6 +5955,9 @@ char EVYesNoDialog(unsigned char *text)
         }
     } while (done == 0);
     SWSetPortToWindow(gSpriteWorld);
+#ifdef MACBUILD
+    HideWindow(GetDialogWindow(alertDialog));
+#endif
     DisposeDialog(alertDialog);
     alertDialog = NULL;
     SWSetPortToWindow(gSpriteWorld);
@@ -4154,15 +5966,19 @@ char EVYesNoDialog(unsigned char *text)
 
 /* EVTextInputDialog (mac _EVTextInputDialog). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00497900
-char EVTextInputDialog(unsigned char *prompt, unsigned char *initial, short maxLen)
+// MAC: _EVTextInputDialog i386 0x000552a3 ppc 0x0005d610
+Boolean EVTextInputDialog(unsigned char *prompt, unsigned char *initial, short maxLen)
 {
-    char done;
+    Boolean result;
+    Boolean done;
     Str255 text;
     short itemHit;
     Rect box;
-    char result;
-    void *item;
+    Handle item;
     short itemType;
+#ifdef MACBUILD
+    short len;
+#endif
 
     done = 0;
     alertDialog = NULL;
@@ -4171,22 +5987,34 @@ char EVTextInputDialog(unsigned char *prompt, unsigned char *initial, short maxL
         return 0;
     SetDialogDefaultItem(alertDialog, 1);
     ShowMacWindow(FrontWindow(alertDialog));
-    FrontWindow(alertDialog);
+    SelectWindow(FrontWindow(alertDialog));
     SetDialogGWorld(alertDialog);
     FrameDefaultButton(alertDialog, 1);
-    GetDialogItem(alertDialog, 3, &itemType, &item, &box);
+    GetDialogItem(alertDialog, 3, &itemType, (void **)&item, &box);
     SetDialogItemText((ControlPtr)item,prompt);
-    GetDialogItem(alertDialog, 5, &itemType, &item, &box);
+#ifdef MACBUILD
+    strncpy((char *)text, (const char *)initial, 254);
+    GetDialogItem(alertDialog, 5, &itemType, (void **)&item, &box);
+    SetDialogItemText(item, text);
+#else
+    GetDialogItem(alertDialog, 5, &itemType, (void **)&item, &box);
     SetDialogItemText((ControlPtr)item,initial);
+#endif
     SelectDialogItemText(alertDialog, 5, 0, 254);
     FlushEvents(everyEvent - diskMask, 0);
     ShowTheCursor();
     do {
         ModalDialog(NULL, &itemHit);
         if (itemHit == 1) {
-            GetDialogItem(alertDialog, 5, &itemType, &item, &box);
+            GetDialogItem(alertDialog, 5, &itemType, (void **)&item, &box);
             GetDialogItemText((ControlPtr)item,text);
+#ifdef MACBUILD
+            PtoCstr(text);
+            len = strlen((char *)text);
+            if (len <= maxLen) {
+#else
             if (text[0] <= maxLen) {
+#endif
                 result = 1;
                 done = 1;
             } else {
@@ -4199,8 +6027,8 @@ char EVTextInputDialog(unsigned char *prompt, unsigned char *initial, short maxL
             done = 1;
         }
     } while (done == 0);
-    GetDialogItem(alertDialog, 5, &itemType, &item, &box);
-    GetDialogItemText((ControlPtr)item,gTextInputResult);
+    GetDialogItem(alertDialog, 5, &itemType, (void **)&item, &box);
+    GetDialogItemText((ControlPtr)item,textInputString);
     SWSetPortToWindow(gSpriteWorld);
     DisposeDialog(alertDialog);
     alertDialog = NULL;
@@ -4211,19 +6039,72 @@ char EVTextInputDialog(unsigned char *prompt, unsigned char *initial, short maxL
 #define kPictCacheSlots 128
 
 
-/* DrawCachedPict. STATE: MATCH 100.0%, exe 122 / obj 122, byte-identical yes (376 bytes),
+/* RetrieveMenuIcon. STATE: MATCH 100.0%, exe 122 / obj 122, byte-identical yes (376 bytes),
    relocregcheck 0 of 29. OPEN: none. The miss-path rect address is held in `j', a later web
    of the scan counter (a split web is numbered after the CSEs; a Rect * local is band 1
    and takes ESI before GetPicture's argument), with `oldest' declared before `j'. `j' is a
    long: a 16-bit-int Mac compiler carried an address in a long, never an int. */
 // FUNCTION: EVNOVA 0x00497b70
-char DrawCachedPict(short picID, GWorldContainer *dest, Rect *destRect)
+// MAC: _RetrieveMenuIcon i386 0x0004f425 ppc 0x000580cc
+#ifdef MACBUILD
+Boolean RetrieveMenuIcon(short picID, CGrafPtr dest, Rect *destRect)
+{
+    short i;
+    short slot;
+    unsigned long oldest;
+    PicHandle pic;
+    CGrafPtr savedPort;
+    Boolean missed;
+
+    slot = -1;
+    for (i = 0; i < kPictCacheSlots; i++) {
+        if (iconCache[i].picID == -1)
+            slot = i;
+        if (iconCache[i].picID == picID) {
+            CopyBits(GetPortBitMapForCopyBits(iconsPort.world), GetPortBitMapForCopyBits(dest),
+                     &listPicOffRect[i], destRect, 0, NULL);
+            iconCache[i].stamp = TickCount();
+            return true;
+        }
+    }
+    if (slot == -1) {
+        oldest = iconCache[0].stamp;
+        for (i = 0; i < kPictCacheSlots; i++) {
+            if (iconCache[i].stamp < oldest) {
+                oldest = iconCache[i].stamp;
+                slot = i;
+            }
+        }
+    }
+    if (slot < 0 || slot >= kPictCacheSlots)
+        slot = 0;
+    GetPort(&savedPort);
+    SetPort(iconsPort.world);
+    ForeColor(blackColor);
+    pic = GetPicture(picID);
+    if (pic != NULL) {
+        DrawPicHandle(pic, &listPicOffRect[slot]);
+        QDReleaseResource(pic);
+        iconCache[slot].picID = picID;
+        iconCache[slot].stamp = TickCount();
+        missed = false;
+    } else {
+        PaintRect(&listPicOffRect[slot]);
+        missed = true;
+    }
+    SetPort(savedPort);
+    CopyBits(GetPortBitMapForCopyBits(iconsPort.world), GetPortBitMapForCopyBits(dest),
+             &listPicOffRect[slot], destRect, 0, NULL);
+    return missed;
+}
+#else
+Boolean RetrieveMenuIcon(short picID, GWorldContainer *dest, Rect *destRect)
 {
     int slot;
     int i;
     PicHandle pic;
     CGrafPtr savedPort;
-    char missed;
+    Boolean missed;
     unsigned long oldest;
     long j;
     short id;
@@ -4231,23 +6112,23 @@ char DrawCachedPict(short picID, GWorldContainer *dest, Rect *destRect)
     slot = -1;
     i = 0;
     do {
-        id = pictCache[(short)i].picID;
+        id = iconCache[(short)i].picID;
         if (id == -1)
             slot = i;
         if (picID == id) {
-            CopyBits(GetGWCPixMap(&pictCachePort), (BitMapPtr)GetGWCPixMap(dest),
-                     &pictCacheRect[(short)i], destRect, 0, 0);
-            pictCache[(short)i].stamp = ReadTick();
+            CopyBits(GetGWCPixMap(&iconsPort), (BitMapPtr)GetGWCPixMap(dest),
+                     &listPicOffRect[(short)i], destRect, 0, 0);
+            iconCache[(short)i].stamp = ReadTick();
             return 1;
         }
         i = i + 1;
     } while ((short)i < kPictCacheSlots);
     if ((short)slot == -1) {
-        oldest = pictCache[0].stamp;
+        oldest = iconCache[0].stamp;
         j = 0;
         do {
-            if (pictCache[(short)j].stamp < oldest) {
-                oldest = pictCache[(short)j].stamp;
+            if (iconCache[(short)j].stamp < oldest) {
+                oldest = iconCache[(short)j].stamp;
                 slot = j;
             }
             j = j + 1;
@@ -4256,61 +6137,97 @@ char DrawCachedPict(short picID, GWorldContainer *dest, Rect *destRect)
     if ((short)slot < 0 || kPictCacheSlots <= (short)slot)
         slot = 0;
     GetPort(&savedPort);
-    SetPort(pictCachePort.world);
-    RGBForeColor(blackColor);
+    SetPort(iconsPort.world);
+    ForeColor(blackColor);
     pic = GetPicture(picID);
     if (pic != 0) {
-        j = (long)&pictCacheRect[(short)slot];
+        j = (long)&listPicOffRect[(short)slot];
         DrawPicHandle(pic, (Rect *)j);
         QDReleaseResource(pic);
-        pictCache[(short)slot].picID = picID;
-        pictCache[(short)slot].stamp = ReadTick();
+        iconCache[(short)slot].picID = picID;
+        iconCache[(short)slot].stamp = ReadTick();
         missed = 0;
     } else {
-        j = (long)&pictCacheRect[(short)slot];
+        j = (long)&listPicOffRect[(short)slot];
         PaintRect((Rect *)j);
         missed = 1;
     }
     SetPort(savedPort);
-    CopyBits(GetGWCPixMap(&pictCachePort), (BitMapPtr)GetGWCPixMap(dest),
+    CopyBits(GetGWCPixMap(&iconsPort), (BitMapPtr)GetGWCPixMap(dest),
              (Rect *)j, destRect, 0, 0);
     return missed;
 }
+#endif
 
-/* ResumePlay. STATE: MATCH, byte-identical. OPEN: none */
+/* SwitchedIn. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00497cf0
-void ResumePlay(short unused)
+// MAC: _SwitchedIn i386 0x000513a4 ppc 0x00059ca0
+#ifdef MACBUILD
+void SwitchedIn(EventRecord *ev)
+#else
+void SwitchedIn(short unused)
+#endif
 {
+#if TARGET_API_MAC_CARBON
+    ProcessSerialNumber psn;
+
+    if (GetCurrentProcess(&psn) != procNotFound)
+        SetFrontProcess(&psn);
+#endif
     inBackground = 0;
     lastFPSUpdateTime = 0;
     fpsCounter = 0;
-    gTimeScale = 1.0;
+    gSpeedMult = 1.0;
     OSCursorReset();
-    cursorVisible = 0;
+    cursorHidden = 0;
     ShowTheCursor();
+#if defined(MACBUILD) && V111
+    if (introMusicMovie != NULL)
+        introMusicPaused = 0;
+#else
     if (introMusicMovie != NULL)
         StartMovie(introMusicMovie);
+#endif
 }
 
 /* SwitchedOut. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00497d50
+// MAC: _SwitchedOut i386 0x0004f381 ppc 0x00057ff8
+#ifdef MACBUILD
+void SwitchedOut(EventRecord *ev)
+#else
 void SwitchedOut(short unused)
+#endif
 {
     void *snd;
 
     inBackground = 1;
+#if defined(MACBUILD) && V111
+    if (introMusicMovie != NULL)
+        introMusicPaused = 1;
+#else
     if (introMusicMovie != NULL)
         StopMovie(introMusicMovie);
+#endif
+#ifdef MAC1010
+#if TARGET_API_MAC_CARBON
+    if (warpUpSnd[0] != NULL && ST_IsSoundPlaying(warpUpSnd[0]) != 0)
+        ST_HaltSound(warpUpSnd[0]);
+    if (warpUpSnd[1] != NULL && ST_IsSoundPlaying(warpUpSnd[1]) != 0)
+        ST_HaltSound(warpUpSnd[1]);
+#endif
+#else
     if (warpUpSnd[0] != NULL && ST_IsSoundPlaying(warpUpSnd[0]) != 0)
         ST_HaltSound(warpUpSnd[0]);
     snd = warpUpSnd[1];
     if (snd != NULL && ST_IsSoundPlaying(snd) != 0)
         ST_HaltSound(warpUpSnd[1]);
+#endif
     OSCursorReset();
-    cursorVisible = 0;
+    cursorHidden = 0;
     ShowTheCursor();
     SWSetPortToWindow(gSpriteWorld);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     BackColor(whiteColor);
 }
 
@@ -4321,16 +6238,47 @@ void SwitchedOut(short unused)
 
 /* RefreshWindowBuffer. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00497df0
+// MAC: _RefreshWindowBuffer i386 0x00051420 ppc 0x00059d54
 void RefreshWindowBuffer(void)
 {
+#if !defined(MAC1010) || TARGET_API_MAC_CARBON
     SWSetPortToWorkArea(gSpriteWorld);
     if (gameLoaded && gameInProgress)
         SetSystemBackgroundColor();
     else
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
     PaintRect(&gSpriteWorld->workFrameP->frameRect);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     SWSetPortToWindow(gSpriteWorld);
+#if V111
+    if (useLegacyRenderingPipeline) {
+#ifdef MACBUILD
+        SetRetainedWindow(gWind, false);
+#endif
+        CopyBits((PixMapPtr)GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
+                 GetPortPixMapBits(GetWindowPort(gWind)),
+                 &gSpriteWorld->workFrameP->frameRect,
+                 &gSpriteWorld->windowFrameP->frameRect,
+                 0, NULL);
+        QDFlushPortBuffer(GetWindowPort(gWind), NULL);
+#ifdef MACBUILD
+        SetRetainedWindow(gWind, true);
+#endif
+        QDFlushPortBuffer(GetWindowPort(gWind), NULL);
+    } else {
+        QDFlushPortBuffer(GetWindowPort(gWind), NULL);
+    }
+#elif defined(MAC1010)
+    SetRetainedWindow(gWind, false);
+    CopyBits(GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
+             GetPortPixMapBits(GetWindowPort(gWind)),
+             &gSpriteWorld->workFrameP->frameRect,
+             &gSpriteWorld->windowFrameP->frameRect,
+             0, NULL);
+    QDFlushPortBuffer(GetWindowPort(gWind), NULL);
+    SetRetainedWindow(gWind, true);
+    QDFlushPortBuffer(GetWindowPort(gWind), NULL);
+#else
     CopyBits((PixMapPtr)GetPortBitMapForCopyBits(
                  gSpriteWorld->workFrameP->framePort),
              GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
@@ -4338,6 +6286,8 @@ void RefreshWindowBuffer(void)
              &gSpriteWorld->windowFrameP->frameRect,
              0, 0);
     ScreenEndScene();
+#endif
+#endif
 }
 
 /*
@@ -4350,37 +6300,38 @@ void RefreshWindowBuffer(void)
 
 #define kCaptureStrIdx  0x76
 
-char CaptureDialogEventProc(long unused, EventRecord *ev, short *itemHit);
+Boolean CapturedAssignmentFilter(long unused, EventRecord *ev, short *itemHit);
 
 #define kCaptureDlogID   0x3fa
 #define kCapturePictID   0x2144
 
 /* DoCapturedShipAssignmentDialog. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00497eb0
-char DoCapturedShipAssignmentDialog(void)
+// MAC: _DoCapturedShipAssignmentDialog i386 0x0005b508 ppc 0x000635a8
+Boolean DoCapturedShipAssignmentDialog(void)
 {
-    char done;
-    char result;
+    Boolean done;
+    Boolean result;
     short itemHit;
 
     done = 0;
     captureDialog = NULL;
-    captureDialog = GetNewDialog(kCaptureDlogID, UpdateCaptureDialog,
-                                 CaptureDialogEventProc);
+    captureDialog = GetNewDialog(kCaptureDlogID, CapturedAssignmentDialogUpdate,
+                                 CapturedAssignmentFilter);
     if (captureDialog == NULL)
         return 0;
-    captureDialogPict = GetPicture(kCapturePictID);
+    captureBackgroundPic = GetPicture(kCapturePictID);
     CenterWindow(FrontWindow(captureDialog), gWind);
     ShowWindowNoFlash(FrontWindow(captureDialog));
     SetDialogGWorld(captureDialog);
-    UpdateCaptureDialog();
-    FrontWindow(captureDialog);
-    FrontWindow(captureDialog);
+    CapturedAssignmentDialogUpdate();
+    SelectWindow(FrontWindow(captureDialog));
+    BringToFront(FrontWindow(captureDialog));
     FlushEvents(everyEvent - diskMask, 0);
     do {
         if (gQuit)
             done = 1;
-        RunModalDialog(captureDialog, CaptureDialogEventProc, &itemHit, 0);
+        MyModalDialog(captureDialog, CapturedAssignmentFilter, &itemHit, 0);
         if (itemHit == 1) {
             PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
             result = 1;
@@ -4395,25 +6346,37 @@ char DoCapturedShipAssignmentDialog(void)
     SWSetPortToWindow(gSpriteWorld);
     DisposeDialogNoFlash(captureDialog);
     captureDialog = NULL;
-    if (captureDialogPict != NULL) {
-        QDReleaseResource(captureDialogPict);
-        captureDialogPict = NULL;
+    if (captureBackgroundPic != NULL) {
+        QDReleaseResource(captureBackgroundPic);
+        captureBackgroundPic = NULL;
     }
     return result;
 }
 
-/* CaptureDialogEventProc. STATE: MATCH, byte-identical. OPEN: none */
+/* CapturedAssignmentFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00498040
-char CaptureDialogEventProc(long unused, EventRecord *ev, short *itemHit)
+// MAC: _CapturedAssignmentFilter i386 0x00051782 ppc 0x0005a024
+Boolean CapturedAssignmentFilter(long unused, EventRecord *ev, short *itemHit)
 {
     Point where;
     short button;
-    int key;
-    int what;
+    EventKey key;
+    EventWhat what;
 
     what = ev->what;
     if (what == kKeyDown) {
-        key = ev->message & kCharCodeMask;
+#if V111
+        key = (ev->message & kKeyCodeMask) >> 8;
+        if (key == kMKeyCode) {
+            *itemHit = 1;
+            return 1;
+        }
+        if (key == kEKeyCode) {
+            *itemHit = 2;
+            return 1;
+        }
+#else
+        key = EventCharOf(ev);
         key = tolower(key);
         if (key == 'm') {
             *itemHit = 1;
@@ -4423,11 +6386,14 @@ char CaptureDialogEventProc(long unused, EventRecord *ev, short *itemHit)
             *itemHit = 2;
             return 1;
         }
+#endif
     }
     if (what == kMouseDown) {
-        where.v = ev->where.v;
-        where.h = ev->where.h;
-        UpdateCaptureDialog();
+        where = ev->where;
+#ifdef MACBUILD
+        GlobalToLocal(&where);
+#endif
+        CapturedAssignmentDialogUpdate();
         button = TrackCapAssignButtons(where);
         if (button == 0) {
             *itemHit = 1;
@@ -4440,43 +6406,51 @@ char CaptureDialogEventProc(long unused, EventRecord *ev, short *itemHit)
         *itemHit = -1;
         return 1;
     }
-    if (what == kUpdateEvt)
-        UpdateCaptureDialog();
+    if (what == kUpdateEvt) {
+#ifdef MACBUILD
+        BeginUpdate(GetDialogWindow(captureDialog));
+#endif
+        CapturedAssignmentDialogUpdate();
+#ifdef MACBUILD
+        EndUpdate(GetDialogWindow(captureDialog));
+#endif
+    }
     return 0;
 }
 
-/* UpdateCaptureDialog. STATE: MATCH, byte-identical. OPEN: none */
+/* CapturedAssignmentDialogUpdate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00498110
-void UpdateCaptureDialog(void)
+// MAC: _CapturedAssignmentDialogUpdate i386 0x0005157d ppc 0x00059e90
+void CapturedAssignmentDialogUpdate(void)
 {
     short itemType;
     void *item;
     Rect box;
-    char text[256];
+    char text[255];
 
     SetGWorldContainer(&loadPort);
     TextFont(smallTextFont);
     TextSize(smallTextSize);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetDialogPortRect(captureDialog));
-    if (captureDialogPict != NULL)
-        DrawPicHandle(captureDialogPict, GetDialogPortRect(captureDialog));
-    RGBForeColor(whiteColor);
+    if (captureBackgroundPic != NULL)
+        DrawPicHandle(captureBackgroundPic, GetDialogPortRect(captureDialog));
+    ForeColor(whiteColor);
     BackColor(blackColor);
     GetDialogItem(captureDialog, 3, &itemType, &item, &box);
     strcpy(text, "");
-    AppendIndString(text, kGameStrList, kCaptureStrIdx);
+    StrcatIndCString(text, kGameStrList, kCaptureStrIdx);
     TETextBox(text, strlen(text), &box, 0);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     BackColor(whiteColor);
     DrawCapAssignButtons(-1);
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(captureDialog);
-    RGBForeColor(blackColor);
-    CopyBits(GetGWCPixMap(&loadPort),
+    ForeColor(blackColor);
+    CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(captureDialog)),
              GetDialogPortRect(captureDialog), GetDialogPortRect(captureDialog), 0,
-             GetCWindowVisRgn(FrontWindow(captureDialog)));
+             GetWindowVisRgn(FrontWindow(captureDialog)));
 }
 
 /*
@@ -4499,42 +6473,49 @@ void UpdateCaptureDialog(void)
                                                          /* 0x004d18b0 (mac _SizeWindow) */
                                                          /* 0x004d1a30 (mac _MoveWindow) */
 
+/* on mac ShowTextDialog paints gWind through GetWindowPortRect and invalidates items itself */
+#ifdef MACBUILD
+#define GetCWindowPortRect(w)       GetWindowPortRect(w)
+#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, (void **)&item, &box), InvalWindowRect(GetDialogWindow(dlg), &box))
+#endif
 /* ShowTextDialog. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004982a0
-void ShowTextDialog(char allowMap, char redrawMission, char showMovie)
+// MAC: _ShowTextDialog i386 0x0005a752 ppc 0x000628d4
+void ShowTextDialog(Boolean allowMap, Boolean redrawMission, Boolean showMovie)
 {
     Rect box;
-    char done;
-    short itemHit;
-    char savedUp;
-    short itemType;
-    void *item;
     short savedStellar;
-    Rect *win;
+    short itemHit;
     short savedRoute;
+    short itemType;
+    Handle item;
+    Boolean savedUp;
+    Rect *win;
+    Boolean savedDown;
     Point pt;
-    char savedDown;
+    Boolean done;
     short savedBottom;
     short slack;
     short viewHeight;
     short textHeight;
+    short minHeight;
     short i;
 
     done = 0;
-    if (showMovie && gEarlyOutFlag == 0 && descMovieName[0] != 0
-        && (gDescFlags & kDescMovieAfter) == 0)
-        PlayQTMovie(descMovieName, (gDescFlags & kDescMovieDoubled),
-                    (gDescFlags & kDescMovieFade));
+    if (showMovie && settings.noMovies == 0 && descMovieName[0] != 0
+        && (descFlags & kDescMovieAfter) == 0)
+        PlayQTMovie(descMovieName, (descFlags & kDescMovieDoubled),
+                    (descFlags & kDescMovieFade));
 
-    if (strlen(gTextShowString) == 0) {
+    if (strlen(textShowString) == 0) {
         if (screenFaded) {
             if (gPause) {
                 if (showingIntroText) {
                     SetGWorldContainer(&loadPort);
-                    RGBForeColor(blackColor);
+                    ForeColor(blackColor);
                     PaintRect(&loadPort.bounds);
                     SWSetPortToWindow(gSpriteWorld);
-                    RGBForeColor(blackColor);
+                    ForeColor(blackColor);
                     PaintRect(GetCWindowPortRect(gWind));
                 } else {
                     mainScreenBackgroundDirty = 1;
@@ -4542,6 +6523,9 @@ void ShowTextDialog(char allowMap, char redrawMission, char showMovie)
                 }
             } else {
                 UpdateAllPortDialogs();
+#ifdef MACBUILD
+                RefreshSAT();
+#endif
                 RedrawStatus(1);
             }
             if (showingIntroText == 0)
@@ -4550,14 +6534,14 @@ void ShowTextDialog(char allowMap, char redrawMission, char showMovie)
         return;
     }
 
-    strcat(gTextShowString, "\r");
+    strcat(textShowString, "\r");
     textDialog = NULL;
     if (descResourcePictId >= kFirstResourceID && showMovie) {
-        textDialog = GetNewDialog(kTextDialogPictID, UpdateTextDialog,
-                                  TextDialogEvent);
+        textDialog = GetNewDialog(kTextDialogPictID, TextDialogUpdate,
+                                  TextDialogFilter);
     } else {
-        textDialog = GetNewDialog(kTextDialogPlainID, UpdateTextDialog,
-                                  TextDialogEvent);
+        textDialog = GetNewDialog(kTextDialogPlainID, TextDialogUpdate,
+                                  TextDialogFilter);
         descResourcePictId = -1;
     }
     if (textDialog == NULL)
@@ -4572,49 +6556,57 @@ void ShowTextDialog(char allowMap, char redrawMission, char showMovie)
             textDialogBackgroundPic[i] = GetPicture(kTextDlgBackdropPictID + i);
     }
     SetDialogGWorld(textDialog);
-    GetDialogItem(textDialog, 3, &itemType, &item, &box);
+    GetDialogItem(textDialog, 3, &itemType, (void **)&item, &box);
     textDialogTextHandle = TENew(&box, &box);
     (*textDialogTextHandle)->txFont = smallTextFont;
     (*textDialogTextHandle)->txSize = smallTextSize;
     TextFont((*textDialogTextHandle)->txFont);
     TextSize((*textDialogTextHandle)->txSize);
-    TESetText(gTextShowString, strlen(gTextShowString), textDialogTextHandle);
-    textHeight = MeasureWrappedText((*textDialogTextHandle)->text,
-                                    (*textDialogTextHandle)->textLength,
-                                    box.right - box.left);
-    GetDialogItem(textDialog, 3, &itemType, &item, &box);
+    TESetLineMetrics(textDialogTextHandle);
+    TESetText(textShowString, strlen(textShowString), textDialogTextHandle);
+    textHeight = TEMeasureText(textDialogTextHandle, box.right - box.left);
+    GetDialogItem(textDialog, 3, &itemType, (void **)&item, &box);
     viewHeight = box.bottom - box.top;
     if (textHeight < viewHeight && descResourcePictId < kFirstResourceID) {
-        textHeight = textHeight < kTextDlgMinHeight ? (short)kTextDlgMinHeight
-                                                    : textHeight;
+        if (textHeight >= kTextDlgMinHeight)
+            minHeight = textHeight;
+        else
+            minHeight = kTextDlgMinHeight;
         win = GetDialogPortRect(textDialog);
-        box.top = win->top;
-        box.left = win->left;
-        box.bottom = win->bottom;
-        box.right = win->right;
-        slack = viewHeight - textHeight - kTextDlgSlackMargin;
+        box = *win;
+        slack = viewHeight - minHeight - kTextDlgSlackMargin;
         box.bottom -= slack;
+#ifdef MACBUILD
+        SizeWindow(GetDialogWindow(textDialog), (box.right - box.left),
+                   (box.bottom - box.top), true);
+        pt.v = 0;
+        pt.h = 0;
+        LocalToGlobal(&pt);
+        pt.v += slack * kTextDlgRecentre;
+        MoveWindow(GetDialogWindow(textDialog), pt.h, pt.v, true);
+#else
         SizeDialogWindow(textDialog, (box.right - box.left),
                      (box.bottom - box.top), 1);
         pt.v = 0;
         pt.h = 0;
         pt.v += slack * kTextDlgRecentre;
         OffsetDialogWindow(textDialog, pt.h, pt.v, 1);
-        GetDialogItem(textDialog, 1, &itemType, &item, &box);
+#endif
+        GetDialogItem(textDialog, 1, &itemType, (void **)&item, &box);
         OffsetRect(&box, 0, -slack);
         SetDialogItem(textDialog, 1, itemType, item, &box);
-        GetDialogItem(textDialog, 5, &itemType, &item, &box);
+        GetDialogItem(textDialog, 5, &itemType, (void **)&item, &box);
         OffsetRect(&box, 0, -slack);
         SetDialogItem(textDialog, 5, itemType, item, &box);
-        GetDialogItem(textDialog, 6, &itemType, &item, &box);
+        GetDialogItem(textDialog, 6, &itemType, (void **)&item, &box);
         OffsetRect(&box, 0, -slack);
         SetDialogItem(textDialog, 6, itemType, item, &box);
-        GetDialogItem(textDialog, 3, &itemType, &item, &box);
+        GetDialogItem(textDialog, 3, &itemType, (void **)&item, &box);
         box.bottom -= slack;
         SetDialogItem(textDialog, 3, itemType, item, &box);
-        GetDialogItem(textDialog, 3, &itemType, &item,
+        GetDialogItem(textDialog, 3, &itemType, (void **)&item,
                       &(*textDialogTextHandle)->destRect);
-        GetDialogItem(textDialog, 3, &itemType, &item,
+        GetDialogItem(textDialog, 3, &itemType, (void **)&item,
                       &(*textDialogTextHandle)->viewRect);
         TECalText(textDialogTextHandle);
     }
@@ -4633,18 +6625,18 @@ void ShowTextDialog(char allowMap, char redrawMission, char showMovie)
     TEPinScroll(0, 1, textDialogTextHandle);
     savedUp = canScrollTextUp;
     savedDown = canScrollTextDown;
-    UpdateTextDialog();
-    FrontWindow(textDialog);
-    FrontWindow(textDialog);
+    TextDialogUpdate();
+    SelectWindow(FrontWindow(textDialog));
+    BringToFront(FrontWindow(textDialog));
     ShowTheCursor();
 
     if (gPause) {
         if (showingIntroText) {
             SetGWorldContainer(&loadPort);
-            RGBForeColor(blackColor);
+            ForeColor(blackColor);
             PaintRect(&loadPort.bounds);
             SWSetPortToWindow(gSpriteWorld);
-            RGBForeColor(blackColor);
+            ForeColor(blackColor);
             PaintRect(GetCWindowPortRect(gWind));
         } else {
             mainScreenBackgroundDirty = 1;
@@ -4655,16 +6647,19 @@ void ShowTextDialog(char allowMap, char redrawMission, char showMovie)
         if (gPause) {
             if (showingIntroText) {
                 SetGWorldContainer(&loadPort);
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
                 PaintRect(&loadPort.bounds);
                 SWSetPortToWindow(gSpriteWorld);
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
                 PaintRect(GetCWindowPortRect(gWind));
             } else {
                 mainScreenBackgroundDirty = 1;
                 MainScreenUpdate(1);
             }
         } else {
+#ifdef MACBUILD
+            RefreshSAT();
+#endif
             RedrawStatus(1);
         }
         FadeScreenIn();
@@ -4678,7 +6673,7 @@ void ShowTextDialog(char allowMap, char redrawMission, char showMovie)
             canScrollTextUp = 0;
         if (gQuit != 0)
             done = 1;
-        RunModalDialog(textDialog, TextDialogEvent, &itemHit, 0);
+        MyModalDialog(textDialog, TextDialogFilter, &itemHit, 0);
         if (itemHit == 1)
             done = 1;
         if (itemHit == 5 && canScrollTextUp != 0)
@@ -4695,7 +6690,7 @@ void ShowTextDialog(char allowMap, char redrawMission, char showMovie)
             if (portDialog != NULL) {
                 SetDialogGWorld(portDialog);
                 RedrawDialog(portDialog);
-                UpdateStellarDialog();
+                PortDialogUpdate();
             }
             if (redrawMission) {
                 SetDialogGWorld(missionDialog);
@@ -4703,7 +6698,7 @@ void ShowTextDialog(char allowMap, char redrawMission, char showMovie)
             }
             SetDialogGWorld(textDialog);
             RedrawDialog(textDialog);
-            UpdateTextDialog();
+            TextDialogUpdate();
         }
         SetDialogGWorld(textDialog);
         if (canScrollTextUp != savedUp) {
@@ -4730,10 +6725,10 @@ void ShowTextDialog(char allowMap, char redrawMission, char showMovie)
     if (gPause) {
         if (showingIntroText) {
             SetGWorldContainer(&loadPort);
-            RGBForeColor(blackColor);
+            ForeColor(blackColor);
             PaintRect(&loadPort.bounds);
             SWSetPortToWindow(gSpriteWorld);
-            RGBForeColor(blackColor);
+            ForeColor(blackColor);
             PaintRect(GetCWindowPortRect(gWind));
         } else {
             mainScreenBackgroundDirty = 1;
@@ -4742,18 +6737,18 @@ void ShowTextDialog(char allowMap, char redrawMission, char showMovie)
     } else {
         UpdateAllPortDialogs();
     }
-    if (descMovieName[0] != 0 && gEarlyOutFlag == 0
-        && (gDescFlags & kDescMovieAfter) != 0) {
-        PlayQTMovie(descMovieName, (gDescFlags & kDescMovieDoubled),
-                    (gDescFlags & kDescMovieFade));
+    if (descMovieName[0] != 0 && settings.noMovies == 0
+        && (descFlags & kDescMovieAfter) != 0) {
+        PlayQTMovie(descMovieName, (descFlags & kDescMovieDoubled),
+                    (descFlags & kDescMovieFade));
         if (screenFaded) {
             if (gPause) {
                 if (showingIntroText) {
                     SetGWorldContainer(&loadPort);
-                    RGBForeColor(blackColor);
+                    ForeColor(blackColor);
                     PaintRect(&loadPort.bounds);
                     SWSetPortToWindow(gSpriteWorld);
-                    RGBForeColor(blackColor);
+                    ForeColor(blackColor);
                     PaintRect(GetCWindowPortRect(gWind));
                 } else {
                     mainScreenBackgroundDirty = 1;
@@ -4761,16 +6756,24 @@ void ShowTextDialog(char allowMap, char redrawMission, char showMovie)
                 }
             } else {
                 UpdateAllPortDialogs();
+#ifdef MACBUILD
+                RefreshSAT();
+#endif
                 RedrawStatus(1);
             }
             FadeScreenIn();
         }
     }
 }
+#ifdef MACBUILD
+#undef GetCWindowPortRect
+#undef InvalDialogItem
+#endif
 
 /* CalcShipCanBuy (mac _CalcShipCanBuy). STATE: MATCH 100.0%, exe 212 / obj 212 instrs,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00498dc0
+// MAC: _CalcShipCanBuy i386 0x0004f5eb ppc 0x000582b4
 void CalcShipCanBuy(void)
 {
     long price;
@@ -4778,13 +6781,15 @@ void CalcShipCanBuy(void)
     long tradeIn;
     short i;
     unsigned long long key;
-    char sig[4];
+    Boolean sig[4];
 
-    key = *(unsigned long long *)((char *)shipData + kLicenseCodePair);
-    sig[0] = ((key ^ 0xef0971bf3d10d5ddLL) & kKeyMask) != 0x0c302b2a15333394LL;
-    sig[1] = ((key ^ 0x921ec281c26516f7LL) & kKeyMask) != 0x0b5e33bfc5433b83LL;
-    sig[2] = ((key ^ 0xab89232d6fa52638LL) & kKeyMask) != 0x0359021eca0c887fLL;
-    sig[3] = ((key ^ 0x69d6a8458c7c1bd1LL) & kKeyMask) != 0x083ec9282b467090LL;
+#ifndef MAC1010
+    key = shipData[5].licenseCode;
+#endif
+    KeyMismatch(sig[0], key, shipData[5].licenseCode, 0xef0971bf3d10d5ddLL, 0x0c302b2a15333394LL);
+    KeyMismatch(sig[1], key, shipData[5].licenseCode, 0x921ec281c26516f7LL, 0x0b5e33bfc5433b83LL);
+    KeyMismatch(sig[2], key, shipData[5].licenseCode, 0xab89232d6fa52638LL, 0x0359021eca0c887fLL);
+    KeyMismatch(sig[3], key, shipData[5].licenseCode, 0x69d6a8458c7c1bd1LL, 0x083ec9282b467090LL);
     for (i = 0; i < 4; i++) {
         if (sig[i] == 0) {
             canBuy = 0;
@@ -4793,21 +6798,21 @@ void CalcShipCanBuy(void)
     }
 
     if (shipBuyMode == 0) {
-        if (gSelectedShip != -1) {
-            if (shipData[0].type == gSelectedShip) {
+        if (selShipyardItem != -1) {
+            if (shipData[0].type == selShipyardItem) {
                 canBuy = 0;
             } else {
                 price = ApplyPriceAndTechnologyFlux(
-                            gShipTypes[gSelectedShip].cost, priceFluxMult[1],
-                            gShipTypes[gSelectedShip].techLevel,
+                            shipClass[selShipyardItem].cost, priceFluxMult[1],
+                            shipClass[selShipyardItem].techLevel,
                             stellarData[shipData[0].targetStellar].techLevel);
                 tradeIn = ApplyPriceAndTechnologyFlux(
                             PlayerShipTradeInPrice(), priceFluxMult[0],
-                            gShipTypes[shipData[0].type].techLevel,
+                            shipClass[shipData[0].type].techLevel,
                             stellarData[shipData[0].targetStellar].techLevel);
                 tradeIn = ApplyPriceAndTechnologyFlux(
                             tradeIn, priceFluxMult[1],
-                            gShipTypes[shipData[0].type].techLevel,
+                            shipClass[shipData[0].type].techLevel,
                             stellarData[shipData[0].targetStellar].techLevel);
                 need = price - tradeIn;
                 if (need < 0)
@@ -4821,26 +6826,27 @@ void CalcShipCanBuy(void)
             canBuy = 0;
         }
         if (canBuy != 0) {
-            if (PlayerMeetsRequirements(gShipTypes[gSelectedShip].requires[0],
-                                        gShipTypes[gSelectedShip].requires[1]) == 0)
+            if (PlayerMeetsRequirements(shipClass[selShipyardItem].requires[0],
+                                        shipClass[selShipyardItem].requires[1]) == 0)
                 canBuy = 0;
         }
     } else {
-        if (gSelectedShip == -1) {
-            canBuy = 0;
-        } else {
-            need = (ApplyPriceAndTechnologyFlux(
-                        gShipTypes[gSelectedShip].cost, priceFluxMult[1],
-                        gShipTypes[gSelectedShip].techLevel,
-                        stellarData[shipData[0].targetStellar].techLevel) * 0.1);
+        if (selShipyardItem != -1) {
+            need = ApplyPriceAndTechnologyFlux(
+                        shipClass[selShipyardItem].cost, priceFluxMult[1],
+                        shipClass[selShipyardItem].techLevel,
+                        stellarData[shipData[0].targetStellar].techLevel);
+            need = need * 0.1;
             if (shipData[0].credits >= need)
                 canBuy = 1;
             else
                 canBuy = 0;
+        } else {
+            canBuy = 0;
         }
     }
     if (canBuy != 0) {
-        if (EvalMissionBitTestString(gShipTypes[gSelectedShip].availability) == 0)
+        if (EvalMissionBitTestString(shipClass[selShipyardItem].availability) == 0)
             canBuy = 0;
     }
 }
@@ -4851,78 +6857,82 @@ void CalcShipCanBuy(void)
 
 /* SetupListRects (mac _SetupListRects). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00499150
+// MAC: _SetupListRects i386 0x00051a2c ppc 0x0005a340
 void SetupListRects(Point *where)
 {
+#ifdef CEFIX /* F12.60 */
     int i;
-    int x;
-    short row;
-    short col;
-    short midV;
-    short midH;
-    Point *origin;
     Rect *cell;
     Rect *icon;
-    Rect *strip;
 
-    i = 0;
-    origin = where;
-    cell = gCellRects;
-    icon = gIconRects;
-    do {
-        row = (short)i / 4;
-        col = (short)i % 4;
-        SetRect(cell, col * kCellWide + origin->h, row * kCellHigh + origin->v,
-                (col + 1) * kCellWide + origin->h + 1,
-                (row + 1) * kCellHigh + origin->v + 1);
-        midV = ((gCellRects[(short)i].top + gCellRects[(short)i].bottom) / 2);
-        midH = ((gCellRects[(short)i].right + gCellRects[(short)i].left) / 2);
-        SetRect(icon, midH - 0x10, midV - 0x18, midH + 0x10, midV + 8);
-        i = i + 1;
-        cell = cell + 1;
-        icon = icon + 1;
-    } while ((short)i < kGridCells);
-    i = 0;
-    x = 0;
-    strip = pictCacheRect;
-    do {
-        SetRect(strip, x, 0, ((short)i + 1) * 0x20, 0x20);
-        i = i + 1;
-        x = x + 0x20;
-        strip = strip + 1;
-    } while ((short)i < kStripCells);
+    for (i = 0; i < kGridCells; i++) {
+        cell = &listScreenRect[i];
+        cell->left = i % kGridCols * ceGridCellWidth + where->h;
+        cell->top = i / kGridCols * ceGridCellHeight + where->v;
+        cell->right = cell->left + ceGridCellWidth + 1;
+        cell->bottom = cell->top + ceGridCellHeight + 1;
+        icon = &listPicScreenRect[i];
+        icon->left = (cell->left + cell->right - ceGridThumbSize) / 2;
+        icon->bottom = (cell->top + cell->bottom + ceGridThumbSize / 2) / 2;
+        icon->right = icon->left + ceGridThumbSize;
+        icon->top = icon->bottom - ceGridThumbSize;
+    }
+    for (i = 0; i < kStripCells; i++) {
+        listPicOffRect[i].left = ceGridThumbSize * i;
+        listPicOffRect[i].top = 0;
+        listPicOffRect[i].right = listPicOffRect[i].left + ceGridThumbSize;
+        listPicOffRect[i].bottom = ceGridThumbSize;
+    }
+#else
+    short i;
+    short col;
+    short row;
+
+    for (i = 0; i < kGridCells; i++) {
+        row = i / 4;
+        col = i % 4;
+        SetRect(&listScreenRect[i], col * kCellWide + where->h, row * kCellHigh + where->v,
+                (col + 1) * kCellWide + where->h + 1,
+                (row + 1) * kCellHigh + where->v + 1);
+        col = (listScreenRect[i].right + listScreenRect[i].left) / 2;
+        row = (listScreenRect[i].top + listScreenRect[i].bottom) / 2;
+        SetRect(&listPicScreenRect[i], col - 0x10, row - 0x18, col + 0x10, row + 8);
+    }
+    for (i = 0; i < kStripCells; i++)
+        SetRect(&listPicOffRect[i], i * 0x20, 0, (i + 1) * 0x20, 0x20);
+#endif
 }
 
 #define kScrollTicksToLines 0.01667     /* ~1/60: ticks to scroll units */
 
-static __inline short CalcScroll(short dv)
-{
-    return (double)(ReadTick() - lastTextScrollTime) * dv * kScrollTicksToLines;
-}
 
 /* ScrollDialogText. STATE: MATCH 100.0%, exe 144 / obj 144 instrs. Notes: Research/notes/scrolldlgtext.md */
 // FUNCTION: EVNOVA 0x00499270
-void ScrollDialogText(DialogPtr dlg, short item, TEHandle hTE, short dv, char force)
+// MAC: _ScrollDialogText i386 0x00051839 ppc 0x0005a10c
+void ScrollDialogText(DialogPtr dlg, short item, TEHandle hTE, short dv, Boolean force)
 {
     Rect box;
     short type;
     void *handle;
     short savedTop;
+    short delta;
 
-    if (force == 0) {
-        dv = CalcScroll(dv);
+    if (!force) {
+        delta = dv * (float)(ReadTick() - lastTextScrollTime) * kScrollTicksToLines;
+        dv = delta;
         if (dv == 0)
             return;
     }
 
     SetGWorldContainer(&loadPort);
     savedTop = (*hTE)->destRect.top;
-    (*hTE)->port = loadPort.world;
-    RGBForeColor(whiteColor);
+    (*hTE)->inPort = loadPort.world;
+    ForeColor(whiteColor);
     BackColor(blackColor);
     TEPinScroll(0, dv, hTE);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     BackColor(whiteColor);
-    (*hTE)->port = GetDialogPort(textDialog);
+    (*hTE)->inPort = GetDialogPort(textDialog);
     lastTextScrollTime = ReadTick();
     SetDialogGWorld(dlg);
 
@@ -4939,8 +6949,8 @@ void ScrollDialogText(DialogPtr dlg, short item, TEHandle hTE, short dv, char fo
     GetDialogItem(dlg, item, &type, &handle, &box);
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(dlg);
-    RGBForeColor(blackColor);
-    CopyBits(GetGWCPixMap(&loadPort), GetPortBitMapForCopyBits(GetDialogPort(dlg)),
+    ForeColor(blackColor);
+    CopyBits(GWorldContainerBits(&loadPort), GetPortBitMapForCopyBits(GetDialogPort(dlg)),
              &box, &box, 0, 0);
 }
 
@@ -4948,16 +6958,21 @@ void ScrollDialogText(DialogPtr dlg, short item, TEHandle hTE, short dv, char fo
 #define kScrollPageStep   250
 
 
-/* TextDialogEvent. STATE: MATCH, byte-identical. OPEN: none */
+/* TextDialogFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00499440
-char TextDialogEvent(long unused, EventRecord *ev, short *itemHit)
+// MAC: _TextDialogFilter i386 0x00051f77 ppc 0x0005a820
+Boolean TextDialogFilter(long unused, EventRecord *ev, short *itemHit)
 {
     Rect box;
-    void *item;
-    short itemType;
     Point where;
+    short itemType;
+    void *item;
     short button;
-    int c;
+#if V111
+    short key;
+#else
+    EventChar c;
+#endif
 
     if ((int)ev->what == kKeyDown || (int)ev->what == kAutoKey) {
         QuickKeyCheckHandler();
@@ -4965,9 +6980,52 @@ char TextDialogEvent(long unused, EventRecord *ev, short *itemHit)
             *itemHit = 4;
             return 1;
         }
-        c = ev->message & kCharCodeMask;
+#if V111
+        key = (ev->message & kKeyCodeMask) >> 8;
         if ((int)ev->what == kKeyDown) {
-            if (c == kReturnChar || c == kEscapeChar) {
+            if (key == kReturnKeyCode || key == kEnterKeyCode || key == kEscapeKeyCode) {
+                *itemHit = 1;
+                return 1;
+            }
+        }
+        if (canScrollTextUp != 0) {
+            if (key == kUpArrowKeyCode) {
+                *itemHit = 5;
+                return 1;
+            }
+            if (key == kHomeKeyCode) {
+                ScrollDialogText(textDialog, 3, textDialogTextHandle, kScrollToEnd, 1);
+                *itemHit = -1;
+                canScrollTextUp = 0;
+                return 1;
+            }
+            if (key == kPageUpKeyCode) {
+                ScrollDialogText(textDialog, 3, textDialogTextHandle, kScrollPageStep, 1);
+                *itemHit = -1;
+                return 1;
+            }
+        }
+        if (canScrollTextDown != 0) {
+            if (key == kDownArrowKeyCode) {
+                *itemHit = 6;
+                return 1;
+            }
+            if (key == kEndKeyCode) {
+                ScrollDialogText(textDialog, 3, textDialogTextHandle, -kScrollToEnd, 1);
+                *itemHit = -1;
+                canScrollTextDown = 0;
+                return 1;
+            }
+            if (key == kPageDownKeyCode) {
+                ScrollDialogText(textDialog, 3, textDialogTextHandle, -kScrollPageStep, 1);
+                *itemHit = -1;
+                return 1;
+            }
+        }
+#else
+        c = EventCharOf(ev);
+        if ((int)ev->what == kKeyDown) {
+            if (IsReturnChar(c) || c == kEscapeChar) {
                 *itemHit = 1;
                 return 1;
             }
@@ -5006,14 +7064,17 @@ char TextDialogEvent(long unused, EventRecord *ev, short *itemHit)
                 return 1;
             }
         }
+#endif
     }
     if ((int)ev->what == kMouseDown) {
         SetDialogGWorld(textDialog);
-        where.v = ev->where.v;
-        where.h = ev->where.h;
+        where = ev->where;
+#ifdef MACBUILD
+        GlobalToLocal(&where);
+#endif
         if (canScrollTextUp != 0) {
             GetDialogItem(textDialog, 5, &itemType, &item, &box);
-            if (PtInRect(where.h, where.v, &box) && canScrollTextUp != 0) {
+            if (PtInRectPoint(where, &box) && canScrollTextUp != 0) {
                 lastTextScrollTime = ReadTick();
                 while (StillDown()) {
                     BusyIdle();
@@ -5031,7 +7092,7 @@ char TextDialogEvent(long unused, EventRecord *ev, short *itemHit)
         }
         if (canScrollTextDown != 0) {
             GetDialogItem(textDialog, 6, &itemType, &item, &box);
-            if (PtInRect(where.h, where.v, &box) && canScrollTextDown != 0) {
+            if (PtInRectPoint(where, &box) && canScrollTextDown != 0) {
                 lastTextScrollTime = ReadTick();
                 while (StillDown()) {
                     BusyIdle();
@@ -5047,7 +7108,7 @@ char TextDialogEvent(long unused, EventRecord *ev, short *itemHit)
                 return 1;
             }
         }
-        UpdateTextDialog();
+        TextDialogUpdate();
         button = TrackTextButtons(where);
         if (button == 0)
             *itemHit = 1;
@@ -5064,24 +7125,31 @@ char TextDialogEvent(long unused, EventRecord *ev, short *itemHit)
     if ((int)ev->what == kUpdateEvt) {
         if (gPause != 0)
             mainScreenBackgroundDirty = 1;
-        UpdateTextDialog();
+#ifdef MACBUILD
+        BeginUpdate(GetDialogWindow(textDialog));
+#endif
+        TextDialogUpdate();
+#ifdef MACBUILD
+        EndUpdate(GetDialogWindow(textDialog));
+#endif
     }
     return 0;
 }
 
-/* UpdateTextDialog. STATE: MATCH, byte-identical. OPEN: none */
+/* TextDialogUpdate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00499870
-void UpdateTextDialog(void)
+// MAC: _TextDialogUpdate i386 0x00051b40 ppc 0x0005a474
+void TextDialogUpdate(void)
 {
     PicHandle loaded;
     PicHandle pic;
     Rect r;
     Rect r2;
     short itemType;
-    void *item;
+    Handle item;
 
     SetGWorldContainer(&loadPort);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetDialogPortRect(textDialog));
     if (descResourcePictId < kFirstResourceID) {
         pic = textDialogBackgroundPic[1];
@@ -5093,23 +7161,38 @@ void UpdateTextDialog(void)
                 OffsetRect(&r2, -r2.left, -r2.top);
                 OffsetRect(&r, 0, r2.bottom);
             }
+#ifdef CEFIX /* F12.61 */
+            CE_ScaleOffsetRect(&r, GetDialogPortRect(textDialog)->left,
+                               GetDialogPortRect(textDialog)->top);
+#else
             OffsetRect(&r, GetDialogPortRect(textDialog)->left,
                        GetDialogPortRect(textDialog)->top);
+#endif
             DrawPicHandle(textDialogBackgroundPic[1], &r);
         }
         if (textDialogBackgroundPic[0] != NULL) {
             QDGetPictureBounds(textDialogBackgroundPic[0], &r);
             OffsetRect(&r, -r.left, -r.top);
+#ifdef CEFIX /* F12.62 */
+            CE_ScaleOffsetRect(&r, GetDialogPortRect(textDialog)->left,
+                               GetDialogPortRect(textDialog)->top);
+#else
             OffsetRect(&r, GetDialogPortRect(textDialog)->left,
                        GetDialogPortRect(textDialog)->top);
+#endif
             DrawPicHandle(textDialogBackgroundPic[0], &r);
         }
         pic = textDialogBackgroundPic[2];
         if (pic != NULL) {
             QDGetPictureBounds(pic, &r);
             OffsetRect(&r, -r.left, -r.top);
+#ifdef CEFIX /* F12.63 */
+            CE_ScaleOffsetRectBottom(&r, GetDialogPortRect(textDialog)->left,
+                                     GetDialogPortRect(textDialog)->bottom - (r.bottom - r.top));
+#else
             OffsetRect(&r, GetDialogPortRect(textDialog)->left,
                        GetDialogPortRect(textDialog)->bottom - (r.bottom - r.top));
+#endif
             DrawPicHandle(textDialogBackgroundPic[2], &r);
         }
     } else if (textDialogBackgroundPic[0] != NULL) {
@@ -5121,24 +7204,24 @@ void UpdateTextDialog(void)
     if (descResourcePictId >= kFirstResourceID) {
         loaded = GetPicture(descResourcePictId);
         if (loaded != NULL) {
-            GetDialogItem(textDialog, 2, &itemType, &item, &r);
+            GetDialogItem(textDialog, 2, &itemType, (void **)&item, &r);
             DrawPicHandle(loaded, &r);
             QDReleaseResource(loaded);
         }
     }
-    (*textDialogTextHandle)->port = loadPort.world;
-    GetDialogItem(textDialog, 3, &itemType, &item, &r);
-    RGBForeColor(whiteColor);
+    (*textDialogTextHandle)->inPort = loadPort.world;
+    GetDialogItem(textDialog, 3, &itemType, (void **)&item, &r);
+    ForeColor(whiteColor);
     BackColor(blackColor);
     TEUpdate(&r, textDialogTextHandle);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     BackColor(whiteColor);
-    (*textDialogTextHandle)->port = GetDialogPort(textDialog);
+    (*textDialogTextHandle)->inPort = GetDialogPort(textDialog);
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(textDialog);
-    GetDialogItem(textDialog, 1, &itemType, &item, &r);
-    RGBForeColor(blackColor);
-    CopyBits(GetGWCPixMap(&loadPort),
+    GetDialogItem(textDialog, 1, &itemType, (void **)&item, &r);
+    ForeColor(blackColor);
+    CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(textDialog)),
              GetDialogPortRect(textDialog), GetDialogPortRect(textDialog), 0, NULL);
 }
@@ -5176,32 +7259,45 @@ void UpdateTextDialog(void)
 #define kPlayerInfoFirstPictID 0x2146
 #define kRetireQuestionIdx     0x123
 
+#ifdef MACBUILD
+/* MyModalDialogIsland (mac only). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _MyModalDialogIsland i386 0x0005a749 ppc 0x000628d0
+void MyModalDialogIsland(DialogPtr dlg, void *eventProc, short *itemHit, short *modifiers)
+{
+    MyModalDialog(dlg, eventProc, itemHit, modifiers);
+}
+#endif
+
 /* DoPlayerInfoDialog (mac _DoPlayerInfoDialog). STATE: MATCH 100.0%, exe 470 / obj 470,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00499c10
+// MAC: _DoPlayerInfoDialog i386 0x0005a00a ppc 0x00062244
 void DoPlayerInfoDialog(void)
 {
-    void *item;
+    Handle item;
     short itemHit;
-    Rect buttonBox[2];
     Rect r;
-    Rect box6;
+    Rect buttonBox[2];
     short itemType;
+    Rect saved;
+    Rect box6;
     unsigned char buf[256];
     Rect *win;
-    Rect *p7;
     short savedTop;
     short savedLeft;
     short savedBottom;
     short savedRight;
-    char done;
+    short delta;
     short i;
     short tallest;
+    Boolean done;
     short height;
     short boxHeight;
-    short delta;
     short dv;
     char *p;
+#ifdef MACBUILD
+    Point pt;
+#endif
 
     done = 0;
     if (screenFaded != 0)
@@ -5213,34 +7309,40 @@ void DoPlayerInfoDialog(void)
     if (fadePending[0] != 0 || fadePending[1] != 0)
         return;
     ShipStatsToSystemInfo();
-    playerInfoPage = 1;
+    selPlayerInfoMode = 1;
     infoDialog = NULL;
-    infoDialog = GetNewDialog(kPlayerInfoDlogID, UpdatePlayerInfoDialog,
-                                    PlayerInfoDialogEvent);
+    infoDialog = GetNewDialog(kPlayerInfoDlogID, PlayerInfoDialogUpdate,
+                                    PlayerInfoFilter);
     if (infoDialog == NULL)
         return;
     for (i = 0; i < 3; i++)
         playerInfoBackgroundPic[i] = GetPicture(kPlayerInfoFirstPictID + i);
     SetDialogGWorld(infoDialog);
     SetupPlayerInfoText();
+#ifdef MACBUILD
+    saved = *GetDialogPortRect(infoDialog);
+#else
     win = GetDialogPortRect(infoDialog);
     savedTop = win->top;
     savedLeft = win->left;
     savedBottom = win->bottom;
     savedRight = win->right;
-    GetDialogItem(infoDialog, 6, &itemType, &item, &box6);
-    GetDialogItem(infoDialog, 1, &itemType, &item, &buttonBox[0]);
-    GetDialogItem(infoDialog, 7, &itemType, &item, p7 = &buttonBox[1]);
+#endif
+    GetDialogItem(infoDialog, 6, &itemType, (void **)&item, &box6);
+    GetDialogItem(infoDialog, 1, &itemType, (void **)&item, &buttonBox[0]);
+    GetDialogItem(infoDialog, 7, &itemType, (void **)&item, &buttonBox[1]);
     textDialogTextHandle = TENew(&box6, &box6);
     (*textDialogTextHandle)->txFont = smallTextFont;
     (*textDialogTextHandle)->txSize = smallTextSize;
     TextFont((*textDialogTextHandle)->txFont);
     TextSize((*textDialogTextHandle)->txSize);
+    TESetLineMetrics(textDialogTextHandle);
     tallest = -1;
-    for (i = 0, p = playerInfoText[0]; i < 3; i++, p += 4096) {
+    for (i = 0; i < 3; i++) {
+        p = playerInfoText[i];
         TESetText(p, strlen(p), textDialogTextHandle);
         TECalText(textDialogTextHandle);
-        height = (*textDialogTextHandle)->height;
+        height = TEWrappedHeight(textDialogTextHandle);
         if (height > tallest || tallest <= 0)
             tallest = height;
     }
@@ -5248,6 +7350,29 @@ void DoPlayerInfoDialog(void)
     boxHeight = box6.bottom - box6.top;
     if (tallest > boxHeight) {
         delta = tallest - boxHeight + 4;
+#ifdef MACBUILD
+        r = saved;
+        r.bottom += delta;
+        SizeWindow(GetDialogWindow(infoDialog), (r.right - r.left),
+                   (r.bottom - r.top), true);
+        pt.v = 0;
+        pt.h = 0;
+        LocalToGlobal(&pt);
+        pt.v -= delta * 0.5;
+        MoveWindow(GetDialogWindow(infoDialog), pt.h, pt.v, true);
+        r = buttonBox[0];
+        OffsetRect(&r, 0, delta);
+        GetDialogItem(infoDialog, 1, &itemType, (void **)&item, &buttonBox[0]);
+        SetDialogItem(infoDialog, 1, itemType, item, &r);
+        r = buttonBox[1];
+        GetDialogItem(infoDialog, 7, &itemType, (void **)&item, &buttonBox[1]);
+        OffsetRect(&r, 0, delta);
+        SetDialogItem(infoDialog, 7, itemType, item, &r);
+        r = box6;
+        r.bottom += delta;
+        GetDialogItem(infoDialog, 6, &itemType, (void **)&item, &box6);
+        SetDialogItem(infoDialog, 6, itemType, item, &r);
+#else
         r.top = savedTop;
         r.left = savedLeft;
         r.bottom = savedBottom;
@@ -5263,13 +7388,13 @@ void DoPlayerInfoDialog(void)
         r.bottom = buttonBox[0].bottom;
         r.right = buttonBox[0].right;
         OffsetRect(&r, 0, delta);
-        GetDialogItem(infoDialog, 1, &itemType, &item, &buttonBox[0]);
+        GetDialogItem(infoDialog, 1, &itemType, (void **)&item, &buttonBox[0]);
         SetDialogItem(infoDialog, 1, itemType, item, &r);
         r.top = buttonBox[1].top;
         r.left = buttonBox[1].left;
         r.bottom = buttonBox[1].bottom;
         r.right = buttonBox[1].right;
-        GetDialogItem(infoDialog, 7, &itemType, &item, p7);
+        GetDialogItem(infoDialog, 7, &itemType, (void **)&item, &buttonBox[1]);
         OffsetRect(&r, 0, delta);
         SetDialogItem(infoDialog, 7, itemType, item, &r);
         r.top = box6.top;
@@ -5277,28 +7402,29 @@ void DoPlayerInfoDialog(void)
         r.bottom = box6.bottom;
         r.right = box6.right;
         r.bottom += delta;
-        GetDialogItem(infoDialog, 6, &itemType, &item, &box6);
+        GetDialogItem(infoDialog, 6, &itemType, (void **)&item, &box6);
         SetDialogItem(infoDialog, 6, itemType, item, &r);
+#endif
     }
     CenterWindow(FrontWindow(infoDialog), gWind);
     ShowWindowNoFlash(FrontWindow(infoDialog));
     SetDialogGWorld(infoDialog);
     FlushEvents(everyEvent - diskMask, 0);
     RedrawDialog(infoDialog);
-    UpdatePlayerInfoDialog();
-    FrontWindow(infoDialog);
-    FrontWindow(infoDialog);
+    PlayerInfoDialogUpdate();
+    SelectWindow(FrontWindow(infoDialog));
+    BringToFront(FrontWindow(infoDialog));
     do {
         if (gQuit != 0)
             done = 1;
-        RunModalDialog(infoDialog, PlayerInfoDialogEvent, &itemHit, 0);
+        MyModalDialog(infoDialog, PlayerInfoFilter, &itemHit, 0);
         if (itemHit == 1)
             done = 1;
         if (itemHit >= 2 && itemHit <= 5) {
-            playerInfoPage = itemHit - 1;
+            selPlayerInfoMode = itemHit - 1;
             RedrawDialog(infoDialog);
         }
-        if (itemHit == 7 && playerInfoPage == 2) {
+        if (itemHit == 7 && selPlayerInfoMode == 2) {
             if (PlayerHasJettisonableCargo()) {
                 GetIndString(buf, kGameStrList, kRetireQuestionIdx);
                 if (EVYesNoDialog(buf)) {
@@ -5321,44 +7447,84 @@ void DoPlayerInfoDialog(void)
         }
     }
     SWSetPortToWindow(gSpriteWorld);
+#ifdef MACBUILD
+    RefreshSAT();
+#endif
     FlushEvents(7, 0);
 }
 
-/* PlayerInfoDialogEvent. STATE: MATCH, byte-identical. OPEN: none */
+/* PlayerInfoFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049a3a0
-char PlayerInfoDialogEvent(long unused, EventRecord *ev, short *itemHit)
+// MAC: _PlayerInfoFilter i386 0x00053ae9 ppc 0x0005c1b8
+Boolean PlayerInfoFilter(long unused, EventRecord *ev, short *itemHit)
 {
     Point where;
     short button;
+#if V111
+    short key;
+#else
     int c;
+#endif
 
-    if ((int)ev->what == kKeyDown || (int)ev->what == kAutoKey) {
-        c = ev->message & kCharCodeMask;
-        if (c == kTabChar) {
-            if ((*(unsigned short *)&ev->modifiers & shiftKey) != 0)
-                playerInfoPage -= 1;
+#if V111
+    if (ev->what == kKeyDown || ev->what == kAutoKey) {
+        key = (ev->message & kKeyCodeMask) >> 8;
+        if (key == kTabKeyCode) {
+            if ((ev->modifiers & shiftKey) != 0)
+                selPlayerInfoMode -= 1;
             else
-                playerInfoPage += 1;
-            if (playerInfoPage > kPlayerInfoPages)
-                playerInfoPage = 1;
-            if (playerInfoPage < 1)
-                playerInfoPage = kPlayerInfoPages;
+                selPlayerInfoMode += 1;
+            if (selPlayerInfoMode > kPlayerInfoPages)
+                selPlayerInfoMode = 1;
+            if (selPlayerInfoMode < 1)
+                selPlayerInfoMode = kPlayerInfoPages;
             RedrawDialog(infoDialog);
-            *itemHit = playerInfoPage + 1;
+            *itemHit = selPlayerInfoMode + 1;
             return 1;
         }
-        if ((int)ev->what == kKeyDown) {
-            if (c == kReturnChar || c == kEscapeChar || KeyCheck(keyPrefs.playerInfo)) {
+        if (ev->what == kKeyDown) {
+            if (key == kEnterKeyCode || key == kReturnKeyCode || key == kEscapeKeyCode
+                    || KeyCheck(keyPrefs.playerInfo)) {
                 *itemHit = 1;
                 return 1;
             }
         }
     }
+#else
+    if ((int)ev->what == kKeyDown || (int)ev->what == kAutoKey) {
+        c = EventCharOf(ev);
+        if (c == kTabChar) {
+            if ((*(unsigned short *)&ev->modifiers & shiftKey) != 0)
+                selPlayerInfoMode -= 1;
+            else
+                selPlayerInfoMode += 1;
+            if (selPlayerInfoMode > kPlayerInfoPages)
+                selPlayerInfoMode = 1;
+            if (selPlayerInfoMode < 1)
+                selPlayerInfoMode = kPlayerInfoPages;
+            RedrawDialog(infoDialog);
+            *itemHit = selPlayerInfoMode + 1;
+            return 1;
+        }
+        if ((int)ev->what == kKeyDown) {
+#ifdef MAC1010 /* 1.0.10 spelling */
+            if (c == kEnterChar || c == kReturnChar || c == kEscapeChar || KeyCheck(keyPrefs.playerInfo)) {
+#else
+            if (IsReturnChar(c) || c == kEscapeChar || KeyCheck(keyPrefs.playerInfo)) {
+#endif
+                *itemHit = 1;
+                return 1;
+            }
+        }
+    }
+#endif
     if ((int)ev->what == kMouseDown) {
-        where.v = ev->where.v;
-        where.h = ev->where.h;
-        UpdatePlayerInfoDialog();
-        button = TrackPlayerInfoButtons(playerInfoPage, where);
+        where = ev->where;
+#ifdef MACBUILD
+        GlobalToLocal(&where);
+#endif
+        PlayerInfoDialogUpdate();
+        button = TrackPlayerInfoButtons(selPlayerInfoMode, where);
         if (button == 0) {
             *itemHit = 1;
             return 1;
@@ -5387,33 +7553,39 @@ char PlayerInfoDialogEvent(long unused, EventRecord *ev, short *itemHit)
         return 1;
     }
     if ((int)ev->what == kUpdateEvt) {
-        UpdatePlayerInfoDialog();
+#ifdef MACBUILD
+        BeginUpdate(GetDialogWindow(infoDialog));
+#endif
+        PlayerInfoDialogUpdate();
+#ifdef MACBUILD
+        EndUpdate(GetDialogWindow(infoDialog));
+#endif
         return 0;
     }
     return 0;
 }
 
-/* UpdatePlayerInfoDialog. STATE: MATCH, byte-identical. OPEN: none */
+/* PlayerInfoDialogUpdate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049a540
-void UpdatePlayerInfoDialog(void)
+// MAC: _PlayerInfoDialogUpdate i386 0x0005244f ppc 0x0005ac78
+void PlayerInfoDialogUpdate(void)
 {
-    Rect box2;
     Rect box;
+    Rect box2;
     short itemType;
     void *itemHandle;
     unsigned char cheatBuf[256];
-    unsigned char buf[2048];
+    PStrChar buf[2048];
     short i;
     long stellarWorth;
     long escortWorth;
-    short fuelWhole;
     short sys;
     short jumps;
     short count;
-    char onMission;
+    Boolean onMission;
 
     SetGWorldContainer(&loadPort);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetDialogPortRect(infoDialog));
 
     if (playerInfoBackgroundPic[1] != NULL) {
@@ -5433,47 +7605,63 @@ void UpdatePlayerInfoDialog(void)
         QDGetPictureBounds(playerInfoBackgroundPic[1], &box2);
         if (box.bottom - box.top < box2.bottom - box2.top)
             box.bottom = box.top + (box2.bottom - box2.top);
+#ifdef CEFIX /* F12.64 */
+        CE_ScaleOffsetRect(&box, GetDialogPortRect(infoDialog)->left,
+                           GetDialogPortRect(infoDialog)->top);
+#else
         OffsetRect(&box, GetDialogPortRect(infoDialog)->left,
                    GetDialogPortRect(infoDialog)->top);
+#endif
         DrawPicHandle(playerInfoBackgroundPic[1], &box);
     }
 
     if (playerInfoBackgroundPic[0] != NULL) {
         QDGetPictureBounds(playerInfoBackgroundPic[0], &box);
         OffsetRect(&box, -box.left, -box.top);
+#ifdef CEFIX /* F12.65 */
+        CE_ScaleOffsetRect(&box, GetDialogPortRect(infoDialog)->left,
+                           GetDialogPortRect(infoDialog)->top);
+#else
         OffsetRect(&box, GetDialogPortRect(infoDialog)->left,
                    GetDialogPortRect(infoDialog)->top);
+#endif
         DrawPicHandle(playerInfoBackgroundPic[0], &box);
     }
 
     if (playerInfoBackgroundPic[2] != NULL) {
         QDGetPictureBounds(playerInfoBackgroundPic[2], &box);
         OffsetRect(&box, -box.left, -box.top);
+#ifdef CEFIX /* F12.66 */
+        CE_ScaleOffsetRectBottom(&box, GetDialogPortRect(infoDialog)->left,
+                                 GetDialogPortRect(infoDialog)->bottom -
+                                 (box.bottom - box.top));
+#else
         OffsetRect(&box, GetDialogPortRect(infoDialog)->left,
                    GetDialogPortRect(infoDialog)->bottom -
                    (box.bottom - box.top));
+#endif
         DrawPicHandle(playerInfoBackgroundPic[2], &box);
     }
 
     TextFont(smallTextFont);
     TextSize(smallTextSize);
     GetDialogItem(infoDialog, 6, &itemType, &itemHandle, &box);
-    if (!RectInRgn(&box, GetCWindowVisRgn(FrontWindow(infoDialog))))
+    if (!RectInRgn(&box, GetWindowVisRgn(FrontWindow(infoDialog))))
         goto blit_back;
 
-    if (playerInfoPage == 1) {
+    if (selPlayerInfoMode == 1) {
         /* --- left column --- */
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 5), (box.top + 0xc));
         DrawIndString(kGameStrList, 0xfb);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 0x50), (box.top + 0xc));
         DrawString(playerName);
 
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 5), (box.top + 0x1c));
         DrawIndString(kGameStrList, 0xfc);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 0x50), (box.top + 0x1c));
         DateToMedString(gameTime, (char *)buf);
         CtoPstr((char *)buf);
@@ -5482,28 +7670,28 @@ void UpdatePlayerInfoDialog(void)
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 5), (box.top + 0x2c));
         DrawIndString(kGameStrList, 0xfd);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 0x50), (box.top + 0x2c));
-        DrawString(gSystems[shipData->curSystem].name);
+        DrawString(systemData[shipData->curSystem].name);
         if (cheatsActive) {
-            DrawString((unsigned char *)"\p (");
+            DrawString("\p (");
             NumToString(shipData->curSystem + 128, cheatBuf);
             DrawString(cheatBuf);
-            DrawString((unsigned char *)"\p)");
+            DrawString("\p)");
         }
 
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 5), (box.top + 0x3c));
         DrawIndString(kGameStrList, 0x146);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 0x50), (box.top + 0x3c));
         if (SystemIsInhabited(shipData->curSystem)) {
             DrawLegalStatusString(shipData->curSystem);
             if (cheatsActive) {
-                DrawString((unsigned char *)"\p (");
-                NumToString(playerLegalStatus[shipData->curSystem], cheatBuf);
+                DrawString("\p (");
+                NumToString(playerRecord[shipData->curSystem], cheatBuf);
                 DrawString(cheatBuf);
-                DrawString((unsigned char *)"\p)");
+                DrawString("\p)");
             }
         } else {
             DrawIndString(kGameStrList, 0x18c);
@@ -5512,64 +7700,80 @@ void UpdatePlayerInfoDialog(void)
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 5), (box.top + 0x4c));
         DrawIndString(kGameStrList, 0xfe);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 0x50), (box.top + 0x4c));
         DrawCombatRatingString();
         if (cheatsActive) {
-            DrawString((unsigned char *)"\p (");
+            DrawString("\p (");
             NumToString(playerKills, cheatBuf);
             DrawString(cheatBuf);
-            DrawString((unsigned char *)"\p)");
+            DrawString("\p)");
         }
 
         /* --- right column --- */
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 0xcd), (box.top + 0xc));
         DrawIndString(kGameStrList, 0xff);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 0x118), (box.top + 0xc));
         DrawString(shipName);
 
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 0xcd), (box.top + 0x1c));
         DrawIndString(kGameStrList, 0x100);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 0x118), (box.top + 0x1c));
-        DrawString(gShipTypes[shipData->type].name);
+        DrawString(shipClass[shipData->type].name);
         if (cheatsActive) {
-            DrawString((unsigned char *)"\p (");
+            DrawString("\p (");
             NumToString(shipData->type + 128, cheatBuf);
             DrawString(cheatBuf);
-            DrawString((unsigned char *)"\p)");
+            DrawString("\p)");
         }
 
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 0xcd), (box.top + 0x2c));
         DrawIndString(kGameStrList, 0x101);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 0x118), (box.top + 0x2c));
+#ifdef CEFIX /* F29.02 */
+        NumToString(CE_TruncF32(ShipTurnRate(shipData) * 30.0f), buf);
+#else
         NumToString((ShipTurnRate(shipData) * 30.0f), buf);
+#endif
         DrawString(buf);
         DrawIndString(kGameStrList, 0x102);
 
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 0xcd), (box.top + 0x3c));
         DrawIndString(kGameStrList, 0x103);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 0x118), (box.top + 0x3c));
+#ifdef CEFIX /* F29.03 */
+        NumToString(CE_TruncF32(ShipAccelRate(shipData) * 2500.0), buf);
+#else
         NumToString((ShipAccelRate(shipData) * 2500.0), buf);
+#endif
         DrawString(buf);
 
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 0xcd), (box.top + 0x4c));
         DrawIndString(kGameStrList, 0x104);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 0x118), (box.top + 0x4c));
+#ifdef CEFIX /* F29.04-05 */
+        if (strictPlay)
+            NumToString(CE_TruncF32(ShipMaxSpeed(shipData) * 100.0f), buf);
+        else
+            NumToString(CE_TruncF32(ShipMaxSpeed(shipData) * 100.0f *
+                                    0.6666666666666666), buf);
+#else
         if (strictPlay)
             NumToString((ShipMaxSpeed(shipData) * 100.0f), buf);
         else
             NumToString((ShipMaxSpeed(shipData) * 100.0f *
                                0.6666666666666666), buf);
+#endif
         DrawString(buf);
 
         RGBForeColor(&rgbLightGrey);
@@ -5578,8 +7782,8 @@ void UpdatePlayerInfoDialog(void)
         if ((char)buf[0] > 0)
             buf[1] = toupper((char)buf[1]);
         DrawString(buf);
-        DrawString((unsigned char *)"\p:");
-        RGBForeColor(whiteColor);
+        DrawString("\p:");
+        ForeColor(whiteColor);
         MoveTo((box.left + 0x118), (box.top + 0x5c));
         DrawCommaNumber(shipData->credits);
 
@@ -5587,20 +7791,20 @@ void UpdatePlayerInfoDialog(void)
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 5), (box.top + 0x5c));
         DrawString(shieldString[1]);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 0x50), (box.top + 0x5c));
         if (ShipShieldCapacity(shipData) > 0.0) {
             if (shipData->shield >= 0.0f) {
-                if (ShipShieldCapacity(shipData) >= shipData->shield) {
+                if (shipData->shield <= ShipShieldCapacity(shipData)) {
                     NumToString((shipData->shield /
                                        ShipShieldCapacity(shipData) * 100.0), buf);
                     DrawString(buf);
-                    DrawString((unsigned char *)"\p%");
+                    DrawString("\p%");
                 } else {
-                    DrawString((unsigned char *)"\p100%");
+                    DrawString("\p100%");
                 }
             } else {
-                DrawString((unsigned char *)"\p0%");
+                DrawString("\p0%");
             }
         } else {
             DrawIndString(kGameStrList, 0x18c);
@@ -5609,18 +7813,18 @@ void UpdatePlayerInfoDialog(void)
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 5), (box.top + 0x6c));
         DrawString(armorString[1]);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 0x50), (box.top + 0x6c));
         if (IsDying(shipData)) {
             DrawIndString(kGameStrList, 0x105);
         } else if (ShipArmorCapacity(shipData) > 0.0) {
-            if (ShipArmorCapacity(shipData) >= shipData->armor) {
+            if (shipData->armor <= ShipArmorCapacity(shipData)) {
                 NumToString((shipData->armor /
                                    ShipArmorCapacity(shipData) * 100.0), buf);
                 DrawString(buf);
-                DrawString((unsigned char *)"\p%");
+                DrawString("\p%");
             } else {
-                DrawString((unsigned char *)"\p100%");
+                DrawString("\p100%");
             }
         } else {
             DrawIndString(kGameStrList, 0x18c);
@@ -5629,7 +7833,7 @@ void UpdatePlayerInfoDialog(void)
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 5), (box.top + 0x7c));
         DrawString(fuelString[5]);
-        RGBForeColor(whiteColor);
+        ForeColor(whiteColor);
         MoveTo((box.left + 0x50), (box.top + 0x7c));
         if (ShipFuelCapacity(shipData) <= 0.0) {
             DrawIndString(kGameStrList, 0x14f);
@@ -5637,31 +7841,30 @@ void UpdatePlayerInfoDialog(void)
             NumToString((shipData->fuel /
                                ShipFuelCapacity(shipData) * 100.0), buf);
             DrawString(buf);
-            DrawString((unsigned char *)"\p%");
+            DrawString("\p%");
             jumps = (shipData->fuel / 100.0);
             if (jumps > 0) {
-                DrawString((unsigned char *)"\p  (");
+                DrawString("\p  (");
                 NumToString(jumps, buf);
                 DrawString(buf);
-                DrawString((unsigned char *)"\p ");
+                DrawString("\p ");
                 if (jumps > 1)
                     DrawIndString(kGameStrList, 0xf0);
                 else
                     DrawIndString(kGameStrList, 0xef);
-                fuelWhole = shipData->fuel;
-                if (fuelWhole % 100 > 0) {
-                    DrawString((unsigned char *)"\p ");
+                if ((short)shipData->fuel % 100 > 0) {
+                    DrawString("\p ");
                     DrawIndString(kGameStrList, 0x106);
-                    DrawString((unsigned char *)"\p ");
+                    DrawString("\p ");
                     DrawString(fuelString[6]);
                 }
-                DrawString((unsigned char *)"\p)");
+                DrawString("\p)");
             } else if (shipData->fuel > 0.0f) {
-                DrawString((unsigned char *)"\p  (");
+                DrawString("\p  (");
                 DrawString(fuelString[6]);
-                DrawString((unsigned char *)"\p ");
+                DrawString("\p ");
                 DrawIndString(kGameStrList, 0x107);
-                DrawString((unsigned char *)"\p)");
+                DrawString("\p)");
             }
         }
 
@@ -5682,8 +7885,7 @@ void UpdatePlayerInfoDialog(void)
                 continue;
             if (shipData[i].hired == 0)
                 continue;
-            escortWorth = (gShipTypes[shipData[i].type].cost * 0.01 +
-                                  escortWorth);
+            escortWorth += shipClass[shipData[i].type].cost * 0.01;
         }
 
         for (i = 0; i < 0x800; i++) {
@@ -5692,7 +7894,7 @@ void UpdatePlayerInfoDialog(void)
             sys = stellarData[i].system;
             if (sys < 0 || sys >= 0x800)
                 continue;
-            if (gSystems[sys].loaded == 0 || gSystems[sys].prepared == 0)
+            if (systemData[sys].loaded == 0 || systemData[sys].prepared == 0)
                 continue;
             stellarWorth += stellarData[i].tribute;
         }
@@ -5715,35 +7917,32 @@ void UpdatePlayerInfoDialog(void)
             MoveTo((box.left + 5), (box.top + 0x8c));
             if (escortWorth > stellarWorth) {
                 DrawIndString(kGameStrList, 0x108);
-                DrawString((unsigned char *)"\p  ");
-                RGBForeColor(whiteColor);
+                DrawString("\p  ");
+                ForeColor(whiteColor);
                 DrawCommaNumber(escortWorth - stellarWorth);
-            } else if (escortWorth == 0) {
-                DrawIndString(kGameStrList, 0x109);
-                DrawString((unsigned char *)"\p  ");
-                RGBForeColor(whiteColor);
-                DrawCommaNumber(stellarWorth);
-            } else {
+            } else if (escortWorth != 0) {
                 DrawIndString(kGameStrList, 0x10a);
-                DrawString((unsigned char *)"\p ");
+                DrawString("\p ");
                 DrawIndString(kGameStrList, 0x109);
-                DrawString((unsigned char *)"\p  ");
-                RGBForeColor(whiteColor);
+                DrawString("\p  ");
+                ForeColor(whiteColor);
                 DrawCommaNumber(stellarWorth - escortWorth);
+            } else {
+                DrawIndString(kGameStrList, 0x109);
+                DrawString("\p  ");
+                ForeColor(whiteColor);
+                DrawCommaNumber(stellarWorth);
             }
-            DrawString((unsigned char *)"\p ");
+            DrawString("\p ");
             DrawString(creditsString);
             RGBForeColor(&rgbLightGrey);
-            DrawString((unsigned char *)"\p ");
+            DrawString("\p ");
             DrawIndString(kGameStrList, 0x10b);
         }
-    } else if (playerInfoPage == 2) {
+    } else if (selPlayerInfoMode == 2) {
         if (PlayerHasAnyCargo()) {
-            RGBForeColor(blackColor);
-            box2.top = box.top;
-            box2.left = box.left;
-            box2.bottom = box.bottom;
-            box2.right = box.right;
+            ForeColor(blackColor);
+            box2 = box;
             box2.bottom -= 10;
             box2.right -= 5;
             box2.left += 5;
@@ -5756,23 +7955,24 @@ void UpdatePlayerInfoDialog(void)
                 GetIndString(buf, kGameStrList, 0x10c);
             else
                 GetIndString(buf, kGameStrList, 0x10d);
+#ifdef CEFIX /* F12.67 */
+            DrawStringCentered(buf, box.left, box.right, box.top + CE_Scale(0x37));
+#else
             DrawStringCentered(buf, box.left, box.right, (box.top + 0x37));
+#endif
         }
-    } else if (playerInfoPage == 3) {
+    } else if (selPlayerInfoMode == 3) {
         count = 0;
         for (i = 0; i < 0x200; i++) {
             if (shipSystems[i] > 0 && lcOutfitName[i][0] != 0 &&
-                    (gOutfits[i].flags & kOutfShowInRanks) == 0) {
+                    (outfitSystem[i].flags & kOutfShowInRanks) == 0) {
                 count++;
                 break;
             }
         }
         if (count > 0) {
-            RGBForeColor(blackColor);
-            box2.top = box.top;
-            box2.left = box.left;
-            box2.bottom = box.bottom;
-            box2.right = box.right;
+            ForeColor(blackColor);
+            box2 = box;
             box2.bottom -= 10;
             box2.right -= 5;
             box2.left += 5;
@@ -5782,9 +7982,13 @@ void UpdatePlayerInfoDialog(void)
         } else {
             RGBForeColor(&rgbLightGrey);
             GetIndString(buf, kGameStrList, 0x10e);
+#ifdef CEFIX /* F12.67 */
+            DrawStringCentered(buf, box.left, box.right, box.top + CE_Scale(0x37));
+#else
             DrawStringCentered(buf, box.left, box.right, (box.top + 0x37));
+#endif
         }
-    } else if (playerInfoPage == 4) {
+    } else if (selPlayerInfoMode == 4) {
         count = 0;
         for (i = 0; i < 0x80; i++) {
             if (rankData[i].active != 0 && rankData[i].loaded != 0) {
@@ -5794,15 +7998,12 @@ void UpdatePlayerInfoDialog(void)
         }
         for (i = 0; i < 0x200; i++) {
             if (shipSystems[i] > 0 && lcOutfitName[i][0] != 0 &&
-                    (gOutfits[i].flags & kOutfShowInRanks) != 0)
+                    (outfitSystem[i].flags & kOutfShowInRanks) != 0)
                 count++;
         }
         if (count > 0) {
-            RGBForeColor(blackColor);
-            box2.top = box.top;
-            box2.left = box.left;
-            box2.bottom = box.bottom;
-            box2.right = box.right;
+            ForeColor(blackColor);
+            box2 = box;
             box2.bottom -= 10;
             box2.right -= 5;
             box2.left += 5;
@@ -5812,21 +8013,25 @@ void UpdatePlayerInfoDialog(void)
         } else {
             RGBForeColor(&rgbLightGrey);
             GetIndString(buf, kGameStrList, 0x10f);
+#ifdef CEFIX /* F12.67 */
+            DrawStringCentered(buf, box.left, box.right, box.top + CE_Scale(0x37));
+#else
             DrawStringCentered(buf, box.left, box.right, (box.top + 0x37));
+#endif
         }
     }
 
 blit_back:
-    DrawPlayerInfoButtons(playerInfoPage, -1);
+    DrawPlayerInfoButtons(selPlayerInfoMode, -1);
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(infoDialog);
-    RGBForeColor(blackColor);
-    CopyBits(GetGWCPixMap(&loadPort),
+    ForeColor(blackColor);
+    CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(infoDialog)),
              GetDialogPortRect(infoDialog),
              GetDialogPortRect(infoDialog),
              0,
-             GetCWindowVisRgn(FrontWindow(infoDialog)));
+             GetWindowVisRgn(FrontWindow(infoDialog)));
 }
 
 
@@ -5844,12 +8049,465 @@ blit_back:
 
 /* SetupPlayerInfoText. STATE: MATCH 100.0% 1304/1304, byte-identical yes. */
 // FUNCTION: EVNOVA 0x0049c050
+// MAC: _SetupPlayerInfoText i386 0x00053cb8 ppc 0x0005c3e4
 void SetupPlayerInfoText(void)
+#ifdef MAC1010
 {
-    char rankShown[128];
+    Boolean rankShown[128];
+    short i;
+    short shown;
+    short count;
+    short freeSpace;
+    short n;
+    short len;
+    short maxWeight;
+    short found;
+    short type;
+    long credits;
+    short j;
+    short weight;
+    char c;
+    short cargoQty[256];
+    short outfitQty[512];
+    unsigned char str[256];
+    Boolean seen[256];
+    short missionTons;
+    short missionCount;
+    short junkTons;
+    short numTypes;
+    short numJunk;
+    int starred;
+
+    for (i = 0; i < 3; i++)
+        playerInfoText[i][0] = 0;
+    missionTons = 0;
+    junkTons = 0;
+    missionCount = 0;
+    numJunk = 0;
+    numTypes = 0;
+    for (i = 0; i < kMaxCargo; i++) {
+        seen[i] = 0;
+        cargoQty[i] = -1;
+    }
+
+    for (i = 0; i <= 5; i++) {
+        if (shipData->cargo[i] > 0) {
+            if (cargoQty[i] < 0)
+                cargoQty[i] = 0;
+            cargoQty[i] += shipData->cargo[i];
+        }
+    }
+
+    for (j = 0; j < kMaxActiveMissions; j++) {
+        if (currentMissionObjectives[j].active != 0 && currentMissions[j].hasCargo != 0 &&
+            currentMissions[j].cargoType != -1 && currentMissions[j].cargoQty >= 0) {
+            if (cargoQty[currentMissions[j].cargoType] < 0)
+                cargoQty[currentMissions[j].cargoType] = 0;
+            cargoQty[currentMissions[j].cargoType] += currentMissions[j].cargoQty;
+            missionTons += currentMissions[j].cargoQty;
+            missionCount++;
+        }
+    }
+
+    for (i = 0; i < kMaxCargo; i++) {
+        if (cargoQty[i] >= 0)
+            numTypes++;
+    }
+
+    for (i = 0; i < kMaxJunks; i++) {
+        if (junkData[i].held > 0) {
+            junkTons += junkData[i].held;
+            numJunk++;
+            numTypes++;
+        }
+    }
+
+    StrcatIndCString(playerInfoText[0], kGameStrList, kStrCargoHeader);
+    strcat(playerInfoText[0], " ");
+    if (TotalFleetHolds() > ShipTotalHolds())
+        StrcatIndCString(playerInfoText[0], kGameStrList, kStrHolds);
+    else
+        StrcatIndCString(playerInfoText[0], kGameStrList, kStrHold);
+    strcat(playerInfoText[0], ":\r\r");
+    len = strlen(playerInfoText[0]);
+
+    if (numTypes > 0) {
+        shown = 0;
+        for (i = 0; i < kMaxCargo; i++) {
+            n = cargoQty[i];
+            if (n >= 0) {
+                starred = lcCargoName[i][1] == '*';
+                if (n > 0 && (Boolean)starred == 0) {
+                    if (shown == 0)
+                        StrcatOrdinalNumber(n, playerInfoText[0], 1);
+                    else
+                        StrcatOrdinalNumber(n, playerInfoText[0], 0);
+                    strcat(playerInfoText[0], " ");
+                    if (n == 1)
+                        pstrcpy(str, tonString);
+                    else
+                        pstrcpy(str, tonsString);
+                    PtoCstr(str);
+                    strcat(playerInfoText[0], str);
+                    strcat(playerInfoText[0], " ");
+                    StrcatIndCString(playerInfoText[0], kGameStrList, kStrOf);
+                    strcat(playerInfoText[0], " ");
+                }
+                /* BUG: copies 64 bytes of a Pascal name, so a name over 63 characters keeps stale bytes */
+                strncpy(str, lcCargoName[i], 64);
+                PtoCstr(str);
+                if (lcCargoName[i][1] == '*')
+                    strcat(playerInfoText[0], &str[1]);
+                else
+                    strcat(playerInfoText[0], str);
+                if (shown < numTypes - 2) {
+                    strcat(playerInfoText[0], ", ");
+                } else if (shown == numTypes - 2) {
+                    if ((Boolean)starred != 0) {
+                        strcat(playerInfoText[0], ", ");
+                    } else {
+                        if (numTypes >= 3)
+                            strcat(playerInfoText[0], ",");
+                        strcat(playerInfoText[0], " ");
+                        StrcatIndCString(playerInfoText[0], kGameStrList, kStrAnd);
+                        strcat(playerInfoText[0], " ");
+                    }
+                }
+                shown++;
+            }
+        }
+
+        if (numJunk > 0) {
+            for (i = 0; i < kMaxJunks; i++) {
+                if (junkData[i].held > 0) {
+                    if (shown == 0)
+                        StrcatOrdinalNumber(junkData[i].held, playerInfoText[0], 1);
+                    else
+                        StrcatOrdinalNumber(junkData[i].held, playerInfoText[0], 0);
+                    strcat(playerInfoText[0], " ");
+                    if (junkData[i].held == 1)
+                        pstrcpy(str, tonString);
+                    else
+                        pstrcpy(str, tonsString);
+                    PtoCstr(str);
+                    strcat(playerInfoText[0], str);
+                    strcat(playerInfoText[0], " ");
+                    StrcatIndCString(playerInfoText[0], kGameStrList, kStrOf);
+                    strcat(playerInfoText[0], " ");
+                    /* BUG: a junk name of 64+ characters is left unterminated for the strcat below */
+                    strncpy(str, junkData[i].lcName, 64);
+                    strcat(playerInfoText[0], str);
+                    if (shown < numTypes - 2)
+                        strcat(playerInfoText[0], ", ");
+                    if (shown == numTypes - 2) {
+                        if (numTypes >= 3)
+                            strcat(playerInfoText[0], ",");
+                        strcat(playerInfoText[0], " ");
+                        StrcatIndCString(playerInfoText[0], kGameStrList, kStrAnd);
+                        strcat(playerInfoText[0], " ");
+                    }
+                    shown++;
+                }
+            }
+        }
+
+        if (len != -1)
+            playerInfoText[0][len] = toupper(playerInfoText[0][len]);
+        strcat(playerInfoText[0], ".");
+        strcat(playerInfoText[0], "\r\r");
+
+        freeSpace = TotalFleetHolds() - TotalCargo(shipData);
+        if (freeSpace > 0) {
+            if (freeSpace < 0)
+                freeSpace = 0;
+            NumToString(freeSpace, str);
+            if (TotalFleetHolds() > ShipTotalHolds()) {
+                StrcatIndCString(playerInfoText[0], kGameStrList, kStrFreeSpace);
+                strcat(playerInfoText[0], " ");
+                StrcatIndCString(playerInfoText[0], kGameStrList, kStrHolds);
+                strcat(playerInfoText[0], ":  ");
+                PtoCstr(str);
+                strcat(playerInfoText[0], str);
+                strcat(playerInfoText[0], " ");
+                if (freeSpace == 1)
+                    pstrcpy(str, tonString);
+                else
+                    pstrcpy(str, tonsString);
+                PtoCstr(str);
+                strcat(playerInfoText[0], str);
+                n = TotalMissionCargoSpace();
+                if (n < 0)
+                    n = 0;
+                if (n != freeSpace && n > 0) {
+                    strcat(playerInfoText[0], "  (");
+                    NumToString(n, str);
+                    PtoCstr(str);
+                    strcat(playerInfoText[0], str);
+                    strcat(playerInfoText[0], " ");
+                    if (n == 1)
+                        pstrcpy(str, tonString);
+                    else
+                        pstrcpy(str, tonsString);
+                    PtoCstr(str);
+                    strcat(playerInfoText[0], str);
+                    strcat(playerInfoText[0], " ");
+                    StrcatIndCString(playerInfoText[0], kGameStrList, kStrFree);
+                    strcat(playerInfoText[0], ")");
+                } else if (n == 0 && freeSpace > 0) {
+                    strcat(playerInfoText[0], "(");
+                    StrcatIndCString(playerInfoText[0], kGameStrList, kStrNo);
+                    strcat(playerInfoText[0], " ");
+                    StrcatIndCString(playerInfoText[0], kGameStrList, kStrFree);
+                    strcat(playerInfoText[0], ")");
+                }
+            } else {
+                StrcatIndCString(playerInfoText[0], kGameStrList, kStrFreeSpace);
+                strcat(playerInfoText[0], ": ");
+                PtoCstr(str);
+                strcat(playerInfoText[0], str);
+                strcat(playerInfoText[0], " ");
+                if (freeSpace == 1)
+                    pstrcpy(str, tonString);
+                else
+                    pstrcpy(str, tonsString);
+                PtoCstr(str);
+                strcat(playerInfoText[0], str);
+            }
+        }
+    }
+
+    StrcatIndCString(playerInfoText[1], kGameStrList, kStrOutfitHeader);
+    strcat(playerInfoText[1], "\r\r");
+
+    for (i = 0; i < kMaxOutfits; i++)
+        outfitQty[i] = 0;
+
+    count = 0;
+    for (i = 0; i < kMaxOutfits; i++) {
+        missionTons = shipSystems[i];
+        if (missionTons > 0 && lcOutfitName[i][0] != 0 &&
+            (outfitSystem[i].flags & kOutfShowInRanks) == 0) {
+            if (outfitSystem[i].sameNameIndex >= 0 && outfitSystem[i].sameNameIndex < i)
+                type = outfitSystem[i].sameNameIndex;
+            else
+                type = i;
+            if (outfitQty[type] == 0) {
+                if (outfitSystem[type].dispWeight > maxWeight || count == 0)
+                    maxWeight = outfitSystem[type].dispWeight;
+                count++;
+            }
+            outfitQty[type] += missionTons;
+        }
+    }
+
+    shown = 0;
+    len = strlen(playerInfoText[1]);
+    do {
+        freeSpace = 0;
+        n = 0;
+        type = 0;
+        for (i = 0; i < kMaxOutfits; i++) {
+            if (outfitQty[i] > 0 && lcOutfitName[i][0] != 0 &&
+                (outfitSystem[i].flags & kOutfShowInRanks) == 0) {
+                if (maxWeight == (weight = outfitSystem[i].dispWeight)) {
+                    freeSpace++;
+                    if (outfitQty[i] == 1) {
+                        c = tolower(lcOutfitName[i][1]);
+                        if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u')
+                            StrcatIndCString(playerInfoText[1], kGameStrList, kStrAn);
+                        else
+                            StrcatIndCString(playerInfoText[1], kGameStrList, kStrA);
+                    } else if (outfitQty[i] == 2) {
+                        StrcatIndCString(playerInfoText[1], kOrdinalsSTR, kOrdinalsBase + 2);
+                    } else if (outfitQty[i] == 3) {
+                        StrcatIndCString(playerInfoText[1], kOrdinalsSTR, kOrdinalsBase + 3);
+                    } else if (outfitQty[i] > 3) {
+                        NumToString(outfitQty[i], str);
+                        PtoCstr(str);
+                        strcat(playerInfoText[1], str);
+                    }
+                    strcat(playerInfoText[1], " ");
+                    if (outfitQty[i] <= 3 && len > 0)
+                        playerInfoText[1][len] = toupper(playerInfoText[1][len]);
+                    len = -1;
+                    if (outfitQty[i] > 1)
+                        pstrcpy(str, lcPluralOutfitName[i]);
+                    else
+                        pstrcpy(str, lcOutfitName[i]);
+                    PtoCstr(str);
+                    strcat(playerInfoText[1], str);
+                    shown++;
+                    if (shown <= count - 1 && count > 2)
+                        strcat(playerInfoText[1], ",");
+                    if (shown < count - 1) {
+                        strcat(playerInfoText[1], " ");
+                    } else if (shown == count - 1) {
+                        strcat(playerInfoText[1], " ");
+                        StrcatIndCString(playerInfoText[1], kGameStrList, kStrAnd);
+                        strcat(playerInfoText[1], " ");
+                    }
+                    outfitQty[i] = 0;
+                } else if (weight < maxWeight) {
+                    if (weight > type || n == 0)
+                        type = weight;
+                }
+                n++;
+            }
+        }
+        maxWeight = type;
+    } while (freeSpace > 0);
+
+    strcat(playerInfoText[1], ".\r\r");
+
+    credits = PlayerShipTradeInPrice();
+    if (credits > 0) {
+        StrcatIndCString(playerInfoText[1], kGameStrList, kStrTradeInValue);
+        strcat(playerInfoText[1], " ");
+        StrcatCommaNumber(credits, playerInfoText[1]);
+        strcat(playerInfoText[1], " ");
+        if (credits == 1)
+            strcat(playerInfoText[1], creditCString);
+        else
+            strcat(playerInfoText[1], creditsCString);
+        strcat(playerInfoText[1], "\r");
+    }
+
+    count = 0;
+    for (i = 0; i < kMaxRanks; i++) {
+        rankShown[i] = 0;
+        if (rankData[i].active != 0 && rankData[i].loaded != 0 &&
+            strlen(rankData[i].name) != 0) {
+            if (rankData[i].priority > maxWeight || count == 0)
+                maxWeight = rankData[i].priority;
+            count++;
+        }
+    }
+
+    for (i = 0; i < kMaxOutfits; i++)
+        outfitQty[i] = 0;
+
+    for (i = 0; i < kMaxOutfits; i++) {
+        j = shipSystems[i];
+        if (j > 0 && lcOutfitName[i][0] != 0 &&
+            (outfitSystem[i].flags & kOutfShowInRanks) != 0) {
+            if (outfitSystem[i].sameNameIndex >= 0 && outfitSystem[i].sameNameIndex < i)
+                type = outfitSystem[i].sameNameIndex;
+            else
+                type = i;
+            outfitQty[type] += j;
+        }
+    }
+
+    for (i = 0; i < kMaxOutfits; i++) {
+        if (outfitQty[i] > 0 && lcOutfitName[i][0] != 0 &&
+            (outfitSystem[i].flags & kOutfShowInRanks) != 0)
+            count++;
+    }
+
+    if (count > 0) {
+        strcpy(playerInfoText[2], "");
+        StrcatIndCString(playerInfoText[2], kGameStrList, kStrAwardsHeader);
+        strcat(playerInfoText[2], "\r\r");
+        shown = 0;
+        do {
+            for (i = 0; i < kMaxRanks; i++) {
+                if (rankData[i].active != 0 && rankData[i].loaded != 0 &&
+                    strlen(rankData[i].name) != 0 &&
+                    rankData[i].priority >= maxWeight && rankShown[i] == 0) {
+                    strcat(playerInfoText[2], rankData[i].name);
+                    shown++;
+                    rankShown[i] = 1;
+                    if (shown <= count - 1)
+                        strcat(playerInfoText[2], ",");
+                    if (shown < count - 1) {
+                        strcat(playerInfoText[2], " ");
+                    } else if (shown == count - 1) {
+                        strcat(playerInfoText[2], " ");
+                        StrcatIndCString(playerInfoText[2], kGameStrList, kStrAnd);
+                        strcat(playerInfoText[2], " ");
+                    }
+                }
+            }
+            found = 0;
+            for (i = 0; i < kMaxRanks; i++) {
+                if (rankData[i].active != 0 && rankData[i].loaded != 0 &&
+                    strlen(rankData[i].name) != 0 && rankShown[i] == 0) {
+                    if (rankData[i].priority > maxWeight || found == 0)
+                        maxWeight = rankData[i].priority;
+                    found++;
+                }
+            }
+        } while (found > 0);
+
+        len = (shown == 0) ? (short)strlen(playerInfoText[2]) : (short)-1;
+
+        for (i = 0; i < kMaxOutfits; i++) {
+            type = outfitQty[i];
+            if (type > 0 && lcOutfitName[i][0] != 0 &&
+                (outfitSystem[i].flags & kOutfShowInRanks) != 0) {
+                if (type == 1) {
+                    c = tolower(lcOutfitName[i][1]);
+                    if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u')
+                        StrcatIndCString(playerInfoText[2], kGameStrList, kStrAn);
+                    else
+                        StrcatIndCString(playerInfoText[2], kGameStrList, kStrA);
+                } else if (type == 2) {
+                    StrcatIndCString(playerInfoText[2], kOrdinalsSTR, kOrdinalsBase + 2);
+                } else if (type == 3) {
+                    StrcatIndCString(playerInfoText[2], kOrdinalsSTR, kOrdinalsBase + 3);
+                } else if (type > 3) {
+                    NumToString(type, str);
+                    PtoCstr(str);
+                    strcat(playerInfoText[2], str);
+                }
+                strcat(playerInfoText[2], " ");
+                if (type <= 3 && len > 0)
+                    playerInfoText[2][len] = toupper(playerInfoText[2][len]);
+                len = -1;
+                if (type > 1)
+                    pstrcpy(str, lcPluralOutfitName[i]);
+                else
+                    pstrcpy(str, lcOutfitName[i]);
+                PtoCstr(str);
+                strcat(playerInfoText[2], str);
+                shown++;
+                if (shown <= count - 1)
+                    strcat(playerInfoText[2], ", ");
+            }
+        }
+        strcat(playerInfoText[2], "\r");
+    }
+}
+#else
+{
+#ifdef MACBUILD
+    Boolean rankShown[128];
     long credits;
     char c;
-    char starred;
+    short shown;
+    short count;
+    short numTypes;
+    short numJunk;
+    short j;
+    short n;
+    short maxWeight;
+    short weight;
+    short found;
+    short freeSpace;
+    short space;
+    short len;
+    short type;
+    short qty;
+    short i;
+    Boolean starred;
+    short cargoQty[256];
+    short outfitQty[512];
+    unsigned char str[256];
+#else
+    Boolean rankShown[128];
+    long credits;
+    char c;
+    Boolean starred;
     short found;
     short nextWeight;
     short maxWeight;
@@ -5868,12 +8526,24 @@ void SetupPlayerInfoText(void)
     short cargoQty[256];
     short outfitQty[512];
     unsigned char str[256];
+#endif
 
-    playerInfoText[0][0] = 0;
-    playerInfoText[1][0] = 0;
-    playerInfoText[2][0] = 0;
+    for (qty = 0; qty < 3; qty++)
+        playerInfoText[qty][0] = 0;
     numJunk = 0;
     numTypes = 0;
+#ifdef MACBUILD
+    for (j = 0; j < kMaxCargo; j++)
+        cargoQty[j] = -1;
+
+    for (j = 0; j <= 5; j++) {
+        if (shipData->cargo[j] > 0) {
+            if (cargoQty[j] < 0)
+                cargoQty[j] = 0;
+            cargoQty[j] += shipData->cargo[j];
+        }
+    }
+#else
     for (qty = 0; qty < kMaxCargo; qty++)
         cargoQty[qty] = -1;
 
@@ -5884,6 +8554,7 @@ void SetupPlayerInfoText(void)
             cargoQty[qty] += shipData->cargo[qty];
         }
     }
+#endif
 
     for (i = 0; i < kMaxActiveMissions; i++) {
         if (currentMissionObjectives[i].active != 0 && currentMissions[i].hasCargo != 0 &&
@@ -5907,21 +8578,33 @@ void SetupPlayerInfoText(void)
         }
     }
 
-    AppendIndString(playerInfoText[0], kGameStrList, kStrCargoHeader);
+    StrcatIndCString(playerInfoText[0], kGameStrList, kStrCargoHeader);
     strcat(playerInfoText[0], " ");
     if (TotalFleetHolds() > ShipTotalHolds())
-        AppendIndString(playerInfoText[0], kGameStrList, kStrHolds);
+        StrcatIndCString(playerInfoText[0], kGameStrList, kStrHolds);
     else
-        AppendIndString(playerInfoText[0], kGameStrList, kStrHold);
+        StrcatIndCString(playerInfoText[0], kGameStrList, kStrHold);
     strcat(playerInfoText[0], ":\r\r");
     len = strlen(playerInfoText[0]);
 
     if (numTypes > 0) {
         shown = 0;
         for (i = 0; i < kMaxCargo; i++) {
+#ifdef MACBUILD
+            n = cargoQty[i];
+            if (n >= 0) {
+                starred = (lcCargoName[i][1] == '*') ? 1 : 0;
+                if (n > 0 && starred == 0) {
+                    if (shown == 0)
+                        StrcatOrdinalNumber(n, playerInfoText[0], 1);
+                    else
+                        StrcatOrdinalNumber(n, playerInfoText[0], 0);
+                    strcat(playerInfoText[0], " ");
+                    if (n == 1)
+#else
             qty = cargoQty[i];
             if (qty >= 0) {
-                starred = (lcCargoName[i][1] == '*') ? (char)1 : (char)0;
+                starred = (lcCargoName[i][1] == '*') ? (Boolean)1 : (Boolean)0;
                 if (qty > 0 && starred == 0) {
                     if (shown == 0)
                         StrcatOrdinalNumber(qty, playerInfoText[0], 1);
@@ -5929,13 +8612,14 @@ void SetupPlayerInfoText(void)
                         StrcatOrdinalNumber(qty, playerInfoText[0], 0);
                     strcat(playerInfoText[0], " ");
                     if (qty == 1)
+#endif
                         pstrcpy(str, tonString);
                     else
                         pstrcpy(str, tonsString);
                     PtoCstr(str);
                     strcat(playerInfoText[0], (char *)str);
                     strcat(playerInfoText[0], " ");
-                    AppendIndString(playerInfoText[0], kGameStrList, kStrOf);
+                    StrcatIndCString(playerInfoText[0], kGameStrList, kStrOf);
                     strcat(playerInfoText[0], " ");
                 }
                 /* BUG: copies 64 bytes of a Pascal name, so a name over 63 characters keeps stale bytes */
@@ -5954,7 +8638,7 @@ void SetupPlayerInfoText(void)
                         if (numTypes >= 3)
                             strcat(playerInfoText[0], ",");
                         strcat(playerInfoText[0], " ");
-                        AppendIndString(playerInfoText[0], kGameStrList, kStrAnd);
+                        StrcatIndCString(playerInfoText[0], kGameStrList, kStrAnd);
                         strcat(playerInfoText[0], " ");
                     }
                 }
@@ -5977,7 +8661,7 @@ void SetupPlayerInfoText(void)
                     PtoCstr(str);
                     strcat(playerInfoText[0], (char *)str);
                     strcat(playerInfoText[0], " ");
-                    AppendIndString(playerInfoText[0], kGameStrList, kStrOf);
+                    StrcatIndCString(playerInfoText[0], kGameStrList, kStrOf);
                     strcat(playerInfoText[0], " ");
                     /* BUG: a junk name of 64+ characters is left unterminated for the strcat below */
                     strncpy((char *)str, junkData[type].lcName, 64);
@@ -5988,7 +8672,7 @@ void SetupPlayerInfoText(void)
                         if (numTypes >= 3)
                             strcat(playerInfoText[0], ",");
                         strcat(playerInfoText[0], " ");
-                        AppendIndString(playerInfoText[0], kGameStrList, kStrAnd);
+                        StrcatIndCString(playerInfoText[0], kGameStrList, kStrAnd);
                         strcat(playerInfoText[0], " ");
                     }
                     shown++;
@@ -6007,9 +8691,9 @@ void SetupPlayerInfoText(void)
                 freeSpace = 0;
             NumToString(freeSpace, str);
             if (TotalFleetHolds() > ShipTotalHolds()) {
-                AppendIndString(playerInfoText[0], kGameStrList, kStrFreeSpace);
+                StrcatIndCString(playerInfoText[0], kGameStrList, kStrFreeSpace);
                 strcat(playerInfoText[0], " ");
-                AppendIndString(playerInfoText[0], kGameStrList, kStrHolds);
+                StrcatIndCString(playerInfoText[0], kGameStrList, kStrHolds);
                 strcat(playerInfoText[0], ":  ");
                 PtoCstr(str);
                 strcat(playerInfoText[0], (char *)str);
@@ -6036,17 +8720,17 @@ void SetupPlayerInfoText(void)
                     PtoCstr(str);
                     strcat(playerInfoText[0], (char *)str);
                     strcat(playerInfoText[0], " ");
-                    AppendIndString(playerInfoText[0], kGameStrList, kStrFree);
+                    StrcatIndCString(playerInfoText[0], kGameStrList, kStrFree);
                     strcat(playerInfoText[0], ")");
                 } else if (space == 0 && freeSpace > 0) {
                     strcat(playerInfoText[0], "(");
-                    AppendIndString(playerInfoText[0], kGameStrList, kStrNo);
+                    StrcatIndCString(playerInfoText[0], kGameStrList, kStrNo);
                     strcat(playerInfoText[0], " ");
-                    AppendIndString(playerInfoText[0], kGameStrList, kStrFree);
+                    StrcatIndCString(playerInfoText[0], kGameStrList, kStrFree);
                     strcat(playerInfoText[0], ")");
                 }
             } else {
-                AppendIndString(playerInfoText[0], kGameStrList, kStrFreeSpace);
+                StrcatIndCString(playerInfoText[0], kGameStrList, kStrFreeSpace);
                 strcat(playerInfoText[0], ": ");
                 PtoCstr(str);
                 strcat(playerInfoText[0], (char *)str);
@@ -6061,7 +8745,7 @@ void SetupPlayerInfoText(void)
         }
     }
 
-    AppendIndString(playerInfoText[1], kGameStrList, kStrOutfitHeader);
+    StrcatIndCString(playerInfoText[1], kGameStrList, kStrOutfitHeader);
     strcat(playerInfoText[1], "\r\r");
 
     for (i = 0; i < kMaxOutfits; i++)
@@ -6071,20 +8755,93 @@ void SetupPlayerInfoText(void)
     for (i = 0; i < kMaxOutfits; i++) {
         qty = shipSystems[i];
         if (qty > 0 && lcOutfitName[i][0] != 0 &&
-            (gOutfits[i].flags & kOutfShowInRanks) == 0) {
-            slot = gOutfits[i].sameNameIndex;
+            (outfitSystem[i].flags & kOutfShowInRanks) == 0) {
+#ifdef MACBUILD
+            if (outfitSystem[i].sameNameIndex < 0 || outfitSystem[i].sameNameIndex >= i)
+                type = i;
+            else
+                type = outfitSystem[i].sameNameIndex;
+            if (outfitQty[type] == 0) {
+                if (outfitSystem[type].dispWeight > maxWeight || count == 0)
+                    maxWeight = outfitSystem[type].dispWeight;
+                count++;
+            }
+            outfitQty[type] += qty;
+#else
+            slot = outfitSystem[i].sameNameIndex;
             if (slot < 0 || slot >= i)
                 slot = i;
             if (outfitQty[slot] == 0) {
-                weight = gOutfits[slot].dispWeight;
+                weight = outfitSystem[slot].dispWeight;
                 if (weight > maxWeight || count == 0)
                     maxWeight = weight;
                 count++;
             }
             outfitQty[slot] += qty;
+#endif
         }
     }
 
+#ifdef MACBUILD
+    shown = 0;
+    len = strlen(playerInfoText[1]);
+    do {
+        j = 0;
+        type = 0;
+        n = 0;
+        for (i = 0; i < kMaxOutfits; i++) {
+            qty = outfitQty[i];
+            if (qty > 0 && lcOutfitName[i][0] != 0 &&
+                (outfitSystem[i].flags & kOutfShowInRanks) == 0) {
+                weight = outfitSystem[i].dispWeight;
+                if (maxWeight == weight) {
+                    j++;
+                    if (qty == 1) {
+                        c = tolower(lcOutfitName[i][1]);
+                        if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u')
+                            StrcatIndCString(playerInfoText[1], kGameStrList, kStrAn);
+                        else
+                            StrcatIndCString(playerInfoText[1], kGameStrList, kStrA);
+                    } else if (qty == 2) {
+                        StrcatIndCString(playerInfoText[1], kOrdinalsSTR, kOrdinalsBase + 2);
+                    } else if (qty == 3) {
+                        StrcatIndCString(playerInfoText[1], kOrdinalsSTR, kOrdinalsBase + 3);
+                    } else if (qty > 3) {
+                        NumToString(qty, str);
+                        PtoCstr(str);
+                        strcat(playerInfoText[1], (char *)str);
+                    }
+                    strcat(playerInfoText[1], " ");
+                    if (qty <= 3 && len > 0)
+                        playerInfoText[1][len] = toupper(playerInfoText[1][len]);
+                    len = -1;
+                    if (qty > 1)
+                        pstrcpy(str, lcPluralOutfitName[i]);
+                    else
+                        pstrcpy(str, lcOutfitName[i]);
+                    PtoCstr(str);
+                    strcat(playerInfoText[1], (char *)str);
+                    shown++;
+                    if (shown <= count - 1 && count > 2)
+                        strcat(playerInfoText[1], ",");
+                    if (shown < count - 1) {
+                        strcat(playerInfoText[1], " ");
+                    } else if (shown == count - 1) {
+                        strcat(playerInfoText[1], " ");
+                        StrcatIndCString(playerInfoText[1], kGameStrList, kStrAnd);
+                        strcat(playerInfoText[1], " ");
+                    }
+                    outfitQty[i] = 0;
+                } else if (weight < maxWeight) {
+                    if (weight > n || type == 0)
+                        n = weight;
+                }
+                type++;
+            }
+        }
+        maxWeight = n;
+    } while (j > 0);
+#else
     numTypes = 0;
     len = strlen(playerInfoText[1]);
     do {
@@ -6094,20 +8851,20 @@ void SetupPlayerInfoText(void)
         for (i = 0; i < kMaxOutfits; i++) {
             qty = outfitQty[i];
             if (qty > 0 && lcOutfitName[i][0] != 0 &&
-                (gOutfits[i].flags & kOutfShowInRanks) == 0) {
-                weight = gOutfits[i].dispWeight;
+                (outfitSystem[i].flags & kOutfShowInRanks) == 0) {
+                weight = outfitSystem[i].dispWeight;
                 if (maxWeight == weight) {
                     found++;
                     if (qty == 1) {
                         c = tolower(lcOutfitName[i][1]);
                         if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u')
-                            AppendIndString(playerInfoText[1], kGameStrList, kStrAn);
+                            StrcatIndCString(playerInfoText[1], kGameStrList, kStrAn);
                         else
-                            AppendIndString(playerInfoText[1], kGameStrList, kStrA);
+                            StrcatIndCString(playerInfoText[1], kGameStrList, kStrA);
                     } else if (qty == 2) {
-                        AppendIndString(playerInfoText[1], kOrdinalsSTR, kOrdinalsBase + 2);
+                        StrcatIndCString(playerInfoText[1], kOrdinalsSTR, kOrdinalsBase + 2);
                     } else if (qty == 3) {
-                        AppendIndString(playerInfoText[1], kOrdinalsSTR, kOrdinalsBase + 3);
+                        StrcatIndCString(playerInfoText[1], kOrdinalsSTR, kOrdinalsBase + 3);
                     } else if (qty > 3) {
                         NumToString(qty, str);
                         PtoCstr(str);
@@ -6130,7 +8887,7 @@ void SetupPlayerInfoText(void)
                         strcat(playerInfoText[1], " ");
                     } else if (numTypes == count - 1) {
                         strcat(playerInfoText[1], " ");
-                        AppendIndString(playerInfoText[1], kGameStrList, kStrAnd);
+                        StrcatIndCString(playerInfoText[1], kGameStrList, kStrAnd);
                         strcat(playerInfoText[1], " ");
                     }
                     outfitQty[i] = 0;
@@ -6143,12 +8900,13 @@ void SetupPlayerInfoText(void)
         }
         maxWeight = nextWeight;
     } while (found > 0);
+#endif
 
     strcat(playerInfoText[1], ".\r\r");
 
     credits = PlayerShipTradeInPrice();
     if (credits > 0) {
-        AppendIndString(playerInfoText[1], kGameStrList, kStrTradeInValue);
+        StrcatIndCString(playerInfoText[1], kGameStrList, kStrTradeInValue);
         strcat(playerInfoText[1], " ");
         StrcatCommaNumber(credits, playerInfoText[1]);
         strcat(playerInfoText[1], " ");
@@ -6164,9 +8922,8 @@ void SetupPlayerInfoText(void)
         rankShown[i] = 0;
         if (rankData[i].active != 0 && rankData[i].loaded != 0 &&
             strlen(rankData[i].name) != 0) {
-            weight = rankData[i].priority;
-            if (weight > maxWeight || count == 0)
-                maxWeight = weight;
+            if (rankData[i].priority > maxWeight || count == 0)
+                maxWeight = rankData[i].priority;
             count++;
         }
     }
@@ -6175,25 +8932,37 @@ void SetupPlayerInfoText(void)
         outfitQty[i] = 0;
 
     for (i = 0; i < kMaxOutfits; i++) {
+#ifdef MACBUILD
+        j = shipSystems[i];
+        if (j > 0 && lcOutfitName[i][0] != 0 &&
+            (outfitSystem[i].flags & kOutfShowInRanks) != 0) {
+            if (outfitSystem[i].sameNameIndex < 0 || outfitSystem[i].sameNameIndex >= i)
+                type = i;
+            else
+                type = outfitSystem[i].sameNameIndex;
+            outfitQty[type] += j;
+        }
+#else
         qty = shipSystems[i];
         if (qty > 0 && lcOutfitName[i][0] != 0 &&
-            (gOutfits[i].flags & kOutfShowInRanks) != 0) {
-            slot = gOutfits[i].sameNameIndex;
+            (outfitSystem[i].flags & kOutfShowInRanks) != 0) {
+            slot = outfitSystem[i].sameNameIndex;
             if (slot < 0 || slot >= i)
                 slot = i;
             outfitQty[slot] += qty;
         }
+#endif
     }
 
     for (i = 0; i < kMaxOutfits; i++) {
         if (outfitQty[i] > 0 && lcOutfitName[i][0] != 0 &&
-            (gOutfits[i].flags & kOutfShowInRanks) != 0)
+            (outfitSystem[i].flags & kOutfShowInRanks) != 0)
             count++;
     }
 
     if (count > 0) {
         strcpy(playerInfoText[2], "");
-        AppendIndString(playerInfoText[2], kGameStrList, kStrAwardsHeader);
+        StrcatIndCString(playerInfoText[2], kGameStrList, kStrAwardsHeader);
         strcat(playerInfoText[2], "\r\r");
         shown = 0;
         do {
@@ -6210,7 +8979,7 @@ void SetupPlayerInfoText(void)
                         strcat(playerInfoText[2], " ");
                     } else if (shown == count - 1) {
                         strcat(playerInfoText[2], " ");
-                        AppendIndString(playerInfoText[2], kGameStrList, kStrAnd);
+                        StrcatIndCString(playerInfoText[2], kGameStrList, kStrAnd);
                         strcat(playerInfoText[2], " ");
                     }
                 }
@@ -6219,9 +8988,8 @@ void SetupPlayerInfoText(void)
             for (i = 0; i < kMaxRanks; i++) {
                 if (rankData[i].active != 0 && rankData[i].loaded != 0 &&
                     strlen(rankData[i].name) != 0 && rankShown[i] == 0) {
-                    weight = rankData[i].priority;
-                    if (weight > maxWeight || found == 0)
-                        maxWeight = weight;
+                    if (rankData[i].priority > maxWeight || found == 0)
+                        maxWeight = rankData[i].priority;
                     found++;
                 }
             }
@@ -6235,17 +9003,17 @@ void SetupPlayerInfoText(void)
         for (i = 0; i < kMaxOutfits; i++) {
             qty = outfitQty[i];
             if (qty > 0 && lcOutfitName[i][0] != 0 &&
-                (gOutfits[i].flags & kOutfShowInRanks) != 0) {
+                (outfitSystem[i].flags & kOutfShowInRanks) != 0) {
                 if (qty == 1) {
                     c = tolower(lcOutfitName[i][1]);
                     if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u')
-                        AppendIndString(playerInfoText[2], kGameStrList, kStrAn);
+                        StrcatIndCString(playerInfoText[2], kGameStrList, kStrAn);
                     else
-                        AppendIndString(playerInfoText[2], kGameStrList, kStrA);
+                        StrcatIndCString(playerInfoText[2], kGameStrList, kStrA);
                 } else if (qty == 2) {
-                    AppendIndString(playerInfoText[2], kOrdinalsSTR, kOrdinalsBase + 2);
+                    StrcatIndCString(playerInfoText[2], kOrdinalsSTR, kOrdinalsBase + 2);
                 } else if (qty == 3) {
-                    AppendIndString(playerInfoText[2], kOrdinalsSTR, kOrdinalsBase + 3);
+                    StrcatIndCString(playerInfoText[2], kOrdinalsSTR, kOrdinalsBase + 3);
                 } else if (qty > 3) {
                     NumToString(qty, str);
                     PtoCstr(str);
@@ -6269,15 +9037,31 @@ void SetupPlayerInfoText(void)
         strcat(playerInfoText[2], "\r");
     }
 }
+#endif
 
 /* FrameDefaultButton (mac _FrameDefaultButton). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049d630
+// MAC: _FrameDefaultButton i386 0x00055200 ppc 0x0005d578
 void FrameDefaultButton(void *dlg, short flag)
 {
+#ifdef MACBUILD
+    short itemType;
+    Handle item;
+    Rect box;
+
+    if (gSystemVersion < 0x1000) {
+        SetPort(GetDialogPort(dlg));
+        GetDialogItem(dlg, flag, &itemType, &item, &box);
+        PenSize(3, 3);
+        InsetRect(&box, -4, -4);
+        FrameRoundRect(&box, 16, 16);
+    }
+#endif
 }
 
 /* ApplyPriceAndTechnologyFlux. STATE: MATCH 100.0%, exe 114 / obj 114, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0049d640
+// MAC: _ApplyPriceAndTechnologyFlux i386 0x0004e6cd ppc 0x000572e4
 long ApplyPriceAndTechnologyFlux(long cost, float multiplier, short itemTech, short portTech)
 {
     long price;
@@ -6286,7 +9070,7 @@ long ApplyPriceAndTechnologyFlux(long cost, float multiplier, short itemTech, sh
         return 0;
 
     price = cost;
-    if (itemTech <= 5 && portTech <= 5 && itemTech < portTech && cost >= 100)
+    if (itemTech <= 5 && portTech <= 5 && itemTech < portTech && price >= 100)
         price *= (100 - (portTech - itemTech) * 3) * kPortPriceScale;
 
     price *= multiplier;
@@ -6308,6 +9092,39 @@ long ApplyPriceAndTechnologyFlux(long cost, float multiplier, short itemTech, sh
     return price;
 }
 
+#ifdef MAC1010
+void HideTheMenuBar(void)
+{
+    if (!settings.windowed)
+        HideMenuBar();
+}
+
+void ShowTheMenuBar(void)
+{
+    if (!settings.windowed)
+        ShowMenuBar();
+}
+#elif defined(MACBUILD)
+/* ShowTheMenuBar (mac _ShowTheMenuBar). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _ShowTheMenuBar i386 0x0005588b ppc 0x0005dac4
+void ShowTheMenuBar(void)
+{
+#if V111
+    if (!settings.windowed)
+        SetSystemUIMode(kUIModeNormal, 0);
+#endif
+}
+
+/* HideTheMenuBar. STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _HideTheMenuBar i386 0x000558b2 ppc 0x0005dae4
+void HideTheMenuBar(void)
+{
+#if V111
+    if (!settings.windowed)
+        SetSystemUIMode(kUIModeAllHidden, kUIOptionAutoShowMenuBar);
+#endif
+}
+#else
 /* HideTheMenuBar. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049d7a0
 void HideTheMenuBar(void)
@@ -6319,11 +9136,102 @@ void HideTheMenuBar(void)
 void ShowTheMenuBar(void)
 {
 }
+#endif
 
 
 /* StartLoopingMovie. STATE: MATCH. OPEN: none */
 // FUNCTION: EVNOVA 0x0049d7c0
+// MAC: _StartLoopingMovie i386 0x00060266 ppc 0x00067fb8
 void StartLoopingMovie(const unsigned char *name, void *window, Rect *box)
+#ifdef MAC1010
+{
+    short resID;
+    short vRefNum;
+    long dirID;
+    FSSpec spec;
+    TimeBase timeBase;
+    OSErr err;
+    long flags;
+
+    if (settings.noMovies != 0)
+        return;
+    if (loopingMovie != NULL)
+        EndLoopingMovie();
+    err = GetPluginSubfolder(gARef, "\pNova Plug-Ins", &dirID, &vRefNum);
+    if (err != noErr) {
+        err = GetPluginSubfolder(gARef, "\pNova Files", &dirID, &vRefNum);
+        if (err != noErr)
+            return;
+    }
+    FSMakeFSSpec(vRefNum, dirID, name, &spec);
+    err = OpenMovieFile(&spec, &loopingMovieResRefNum, fsRdPerm);
+    if (err != noErr) {
+        err = GetPluginSubfolder(gARef, "\pNova Files", &dirID, &vRefNum);
+        if (err != noErr)
+            return;
+        FSMakeFSSpec(vRefNum, dirID, name, &spec);
+        err = OpenMovieFile(&spec, &loopingMovieResRefNum, fsRdPerm);
+        if (err != noErr)
+            return;
+    }
+    resID = 0;
+    NewMovieFromFile(&loopingMovie, loopingMovieResRefNum, &resID, NULL, newMovieActive, NULL);
+    CloseMovieFile(loopingMovieResRefNum);
+    if (err != noErr) {
+        loopingMovie = NULL;
+        return;
+    }
+#if TARGET_API_MAC_CARBON
+    SetMovieGWorld(loopingMovie, GetCWindowGrafPort(window), 0);
+#else
+    SetMovieGWorld(loopingMovie, window, 0);
+#endif
+    SetMovieBox(loopingMovie, box);
+    SetMoviePlayHints(loopingMovie, hintsLoop, hintsLoop);
+    timeBase = GetMovieTimeBase(loopingMovie);
+    flags = GetTimeBaseFlags(timeBase);
+    SetTimeBaseFlags(timeBase, flags | loopTimeBase);
+    GoToBeginningOfMovie(loopingMovie);
+    SetMovieRate(loopingMovie, 0x10000);
+    StartMovie(loopingMovie);
+}
+#elif defined(MACBUILD)
+{
+    HFSUniStr255 uniName;
+    FSRef ref;
+    Handle dataRef;
+    OSType dataRefType;
+    void *timeBase;
+    short movieResId = -1;
+
+    introMusicMovie = NULL;
+    if (settings.noMovies != 0)
+        return;
+    EndLoopingMovie();
+    HFSNameGetUnicodeName(name, kTextEncodingUnknown, &uniName);
+    if (FSMakeFSRefUnicode(&pluginsFolder, uniName.length, uniName.unicode,
+                           kTextEncodingUnknown, &ref) != noErr
+        && FSMakeFSRefUnicode(&novaFilesFolder, uniName.length, uniName.unicode,
+                              kTextEncodingUnknown, &ref) != noErr)
+        goto fail;
+    if (QTNewDataReferenceFromFSRef(&ref, 0, &dataRef, &dataRefType) != noErr)
+        goto fail;
+    if (NewMovieFromDataRef(&loopingMovie, newMovieActive, &movieResId, dataRef,
+                            dataRefType) != noErr)
+        goto fail;
+    SetMovieGWorld(loopingMovie, GetCWindowGrafPort(window), 0);
+    SetMovieBox(loopingMovie, box);
+    SetMoviePlayHints(loopingMovie, hintsLoop, hintsLoop);
+    timeBase = GetMovieTimeBase(loopingMovie);
+    SetTimeBaseFlags(timeBase, GetTimeBaseFlags(timeBase) | loopTimeBase);
+    GoToBeginningOfMovie(loopingMovie);
+    SetMovieRate(loopingMovie, 0x10000);
+    StartMovie(loopingMovie);
+    return;
+fail:
+    loopingMovie = NULL;
+}
+#else
 {
     short found;
     CGrafPtr port;
@@ -6334,7 +9242,7 @@ void StartLoopingMovie(const unsigned char *name, void *window, Rect *box)
     short movieResId = 0;
     CGrafPtr *windowPort = (CGrafPtr *)window;
 
-    if (gEarlyOutFlag != 0)
+    if (settings.noMovies != 0)
         return;
 
     if (loopingMovie != NULL)
@@ -6352,25 +9260,33 @@ void StartLoopingMovie(const unsigned char *name, void *window, Rect *box)
     PStr2CStr(cname, name);
 
     sprintf(path, "9:Nova Plug-ins:%s", cname);
+#ifdef CEFIX /* F07.01 */
+    CE_ExpandPlugInsPath(path, path);
+#else
     ExpandAPathToBufferNative(path, path);
+#endif
     CStr2PStr(path, path);
     found = FSMakeFSSpec(0, 0, path, scratch);
     if ((int)found == 0)
-        found = OpenMovieFile(scratch, &gMovieRefNum, 1);
+        found = OpenMovieFile(scratch, &loopingMovieResRefNum, 1);
     if ((int)found != 0) {
         PStr2CStr(cname, name);
         sprintf(path, "9:Nova Files:%s", cname);
+#ifdef CEFIX /* F07.02 */
+        CE_ExpandFilesPath(path, path);
+#else
         ExpandAPathToBufferNative(path, path);
+#endif
         CStr2PStr(path, path);
         found = FSMakeFSSpec(0, 0, path, scratch);
         if ((int)found == 0)
-            found = OpenMovieFile(scratch, &gMovieRefNum, 1);
+            found = OpenMovieFile(scratch, &loopingMovieResRefNum, 1);
         if ((int)found != 0)
             return;
     }
 
-    found = NewMovieFromFile(&loopingMovie, gMovieRefNum, &movieResId, 0, 1, 0);
-    CloseMovieFile(gMovieRefNum);
+    found = NewMovieFromFile(&loopingMovie, loopingMovieResRefNum, &movieResId, 0, 1, 0);
+    CloseMovieFile(loopingMovieResRefNum);
     if ((int)found != 0) {
         loopingMovie = NULL;
         return;
@@ -6385,31 +9301,47 @@ void StartLoopingMovie(const unsigned char *name, void *window, Rect *box)
     SetMovieRate(loopingMovie, 0x10000);
     StartMovie(loopingMovie);
 }
+#endif
 
 /* LoopingMovieIdle. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049da80
+// MAC: _LoopingMovieIdle i386 0x000558d9 ppc 0x0005db04
 void LoopingMovieIdle(void)
 {
+#if V111
+    EventRecord ev;
+
+#endif
     if (loopingMovie != NULL) {
         MoviesTask(loopingMovie, 0);
+#ifdef MACBUILD
+#if V111
+        WaitNextEvent(0, &ev, gameLoaded && inBackground ? 30 : 0, NULL);
+#endif
+#else
         nv_UpdateDialogWindow(0);
         ScreenEndScene();
+#endif
     }
 }
 
 /* EndLoopingMovie. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049dab0
+// MAC: _EndLoopingMovie i386 0x00055934 ppc 0x0005db80
 void EndLoopingMovie(void)
 {
     if (loopingMovie != NULL) {
         DisposeMovie(loopingMovie);
         loopingMovie = NULL;
+#ifndef MACBUILD
         FUN_004fc310(gIntroMovieData);
         gIntroMovieData = NULL;
+#endif
     }
 }
 
 /* the movie's idle callback; taken by address at 0x0049deb1 */
+#ifndef MACBUILD
 /* IntroMovieIdleProc. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049daf0
 short IntroMovieIdleProc(void)
@@ -6417,6 +9349,7 @@ short IntroMovieIdleProc(void)
     ScreenEndScene();
     return 0;
 }
+#endif
 
 #pragma options align=packed
 typedef struct FileSpec {
@@ -6433,7 +9366,178 @@ typedef struct FileSpec {
 
 /* PlayQTMovie. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049db00
+// MAC: _PlayQTMovie i386 0x00055957 ppc 0x0005dbc4
 void PlayQTMovie(unsigned char *name, unsigned char doubled, unsigned char fade)
+#ifdef MACBUILD
+{
+#ifdef MAC1010
+    FSSpec spec;
+    Rect box;
+    Rect r;
+    Rect scaled;
+    Movie movie;
+    long dirID;
+    short fileRef;
+    short movieResId;
+    short vRefNum;
+    long savedPaintWhite;
+#else
+    HFSUniStr255 uniName;
+    FSRef ref;
+    Handle dataRef;
+    OSType dataRefType;
+    Movie movie;
+    short movieResId = -1;
+    Rect scaled;
+    Rect r;
+    Rect box;
+#endif
+    WindowRef win;
+    short dw, dh, w, h;
+    float ratio;
+    unsigned long last;
+    EventRecord ev;
+    OSErr err;
+
+    if (settings.noMovies != 0)
+        return;
+#ifdef MAC1010
+    if (GetPluginSubfolder(gARef, "\pNova Plug-Ins", &dirID, &vRefNum) != noErr)
+        return;
+    FSMakeFSSpec(vRefNum, dirID, name, &spec);
+    err = OpenMovieFile(&spec, &fileRef, fsRdPerm);
+    if (err != noErr) {
+        if (GetPluginSubfolder(gARef, "\pNova Files", &dirID, &vRefNum) != noErr)
+            return;
+        FSMakeFSSpec(vRefNum, dirID, name, &spec);
+        err = OpenMovieFile(&spec, &fileRef, fsRdPerm);
+        if (err != noErr)
+            return;
+    }
+    movieResId = 0;
+    NewMovieFromFile(&movie, fileRef, &movieResId, NULL, newMovieActive, NULL);
+    CloseMovieFile(fileRef);
+    if (err != noErr)
+        return;
+#else
+    HFSNameGetUnicodeName(name, kTextEncodingUnknown, &uniName);
+    if (FSMakeFSRefUnicode(&pluginsFolder, uniName.length, uniName.unicode,
+                           kTextEncodingUnknown, &ref) != noErr
+        && FSMakeFSRefUnicode(&novaFilesFolder, uniName.length, uniName.unicode,
+                              kTextEncodingUnknown, &ref) != noErr)
+        return;
+    if (QTNewDataReferenceFromFSRef(&ref, 0, &dataRef, &dataRefType) != noErr)
+        return;
+    if (NewMovieFromDataRef(&movie, newMovieActive, &movieResId, dataRef,
+                            dataRefType) != noErr)
+        return;
+#endif
+    if (fade != 0) {
+        FadeScreenOut();
+        HideTheCursor();
+    }
+    GetMovieBox(movie, &box);
+    OffsetRect(&box, -box.left, -box.top);
+    if (doubled != 0) {
+        scaled.left = 0;
+        scaled.top = 0;
+        scaled.right = (box.right - box.left) * 2;
+        scaled.bottom = (box.bottom - box.top) * 2;
+        scaled.right++;
+        scaled.bottom++;
+        OffsetRect(&scaled, -scaled.left, -scaled.top);
+        box = scaled;
+    }
+    SetMovieBox(movie, &box);
+    if (fade != 0)
+        r = *GetCWindowPortRect(gWind);
+    else
+        r = box;
+    win = NewCWindow(NULL, &r, "\p", false, plainDBox, NULL, true, -1);
+    CenterWindow(win, gWind);
+    ShowWindowNoFlash(win);
+    SetPort(GetWindowPort(win));
+    ForeColor(blackColor);
+    PaintRect(GetWindowPortRect(win));
+#ifndef MAC1010
+    QDFlushPortBuffer(GetWindowPort(win), NULL);
+#endif
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+    savedPaintWhite = LMGetPaintWhite();
+    LMSetPaintWhite(0);
+#endif
+    SelectWindow(win);
+    BringToFront(win);
+    ForeColor(blackColor);
+    PaintRect(GetWindowPortRect(win));
+#ifndef MAC1010
+    QDFlushPortBuffer(GetWindowPort(win), NULL);
+#endif
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+    SetMovieGWorld(movie, GetWindowPort(win), 0);
+#else
+    SetMovieGWorld(movie, GetCWindowGrafPort(win), 0);
+#endif
+    w = GetWindowPortRect(win)->right - GetWindowPortRect(win)->left;
+    h = GetWindowPortRect(win)->bottom - GetWindowPortRect(win)->top;
+    dw = box.right - box.left;
+    dh = box.bottom - box.top;
+    /* BUG: both letterbox fits compute the new bottom from box.left, not box.top */
+    if (dw > w) {
+        ratio = (float)w / dw;
+        box.right = box.left + dw * ratio;
+        box.bottom = box.left + dh * ratio;
+    }
+    dw = box.right - box.left;
+    dh = box.bottom - box.top;
+    if (dh > h) {
+        ratio = (float)h / dh;
+        box.right = box.left + dw * ratio;
+        box.bottom = box.left + dh * ratio;
+    }
+    CenterRect(&box, GetWindowPortRect(win));
+    SetMovieBox(movie, &box);
+    GoToBeginningOfMovie(movie);
+    LoadMovieIntoRam(movie, 0, GetMovieDuration(movie), 0);
+    if (fade != 0)
+        FadeScreenIn();
+    last = 0;
+    StartMovie(movie);
+    while (!IsMovieDone(movie)) {
+        if (TickCount() > last + 6) {
+            last = TickCount();
+            MoviesTask(movie, 0);
+#ifdef MAC1010
+            BusyIdle();
+#else
+            WaitNextEvent(0, &ev, (gameLoaded != 0 && inBackground != 0) ? 30 : 0, NULL);
+#endif
+        }
+        if (Button() || KeyCheck(MacKey(0x31)) || KeyCheck(MacKey(0x24)) || KeyCheck(MacKey(0x4c))) {
+            FlushEvents(0xf, 0);
+            break;
+        }
+    }
+    StopMovie(movie);
+    if (fade != 0) {
+        FadeScreenOut();
+        ShowTheCursor();
+    }
+    HideWindow(win);
+    DisposeWindow(win);
+#ifdef MAC1010
+#if !TARGET_API_MAC_CARBON
+    LMSetPaintWhite(savedPaintWhite);
+#endif
+#else
+    if (fade != 0)
+        FadeScreenIn();
+#endif
+    DisposeMovie(movie);
+    SWSetPortToWindow(gSpriteWorld);
+    ForeColor(blackColor);
+}
+#else
 {
     char nameBuf[256];
     FileSpec spec;
@@ -6452,10 +9556,14 @@ void PlayQTMovie(unsigned char *name, unsigned char doubled, unsigned char fade)
     CGrafPtr port;
     float ratio;
 
-    if (gEarlyOutFlag == 0) {
+    if (settings.noMovies == 0) {
         PStr2CStr(nameBuf, name);
         sprintf(pathBuf, "9:Nova Plug-ins:%s", nameBuf);
+#ifdef CEFIX /* F07.03 */
+        CE_ExpandPlugInsPath(pathBuf, pathBuf);
+#else
         ExpandAPathToBufferNative(pathBuf, pathBuf);
+#endif
         CStr2PStr(pathBuf, pathBuf);
         r = FSMakeFSSpec(0, 0, pathBuf, &spec);
         if ((long)r == 0)
@@ -6465,7 +9573,11 @@ void PlayQTMovie(unsigned char *name, unsigned char doubled, unsigned char fade)
             goto found;
         PStr2CStr(nameBuf, name);
         sprintf(pathBuf, "9:Nova Files:%s", nameBuf);
+#ifdef CEFIX /* F07.04 */
+        CE_ExpandFilesPath(pathBuf, pathBuf);
+#else
         ExpandAPathToBufferNative(pathBuf, pathBuf);
+#endif
         CStr2PStr(pathBuf, pathBuf);
         r = FSMakeFSSpec(0, 0, pathBuf, &spec);
         if ((long)r == 0)
@@ -6573,30 +9685,155 @@ found:
         FUN_004fc310(gIntroMovieData);
         gIntroMovieData = NULL;
         SWSetPortToWindow(gSpriteWorld);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         RedrawDialogs(1);
         return;
     }
 }
+#endif
 
 /* PlayQTMovieFromDesc. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049e3c0
+// MAC: _PlayQTMovieFromDesc i386 0x00055f11 ppc 0x0005e194
 void PlayQTMovieFromDesc(short id)
 {
     extern char *strcpy(char *, const char *);   /* MSL, CALLED not inlined */
 
-    strcpy(gDescText, "");
-    LoadDescription(gDescText, id);
+    strcpy(descTextPtr, "");
+    LoadDescription(descTextPtr, id);
     if (descMovieName[0] != 0)
-        PlayQTMovie(descMovieName, (gDescFlags & kDescMovieDoubled),
-                    (gDescFlags & kDescMovieFade));
+        PlayQTMovie(descMovieName, (descFlags & kDescMovieDoubled),
+                    (descFlags & kDescMovieFade));
 }
 
+#ifdef MACBUILD
+#define kSoundDoneMsg  1
+
+OSErr DummyAEVTHandler(const AppleEvent *ev, AppleEvent *reply, long refCon);
+OSErr PrefAEVTHandler(const AppleEvent *ev, AppleEvent *reply, long refCon);
+OSErr QuitAEVTHandler(const AppleEvent *ev, AppleEvent *reply, long refCon);
+
+/* PlanetSoundCallback (mac only). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _PlanetSoundCallback i386 0x00055f5d ppc 0x0005e210
+void PlanetSoundCallback(long message)
+{
+    if (message == kSoundDoneMsg && dockedPort != NULL && (dockedPort->flags2 & kSpobLoopSound))
+        PlaySound(planetSnd, 10, gSoundVolume, gSoundVolume);
+}
+
+/* InitAEVTHandlers (mac only). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _InitAEVTHandlers i386 0x00055fa3 ppc 0x0005e25c
+void InitAEVTHandlers(void)
+{
+    OSErr err;
+    long response;
+
+    OAPPHandlerUPP = NewAEEventHandlerUPP(DummyAEVTHandler);
+    err = AEInstallEventHandler(kCoreEventClass, kAEOpenApplication, OAPPHandlerUPP, 0, false);
+    if (err == noErr) {
+        ODOCHandlerUPP = NewAEEventHandlerUPP(DummyAEVTHandler);
+        err = AEInstallEventHandler(kCoreEventClass, kAEOpenDocuments, ODOCHandlerUPP, 0, false);
+    }
+    if (err == noErr) {
+        PDOCHandlerUPP = NewAEEventHandlerUPP(DummyAEVTHandler);
+        err = AEInstallEventHandler(kCoreEventClass, kAEPrintDocuments, PDOCHandlerUPP, 0, false);
+    }
+    if (err == noErr) {
+        QUITHandlerUPP = NewAEEventHandlerUPP(QuitAEVTHandler);
+        err = AEInstallEventHandler(kCoreEventClass, kAEQuitApplication, QUITHandlerUPP, 0, false);
+    }
+    if (err == noErr) {
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+        PREFHandlerUPP = NULL;
+#else
+        Gestalt(gestaltMenuMgrAttr, &response);
+        if (response & gestaltMenuMgrAquaLayoutMask) {
+            PREFHandlerUPP = NewAEEventHandlerUPP(PrefAEVTHandler);
+            AEInstallEventHandler(kCoreEventClass, kAEShowPreferences, PREFHandlerUPP, 0, false);
+        } else {
+            PREFHandlerUPP = NULL;
+        }
+#endif
+    }
+}
+
+/* GotRequiredAEVTParams (mac only). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _GotRequiredAEVTParams i386 0x0005611d ppc 0x0005e3f4
+OSErr GotRequiredAEVTParams(const AppleEvent *ev)
+{
+    DescType returnedType;
+    Size actualSize;
+    OSErr err;
+    OSErr result;
+
+    err = AEGetAttributePtr(ev, keyMissedKeywordAttr, typeWildCard, &returnedType, NULL, 0,
+                            &actualSize);
+    if (err == errAEDescNotFound)
+        result = noErr;
+    else if (err == noErr)
+        result = errAEEventNotHandled;
+    else
+        result = err;
+    return result;
+}
+
+/* DummyAEVTHandler (mac only). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _DummyAEVTHandler i386 0x00056174 ppc 0x0005e454
+OSErr DummyAEVTHandler(const AppleEvent *ev, AppleEvent *reply, long refCon)
+{
+    return noErr;
+}
+
+/* PrefAEVTHandler (mac only). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _PrefAEVTHandler i386 0x0005617b ppc 0x0005e45c
+OSErr PrefAEVTHandler(const AppleEvent *ev, AppleEvent *reply, long refCon)
+{
+    DoPrefsDialog();
+    AdjustSoundVolume();
+    if (!gPause)
+        RefreshSAT();
+    return noErr;
+}
+
+/* QuitAEVTHandler (mac only). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _QuitAEVTHandler i386 0x0005619e ppc 0x0005e49c
+OSErr QuitAEVTHandler(const AppleEvent *ev, AppleEvent *reply, long refCon)
+{
+#if TARGET_API_MAC_CARBON
+    Str255 text;
+
+    crashlog("got quit Apple event");
+    if (gPause) {
+        gQuit = 1;
+    } else {
+        SetRetainedWindow(gWind, false);
+        if (gameLoaded && gameInProgress && !gPause)
+            RefreshSAT();
+        GetIndString(text, kAlertStrList, 10);
+        if (EVYesNoDialog(text)) {
+            gQuit = 1;
+        } else {
+            InvalWindowRect(gWind, GetWindowPortRect(gWind));
+            SetRetainedWindow(gWind, true);
+            RefreshSAT();
+        }
+    }
+#else
+    crashlog("got quit Apple event");
+    gQuit = 1;
+#endif
+    return noErr;
+}
+#endif
+
+
+#ifndef MACBUILD
 /* FUN_0049e420. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049e420
 void FUN_0049e420(void)
 {
 }
+#endif
 
 /* DrawEscortMenuInFrame (mac _DrawEscortMenuInFrame). STATE: MATCH 100.0%, exe
    305 / obj 305, reloc 57 with 0 hidden, byte-identical. The `(long)status'
@@ -6604,41 +9841,40 @@ void FUN_0049e420(void)
    scores 98.0% because a named 32-bit local is coloured out of the temp ring.
    OPEN: none. see notes */
 // FUNCTION: EVNOVA 0x0049e430
-void DrawEscortMenuInFrame(void)
+// MAC: _DrawEscortMenuInFrame i386 0x00056268 ppc 0x0005e590
+void DrawEscortMenuInFrame()
 {
-    Rect box;
     Rect bar;
+    Rect box;
     Rect *frame;
-    char flags[4];
+    Boolean flags[4];
     Str255 str;
     short i;
     short category;
-    short status;
 
     SWSetPortToFrame(floatingEscortMenuFrame);
     frame = &floatingEscortMenuFrame->frameRect;
-    box.top = frame->top;
-    box.left = frame->left;
-    box.bottom = frame->bottom;
-    box.right = frame->right;
+    box = *frame;
 
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(&box);
 
-    flags[0] = 0;
-    flags[1] = 0;
-    flags[2] = 0;
-    flags[3] = 0;
+    for (i = 0; i < 4; i++)
+        flags[i] = 0;
 
     RGBForeColor(&floatingBorderColor);
     FrameRect(&box);
 
-    RGBForeColor(whiteColor);
+    ForeColor(whiteColor);
     TextFont(smallTextFont);
     TextSize(smallTextSize);
 
     GetIndString(str, kGameStrList, 0x85);
+#ifdef CEFIX /* F12.68 */
+    CE_SetPen((box.left + box.right) / 2 - StringWidth(str) / 2, CE_Scale(box.top + 0xf));
+#else
     MoveTo((box.left + box.right) / 2 - StringWidth(str) / 2, box.top + 0xf);
+#endif
     DrawString(str);
 
     for (i = 1; i < 64; i++) {
@@ -6646,33 +9882,43 @@ void DrawEscortMenuInFrame(void)
             continue;
         if (shipData[i].parentShip != 0)
             continue;
-        category = gShipTypes[shipData[i].type].escortType;
+        category = shipClass[shipData[i].type].escortType;
         if (category < 0 || category > 3)
             continue;
         flags[category] = 1;
     }
 
     for (i = -1; i < 4; i++) {
-        if (gSelectedQuickKey == i) {
+        if (selEscortGroup == i) {
             bar.left = box.left + 4;
             bar.right = box.right - 4;
             bar.top = box.top + 0x1e + (i + 1) * 18;
             bar.bottom = box.top + 0x2b + (i + 1) * 18;
             RGBForeColor(&escortMenuColor);
+#ifdef CEFIX /* F12.71 */
+            bar.top = CE_Scale(bar.top);
+            bar.bottom = CE_Scale(bar.bottom);
             PaintRect(&bar);
+#else
+            PaintRect(&bar);
+#endif
         }
 
         if (i == -1)
-            RGBForeColor(whiteColor);
+            ForeColor(whiteColor);
         else if (flags[i] != 0)
-            RGBForeColor(whiteColor);
+            ForeColor(whiteColor);
         else
             RGBForeColor(&rgbDarkGrey);
 
+#ifdef CEFIX /* F12.69 */
+        CE_SetPen(box.left + 7, CE_Scale(box.top + 0x28 + (i + 1) * 18));
+#else
         MoveTo(box.left + 7, box.top + 0x28 + (i + 1) * 18);
+#endif
         NumToString(i + 2, str);
         DrawString(str);
-        DrawString((const unsigned char *)"\p) ");
+        DrawString("\p) ");
 
         if (i == -1)
             DrawIndString(kGameStrList, 0x90);
@@ -6687,36 +9933,122 @@ void DrawEscortMenuInFrame(void)
 
         if (i != -1 && flags[i] != 0) {
             strcpy((char *)str, "");
-            status = playerEscortOrders[i];
-            if ((long)status == 1)
+            if ((long)playerEscortOrders[i] == 1)
                 GetIndString(str, kGameStrList, 0x91);
-            else if ((long)status == 2)
+            else if ((long)playerEscortOrders[i] == 2)
                 GetIndString(str, kGameStrList, 0x92);
-            else if ((long)status == 4)
+            else if ((long)playerEscortOrders[i] == 4)
                 GetIndString(str, kGameStrList, 0x93);
-            else if ((long)status == 3)
+            else if ((long)playerEscortOrders[i] == 3)
                 GetIndString(str, kGameStrList, 0x94);
             else
                 GetIndString(str, kGameStrList, 0x95);
-            RGBForeColor(whiteColor);
+            ForeColor(whiteColor);
+#ifdef CEFIX /* F12.70 */
+            CE_SetPen(box.right - StringWidth(str) - 7, CE_Scale(box.top + 0x28 + (i + 1) * 18));
+#else
             MoveTo(box.right - StringWidth(str) - 7, box.top + 0x28 + (i + 1) * 18);
+#endif
             DrawString(str);
         }
     }
 
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     SWSetPortToWindow(gSpriteWorld);
 }
 
 #define kDefaultMapZoom 0x20
 
-/* ResetMapZoom. STATE: MATCH, byte-identical. OPEN: none */
+/* ShowEscortMenu. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049e8d0
-void ResetMapZoom(void)
+// MAC: _ShowEscortMenu i386 0x0005664a ppc 0x0005e980
+void ShowEscortMenu(void)
 {
     escortMenuOnscreen = kDefaultMapZoom;
     DrawEscortMenuInFrame();
 }
+
+#ifdef MACBUILD
+/* GetWindowDragBounds (mac only). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _GetWindowDragBounds i386 0x0005665d ppc 0x0005e994
+void GetWindowDragBounds(Rect *bounds, Point where)
+{
+    Point origin;
+    Rect portRect;
+    GDHandle device;
+
+    bounds->left = bounds->right = bounds->top = bounds->bottom = 0;
+    if (useLegacyRenderingPipeline && gSpriteWorld != NULL && gSpriteWorld->mainSWGDH != NULL) {
+        device = gSpriteWorld->mainSWGDH;
+        *bounds = (*device)->gdRect;
+        SWSetPortToWindow(gSpriteWorld);
+        origin.v = 0;
+        origin.h = 0;
+        LocalToGlobal(&origin);
+        portRect = *GetCWindowPortRect(gWind);
+        OffsetRect(&portRect, -portRect.left, -portRect.top);
+        OffsetRect(&portRect, origin.h, origin.v);
+        bounds->left = where.h - portRect.left;
+        bounds->right -= portRect.right - where.h;
+        bounds->top = GetMBarHeight() + where.v - portRect.top;
+        bounds->bottom -= portRect.bottom - where.v;
+    }
+}
+
+/* ForceWindowOnscreen (mac only). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _ForceWindowOnscreen i386 0x0005677b ppc 0x0005eae4
+void ForceWindowOnscreen(void)
+{
+    Rect bounds;
+    Rect screen;
+    short h;
+    short v;
+    short left;
+    short top;
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+    Point pt;
+#endif
+
+    if (useLegacyRenderingPipeline) {
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+        bounds = *GetCWindowPortRect(gWind);
+        OffsetRect(&bounds, -bounds.left, -bounds.top);
+        pt.v = 0;
+        pt.h = 0;
+        SetPort(gWind);
+        LocalToGlobal(&pt);
+        OffsetRect(&bounds, pt.h, pt.v);
+        screen = (*GetMainDevice())->gdRect;
+        h = left = pt.h;
+        v = top = pt.v;
+#else
+        GetWindowBounds(gWind, kWindowContentRgn, &bounds);
+        left = bounds.left;
+        top = bounds.top;
+        screen = (*GetMainDevice())->gdRect;
+        h = left;
+        v = top;
+#endif
+        if (bounds.left < screen.left)
+            h = left + (screen.left - bounds.left);
+        if (bounds.top < screen.top)
+            v += screen.top - bounds.top;
+        if (bounds.right > screen.right)
+            h -= bounds.right - screen.right;
+        if (bounds.bottom > screen.bottom)
+            v -= bounds.bottom - screen.bottom;
+#ifdef MAC1010 /* 1.0.10 spelling */
+        if (h != left || v != top)
+            MoveWindow(gWind, h, v, false);
+#else
+        if (h != left)
+            MoveWindow(gWind, h, v, false);
+        else if (v != top)
+            MoveWindow(gWind, h, v, false);
+#endif
+    }
+}
+#endif
 
 
 #define kQtyDlogID 0x3eb
@@ -6730,20 +10062,43 @@ void ResetMapZoom(void)
    the whole eax<->ebx exchange. Both `(long)' casts are load-bearing -- without them
    the compares narrow and flip to unsigned. OPEN: none. see notes */
 // FUNCTION: EVNOVA 0x0049e8e0
+// MAC: _DoQuantityDialog i386 0x00056d5b ppc 0x0005f1e4
 long DoQuantityDialog(long maxCount, short mode)
 {
-    short i;
-    void *item;
-    short itemHit;
+#ifdef MAC1010
     long value;
-    char done;
+    Handle item;
+    short itemHit;
+    Boolean done;
     Rect box;
     short itemType;
-    long result;
     Str255 text;
+#elif V111 /* V111 spelling */
+    long value;
+    Str255 text;
+    short itemType;
+    Handle item;
+    short itemHit;
+    Boolean done;
+    short i;
+    Rect box;
+#else
+    Handle item;
+    short itemHit;
+    long value;
+    Boolean done;
+    short i;
+    Rect box;
+    short itemType;
+    Str255 text;
+#endif
     Str255 digits;
-    char allDigits;
+    Boolean allDigits;
+#ifdef MAC1010
+    short i;
+#endif
     short destIdx;
+    long result;
 
     qtyDialog = NULL;
     qtyDialog = GetNewDialog(kQtyDlogID, NULL, NULL);
@@ -6752,12 +10107,12 @@ long DoQuantityDialog(long maxCount, short mode)
 
     CenterWindow(FrontWindow(qtyDialog), gWind);
     ShowMacWindow(FrontWindow(qtyDialog));
-    FrontWindow(qtyDialog);
+    SelectWindow(FrontWindow(qtyDialog));
     SetDialogGWorld(qtyDialog);
     FrameDefaultButton(qtyDialog, 1);
     SelectDialogItemText(qtyDialog, kQtyTextItem, 0, 0x7fff);
 
-    GetDialogItem(qtyDialog, kQtyPromptItem, &itemType, &item, &box);
+    GetDialogItem(qtyDialog, kQtyPromptItem, &itemType, (void **)&item, &box);
     if (mode == 1)
         SetControlTitle((ControlPtr)item,buttonLabel[2]);
     else if (mode == 2)
@@ -6769,10 +10124,10 @@ long DoQuantityDialog(long maxCount, short mode)
     else
         GetIndString(text, kGameStrList, 0x173);
 
-    GetDialogItem(qtyDialog, kQtyMaxItem, &itemType, &item, &box);
+    GetDialogItem(qtyDialog, kQtyMaxItem, &itemType, (void **)&item, &box);
     SetDialogItemText((ControlPtr)item,text);
 
-    GetDialogItem(qtyDialog, kQtyTextItem, &itemType, &item, &box);
+    GetDialogItem(qtyDialog, kQtyTextItem, &itemType, (void **)&item, &box);
     NumToString(maxCount, text);
     SetDialogItemText((ControlPtr)item,text);
 
@@ -6783,14 +10138,14 @@ long DoQuantityDialog(long maxCount, short mode)
         if (itemHit == 4) {
             done = 1;
         } else if (itemHit == 1) {
-            GetDialogItem(qtyDialog, kQtyTextItem, &itemType, &item, &box);
+            GetDialogItem(qtyDialog, kQtyTextItem, &itemType, (void **)&item, &box);
             GetDialogItemText((ControlPtr)item,text);
             if (text[0] != 0) {
                 allDigits = 1;
                 digits[0] = 0;
                 destIdx = 1;
                 for (i = 0; i < text[0]; i++) {
-                    if ((long)text[i + 1] >= '0' && (long)text[i + 1] <= '9') {
+                    if (text[i + 1] >= '0' && text[i + 1] <= '9') {
                         digits[0]++;
                         digits[destIdx] = text[i + 1];
                         destIdx++;
@@ -6800,17 +10155,17 @@ long DoQuantityDialog(long maxCount, short mode)
                 }
                 if (allDigits) {
                     StringToNum(text, &value);
-                    if (value < 0 || value > maxCount) {
-                        SysBeep(0);
-                        if (value >= 0)
-                            NumToString(maxCount, text);
-                        else
-                            NumToString(0, text);
-                        SetDialogItemText((ControlPtr)item,text);
-                        SelectDialogItemText(qtyDialog, kQtyTextItem, 0, 0x7fff);
-                    } else {
+                    if (value >= 0 && value <= maxCount) {
                         result = value;
                         done = 1;
+                    } else {
+                        SysBeep(0);
+                        if (value < 0)
+                            NumToString(0, text);
+                        else
+                            NumToString(maxCount, text);
+                        SetDialogItemText((ControlPtr)item,text);
+                        SelectDialogItemText(qtyDialog, kQtyTextItem, 0, 0x7fff);
                     }
                 } else {
                     SysBeep(0);
@@ -6819,8 +10174,10 @@ long DoQuantityDialog(long maxCount, short mode)
                 }
             } else {
                 SysBeep(0);
-                SetDialogItemText((ControlPtr)item,(const unsigned char *)"\p");
+                SetDialogItemText((ControlPtr)item,"\p");
+#if !defined(MACBUILD) && !V111
                 SelectDialogItemText(qtyDialog, kQtyTextItem, 0, 0x7fff);
+#endif
             }
         }
     } while (!done);
@@ -6833,9 +10190,10 @@ long DoQuantityDialog(long maxCount, short mode)
 #define kMapWorldWide 4096
 #define kMapWorldHigh 32
 
-/* InitMapWorld. STATE: MATCH, byte-identical. OPEN: none */
+/* SetupDialogs. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049ed00
-void InitMapWorld(void)
+// MAC: _SetupDialogs i386 0x0005715d ppc 0x0005f500
+void SetupDialogs(void)
 {
     Rect r;
     short i;
@@ -6860,31 +10218,44 @@ void InitMapWorld(void)
     mapDialog = NULL;
     captureDialog = NULL;
     for (i = 0; i < 128; i++) {
-        pictCache[i].picID = -1;
-        pictCache[i].stamp = 0;
+        iconCache[i].picID = -1;
+        iconCache[i].stamp = 0;
     }
     nagCount = 0;
+#ifdef CEFIX /* F12.72 */
+    SetRect(&r, 0, 0, ceGridThumbSize * 128, ceGridThumbSize);
+#else
     SetRect(&r, 0, 0, kMapWorldWide, kMapWorldHigh);
-    CreateGWorldContainer(&pictCachePort, 0, 0, &r);
+#endif
+#ifdef MACBUILD
+    CreateGWorldContainer(&iconsPort, GetMainDevice(), 0, &r);
+#else
+    CreateGWorldContainer(&iconsPort, 0, 0, &r);
+#endif
 }
 
-/* DisposeMapWorld. STATE: MATCH, byte-identical. OPEN: none */
+/* DisposeDialogs. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049eec0
-void DisposeMapWorld(void)
+// MAC: _DisposeDialogs i386 0x000572b0 ppc 0x0005f668
+void DisposeDialogs(void)
 {
-    if (pictCachePort.world != NULL)
-        DisposeGWorldContainer(&pictCachePort);
+    if (iconsPort.world != NULL)
+        DisposeGWorldContainer(&iconsPort);
 }
 
+#ifndef MACBUILD
 /* CrtInitHook5. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049eee0
 void CrtInitHook5(void)
 {
 }
+#endif
 
-}
+EXTERN_C_END
 
 /* The exe ends this object with a C++ static initializer, reached through .CRT$XCU; its body
    is the function above.  An empty constructor makes the compiler emit the hook. */
+#ifndef MACBUILD
 struct CrtHook { CrtHook() {} };
 static CrtHook crtHook;
+#endif

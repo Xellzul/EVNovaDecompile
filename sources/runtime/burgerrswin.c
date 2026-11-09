@@ -122,7 +122,7 @@ ReadFileStream_t *ReadFileStreamNew(const char *FileName, Word32 ChunkCount, Wor
             Output->ChunkSizeMask = ChunkSize - 1;
             Output->ChunkCountMask = ChunkCount - 1;
             Temp = ChunkSize;
-            Shift = (Word32)-1;
+            Shift = -1;
             do {
                 Shift++;
                 Temp >>= 1;
@@ -141,7 +141,7 @@ ReadFileStream_t *ReadFileStreamNew(const char *FileName, Word32 ChunkCount, Wor
                     High = 0;
                     Output->FileSize = GetFileSize(Output->FileRef, &High);
                     if (High)
-                        Output->FileSize = (Word32)-1;
+                        Output->FileSize = -1;
                     Output->Stop = 1;
                     Output->ThreadHandle = CreateThread(0, kReaderStackSize,
                         ReadFileStreamCallback, Output, 0, &Output->ThreadID);

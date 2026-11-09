@@ -65,8 +65,8 @@ double ConvertAiffExtended(const void *Input)
     Exponent = (In[0] << 8) | In[1];
     Sign = Exponent & kExtendedSign;
     Exponent = (Exponent - kExponentRebias) & kExponentMask;
-    Out[7] = (Word8)(Exponent >> 4);
-    Out[6] = (Word8)(Exponent << 4);
+    Out[7] = (Exponent >> 4);
+    Out[6] = (Exponent << 4);
     if (Sign)
         Out[7] |= 0x80;
     i = 2;
@@ -74,9 +74,9 @@ double ConvertAiffExtended(const void *Input)
         Value = In[i];
         if (i == 2)
             Value &= kExplicitOne;
-        Out[8 - i] |= (Word8)(Value >> 3);
+        Out[8 - i] |= (Value >> 3);
         if (i != 8)
-            Out[7 - i] = (Word8)(Value << 5);
+            Out[7 - i] = (Value << 5);
     } while (++i < 8);
     return Result;
 }
@@ -326,12 +326,12 @@ long ParseSoundFileImage(AudioDesc *desc, Word8 *data, ULong size)
 
     } else if (size >= kMinVoc
                && memcmp(data, kVocSignature, kVocSignatureLen) == 0
-               && (ULong)*(unsigned short *)(data + 0x16)
-                  == (ULong)*(unsigned short *)(data + 0x18) + 0x1234) {
+               && *(unsigned short *)(data + 0x16)
+                  == *(unsigned short *)(data + 0x18) + 0x1234) {
         block = data + *(unsigned short *)(data + 0x14);
         if (*block == kVocSound) {
             desc->SoundPtr = block + 0x10;
-            desc->SoundLength = ((ULong)*(unsigned short *)(block + 2) << 8)
+            desc->SoundLength = (*(unsigned short *)(block + 2) << 8)
                            + block[1] - 0xc;
             desc->SampleRate = *(ULong *)(block + 4);
             if (block[8] == 8)

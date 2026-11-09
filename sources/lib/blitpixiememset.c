@@ -5,6 +5,20 @@
 
 /* BlitPixieMemSet (mac _BlitPixieMemSet). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00474410
+// MAC: _BlitPixieMemSet i386 0x000c0452 ppc 0x000cc158
+#ifdef MACBUILD
+void BlitPixieMemSet( unsigned char *dst, unsigned long value, long bytes )
+{
+	long	i;
+
+	for ( i = 0; i < (bytes >> 2); i++ )
+		*((unsigned long *) dst)++ = value;
+	if ( bytes & 2 )
+		*((unsigned short *) dst)++ = value;
+	if ( bytes & 1 )
+		*((unsigned char *) dst)++ = value;
+}
+#else
 void BlitPixieMemSet(unsigned char *dstPixels, unsigned long value,
         long byteWidth)
 {
@@ -24,3 +38,4 @@ void BlitPixieMemSet(unsigned char *dstPixels, unsigned long value,
         *dstPixels = value;
     }
 }
+#endif

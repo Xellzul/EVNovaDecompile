@@ -3,6 +3,10 @@
 // COMPILE-WHY: two scoped `#pragma opt_repositioncode off' regions (pragma-only, no -opt
 // spelling), over SetupMonitor and over ConvertSpriteToRLE; each matches only with it.
 /* setup.c --tu-map object O26, the original Setup.c: SpriteWorld and sprite setup, loading, cleanup and game-state reset, then the QuickDraw state shims. Notes: Research/notes/setup.md */
+#if defined(MACBUILD) && V111
+#define IMPLICIT_RESOURCEEXISTS
+#define IMPLICIT_SWGWORLDS
+#endif
 #include <math.h>
 #include <stddef.h>
 
@@ -15,6 +19,7 @@
 #include "crashlog.h"
 #include "spriteworld.h"
 #include "dialogs.h"
+#include "cefix.h"
 #include "shipobj.h"
 #include "resources.h"
 #include "space.h"
@@ -27,10 +32,319 @@
 #include "player.h"
 #include "ships.h"
 #include "sound.h"
+#ifdef MACBUILD
+extern void CancelMusicThread(void);
+extern void CarbonHackCleanup(void);
+extern FSRef *novaSupportFolder;
+extern short startupDepth;
+extern short oldDepth;
+extern long gSystemVersion;
+extern double userSpeedSetting;
+extern void InitCluts(void);
+extern void BlitPixieDitherInit(void);
+extern long QDGetNativeWindowFromPort(CGrafPtr port);
+extern int _CGSDefaultConnection(void);
+extern int CGSSetWindowDepthLimit(int cid, int window, int depth);
+extern int CGSSetWindowDepth(int cid, int window, int depth);
+#endif
+
+/* the resource type names in the log lines: MacRoman in the 1.0.10 text, UTF-8 in 1.1.1's */
+#if V111 /* V111: the log text carries UTF-8, 1.0.10's is MacRoman */
+#define kSpinTypeName "sp\xc3\xafn"
+#define kShanTypeName "sh\xc3\xa4n"
+#else
+#define kSpinTypeName "sp\x95n"
+#define kShanTypeName "sh\x8an"
+#endif
 
 
+#ifdef MACBUILD
+/* SetupToolbox (mac _SetupToolbox, mac-only). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _SetupToolbox i386 0x0001b389 ppc 0x0001f3f8
+void SetupToolbox(void)
+{
+    short i;
+
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+    InitGraf(&qd.thePort);
+    InitFonts();
+    InitWindows();
+    InitMenus();
+    TEInit();
+    InitDialogs(NULL);
+#endif
+    InitCursor();
+    FlushEvents(everyEvent, 0);
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+    MaxApplZone();
+    for (i = 0; i < 6; i++)
+        MoreMasters();
+#elif defined(MAC1010)
+    for (i = 0; i < 6; i++)
+        MoreMasterPointers(64);
+#else
+    for (i = 0; i < 6; i++)
+        MoreMasterPointers(128);
+#endif
+    Rand(0);
+}
+
+#endif
+#if V111
+/* DestroySpriteWorld (mac _DestroySpriteWorld, mac-only: the middle of the 1.1.1 Bye, which
+   keeps its own copy). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _DestroySpriteWorld i386 0x000240a7 ppc 0x00028450
+void DestroySpriteWorld(void)
+{
+    long i;
+    long j;
+
+    SetPort(GetCWindowGrafPort(gWind));
+    DisposeButtons();
+    ShowTheMenuBar();
+
+    for (i = 0; i < 0x40; i++) {
+        if (shipData[i].sprite)
+            DisposeClonedSprite(&shipData[i].sprite);
+        if (shipData[i].altSprite)
+            DisposeClonedSprite(&shipData[i].altSprite);
+        if (shipData[i].glowSprite)
+            DisposeClonedSprite(&shipData[i].glowSprite);
+        if (shipData[i].lightSprite)
+            DisposeClonedSprite(&shipData[i].lightSprite);
+        if (shipData[i].weapSprite)
+            DisposeClonedSprite(&shipData[i].weapSprite);
+        if (shipData[i].shieldSprite)
+            DisposeClonedSprite(&shipData[i].shieldSprite);
+    }
+    for (i = 0; i < 0x20; i++) {
+        if (podData[i].sprite)
+            DisposeClonedSprite(&podData[i].sprite);
+    }
+    for (i = 0; i < 0x300; i++) {
+        if (masterShipSprite[i])
+            SWDisposeSprite(&masterShipSprite[i]);
+        if (masterShipGlowSprite[i])
+            SWDisposeSprite(&masterShipGlowSprite[i]);
+        if (masterShipLightSprite[i])
+            SWDisposeSprite(&masterShipLightSprite[i]);
+        if (masterShipWeaponSprite[i])
+            SWDisposeSprite(&masterShipWeaponSprite[i]);
+        if (masterShipAltSprite[i])
+            SWDisposeSprite(&masterShipAltSprite[i]);
+        if (masterShipShieldSprite[i])
+            SWDisposeSprite(&masterShipShieldSprite[i]);
+        if (shipClass[i].frameAngles != NULL)
+            DeallocAPointer(shipClass[i].frameAngles);
+    }
+    for (i = 0; i < 0x10; i++) {
+        if (stellarSprite[i] != NULL)
+            DeallocAPointer(stellarSprite[i]);
+    }
+    for (i = 0; i < 0x100; i++) {
+        if (masterStellarSprite[i] != NULL) {
+            if (masterStellarSprite[i]->frameArray != NULL) {
+                for (j = 0; j < masterStellarSprite[i]->numFrames; j++) {
+                    DeallocAPointer(masterStellarSprite[i]->frameArray[j]);
+                    masterStellarSprite[i]->frameArray[j] = NULL;
+                }
+                masterStellarSprite[i]->numFrames = 0;
+                DeallocAPointer(masterStellarSprite[i]->frameArray);
+                masterStellarSprite[i]->frameArray = NULL;
+            }
+            SWDisposeSprite(&masterStellarSprite[i]);
+        }
+    }
+    for (i = 0; i < 0x20; i++) {
+        if (explodData[i].sprite)
+            DisposeClonedSprite(&explodData[i].sprite);
+    }
+    for (i = 0; i < 0x40; i++) {
+        if (masterExplodSprite[i])
+            SWDisposeSprite(&masterExplodSprite[i]);
+    }
+    for (i = 0; i < 0x80; i++) {
+        if (shotData[i].sprite)
+            DisposeClonedSprite(&shotData[i].sprite);
+    }
+    for (i = 0; i < 0x100; i++) {
+        if (masterShotSprite[i])
+            SWDisposeSprite(&masterShotSprite[i]);
+    }
+    for (i = 0; i < 0x40; i++) {
+        if (smokeData[i].sprite)
+            DisposeClonedSprite(&smokeData[i].sprite);
+    }
+    for (i = 0; i < 8; i++) {
+        if (masterSmokeSprite[i])
+            SWDisposeSprite(&masterSmokeSprite[i]);
+    }
+    for (i = 0; i < 0x10; i++) {
+        if (asteroidData[i].sprite)
+            DisposeClonedSprite(&asteroidData[i].sprite);
+    }
+    for (i = 0; i < 0x10; i++) {
+        if (masterAsteroidSprite[i])
+            SWDisposeSprite(&masterAsteroidSprite[i]);
+    }
+    for (i = 0; i < 6; i++) {
+        if (menuButtonSprite[i])
+            SWDisposeSprite(&menuButtonSprite[i]);
+    }
+    if (menuRolloverSprite != NULL)
+        SWDisposeSprite(&menuRolloverSprite);
+    for (i = 0; i < 0x40; i++) {
+        if (boxData[i].sprite)
+            DisposeClonedSprite(&boxData[i].sprite);
+    }
+    for (i = 0; i < 5; i++) {
+        if (masterBoxSprite[i])
+            SWDisposeSprite(&masterBoxSprite[i]);
+    }
+    for (i = 0; i < kMaxStars; i++) {
+        if (starData[i].sprite)
+            DisposeClonedSprite(&starData[i].sprite);
+    }
+    if (masterStarSprite != NULL)
+        SWDisposeSprite(&masterStarSprite);
+    if (alertSprite != NULL)
+        SWDisposeSprite(&alertSprite);
+    if (doubleTimeSprite != NULL)
+        SWDisposeSprite(&doubleTimeSprite);
+    if (cursorSprite != NULL)
+        SWDisposeSprite(&cursorSprite);
+    for (i = 0; i < kMaxNavTargets; i++) {
+        if (navTargetSprite[i])
+            DisposeClonedSprite(&navTargetSprite[i]);
+    }
+    for (i = 0; i < 4; i++) {
+        if (weapTargetSprite[i])
+            DisposeClonedSprite(&weapTargetSprite[i]);
+    }
+    if (masterNavTargetSprite != NULL)
+        SWDisposeSprite(&masterNavTargetSprite);
+    if (masterWeapTargetSprite != NULL)
+        SWDisposeSprite(&masterWeapTargetSprite);
+    if (redMapArrow != NULL)
+        DisposeCIcon(redMapArrow);
+    if (greenMapArrow != NULL)
+        DisposeCIcon(greenMapArrow);
+
+    DisposeParticles();
+    SWDisposeFrame(&floatingMapFrame);
+    SWDisposeFrame(&floatingEscortMenuFrame);
+
+    if (gSpriteWorld->pixelDepth == 8)
+        Dispose8BitAlphaTable();
+    for (i = 0; i < 0xa; i++) {
+        if (staticPat[i] != NULL)
+            DisposePixPat((Image_t *)staticPat[i]);
+    }
+    for (i = 0; i < 0x300; i++) {
+        if (targetInfoPic[i] != NULL) {
+            QDReleaseResource((PicHandle)targetInfoPic[i]);
+            targetInfoPic[i] = NULL;
+        }
+    }
+
+    if (shipLayer != NULL)
+        SWDisposeSpriteLayer(&shipLayer);
+    if (stellarLayer != NULL)
+        SWDisposeSpriteLayer(&stellarLayer);
+    if (explodLayer != NULL)
+        SWDisposeSpriteLayer(&explodLayer);
+    if (shotLayer != NULL)
+        SWDisposeSpriteLayer(&shotLayer);
+    if (guidedShotLayer != NULL)
+        SWDisposeSpriteLayer(&guidedShotLayer);
+    if (pointDefenseLayer != NULL)
+        SWDisposeSpriteLayer(&pointDefenseLayer);
+    if (targetLayer != NULL)
+        SWDisposeSpriteLayer(&targetLayer);
+    if (asteroidLayer != NULL)
+        SWDisposeSpriteLayer(&asteroidLayer);
+    if (smokeLayer != NULL)
+        SWDisposeSpriteLayer(&smokeLayer);
+    if (disabledShipLayer != NULL)
+        SWDisposeSpriteLayer(&disabledShipLayer);
+    if (escortLayer != NULL)
+        SWDisposeSpriteLayer(&escortLayer);
+    if (boxLayer != NULL)
+        SWDisposeSpriteLayer(&boxLayer);
+    if (starLayer != NULL)
+        SWDisposeSpriteLayer(&starLayer);
+    if (turretedShotLayer != NULL)
+        SWDisposeSpriteLayer(&turretedShotLayer);
+    if (gSpriteWorld != NULL) {
+        if (gSpriteWorld->deadSpriteLayerP != NULL)
+            SWDisposeSpriteLayer(&gSpriteWorld->deadSpriteLayerP);
+        SWDisposeFrame(&gSpriteWorld->backFrameP);
+        SWDisposeFrame(&gSpriteWorld->workFrameP);
+        SWDisposeFrame(&gSpriteWorld->extraBackFrameP);
+    }
+
+    if (gSpriteWorld != NULL)
+        DeallocAPointer(gSpriteWorld);
+    SWExitSpriteWorld();
+
+    DisposeGWorldContainer(&loadPort);
+    DisposeGWorldContainer(&statusOffPort);
+#ifdef MACBUILD
+    if (tempRgn != NULL)
+        DisposeRgn(tempRgn);
+#endif
+
+    DeallocAPointer(shipData);
+    DeallocAPointer(shotData);
+    DeallocAPointer(govtData);
+    DeallocAPointer(dudeData);
+    DeallocAPointer(beamData);
+    DeallocAPointer(stellarData);
+    DeallocAPointer(systemData);
+    DeallocAPointer(shipClass);
+    DeallocAPointer(weaponStats);
+    DeallocAPointer(explodData);
+    DeallocAPointer(explodType);
+    DeallocAPointer(smokeData);
+    DeallocAPointer(outfitSystem);
+    DeallocAPointer(personData);
+    DeallocAPointer(asteroidData);
+    DeallocAPointer(disasterData);
+    DeallocAPointer(nebulaData);
+    DeallocAPointer(fleetData);
+    DeallocAPointer(boxData);
+    DeallocAPointer(podData);
+    DeallocAPointer(junkData);
+    DeallocAPointer(cronEvent);
+    DeallocAPointer(rankData);
+    DeallocAPointer(starData);
+    DeallocAPointer(missionBit);
+    DeallocAPointer(currentMissions);
+    DeallocAPointer(currentMissionObjectives);
+}
+#endif
+
+#ifdef MACBUILD
+#if V111
+/* changeWindowModes (mac _changeWindowModes, mac-only; CheckSystem repeats its body). STATE: mac
+   MATCH i386 and ppc. OPEN: none */
+// MAC: _changeWindowModes i386 0x0001b402 ppc 0x0001f480
+void changeWindowModes(void)
+{
+    CGRect bounds;
+
+    bounds = CGDisplayBounds(CGMainDisplayID());
+    mainWindRect.top = bounds.origin.x;
+    mainWindRect.left = bounds.origin.y;
+    mainWindRect.bottom = bounds.size.height;
+    mainWindRect.right = bounds.size.width;
+}
+#endif
+
+#endif
 /* SetupSpriteWorld (mac _SetupSpriteWorld). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ab980
+// MAC: _SetupSpriteWorld i386 0x00021b3a ppc 0x00025fac
 void SetupSpriteWorld(void)
 {
     short i;
@@ -41,27 +355,40 @@ void SetupSpriteWorld(void)
     RGBColor color;
 
     mBarHidden = 1;
-    windRect.top = mainWindRect.top;
-    windRect.left = mainWindRect.left;
-    windRect.bottom = mainWindRect.bottom;
-    windRect.right = mainWindRect.right;
+    windRect = mainWindRect;
+#ifdef CEFIX /* F14.18 */
+    windRect.right -= ceStatusBarWidth;
+#else
     windRect.right -= 194;
+#endif
     SetPortWindowPort(gWind);
     err = SWCreateSpriteWorldFromWindow(&gSpriteWorld, gWind, &windRect, &windRect, 0);
     if ((long)err != 0) {
         FadeScreenIn();
-        GetIndString(str, 140, 36);
+        GetIndString(str, kAlertStrList, 36);
         EVNoteAlert(str);
         ST_Close();
         ExitToShell();
     }
+#if V111
+    if (useLegacyRenderingPipeline) {
+        if (gSpriteWorld->pixelDepth != 8 && gSpriteWorld->pixelDepth != 16) {
+            FadeScreenIn();
+            GetIndString(str, kAlertStrList, 37);
+            EVNoteAlert(str);
+            ST_Close();
+            ExitToShell();
+        }
+    }
+#else
     if (gSpriteWorld->pixelDepth != 8 && gSpriteWorld->pixelDepth != 16) {
         FadeScreenIn();
-        GetIndString(str, 140, 37);
+        GetIndString(str, kAlertStrList, 37);
         EVNoteAlert(str);
         ST_Close();
         ExitToShell();
     }
+#endif
 
     SWCreateSpriteLayer(&starLayer);
     SWCreateSpriteLayer(&stellarLayer);
@@ -96,6 +423,9 @@ void SetupSpriteWorld(void)
     SWSetLayerCallBack(stellarLayer, BeamDrawOffscreenCallback);
     SWSetLayerCallBack(targetLayer, BeamDrawCallback);
     SWSetSpriteWorldMaxFPS(gSpriteWorld, 0);
+#if defined(MACBUILD) && (!defined(MAC1010) || TARGET_API_MAC_CARBON) /* the Carbon screen blitter */
+    SWSetSpriteWorldScreenDrawProc(gSpriteWorld, SWCopyBitsDrawProc);
+#endif
 
     crashlog("creating scratch frames");
     windRect.top = 0;
@@ -106,38 +436,41 @@ void SetupSpriteWorld(void)
     windRect.bottom = windRect.right;
     SWCreateFrame(GetGDevice(), &floatingMapFrame, &windRect, gSpriteWorld->pixelDepth, 1);
     SWLockFrame(floatingMapFrame);
-    floatingMapRect.top = windRect.top;
-    floatingMapRect.left = windRect.left;
-    floatingMapRect.bottom = windRect.bottom;
-    floatingMapRect.right = windRect.right;
+    floatingMapRect = windRect;
+#ifdef CEFIX /* F14.19 */
+    OffsetRect(&floatingMapRect,
+            GetCWindowPortRect(gWind)->right - GetCWindowPortRect(gWind)->left
+            - (windRect.right - windRect.left + ceStatusBarWidth + 16), 150);
+#else
     OffsetRect(&floatingMapRect,
             GetCWindowPortRect(gWind)->right - GetCWindowPortRect(gWind)->left
             - (windRect.right - windRect.left + 210), 150);
+#endif
+#ifdef CEFIX /* F12.79 */
+    SetRect(&windRect, 0, 0, CE_Scale(160), CE_Scale(120));
+#else
     SetRect(&windRect, 0, 0, 160, 120);
+#endif
     SWCreateFrame(GetGDevice(), &floatingEscortMenuFrame, &windRect, gSpriteWorld->pixelDepth, 1);
     SWLockFrame(floatingEscortMenuFrame);
-    frameRect = &floatingEscortMenuFrame->frameRect;
-    escortMenuRect.top = frameRect->top;
-    escortMenuRect.left = frameRect->left;
-    escortMenuRect.bottom = frameRect->bottom;
-    escortMenuRect.right = frameRect->right;
+    escortMenuRect = floatingEscortMenuFrame->frameRect;
     OffsetRect(&escortMenuRect, -escortMenuRect.left, -escortMenuRect.top);
     OffsetRect(&escortMenuRect, 15, 150);
 
     color.red = color.green = color.blue = 0;
     SWSetBackgroundColor(gSpriteWorld, &color);
+#ifdef MACBUILD
+    BlitPixieDitherInit();
+#endif
     SWSetPostEraseCallBack(gSpriteWorld, PostEraseCallback);
     SWSetPostDrawCallBack(gSpriteWorld, PostDrawCallback);
     SWSetSpriteWorldMaxFPS(gSpriteWorld, 0);
     SWLockSpriteWorld(gSpriteWorld);
     SWSetPortToWindow(gSpriteWorld);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetCWindowPortRect(gWind));
 
-    spriteClipRect.top = windRect.top;
-    spriteClipRect.left = windRect.left;
-    spriteClipRect.bottom = windRect.bottom;
-    spriteClipRect.right = windRect.right;
+    spriteClipRect = windRect;
     spriteClipRect.top -= 75;
     spriteClipRect.left -= 75;
 
@@ -156,8 +489,19 @@ void SetupSpriteWorld(void)
     for (i = 0; i < 256; i++)
         masterShotSprite[i] = 0;
 
+#if V111
+    err = InitParticles(1024, 0);
+    if (err != 0)
+        EV_ASSERT_FAIL("Setup.c", 0x133, 583);
+#else
+#ifdef CEFIX /* F25.01 */
+    if ((long)InitParticles(100000, 0) != 0)
+        SWAssertFail("Setup.c", SW_LINE(0x133));
+#else
     if ((long)InitParticles(1024, 0) != 0)
-        SWAssertFail("Setup.c", 0x133);
+        SWAssertFail("Setup.c", SW_LINE(0x133));
+#endif
+#endif
     SWSetPortToBackground(gSpriteWorld);
     if (gSpriteWorld->pixelDepth == 8) {
         err = Construct8BitAlphaTable();
@@ -173,8 +517,91 @@ void SetupSpriteWorld(void)
 
 /* SetupWind (mac _SetupWind). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ac380
+// MAC: _SetupWind i386 0x0001b462 ppc 0x0001f524
 void SetupWind(void)
 {
+#ifdef MACBUILD
+    Rect bounds;
+#ifndef MAC1010
+    long window;
+#elif TARGET_API_MAC_CARBON
+    short width, height;
+#endif
+
+    fullScreenRestore = 0;
+    if (settings.windowed) {
+        bounds = mainWindRect;
+        if (mainWindRect.right - mainWindRect.left > 832
+                && mainWindRect.bottom - mainWindRect.top > 624)
+            SetRect(&mainWindRect, 0, 0, 832, 604);
+        else if (mainWindRect.right - mainWindRect.left > 800
+                && mainWindRect.bottom - mainWindRect.top > 600)
+            SetRect(&mainWindRect, 0, 0, 800, 580);
+        else {
+            mainWindRect.left += 5;
+            mainWindRect.right -= 5;
+            mainWindRect.top += 45;
+            mainWindRect.bottom -= 5;
+        }
+        bounds.top += 20;
+        CenterRect(&mainWindRect, &bounds);
+        if (mainWindRect.bottom - mainWindRect.top < 600)
+            OffsetRect(&mainWindRect, 0, 8);
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+        gWind = NewCWindow(NULL, &mainWindRect, "\pEV Nova", false, documentProc, NULL, true, -1);
+#else
+        CreateNewWindow(kDocumentWindowClass, kWindowCloseBoxAttribute, &mainWindRect, &gWind);
+#ifndef MAC1010
+        window = QDGetNativeWindowFromPort(GetWindowPort(gWind));
+        CGSSetWindowDepthLimit(_CGSDefaultConnection(), window, 3);
+        CGSSetWindowDepth(_CGSDefaultConnection(), window, 3);
+#endif
+        SetWTitle(gWind, "\pEV Nova");
+#endif
+        OffsetRect(&mainWindRect, -mainWindRect.left, -mainWindRect.top);
+    } else {
+#ifndef MAC1010
+        bounds = mainWindRect;
+        CreateNewWindow(kPlainWindowClass, kWindowNoAttributes, &mainWindRect, &gWind);
+        window = QDGetNativeWindowFromPort(GetWindowPort(gWind));
+        CGSSetWindowDepthLimit(_CGSDefaultConnection(), window, 3);
+        CGSSetWindowDepth(_CGSDefaultConnection(), window, 3);
+#elif TARGET_API_MAC_CARBON
+        CreateNewWindow(kPlainWindowClass, kWindowNoAttributes, &mainWindRect, &gWind);
+        height = width = 0;
+        BeginFullScreen(&fullScreenRestore, NULL, &width, &height, NULL, &rgbBlack, 0);
+#else
+        gWind = NewCWindow(NULL, &mainWindRect, "\pEV Nova", false, plainDBox, NULL, true, -1);
+#endif
+    }
+#ifdef MAC1010
+    crashlog_print("main window rect: ("); /* BUG: `bounds' is unset when full screen */
+    crashlog_print_num(bounds.left);
+    crashlog_print(", ");
+    crashlog_print_num(bounds.top);
+    crashlog_print(", ");
+    crashlog_print_num(bounds.right);
+    crashlog_print(", ");
+    crashlog_print_num(bounds.bottom);
+    crashlog_print(")\n");
+#endif
+    ShowWindowNoFlash(gWind);
+    SetPort(GetCWindowGrafPort(gWind));
+    ForeColor(blackColor);
+    PaintRect(GetCWindowPortRect(gWind));
+    SelectWindow(gWind);
+    BringToFront(gWind);
+    if (!useLegacyRenderingPipeline)
+        QDFlushPortBuffer(GetCWindowGrafPort(gWind), NULL);
+    if (settings.windowed == 0) {
+        HideTheMenuBar();
+        mBarHidden = 1;
+    }
+    screenCenter.h = ((GetCWindowPortRect(gWind)->right
+                             - GetCWindowPortRect(gWind)->left - 194) * 0.5);
+    screenCenter.v = ((GetCWindowPortRect(gWind)->bottom
+                             - GetCWindowPortRect(gWind)->top) * 0.5);
+#else
     short top;
     short left;
     short bottom;
@@ -197,80 +624,110 @@ void SetupWind(void)
     crashlog_print(")\n");
     ShowWindowNoFlash(gWind);
     SetPortWindowPort(gWind);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     PaintRect(GetCWindowPortRect(gWind));
-    if (windowedPref == 0) {
+    if (settings.windowed == 0) {
         HideTheMenuBar();
         mBarHidden = 1;
     }
+#ifdef CEFIX /* F14.20 */
+    screenCenter.h = ((GetCWindowPortRect(gWind)->right
+                             - GetCWindowPortRect(gWind)->left - ceStatusBarWidth) * 0.5);
+#else
     screenCenter.h = ((GetCWindowPortRect(gWind)->right
                              - GetCWindowPortRect(gWind)->left - 194) * 0.5);
+#endif
     screenCenter.v = ((GetCWindowPortRect(gWind)->bottom
                              - GetCWindowPortRect(gWind)->top) * 0.5);
+#endif
 }
+
+#ifdef MAC1010 /* 1.0.10 spelling */
+#define AllocFailed(var, expr) (var = (expr), !var)
+#else
+#define AllocFailed(var, expr) (!(var = (expr)))
+#endif
 
 /* InitArrays (mac _InitArrays). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ac560
+// MAC: _InitArrays i386 0x0001b796 ppc 0x0001f8b4
 void InitArrays(void)
 {
-    if (!(shipData = (ShipObj *)AllocAPointer(0x325200)))
-        SWAssertFail("Setup.c", 0x1b6);
-    if (!(stellarData = (SpobRecord *)AllocAPointer(0x24c000)))
-        SWAssertFail("Setup.c", 0x1b7);
-    if (!(gSystems = (SystRecord *)AllocAPointer(0xfe000)))
-        SWAssertFail("Setup.c", 0x1b8);
-    if (!(gShipTypes = (ShipRec *)AllocAPointer(0x203400)))
-        SWAssertFail("Setup.c", 0x1b9);
-    if (!(gWeapons = (WeapRecord *)AllocAPointer(0xc800)))
-        SWAssertFail("Setup.c", 0x1ba);
-    if (!(explodData = (BoomSlot *)AllocAPointer(0x300)))
-        SWAssertFail("Setup.c", 0x1bb);
-    if (!(explodType = (BoomRecord *)AllocAPointer(0x200)))
-        SWAssertFail("Setup.c", 0x1bc);
-    if (!(gDebrisSlots = (DebrisSlot *)AllocAPointer(0x600)))
-        SWAssertFail("Setup.c", 0x1bd);
-    if (!(beamData = (BeamRecord *)AllocAPointer(0x880)))
-        SWAssertFail("Setup.c", 0x1be);
-    if (!(gOutfits = (OutfRecord *)AllocAPointer(0x6f800)))
-        SWAssertFail("Setup.c", 0x1bf);
-    if (!(dudeData = (DudeRecord *)AllocAPointer(0x9400)))
-        SWAssertFail("Setup.c", 0x1c0);
-    if (!(govtData = (GovtRecord *)AllocAPointer(0x8800)))
-        SWAssertFail("Setup.c", 0x1c1);
-    if (!(personData = (PersRecord *)AllocAPointer(0x1e5000)))
-        SWAssertFail("Setup.c", 0x1c2);
-    if (!(asteroidData = (AsteroidObj *)AllocAPointer(0x240)))
-        SWAssertFail("Setup.c", 0x1c3);
-    if (!(disasterData = (OopsRecord *)AllocAPointer(0x21000)))
-        SWAssertFail("Setup.c", 0x1c4);
-    if (!(nebulaData = (NebuRecord *)AllocAPointer(0x4100)))
-        SWAssertFail("Setup.c", 0x1c5);
-    if (!(fleetData = (FletRecord *)AllocAPointer(0x12400)))
-        SWAssertFail("Setup.c", 0x1c6);
-    if (!(boxData = (BoxObj *)AllocAPointer(0xa00)))
-        SWAssertFail("Setup.c", 0x1c7);
-    if (!(podData = (PodObj *)AllocAPointer(0x300)))
-        SWAssertFail("Setup.c", 0x1c8);
-    if (!(shotData = (ShotObj *)AllocAPointer(0x2400)))
-        SWAssertFail("Setup.c", 0x1c9);
-    if (!(junkData = (JunkRecord *)AllocAPointer(0x29300)))
-        SWAssertFail("Setup.c", 0x1ca);
-    if (!(gCrons = (CronRecord *)AllocAPointer(0x6a000)))
-        SWAssertFail("Setup.c", 0x1cb);
-    if (!(rankData = (RankRecord *)AllocAPointer(0x9000)))
-        SWAssertFail("Setup.c", 0x1cc);
-    if (!(starData = (StarSlot *)AllocAPointer(0x190)))
-        SWAssertFail("Setup.c", 0x1cd);
-    if (!(missionBit = (char *)AllocAPointer(0x2710)))
-        SWAssertFail("Setup.c", 0x1ce);
-    if (!(currentMissions = (MissionRecord *)AllocAPointer(0x8e60)))
-        SWAssertFail("Setup.c", 0x1cf);
-    if (!(currentMissionObjectives = (MissionState *)AllocAPointer(0x140)))
-        SWAssertFail("Setup.c", 0x1d0);
+#ifdef MACBUILD
+    Str255 msg;
+    Str255 num;
+#endif
+
+    if (AllocFailed(shipData, (ShipObj *)AllocAPointer(sizeof(ShipObj) * kMaxShips)))
+        EV_ASSERT_FAIL("Setup.c", 0x1b6, 747);
+    if (AllocFailed(stellarData, (SpobRecord *)AllocAPointer(0x24c000)))
+        EV_ASSERT_FAIL("Setup.c", 0x1b7, 748);
+    if (AllocFailed(systemData, (SystRecord *)AllocAPointer(0xfe000)))
+        EV_ASSERT_FAIL("Setup.c", 0x1b8, 749);
+    if (AllocFailed(shipClass, (ShipRec *)AllocAPointer(0x203400)))
+        EV_ASSERT_FAIL("Setup.c", 0x1b9, 750);
+    if (AllocFailed(weaponStats, (WeapRecord *)AllocAPointer(0xc800)))
+        EV_ASSERT_FAIL("Setup.c", 0x1ba, 751);
+    if (AllocFailed(explodData, (BoomSlot *)AllocAPointer(0x300)))
+        EV_ASSERT_FAIL("Setup.c", 0x1bb, 752);
+    if (AllocFailed(explodType, (BoomRecord *)AllocAPointer(0x200)))
+        EV_ASSERT_FAIL("Setup.c", 0x1bc, 753);
+    if (AllocFailed(smokeData, (DebrisSlot *)AllocAPointer(0x600)))
+        EV_ASSERT_FAIL("Setup.c", 0x1bd, 754);
+    if (AllocFailed(beamData, (BeamRecord *)AllocAPointer(0x880)))
+        EV_ASSERT_FAIL("Setup.c", 0x1be, 755);
+    if (AllocFailed(outfitSystem, (OutfRecord *)AllocAPointer(0x6f800)))
+        EV_ASSERT_FAIL("Setup.c", 0x1bf, 756);
+    if (AllocFailed(dudeData, (DudeRecord *)AllocAPointer(0x9400)))
+        EV_ASSERT_FAIL("Setup.c", 0x1c0, 757);
+    if (AllocFailed(govtData, (GovtRecord *)AllocAPointer(0x8800)))
+        EV_ASSERT_FAIL("Setup.c", 0x1c1, 758);
+    if (AllocFailed(personData, (PersRecord *)AllocAPointer(0x1e5000)))
+        EV_ASSERT_FAIL("Setup.c", 0x1c2, 759);
+    if (AllocFailed(asteroidData, (AsteroidObj *)AllocAPointer(0x240)))
+        EV_ASSERT_FAIL("Setup.c", 0x1c3, 760);
+    if (AllocFailed(disasterData, (OopsRecord *)AllocAPointer(0x21000)))
+        EV_ASSERT_FAIL("Setup.c", 0x1c4, 761);
+    if (AllocFailed(nebulaData, (NebuRecord *)AllocAPointer(0x4100)))
+        EV_ASSERT_FAIL("Setup.c", 0x1c5, 762);
+    if (AllocFailed(fleetData, (FletRecord *)AllocAPointer(0x12400)))
+        EV_ASSERT_FAIL("Setup.c", 0x1c6, 763);
+    if (AllocFailed(boxData, (BoxObj *)AllocAPointer(0xa00)))
+        EV_ASSERT_FAIL("Setup.c", 0x1c7, 764);
+    if (AllocFailed(podData, (PodObj *)AllocAPointer(0x300)))
+        EV_ASSERT_FAIL("Setup.c", 0x1c8, 765);
+    if (AllocFailed(shotData, (ShotObj *)AllocAPointer(0x2400)))
+        EV_ASSERT_FAIL("Setup.c", 0x1c9, 766);
+    if (AllocFailed(junkData, (JunkRecord *)AllocAPointer(0x29300)))
+        EV_ASSERT_FAIL("Setup.c", 0x1ca, 767);
+    if (AllocFailed(cronEvent, (CronRecord *)AllocAPointer(0x6a000)))
+        EV_ASSERT_FAIL("Setup.c", 0x1cb, 768);
+    if (AllocFailed(rankData, (RankRecord *)AllocAPointer(0x9000)))
+        EV_ASSERT_FAIL("Setup.c", 0x1cc, 769);
+    if (AllocFailed(starData, (StarSlot *)AllocAPointer(sizeof(StarSlot) * kMaxStars)))
+        EV_ASSERT_FAIL("Setup.c", 0x1cd, 770);
+    if (AllocFailed(missionBit, (Boolean *)AllocAPointer(0x2710)))
+        EV_ASSERT_FAIL("Setup.c", 0x1ce, 771);
+    if (AllocFailed(currentMissions, (MissionRecord *)AllocAPointer(sizeof(MissionRecord) * kMaxActiveMissions)))
+        EV_ASSERT_FAIL("Setup.c", 0x1cf, 772);
+    if (AllocFailed(currentMissionObjectives, (MissionState *)AllocAPointer(0x140)))
+        EV_ASSERT_FAIL("Setup.c", 0x1d0, 773);
+#ifdef MACBUILD
+    if (EVBugResourceFieldTest(4)) {
+        strcpy((char *)msg, "After creating arrays, stackspace is ");
+        NumToString(StackSpace(), num);
+        PtoCstr(num);
+        strcat((char *)msg, (char *)num);
+        strcat((char *)msg, " bytes");
+        CtoPstr((char *)msg);
+        DebugStr(msg);
+    }
+#endif
 }
 
 /* InitOffscreen (mac _InitOffscreen). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ac950
+// MAC: _InitOffscreen i386 0x0001bd21 ppc 0x0001fe24
 void InitOffscreen(void)
 {
     Rect *bounds;
@@ -278,10 +735,7 @@ void InitOffscreen(void)
     Rect r;
 
     bounds = GetCWindowPortRect(gWind);
-    r.top = bounds->top;
-    r.left = bounds->left;
-    r.bottom = bounds->bottom;
-    r.right = bounds->right;
+    r = *bounds;
     OffsetRect(&r, -r.left, -r.top);
     CreateGWorldContainer(&loadPort, GetMainDevice(), 0, &r);
     if (loadPort.world == NULL) {
@@ -289,19 +743,23 @@ void InitOffscreen(void)
         ShowTheMenuBar();
         ShowTheCursor();
         FadeScreenIn();
-        GetIndString(msg, 0x8c, 0x27);
+        GetIndString(msg, kAlertStrList, 0x27);
         EVNoteAlert(msg);
         ST_Close();
         ExitToShell();
     }
+#ifdef CEFIX /* F14.21 */
+    r.right = r.left + ceStatusBarWidth;
+#else
     r.right = r.left + 0xc2;
+#endif
     CreateGWorldContainer(&statusOffPort, GetMainDevice(), 0, &r);
     if (statusOffPort.world == NULL) {
         HideWindow(gWind);
         ShowTheMenuBar();
         ShowTheCursor();
         FadeScreenIn();
-        GetIndString(msg, 0x8c, 0x27);
+        GetIndString(msg, kAlertStrList, 0x27);
         EVNoteAlert(msg);
         ST_Close();
         ExitToShell();
@@ -310,19 +768,30 @@ void InitOffscreen(void)
 }
 
 
-/* CleanUp. STATE: MATCH, byte-identical. OPEN: none */
+/* 1.1.1 logs no shutdown steps */
+#if V111
+#define ByeLog(s)
+#else
+#define ByeLog(s) crashlog(s)
+#endif
+
+/* Bye. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004acac0
-void CleanUp(void)
+// MAC: _Bye i386 0x00024b6b ppc 0x00029044
+void Bye(void)
 {
     short i;
     short j;
     void *snd;
 
-    crashlog("doing cleanup");
+    ByeLog("doing cleanup");
     DisposeIntroProgressBar();
     FlushEvents(everyEvent - diskMask, 0);
+#if defined(MACBUILD) && V111
+    CancelMusicThread();
+#endif
 
-    crashlog("disposing sounds");
+    ByeLog("disposing sounds");
     ST_HaltSound(0);
     if (warpUpSnd[0] != NULL)
         ST_DisposeSound(warpUpSnd[0]);
@@ -363,12 +832,12 @@ void CleanUp(void)
     if (voiceSnd != NULL)
         ST_DisposeSound(voiceSnd);
 
-    crashlog("disposing buttons");
+    ByeLog("disposing buttons");
     SetPortWindowPort(gWind);
     DisposeButtons();
     ShowTheMenuBar();
 
-    crashlog("disposing sprites");
+    ByeLog("disposing sprites");
     for (i = 0; i < 0x40; i++) {
         if (shipData[i].sprite)
             DisposeClonedSprite(&shipData[i].sprite);
@@ -400,8 +869,8 @@ void CleanUp(void)
             SWDisposeSprite(&masterShipAltSprite[i]);
         if (masterShipShieldSprite[i])
             SWDisposeSprite(&masterShipShieldSprite[i]);
-        if (gShipTypes[i].frameAngles != NULL)
-            DeallocAPointer(gShipTypes[i].frameAngles);
+        if (shipClass[i].frameAngles != NULL)
+            DeallocAPointer(shipClass[i].frameAngles);
     }
     for (i = 0; i < 0x10; i++) {
         if (stellarSprite[i] != NULL)
@@ -438,8 +907,8 @@ void CleanUp(void)
             SWDisposeSprite(&masterShotSprite[i]);
     }
     for (i = 0; i < 0x40; i++) {
-        if (gDebrisSlots[i].sprite)
-            DisposeClonedSprite(&gDebrisSlots[i].sprite);
+        if (smokeData[i].sprite)
+            DisposeClonedSprite(&smokeData[i].sprite);
     }
     for (i = 0; i < 8; i++) {
         if (masterSmokeSprite[i])
@@ -454,8 +923,8 @@ void CleanUp(void)
             SWDisposeSprite(&masterAsteroidSprite[i]);
     }
     for (i = 0; i < 6; i++) {
-        if (gMainButtonSprites[i])
-            SWDisposeSprite(&gMainButtonSprites[i]);
+        if (menuButtonSprite[i])
+            SWDisposeSprite(&menuButtonSprite[i]);
     }
     if (menuRolloverSprite != NULL)
         SWDisposeSprite(&menuRolloverSprite);
@@ -467,7 +936,7 @@ void CleanUp(void)
         if (masterBoxSprite[i])
             SWDisposeSprite(&masterBoxSprite[i]);
     }
-    for (i = 0; i < 0x14; i++) {
+    for (i = 0; i < kMaxStars; i++) {
         if (starData[i].sprite)
             DisposeClonedSprite(&starData[i].sprite);
     }
@@ -496,12 +965,12 @@ void CleanUp(void)
     if (greenMapArrow != NULL)
         DisposeCIcon(greenMapArrow);
 
-    crashlog("disposing particles");
+    ByeLog("disposing particles");
     DisposeParticles();
     SWDisposeFrame(&floatingMapFrame);
     SWDisposeFrame(&floatingEscortMenuFrame);
 
-    crashlog("disposing patterns & picts");
+    ByeLog("disposing patterns & picts");
     if (gSpriteWorld->pixelDepth == 8)
         Dispose8BitAlphaTable();
     for (i = 0; i < 0xa; i++) {
@@ -515,7 +984,7 @@ void CleanUp(void)
         }
     }
 
-    crashlog("disposing sprite layers");
+    ByeLog("disposing sprite layers");
     if (shipLayer != NULL)
         SWDisposeSpriteLayer(&shipLayer);
     if (stellarLayer != NULL)
@@ -550,32 +1019,38 @@ void CleanUp(void)
         SWDisposeFrame(&gSpriteWorld->backFrameP);
         SWDisposeFrame(&gSpriteWorld->workFrameP);
         SWDisposeFrame(&gSpriteWorld->extraBackFrameP);
+#if !V111
         SWDisposeWindowFrame(&gSpriteWorld->windowFrameP);
+#endif
     }
 
-    crashlog("disposing sprite world");
+    ByeLog("disposing sprite world");
     if (gSpriteWorld != NULL)
         DeallocAPointer(gSpriteWorld);
     SWExitSpriteWorld();
 
-    crashlog("disposing offscreen buffers");
+    ByeLog("disposing offscreen buffers");
     DisposeGWorldContainer(&loadPort);
     DisposeGWorldContainer(&statusOffPort);
+#ifdef MACBUILD
+    if (tempRgn != NULL)
+        DisposeRgn(tempRgn);
+#endif
 
-    crashlog("disposing array pointers");
+    ByeLog("disposing array pointers");
     DeallocAPointer(shipData);
     DeallocAPointer(shotData);
     DeallocAPointer(govtData);
     DeallocAPointer(dudeData);
     DeallocAPointer(beamData);
     DeallocAPointer(stellarData);
-    DeallocAPointer(gSystems);
-    DeallocAPointer(gShipTypes);
-    DeallocAPointer(gWeapons);
+    DeallocAPointer(systemData);
+    DeallocAPointer(shipClass);
+    DeallocAPointer(weaponStats);
     DeallocAPointer(explodData);
     DeallocAPointer(explodType);
-    DeallocAPointer(gDebrisSlots);
-    DeallocAPointer(gOutfits);
+    DeallocAPointer(smokeData);
+    DeallocAPointer(outfitSystem);
     DeallocAPointer(personData);
     DeallocAPointer(asteroidData);
     DeallocAPointer(disasterData);
@@ -584,49 +1059,87 @@ void CleanUp(void)
     DeallocAPointer(boxData);
     DeallocAPointer(podData);
     DeallocAPointer(junkData);
-    DeallocAPointer(gCrons);
+    DeallocAPointer(cronEvent);
     DeallocAPointer(rankData);
     DeallocAPointer(starData);
     DeallocAPointer(missionBit);
     DeallocAPointer(currentMissions);
     DeallocAPointer(currentMissionObjectives);
 
-    crashlog("disposing dialog buffer");
-    DisposeMapWorld();
+    ByeLog("disposing dialog buffer");
+    DisposeDialogs();
+#if TARGET_API_MAC_CARBON
+    if ((Ptr)fullScreenRestore != NULL)
+        EndFullScreen((Ptr)fullScreenRestore, 0);
+#endif
 
-    crashlog("disposing window");
+#if !TARGET_API_MAC_CARBON
+    ByeLog("disposing window");
+#endif
     HideWindow(gWind);
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+    CloseWindow(gWind);
+#else
     DisposeWindow(gWind);
+#endif
     gWind = NULL;
 
-    crashlog("closing QuickTime");
+    ByeLog("closing QuickTime");
     ExitMovies();
 
-    crashlog("carbon cleanup");
+    ByeLog("carbon cleanup");
+#ifdef MACBUILD
+    CarbonHackCleanup();
+    ShowCursor();
+#else
     ShowTheCursor();
+#endif
+#if V111
+    FadeScreenIn();
+#endif
 
-    crashlog("closing MT");
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    ByeLog("closing RezLib");
+    if (gScreenRef != 0) {
+        FadeToGamma(gScreenRef, &gOrigGamma, 0.1f);
+        DisposeScreenRef(gScreenRef);
+    }
+#else
+    ByeLog("closing MT");
+#endif
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+    FadeScreenIn();
+    DisposeGammaTools();
+#endif
 
-    crashlog("closing other tools");
+    ByeLog("closing other tools");
     ST_Close();
     RT3_Close();
     IT_Close();
     DT_Close();
     FT_Close();
     PlatformClose();
+#if defined(MACBUILD) && V111
+    free(novaSupportFolder);
+#endif
+#if !V111
 
+#if !TARGET_API_MAC_CARBON
     crashlog("showing control strip");
     RestoreControlStrip();
 
+#endif
     crashlog("clean exit");
 
     crashlog("\n\n- end of log -");
     crashlog_close();
     ExitToShell();
+#endif
 }
 
 /* InitColors. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ad7c0
+// MAC: _InitColors i386 0x0001be73 ppc 0x0001ff78
 void InitColors(void)
 {
     bkgndGreen.red = bkgndGreen.blue = 0;
@@ -652,34 +1165,53 @@ void InitColors(void)
    (5184 bytes), relocregcheck 0 of 403. OPEN: none. The smoke walker `q' is its own pointer
    (declared after resID, numbered after it); blocks 1-5 all count on `i' and write `i + K'. Notes. */
 // FUNCTION: EVNOVA 0x004ad960
+// MAC: _LoadSprites i386 0x00020541 ppc 0x00024ca0
 void LoadSprites(void)
 {
     short spriteID, maskID;
     short xSize, ySize;
+#ifdef MAC1010
+    short xTiles, yTiles;
+    short err;
+    short i;
+    long resID;
+#else
     SpritePtr *p;
     short xTiles, yTiles;
     short i;
     long resID;
     SpritePtr *q;
     short err;
-    unsigned long rleType;
+#endif
 
+#ifdef MAC1010
+    for (i = 0; i < 256; i++) {
+#else
     for (i = 0, p = masterShotSprite; i < 256; i++, p++) {
+#endif
         if (GetSpriteInfo(i + 3000, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
-            rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-            if (ResourceExists(rleType, spriteID)) {
+            if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
+#ifdef MAC1010
+                err = SWCreateSpriteFromRLEResource(&masterShotSprite[i], NULL, spriteID, xTiles * yTiles, 0);
+#else
                 err = SWCreateSpriteFromRLEResource(p,NULL, spriteID, xTiles * yTiles, 0);
+#endif
                 if ((long)err != 0) {
-                    crashlog_print("error loading sprite from RLE resource, sp\x95n ID ");
+                    crashlog_print("error loading sprite from RLE resource, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 3000);
                     crashlog_print("\n");
                     ReportSpriteLoadError(2, i + 3000, err);
                 }
             } else {
+#ifdef MAC1010
+                err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &masterShotSprite[i], NULL, spriteID, maskID, xSize,
+                                   ySize, 0, 0, 0, 1);
+#else
                 err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, p,NULL, spriteID, maskID, xSize,
                                    ySize, 0, 0, 0, 1);
+#endif
                 if ((long)err != 0) {
-                    crashlog_print("error loading sprite from PICT resource, sp\x95n ID ");
+                    crashlog_print("error loading sprite from PICT resource, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 3000);
                     crashlog_print("\n");
                     ReportSpriteLoadError(3, i + 3000, err);
@@ -687,7 +1219,7 @@ void LoadSprites(void)
                 SWLockSprite(masterShotSprite[i]);
                 err = ConvertSpriteToRLE(masterShotSprite[i]);
                 if ((long)err != 0) {
-                    crashlog_print("error converting sprite to RLE, sp\x95n ID ");
+                    crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 3000);
                     crashlog_print("\n");
                     ReportSpriteLoadError(4, i + 3000, err);
@@ -700,11 +1232,10 @@ void LoadSprites(void)
 
     for (i = 0; i < 64; i++) {
         if (GetSpriteInfo(i + 400, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
-            rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-            if (ResourceExists(rleType, spriteID)) {
+            if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
                 err = SWCreateSpriteFromRLEResource(&masterExplodSprite[i], NULL, spriteID, xTiles * yTiles, 0);
                 if ((long)err != 0) {
-                    crashlog_print("error loading sprite from RLE, sp\x95n ID ");
+                    crashlog_print("error loading sprite from RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 400);
                     crashlog_print("\n");
                     ReportSpriteLoadError(2, i + 400, err);
@@ -713,7 +1244,7 @@ void LoadSprites(void)
                 err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &masterExplodSprite[i], NULL, spriteID, maskID, xSize,
                                    ySize, 0, 0, 0, 1);
                 if ((long)err != 0) {
-                    crashlog_print("error loading sprite from PICT, sp\x95n ID ");
+                    crashlog_print("error loading sprite from PICT, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 400);
                     crashlog_print("\n");
                     ReportSpriteLoadError(3, i + 400, err);
@@ -721,7 +1252,7 @@ void LoadSprites(void)
                 SWLockSprite(masterExplodSprite[i]);
                 err = ConvertSpriteToRLE(masterExplodSprite[i]);
                 if ((long)err != 0) {
-                    crashlog_print("error converting sprite to RLE, sp\x95n ID ");
+                    crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 400);
                     crashlog_print("\n");
                     ReportSpriteLoadError(4, i + 400, err);
@@ -735,11 +1266,10 @@ void LoadSprites(void)
     for (i = 0; i < 5; i++) {
         if (GetSpriteInfo(i + 500, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
             masterBoxSprite[i] = 0;
-            rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-            if (ResourceExists(rleType, spriteID)) {
+            if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
                 err = SWCreateSpriteFromRLEResource(&masterBoxSprite[i], NULL, spriteID, xTiles * yTiles, 0);
                 if ((long)err != 0) {
-                    crashlog_print("error loading sprite from RLE, sp\x95n ID ");
+                    crashlog_print("error loading sprite from RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 500);
                     crashlog_print("\n");
                     ReportSpriteLoadError(2, i + 500, err);
@@ -748,7 +1278,7 @@ void LoadSprites(void)
                 err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &masterBoxSprite[i], NULL, spriteID, maskID, xSize,
                                    ySize, 0, 0, 0, 1);
                 if ((long)err != 0) {
-                    crashlog_print("error loading sprite from PICT, sp\x95n ID ");
+                    crashlog_print("error loading sprite from PICT, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 500);
                     crashlog_print("\n");
                     ReportSpriteLoadError(3, i + 500, err);
@@ -756,7 +1286,7 @@ void LoadSprites(void)
                 SWLockSprite(masterBoxSprite[i]);
                 err = ConvertSpriteToRLE(masterBoxSprite[i]);
                 if ((long)err != 0) {
-                    crashlog_print("error converting sprite to RLE, sp\x95n ID ");
+                    crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 500);
                     crashlog_print("\n");
                     ReportSpriteLoadError(4, i + 500, err);
@@ -765,7 +1295,7 @@ void LoadSprites(void)
             }
             IterateInGameEventLoop(1);
         } else {
-            crashlog_print("resource not found, sp\x95n ID ");
+            crashlog_print("resource not found, " kSpinTypeName " ID ");
             crashlog_print_num(i + 500);
             crashlog_print("\n");
             ReportSpriteLoadError(1, i + 500, resNotFound);
@@ -775,11 +1305,10 @@ void LoadSprites(void)
     for (i = 0; i < 16; i++) {
         masterAsteroidSprite[i] = 0;
         if (GetSpriteInfo(i + 800, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
-            rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-            if (ResourceExists(rleType, spriteID)) {
+            if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
                 err = SWCreateSpriteFromRLEResource(&masterAsteroidSprite[i], NULL, spriteID, xTiles * yTiles, 0);
                 if ((long)err != 0) {
-                    crashlog_print("error loading sprite from RLE, sp\x95n ID ");
+                    crashlog_print("error loading sprite from RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 800);
                     crashlog_print("\n");
                     ReportSpriteLoadError(2, i + 800, err);
@@ -788,7 +1317,7 @@ void LoadSprites(void)
                 err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &masterAsteroidSprite[i], NULL, spriteID, maskID, xSize,
                                    ySize, 0, 0, 0, 1);
                 if ((long)err != 0) {
-                    crashlog_print("error loading sprite from PICT, sp\x95n ID ");
+                    crashlog_print("error loading sprite from PICT, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 800);
                     crashlog_print("\n");
                     ReportSpriteLoadError(3, i + 800, err);
@@ -796,7 +1325,7 @@ void LoadSprites(void)
                 SWLockSprite(masterAsteroidSprite[i]);
                 err = ConvertSpriteToRLE(masterAsteroidSprite[i]);
                 if ((long)err != 0) {
-                    crashlog_print("error converting sprite to RLE, sp\x95n ID ");
+                    crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 800);
                     crashlog_print("\n");
                     ReportSpriteLoadError(4, i + 800, err);
@@ -807,7 +1336,7 @@ void LoadSprites(void)
         } else {
             masterAsteroidSprite[i] = 0;
             if (i == 0) {
-                crashlog_print("resource not found, sp\x95n ID ");
+                crashlog_print("resource not found, " kSpinTypeName " ID ");
                 crashlog_print_num(i + 800);
                 crashlog_print("\n");
                 ReportSpriteLoadError(1, i + 800, resNotFound);
@@ -816,48 +1345,46 @@ void LoadSprites(void)
     }
 
     for (i = 0; i < 6; i++) {
-        gMainButtonSprites[i] = 0;
+        menuButtonSprite[i] = 0;
         if (GetSpriteInfo(i + 600, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
-            rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-            if (ResourceExists(rleType, spriteID)) {
-                err = SWCreateSpriteFromRLEResource(&gMainButtonSprites[i], NULL, spriteID, xTiles * yTiles, 0);
+            if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
+                err = SWCreateSpriteFromRLEResource(&menuButtonSprite[i], NULL, spriteID, xTiles * yTiles, 0);
                 if ((long)err != 0) {
-                    crashlog_print("error loading sprite from RLE, sp\x95n ID ");
+                    crashlog_print("error loading sprite from RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 600);
                     crashlog_print("\n");
                     ReportSpriteLoadError(2, i + 600, err);
                 }
             } else {
-                err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &gMainButtonSprites[i], NULL, spriteID, maskID, xSize,
+                err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &menuButtonSprite[i], NULL, spriteID, maskID, xSize,
                                    ySize, 0, 0, 0, 1);
                 if ((long)err != 0) {
-                    crashlog_print("error loading sprite from PICT, sp\x95n ID ");
+                    crashlog_print("error loading sprite from PICT, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 600);
                     crashlog_print("\n");
                     ReportSpriteLoadError(3, i + 600, err);
                 }
-                err = ConvertSpriteToRLE(gMainButtonSprites[i]);
+                err = ConvertSpriteToRLE(menuButtonSprite[i]);
                 if ((long)err != 0) {
-                    crashlog_print("error converting sprite to RLE, sp\x95n ID ");
+                    crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 600);
                     crashlog_print("\n");
                     ReportSpriteLoadError(4, i + 600, err);
                 }
-                gMainButtonSprites[i]->numFrames = xTiles * yTiles;
+                menuButtonSprite[i]->numFrames = xTiles * yTiles;
             }
-            SWLockSprite(gMainButtonSprites[i]);
-            SWSetCurrentFrameIndex(gMainButtonSprites[i], 0);
+            SWLockSprite(menuButtonSprite[i]);
+            SWSetCurrentFrameIndex(menuButtonSprite[i], 0);
             IterateInGameEventLoop(1);
         } else
-            gMainButtonSprites[i] = 0;
+            menuButtonSprite[i] = 0;
     }
 
     if (GetSpriteInfo(700, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
-        rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-        if (ResourceExists(rleType, spriteID)) {
+        if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
             err = SWCreateSpriteFromRLEResource(&masterStarSprite, NULL, spriteID, xTiles * yTiles, 0);
             if ((long)err != 0) {
-                crashlog_print("error loading sprite from RLE, sp\x95n ID ");
+                crashlog_print("error loading sprite from RLE, " kSpinTypeName " ID ");
                 crashlog_print_num(700);
                 crashlog_print("\n");
                 ReportSpriteLoadError(2, 700, err);
@@ -866,14 +1393,14 @@ void LoadSprites(void)
             err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &masterStarSprite, NULL, spriteID,
                                maskID, xSize, ySize, 0, 0, 0, 1);
             if ((long)err != 0) {
-                crashlog_print("error loading sprite from PICT, sp\x95n ID ");
+                crashlog_print("error loading sprite from PICT, " kSpinTypeName " ID ");
                 crashlog_print_num(700);
                 crashlog_print("\n");
                 ReportSpriteLoadError(3, 700, err);
             }
             err = ConvertSpriteToRLE(masterStarSprite);
             if ((long)err != 0) {
-                crashlog_print("error converting sprite to RLE, sp\x95n ID ");
+                crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                 crashlog_print_num(700);
                 crashlog_print("\n");
                 ReportSpriteLoadError(4, 700, err);
@@ -886,7 +1413,7 @@ void LoadSprites(void)
     } else {
         masterStarSprite = NULL;
         if (i == 0) {
-            crashlog_print("resource not found, sp\x95n ID ");
+            crashlog_print("resource not found, " kSpinTypeName " ID ");
             crashlog_print_num(700);
             crashlog_print("\n");
             ReportSpriteLoadError(1, 700, resNotFound);
@@ -894,12 +1421,11 @@ void LoadSprites(void)
     }
 
     if (GetSpriteInfo(607, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
-        rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-        if (ResourceExists(rleType, spriteID)) {
+        if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
             err = SWCreateSpriteFromRLEResource(&menuRolloverSprite, NULL, spriteID, xTiles * yTiles, 0);
             if ((long)err != 0) {
                 menuRolloverSprite = NULL;
-                crashlog_print("error loading sprite from RLE, sp\x95n ID ");
+                crashlog_print("error loading sprite from RLE, " kSpinTypeName " ID ");
                 crashlog_print_num(607);
                 crashlog_print("\n");
             }
@@ -908,13 +1434,13 @@ void LoadSprites(void)
                                maskID, xSize, ySize, 0, 0, 0, 1);
             if ((long)err != 0) {
                 menuRolloverSprite = NULL;
-                crashlog_print("error loading sprite from PICT, sp\x95n ID ");
+                crashlog_print("error loading sprite from PICT, " kSpinTypeName " ID ");
                 crashlog_print_num(607);
                 crashlog_print("\n");
             }
             err = ConvertSpriteToRLE(menuRolloverSprite);
             if ((long)err != 0) {
-                crashlog_print("error converting sprite to RLE, sp\x95n ID ");
+                crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                 crashlog_print_num(607);
                 crashlog_print("\n");
             }
@@ -928,19 +1454,18 @@ void LoadSprites(void)
     } else {
         menuRolloverSprite = NULL;
         if (i == 0) {
-            crashlog_print("resource not found, sp\x95n ID ");
+            crashlog_print("resource not found, " kSpinTypeName " ID ");
             crashlog_print_num(607);
             crashlog_print("\n");
         }
     }
 
     if (GetSpriteInfo(650, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
-        rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-        if (ResourceExists(rleType, spriteID)) {
+        if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
             err = SWCreateSpriteFromRLEResource(&cursorSprite, NULL, spriteID, xTiles * yTiles, 0);
             if ((long)err != 0) {
                 cursorSprite = NULL;
-                crashlog_print("error loading sprite from RLE, sp\x95n ID ");
+                crashlog_print("error loading sprite from RLE, " kSpinTypeName " ID ");
                 crashlog_print_num(650);
                 crashlog_print("\n");
             }
@@ -948,13 +1473,13 @@ void LoadSprites(void)
             err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &cursorSprite, NULL, spriteID,
                                maskID, xSize, ySize, 0, 0, 0, 1);
             if ((long)err != 0) {
-                crashlog_print("error loading sprite from PICT, sp\x95n ID ");
+                crashlog_print("error loading sprite from PICT, " kSpinTypeName " ID ");
                 crashlog_print_num(650);
                 crashlog_print("\n");
             }
             err = ConvertSpriteToRLE(cursorSprite);
             if ((long)err != 0) {
-                crashlog_print("error converting sprite to RLE, sp\x95n ID ");
+                crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                 crashlog_print_num(650);
                 crashlog_print("\n");
             }
@@ -968,7 +1493,7 @@ void LoadSprites(void)
     } else {
         cursorSprite = NULL;
         if (i == 0) {
-            crashlog_print("resource not found, sp\x95n ID ");
+            crashlog_print("resource not found, " kSpinTypeName " ID ");
             crashlog_print_num(650);
             crashlog_print("\n");
         }
@@ -1007,21 +1532,37 @@ void LoadSprites(void)
     }
     IterateInGameEventLoop(1);
 
-    for (i = 0; i < 768; i++)
+    for (i = 0; i < 768; i++) {
         targetInfoPic[i] = GetPicture(i + 3000);
+#ifdef MACBUILD
+        if (targetInfoPic[i] != NULL)
+            HNoPurge(targetInfoPic[i]);
+#endif
+    }
 
     for (i = 0; i < 10; i++)
         staticPat[i] = GetPixPat(i + 128);
     IterateInGameEventLoop(1);
 
+#ifdef MAC1010
+    for (i = 0; i < 2; i++) {
+        masterSmokeSprite[i] = 0;
+        err = SWCreateSpriteFromCicnResource(gSpriteWorld, &masterSmokeSprite[i], NULL, resID = 1000 + i * 8, 8, 1);
+#elif V111 /* V111 spelling */
+    for (i = 0; i < 2; i++) {
+        resID = 1000 + i * 8;
+        masterSmokeSprite[i] = 0;
+        err = SWCreateSpriteFromCicnResource(gSpriteWorld, &masterSmokeSprite[i], NULL, resID, 8, 1);
+#else
     for (i = 0, resID = 1000, q = masterSmokeSprite; i < 2; i++, resID += 8, q++) {
         masterSmokeSprite[i] = 0;
         err = SWCreateSpriteFromCicnResource(gSpriteWorld, q, NULL, resID, 8, 1);
+#endif
         if ((long)err == 0 && masterSmokeSprite[i] != NULL) {
             SWLockSprite(masterSmokeSprite[i]);
             err = SWCreateRLEData(masterSmokeSprite[i], 0);
             if ((long)err != 0) {
-                crashlog_print("error converting sprite to RLE, sp\x95n ID ");
+                crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                 crashlog_print_num(resID);
                 crashlog_print("\n");
                 ReportSpriteLoadError(4, resID, err);
@@ -1072,6 +1613,7 @@ void LoadSprites(void)
 
 /* LoadShipSprites (mac _LoadShipSprites). STATE: MATCH 100.0%, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004aeda0
+// MAC: _LoadShipSprites i386 0x00023e3e ppc 0x000281a4
 void LoadShipSprites(void)
 {
     short k;
@@ -1091,20 +1633,20 @@ void LoadShipSprites(void)
     }
 
     for (shipType = 0; shipType < kMaxShipTypes; shipType++) {
-        HandleIntroMusic(0);
+        ServiceIntroMusic(0);
         count = LoadExtendedShipSprites(shipType);
         if (count > 0) {
-            AdvanceLoadBar(1.0);
+            DeltaIntroProgressBar(1.0);
 
             if (targetInfoPic[shipType]) {
-                gShipTypes[shipType].targetPictID = shipType;
+                shipClass[shipType].targetPictID = shipType;
             } else {
-                gShipTypes[shipType].targetPictID = spriteIndex = gShipTypes[shipType].spriteIndex;
+                shipClass[shipType].targetPictID = spriteIndex = shipClass[shipType].spriteIndex;
                 if (shipType != kMaxShipTypes - 1) {
                     if (crashlog_isactive()) {
-                        if (targetInfoPic[gShipTypes[shipType].targetPictID] == 0) {
+                        if (targetInfoPic[shipClass[shipType].targetPictID] == 0) {
                             crashlog_print("warning: ");
-                            crashlog_print_pstr(gShipTypes[shipType].name);
+                            crashlog_print_pstr(shipClass[shipType].name);
                             crashlog_print(" (");
                             crashlog_print_num(shipType + 128);
                             crashlog_print(") lacks target picture\n");
@@ -1114,14 +1656,14 @@ void LoadShipSprites(void)
             }
 
             if (ResourceExists(kPictType, shipType + 5000)) {
-                gShipTypes[shipType].shipyardPictID = shipType + 5000;
+                shipClass[shipType].shipyardPictID = shipType + 5000;
             } else {
-                gShipTypes[shipType].shipyardPictID = gShipTypes[shipType].spriteIndex + 5000;
+                shipClass[shipType].shipyardPictID = shipClass[shipType].spriteIndex + 5000;
                 if (crashlog_isactive()) {
-                    if (gShipTypes[shipType].buyRandom != 0 || gShipTypes[shipType].hireRandom != 0) {
-                        if (!ResourceExists(kPictType, gShipTypes[shipType].spriteIndex + 5000)) {
+                    if (shipClass[shipType].buyRandom != 0 || shipClass[shipType].hireRandom != 0) {
+                        if (!ResourceExists(kPictType, shipClass[shipType].spriteIndex + 5000)) {
                             crashlog_print("warning: ");
-                            crashlog_print_pstr(gShipTypes[shipType].name);
+                            crashlog_print_pstr(shipClass[shipType].name);
                             crashlog_print(" (");
                             crashlog_print_num(shipType + 128);
                             crashlog_print(") lacks shipyard picture\n");
@@ -1135,17 +1677,10 @@ void LoadShipSprites(void)
     }
 }
 
-/* ShipObj's first six words are its six sprite instances; shipobj.h still
-   spells that span `char *unk0; char unk4[0x14];`, and this is the only
-   function in the tree that touches all six, so the names live here until
-   the header can be widened on a quiet tree. */
-
-#define shipSprites(i) (*(ShipSprites *)&shipData[i])
-
-
 /* InitSprites (mac _InitSprites). STATE: MATCH 100.0%, exe 1542 / obj 1542, byte-identical
    yes (5907 bytes), relocregcheck 0 of 566. OPEN: none. */
 // FUNCTION: EVNOVA 0x004af020
+// MAC: _InitSprites i386 0x0001eda2 ppc 0x0002365c
 void InitSprites(void)
 {
     FloatPoint vel;
@@ -1184,25 +1719,25 @@ void InitSprites(void)
         if (masterShipShieldSprite[i] != NULL && firstShipShieldIndex == -1)
             firstShipShieldIndex = i;
 
-        if ((gShipTypes[i].shanFlags & kShipAngleTable)
-                && gShipTypes[i].framesPer > 0) {
-            gShipTypes[i].frameAngles =
-                (short *)AllocAPointer(gShipTypes[i].framesPer * 2);
-            if (gShipTypes[i].frameAngles == NULL)
-                SWAssertFail("Setup.c", 1740);
-            step = 360.0 / gShipTypes[i].framesPer;
-            for (j = 0; j < gShipTypes[i].framesPer; j++) {
-                angle = j * step;
+        if ((shipClass[i].shanFlags & kShanSkewCorrect)
+                && shipClass[i].framesPer > 0) {
+            shipClass[i].frameAngles =
+                (short *)AllocAPointer(shipClass[i].framesPer * 2);
+            if (shipClass[i].frameAngles == NULL)
+                EV_ASSERT_FAIL("Setup.c", 1740, 2035);
+            step = 360.0 / (float)shipClass[i].framesPer;
+            for (j = 0; j < shipClass[i].framesPer; j++) {
+                angle = step * j;
                 vel.x = vel.y = 0.0f;
                 Accel(angle, 100.0, &vel);
                 if (angle <= 90.0 || angle > 270.0) {
-                    vel.x *= gShipTypes[i].compress[0][0];
-                    vel.y *= gShipTypes[i].compress[0][1];
+                    vel.x *= shipClass[i].compress[0].x;
+                    vel.y *= shipClass[i].compress[0].y;
                 } else {
-                    vel.x *= gShipTypes[i].compress[1][0];
-                    vel.y *= gShipTypes[i].compress[1][1];
+                    vel.x *= shipClass[i].compress[1].x;
+                    vel.y *= shipClass[i].compress[1].y;
                 }
-                gShipTypes[i].frameAngles[j] = CalcInterceptAngle(&origin, &vel);
+                shipClass[i].frameAngles[j] = CalcInterceptAngle(&origin, &vel);
             }
         }
     }
@@ -1210,136 +1745,136 @@ void InitSprites(void)
     IterateInGameEventLoop(1);
 
     for (i = kMaxShips - 1; i >= 0; i--) {
-        HandleIntroMusic(0);
-        err = SWCloneSprite(masterShipSprite[0], &shipSprites(i).sprite, NULL);
+        ServiceIntroMusic(0);
+        err = SWCloneSprite(masterShipSprite[0], &shipData[i].sprite, NULL);
         if ((long)err != 0) {
             crashlog_print("error cloning ship base sprite, #");
             crashlog_print_num(i);
             crashlog_print("\n");
             ReportSpriteLoadError(1, 0, err);
         }
-        SWCloneFramesFromMaster(shipSprites(i).sprite, masterShipSprite[0]);
-        SWAddSprite(shipLayer, shipSprites(i).sprite);
-        SWSetSpriteVisible(shipSprites(i).sprite, 0);
-        SWSetCurrentFrameIndex(shipSprites(i).sprite, 0);
-        SWSetSpriteDrawProc(shipSprites(i).sprite, BlitPixieRLETranslucentDrawProc);
-        SWSetSpriteCollideProc(shipSprites(i).sprite, ShipCollisionHandler);
-        shipSprites(i).sprite->userData = i;
-        SWLockSprite(shipSprites(i).sprite);
+        SWCloneFramesFromMaster(shipData[i].sprite, masterShipSprite[0]);
+        SWAddSprite(shipLayer, shipData[i].sprite);
+        SWSetSpriteVisible(shipData[i].sprite, 0);
+        SWSetCurrentFrameIndex(shipData[i].sprite, 0);
+        SWSetSpriteDrawProc(shipData[i].sprite, BlitPixieRLETranslucentDrawProc);
+        SWSetSpriteCollideProc(shipData[i].sprite, ShipCollisionHandler);
+        shipData[i].sprite->userData = i;
+        SWLockSprite(shipData[i].sprite);
 
         if (firstShipAltIndex != -1) {
             err = SWCloneSprite(masterShipAltSprite[firstShipAltIndex],
-                                &shipSprites(i).altSprite, NULL);
+                                &shipData[i].altSprite, NULL);
             if ((long)err != 0) {
                 crashlog_print("error cloning ship alt sprite, #");
                 crashlog_print_num(i);
                 crashlog_print("\n");
                 ReportSpriteLoadError(1, 0, err);
             }
-            SWAddSprite(shipLayer, shipSprites(i).altSprite);
-            SWSetSpriteVisible(shipSprites(i).altSprite, 0);
-            SWSetCurrentFrameIndex(shipSprites(i).altSprite, 0);
-            SWSetSpriteDrawProc(shipSprites(i).altSprite,
+            SWAddSprite(shipLayer, shipData[i].altSprite);
+            SWSetSpriteVisible(shipData[i].altSprite, 0);
+            SWSetCurrentFrameIndex(shipData[i].altSprite, 0);
+            SWSetSpriteDrawProc(shipData[i].altSprite,
                                 BlitPixieRLETranslucentDrawProc);
-            shipSprites(i).altSprite->userData = i;
-            SWSetSpriteCollideProc(shipSprites(i).altSprite, ShipCollisionHandler);
-            SWLockSprite(shipSprites(i).altSprite);
-            shipSprites(i).altSprite->translucency = 0;
-            shipSprites(i).altSprite->tintMode = 0;
+            shipData[i].altSprite->userData = i;
+            SWSetSpriteCollideProc(shipData[i].altSprite, ShipCollisionHandler);
+            SWLockSprite(shipData[i].altSprite);
+            shipData[i].altSprite->translucency = 0;
+            shipData[i].altSprite->tintMode = 0;
         }
         if (firstShipGlowIndex != -1) {
             err = SWCloneSprite(masterShipGlowSprite[firstShipGlowIndex],
-                                &shipSprites(i).glowSprite, NULL);
+                                &shipData[i].glowSprite, NULL);
             if ((long)err != 0) {
                 crashlog_print("error cloning ship glow sprite, #");
                 crashlog_print_num(i);
                 crashlog_print("\n");
                 ReportSpriteLoadError(1, 0, err);
             }
-            SWAddSprite(shipLayer, shipSprites(i).glowSprite);
-            SWSetSpriteVisible(shipSprites(i).glowSprite, 0);
-            SWSetCurrentFrameIndex(shipSprites(i).glowSprite, 0);
-            SWSetSpriteDrawProc(shipSprites(i).glowSprite,
+            SWAddSprite(shipLayer, shipData[i].glowSprite);
+            SWSetSpriteVisible(shipData[i].glowSprite, 0);
+            SWSetCurrentFrameIndex(shipData[i].glowSprite, 0);
+            SWSetSpriteDrawProc(shipData[i].glowSprite,
                                 BlitPixieRLETranslucentDrawProc);
-            SWLockSprite(shipSprites(i).glowSprite);
-            shipSprites(i).glowSprite->translucency = 0x20;
-            shipSprites(i).glowSprite->tintRed = 0x20;
-            shipSprites(i).glowSprite->tintGreen = 0x20;
-            shipSprites(i).glowSprite->tintBlue = 0x20;
-            shipSprites(i).glowSprite->tintMode = 0;
-            shipSprites(i).glowSprite->collisionsDisabled = 1;
+            SWLockSprite(shipData[i].glowSprite);
+            shipData[i].glowSprite->translucency = 0x20;
+            shipData[i].glowSprite->tintRed = 0x20;
+            shipData[i].glowSprite->tintGreen = 0x20;
+            shipData[i].glowSprite->tintBlue = 0x20;
+            shipData[i].glowSprite->tintMode = 0;
+            shipData[i].glowSprite->collisionsDisabled = 1;
         }
         if (firstShipLightIndex != -1) {
             err = SWCloneSprite(masterShipLightSprite[firstShipLightIndex],
-                                &shipSprites(i).lightSprite, NULL);
+                                &shipData[i].lightSprite, NULL);
             if ((long)err != 0) {
                 crashlog_print("error cloning ship light sprite, #");
                 crashlog_print_num(i);
                 crashlog_print("\n");
                 ReportSpriteLoadError(1, 0, err);
             }
-            SWAddSprite(shipLayer, shipSprites(i).lightSprite);
-            SWSetSpriteVisible(shipSprites(i).lightSprite, 0);
-            SWSetCurrentFrameIndex(shipSprites(i).lightSprite, 0);
-            SWSetSpriteDrawProc(shipSprites(i).lightSprite,
+            SWAddSprite(shipLayer, shipData[i].lightSprite);
+            SWSetSpriteVisible(shipData[i].lightSprite, 0);
+            SWSetCurrentFrameIndex(shipData[i].lightSprite, 0);
+            SWSetSpriteDrawProc(shipData[i].lightSprite,
                                 BlitPixieRLETranslucentDrawProc);
-            SWLockSprite(shipSprites(i).lightSprite);
-            shipSprites(i).lightSprite->translucency = 0x20;
-            shipSprites(i).lightSprite->tintRed = 0x20;
-            shipSprites(i).lightSprite->tintGreen = 0x20;
-            shipSprites(i).lightSprite->tintBlue = 0x20;
-            shipSprites(i).lightSprite->tintMode = 0;
-            shipSprites(i).lightSprite->collisionsDisabled = 1;
+            SWLockSprite(shipData[i].lightSprite);
+            shipData[i].lightSprite->translucency = 0x20;
+            shipData[i].lightSprite->tintRed = 0x20;
+            shipData[i].lightSprite->tintGreen = 0x20;
+            shipData[i].lightSprite->tintBlue = 0x20;
+            shipData[i].lightSprite->tintMode = 0;
+            shipData[i].lightSprite->collisionsDisabled = 1;
         }
         if (firstShipWeapIndex != -1) {
             err = SWCloneSprite(masterShipWeaponSprite[firstShipWeapIndex],
-                                &shipSprites(i).weapSprite, NULL);
+                                &shipData[i].weapSprite, NULL);
             if ((long)err != 0) {
                 crashlog_print("error cloning ship weapon sprite, #");
                 crashlog_print_num(i);
                 crashlog_print("\n");
                 ReportSpriteLoadError(1, 0, err);
             }
-            SWAddSprite(shipLayer, shipSprites(i).weapSprite);
-            SWSetSpriteVisible(shipSprites(i).weapSprite, 0);
-            SWSetCurrentFrameIndex(shipSprites(i).weapSprite, 0);
-            SWSetSpriteDrawProc(shipSprites(i).weapSprite,
+            SWAddSprite(shipLayer, shipData[i].weapSprite);
+            SWSetSpriteVisible(shipData[i].weapSprite, 0);
+            SWSetCurrentFrameIndex(shipData[i].weapSprite, 0);
+            SWSetSpriteDrawProc(shipData[i].weapSprite,
                                 BlitPixieRLETranslucentDrawProc);
-            SWLockSprite(shipSprites(i).weapSprite);
-            shipSprites(i).weapSprite->translucency = 0x20;
-            shipSprites(i).weapSprite->tintRed = 0x20;
-            shipSprites(i).weapSprite->tintGreen = 0x20;
-            shipSprites(i).weapSprite->tintBlue = 0x20;
-            shipSprites(i).weapSprite->tintMode = 0;
-            shipSprites(i).weapSprite->collisionsDisabled = 1;
+            SWLockSprite(shipData[i].weapSprite);
+            shipData[i].weapSprite->translucency = 0x20;
+            shipData[i].weapSprite->tintRed = 0x20;
+            shipData[i].weapSprite->tintGreen = 0x20;
+            shipData[i].weapSprite->tintBlue = 0x20;
+            shipData[i].weapSprite->tintMode = 0;
+            shipData[i].weapSprite->collisionsDisabled = 1;
         }
         if (firstShipShieldIndex != -1) {
             err = SWCloneSprite(masterShipShieldSprite[firstShipShieldIndex],
-                                &shipSprites(i).shieldSprite, NULL);
+                                &shipData[i].shieldSprite, NULL);
             if ((long)err != 0) {
                 crashlog_print("error cloning ship shield sprite, #");
                 crashlog_print_num(i);
                 crashlog_print("\n");
                 ReportSpriteLoadError(1, 0, err);
             }
-            SWAddSprite(shipLayer, shipSprites(i).shieldSprite);
-            SWSetSpriteVisible(shipSprites(i).shieldSprite, 0);
-            SWSetCurrentFrameIndex(shipSprites(i).shieldSprite, 0);
-            SWSetSpriteDrawProc(shipSprites(i).shieldSprite,
+            SWAddSprite(shipLayer, shipData[i].shieldSprite);
+            SWSetSpriteVisible(shipData[i].shieldSprite, 0);
+            SWSetCurrentFrameIndex(shipData[i].shieldSprite, 0);
+            SWSetSpriteDrawProc(shipData[i].shieldSprite,
                                 BlitPixieRLETranslucentDrawProc);
-            SWLockSprite(shipSprites(i).shieldSprite);
-            shipSprites(i).shieldSprite->translucency = 0x20;
-            shipSprites(i).shieldSprite->tintRed = 0x20;
-            shipSprites(i).shieldSprite->tintGreen = 0x20;
-            shipSprites(i).shieldSprite->tintBlue = 0x20;
-            shipSprites(i).shieldSprite->tintMode = 0;
+            SWLockSprite(shipData[i].shieldSprite);
+            shipData[i].shieldSprite->translucency = 0x20;
+            shipData[i].shieldSprite->tintRed = 0x20;
+            shipData[i].shieldSprite->tintGreen = 0x20;
+            shipData[i].shieldSprite->tintBlue = 0x20;
+            shipData[i].shieldSprite->tintMode = 0;
         }
     }
 
     for (i = 0; i < kMasterStellarSprites; i++)
         masterStellarSprite[i] = NULL;
 
-    HandleIntroMusic(0);
+    ServiceIntroMusic(0);
     LoadMasterStellarSprite(0);
 
     for (i = 0; i < kNavSlots; i++) {
@@ -1354,7 +1889,7 @@ void InitSprites(void)
         SWLockSprite(stellarSprite[i]);
     }
 
-    HandleIntroMusic(0);
+    ServiceIntroMusic(0);
 
     for (i = 0; i < kMaxExplods; i++) {
         err = SWCloneSprite(masterExplodSprite[0], &explodData[i].sprite, NULL);
@@ -1376,7 +1911,7 @@ void InitSprites(void)
         SWLockSprite(explodData[i].sprite);
     }
 
-    HandleIntroMusic(0);
+    ServiceIntroMusic(0);
 
     for (i = 0; i < kMaxShots; i++) {
         err = SWCloneSprite(masterShotSprite[0], &shotData[i].sprite, NULL);
@@ -1394,7 +1929,7 @@ void InitSprites(void)
         SWLockSprite(shotData[i].sprite);
     }
 
-    HandleIntroMusic(0);
+    ServiceIntroMusic(0);
 
     for (i = 0; i < kMaxBoxes; i++) {
         err = SWCloneSprite(masterBoxSprite[0], &boxData[i].sprite, NULL);
@@ -1445,28 +1980,28 @@ void InitSprites(void)
         SWLockSprite(starData[i].sprite);
     }
 
-    if (masterSmokeSprite[0] == NULL) {
-        for (i = 0; i < kMaxDebris; i++)
-            gDebrisSlots[i].sprite = NULL;
-    } else {
+    if (masterSmokeSprite[0] != NULL) {
         for (i = 0; i < kMaxDebris; i++) {
-            err = SWCloneSprite(masterSmokeSprite[0], &gDebrisSlots[i].sprite, NULL);
+            err = SWCloneSprite(masterSmokeSprite[0], &smokeData[i].sprite, NULL);
             if ((long)err != 0) {
                 crashlog_print("error cloning smoke sprite, #");
                 crashlog_print_num(i);
                 crashlog_print("\n");
                 ReportSpriteLoadError(1, 0, err);
             }
-            SWAddSprite(smokeLayer, gDebrisSlots[i].sprite);
-            SWSetCurrentFrameIndex(gDebrisSlots[i].sprite, 0);
-            SWSetSpriteVisible(gDebrisSlots[i].sprite, 0);
-            SWSetSpriteDrawProc(gDebrisSlots[i].sprite,
+            SWAddSprite(smokeLayer, smokeData[i].sprite);
+            SWSetCurrentFrameIndex(smokeData[i].sprite, 0);
+            SWSetSpriteVisible(smokeData[i].sprite, 0);
+            SWSetSpriteDrawProc(smokeData[i].sprite,
                                 BlitPixieRLETranslucentDrawProc);
-            SWLockSprite(gDebrisSlots[i].sprite);
+            SWLockSprite(smokeData[i].sprite);
         }
+    } else {
+        for (i = 0; i < kMaxDebris; i++)
+            smokeData[i].sprite = NULL;
     }
 
-    HandleIntroMusic(0);
+    ServiceIntroMusic(0);
 
     for (i = 0; i < kMaxAsteroids; i++) {
         err = SWCloneSprite(masterAsteroidSprite[0], &asteroidData[i].sprite, NULL);
@@ -1535,13 +2070,18 @@ void InitSprites(void)
         SWLockSprite(cursorSprite);
     }
 
-    HandleIntroMusic(0);
+    ServiceIntroMusic(0);
 
     SWAddSprite(targetLayer, alertSprite);
     SWSetCurrentFrameIndex(alertSprite, 0);
     SWSetSpriteVisible(alertSprite, 0);
     SWSetSpriteDrawProc(alertSprite, BlitPixieRLETranslucentDrawProc);
+#if V111
+    if (useLegacyRenderingPipeline)
+        SWLockSprite(alertSprite);
+#else
     SWLockSprite(alertSprite);
+#endif
     SWSetSpriteLocation(alertSprite, screenCenter.h * 2 - GetSpriteXSize(alertSprite), 0);
 
     SWAddSprite(targetLayer, doubleTimeSprite);
@@ -1562,13 +2102,27 @@ void InitSprites(void)
     SWLockSpriteLayer(explodLayer);
     SWLockSpriteLayer(targetLayer);
 
-    HandleIntroMusic(0);
+    ServiceIntroMusic(0);
 
+#ifdef CEFIX /* F12.80-81 */
+    commRect.left = GetCWindowPortRect(gWind)->left + 25;
+    commRect.right = GetCWindowPortRect(gWind)->right - ceStatusBarWidth - 50;
+    commRect.bottom = GetCWindowPortRect(gWind)->bottom - 5;
+    commRect.top = commRect.bottom - CE_Scale(26) - 4;
+    /* CE bug: CE drops only the store of 29470 / width; its idiv still runs and faults on a
+       zero width. */
+    if (commRect.right - commRect.left == 0)
+        RaiseException(kCEIntDivideByZero, 0, 0, NULL);
+#else
     SetRect(&commRect, GetCWindowPortRect(gWind)->left + 25,
             GetCWindowPortRect(gWind)->bottom - 5,
             GetCWindowPortRect(gWind)->right - 244,
             GetCWindowPortRect(gWind)->bottom - 5);
     commRect.top -= 29470 / (commRect.right - commRect.left);
+#endif
+#ifdef MACBUILD
+    tempRgn = NewRgn();
+#endif
 }
 
 #define kVoiceClipsMax           9
@@ -1592,42 +2146,56 @@ void InitSprites(void)
    resource ID in the call; the baseID/id induction variables were invented (mwcc's own
    strength reduction makes them). OPEN: none. Notes: Research/notes/loadsounds.md */
 // FUNCTION: EVNOVA 0x004b0740
+// MAC: _LoadSounds i386 0x0001c036 ppc 0x000201a4
 void LoadSounds(void)
 {
+    short msg;
     short i;
     short set;
-    short msg;
+#ifdef MACBUILD
+    SoundComponentData info;
+    unsigned long frames;
+    unsigned long offset;
+#else
     AudioDesc info;
+#endif
     Handle h;
     unsigned short vol;
 
     for (set = 0; set < kVoiceSets; set++) {
         for (msg = 0; msg < kVoiceMessages; msg++) {
             voiceResourceCount[set][msg] = 0;
-            for (i = 0; i < kVoiceClipsMax; i++) {
+            i = 0;
+            do {
                 if (ResourceExists(kSoundType,
                         kFirstVoiceID + set * kVoiceSetStride + msg * kVoiceMsgStride + i) == 0)
                     break;
                 voiceResourceCount[set][msg] += 1;
-            }
+                i++;
+            } while (i < kVoiceClipsMax);
         }
     }
 
-    for (i = 0; i <= 1; i++) {
-        jumpSoundLength[i] = kDefaultLoopTicks;
-        h = GetResource(kSoundType, i + kFirstResourceID);
+    for (msg = 0; msg <= 1; msg++) {
+        jumpSoundLength[msg] = kDefaultLoopTicks;
+        h = GetResource(kSoundType, msg + kFirstResourceID);
         if (h != NULL) {
+#ifdef MACBUILD
+            ParseSndHeader((SndListHandle)h, &info, &frames, &offset);
+            jumpSoundLength[msg] = info.sampleCount * kTicksPerSecond / (info.sampleRate >> 16);
+#else
             LockAHandle(h);
             if (ParseSoundFileImage(&info, (Word8 *)*h, GetAHandleSize(h)) == 0)
-                jumpSoundLength[i] = (info.SampleCount * kTicksPerSecond
+                jumpSoundLength[msg] = (info.SampleCount * kTicksPerSecond
                                             / info.SampleRate);
+#endif
             ReleaseResource(h);
         }
     }
 
-    warpUpSnd[0] = LoadSoundResource(0x80);
-    warpUpSnd[1] = LoadSoundResource(0x81);
-    warpOutSnd = LoadSoundResource(0x82);
+    warpUpSnd[0] = ST_LoadSndResource(0x80);
+    warpUpSnd[1] = ST_LoadSndResource(0x81);
+    warpOutSnd = ST_LoadSndResource(0x82);
 
     warpUpSoundSpec.handle = (void **)warpUpSnd[0];
     warpUpSoundSpec.rate = kUnityRate;
@@ -1643,22 +2211,22 @@ void LoadSounds(void)
     planetSoundSpec.leftLevel = vol;
     planetSoundSpec.rightLevel = vol;
 
-    for (i = 0; i <= kEngineSounds - 1; i++)
-        beepSnd[i] = LoadSoundResource(i + kFirstEngineID);
+    for (msg = 0; msg <= kEngineSounds - 1; msg++)
+        beepSnd[msg] = ST_LoadSndResource(msg + kFirstEngineID);
 
-    for (i = 0; i < kShotSounds; i++)
-        shotSnd[i] = LoadSoundResource(i + kFirstShotID);
+    for (msg = 0; msg < kShotSounds; msg++)
+        shotSnd[msg] = ST_LoadSndResource(msg + kFirstShotID);
 
-    for (i = 0; i < kExplodSounds; i++)
-        explodSnd[i] = LoadSoundResource(i + kFirstExplodID);
+    for (msg = 0; msg < kExplodSounds; msg++)
+        explodSnd[msg] = ST_LoadSndResource(msg + kFirstExplodID);
 
-    redAlertSnd = LoadSoundResource(0x172);
-    klaxxonSnd = LoadSoundResource(0x173);
-    escapePodSnd = LoadSoundResource(0x174);
-    cloakSnd[0] = LoadSoundResource(0x17c);
-    cloakSnd[1] = LoadSoundResource(0x17d);
-    hardDockSnd = LoadSoundResource(0x186);
-    clickSnd = LoadSoundResource(0x258);
+    redAlertSnd = ST_LoadSndResource(0x172);
+    klaxxonSnd = ST_LoadSndResource(0x173);
+    escapePodSnd = ST_LoadSndResource(0x174);
+    cloakSnd[0] = ST_LoadSndResource(0x17c);
+    cloakSnd[1] = ST_LoadSndResource(0x17d);
+    hardDockSnd = ST_LoadSndResource(0x186);
+    clickSnd = ST_LoadSndResource(0x258);
     missionSoundID = -1;
     missionSnd = NULL;
     voiceSnd = NULL;
@@ -1674,18 +2242,21 @@ void LoadSounds(void)
 /* LoadMasterStellarSprite (mac _LoadMasterStellarSprite). STATE: MATCH 100.0%, exe 160 /
    obj 160 instrs, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004b0a30
+// MAC: _LoadMasterStellarSprite i386 0x0001eb72 ppc 0x00023474
 void LoadMasterStellarSprite(short type)
 {
     short spriteID, maskID, xSize, ySize, xTiles, yTiles;
+#if V111 /* V111 spelling */
+    short resID;
+#else
     long resID;
-    unsigned long rleType;
+#endif
     short err;
     SpriteRec *entry;
 
     resID = type + kStellarSpinResBase;
     if (GetSpriteInfo(resID, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
-        rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-        if (ResourceExists(rleType, spriteID)) {
+        if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
             err = SWCreateSpriteFromRLEResource(&masterStellarSprite[type], NULL, spriteID,
                                 xTiles * yTiles, 0);
             if ((int)err != 0) {
@@ -1731,14 +2302,23 @@ void LoadMasterStellarSprite(short type)
 
 
 
-/* InitObjects. STATE: MATCH, byte-identical. OPEN: none */
+#if V111 /* V111 spelling */
+#define roid n
+#else
+#define roid i
+#endif
+
+/* InitObjects (mac _InitObjects). STATE: win MATCH, byte-identical; mac MATCH both slices.
+   OPEN: none; notes */
 // FUNCTION: EVNOVA 0x004b0c20
+// MAC: _InitObjects i386 0x0001c2e5 ppc 0x000204b8
 void InitObjects(void)
 {
     short i, j, k;
     RGBColor c;
     Str255 buf;
     long value;
+    int n;
 
     for (i = 0; i < kMaxShips; i++) {
         shipData[i].index = i;
@@ -1752,7 +2332,7 @@ void InitObjects(void)
         shipData[i].cloak = 0.0f;
         shipData[i].credits = 0;
         shipData[i].defenseStellar = -1;
-        *(short *)shipData[i].unk6e = 1;
+        shipData[i].unk6e = 1;
         shipData[i].targetShip = -1;
         shipData[i].selectedWeapon = -1;
         shipData[i].shield = 0.0f;
@@ -1772,7 +2352,7 @@ void InitObjects(void)
         shipData[i].lightLevel = 0;
         shipData[i].blinkCount = 0;
         shipData[i].skill = 1.0f;
-        *(short *)shipData[i].unk9C = 0;
+        shipData[i].unk9C = 0;
         shipData[i].formerEscort = -1;
         shipData[i].sprite = 0;
         shipData[i].glowSprite = 0;
@@ -1793,7 +2373,7 @@ void InitObjects(void)
             shipData[i].weap[j].count = 0;
             shipData[i].weap[j].ammo = 0;
         }
-        for (j = 0; j < kCargoTypes; j++)
+        for (j = 0; j <= kCargoTypes - 1; j++)
             shipData[i].cargo[j] = 0;
         shipData[i].sprite = 0;
         shipData[i].altSprite = 0;
@@ -1804,41 +2384,41 @@ void InitObjects(void)
     }
 
     for (i = 0; i < kMaxShipTypes; i++) {
-        gShipTypes[i].techLevel = kResUnloaded;
-        gShipTypes[i].shield = 1;
-        gShipTypes[i].armor = 1;
-        gShipTypes[i].strength = 1;
-        gShipTypes[i].dispWeight = 1;
-        gShipTypes[i].upgradeTo = -1;
-        gShipTypes[i].altSets = 0;
-        gShipTypes[i].baseSets = 0;
-        gShipTypes[i].transparency = 0;
-        gShipTypes[i].keyCarried = -1;
-        gShipTypes[i].shanFlags = 0;
-        gShipTypes[i].contributes[0] = 0;
-        gShipTypes[i].contributes[1] = 0;
-        gShipTypes[i].spriteIndex = i;
-        gShipTypes[i].mass = -1;
-        gShipTypes[i].hireRandom = 100;
-        gShipTypes[i].buyRandom = 100;
-        gShipTypes[i].dailyHireRoll = 50;
-        gShipTypes[i].dailySaleRoll = 50;
+        shipClass[i].techLevel = kResUnloaded;
+        shipClass[i].shield = 1;
+        shipClass[i].armor = 1;
+        shipClass[i].strength = 1;
+        shipClass[i].dispWeight = 1;
+        shipClass[i].upgradeTo = -1;
+        shipClass[i].altSets = 0;
+        shipClass[i].baseSets = 0;
+        shipClass[i].transparency = 0;
+        shipClass[i].keyCarried = -1;
+        shipClass[i].shanFlags = 0;
+        shipClass[i].contributes[0] = 0;
+        shipClass[i].contributes[1] = 0;
+        shipClass[i].spriteIndex = i;
+        shipClass[i].mass = -1;
+        shipClass[i].hireRandom = 100;
+        shipClass[i].buyRandom = 100;
+        shipClass[i].dailyHireRoll = 50;
+        shipClass[i].dailySaleRoll = 50;
         for (j = 0; j < kMaxWeapTypes; j++) {
-            gShipTypes[i].weapCount[j] = 0;
-            gShipTypes[i].weapAmmo[j] = 0;
+            shipClass[i].weapCount[j] = 0;
+            shipClass[i].weapAmmo[j] = 0;
         }
         for (j = 0; j < 4; j++) {
             for (k = 0; k < 4; k++) {
-                gShipTypes[i].weapPos[j][k][0] = 0;
-                gShipTypes[i].weapPos[j][k][1] = 0;
-                gShipTypes[i].weapPosZ[j][k] = 0;
+                shipClass[i].weapPos[j][k].h = 0;
+                shipClass[i].weapPos[j][k].v = 0;
+                shipClass[i].weapPosZ[j][k] = 0;
             }
         }
-        gShipTypes[i].compress[0][0] = 1.0f;
-        gShipTypes[i].compress[0][1] = 0.71f;
-        gShipTypes[i].compress[1][0] = 1.0f;
-        gShipTypes[i].compress[1][1] = 0.71f;
-        gShipTypes[i].frameAngles = 0;
+        for (j = 0; j < 2; j++) {
+            shipClass[i].compress[j].x = 1.0f;
+            shipClass[i].compress[j].y = 0.71f;
+        }
+        shipClass[i].frameAngles = 0;
         masterShipSprite[i] = 0;
         masterShipGlowSprite[i] = 0;
         masterShipLightSprite[i] = 0;
@@ -1848,18 +2428,18 @@ void InitObjects(void)
     }
 
     for (i = 0; i < kMaxOutfits; i++) {
-        gOutfits[i].techLevel = kOutfTechAbsent;
-        gOutfits[i].dispWeight = 0;
-        gOutfits[i].contributes[0] = 0;
-        gOutfits[i].contributes[1] = 0;
-        gOutfits[i].requires[0] = 0;
-        gOutfits[i].requires[1] = 0;
-        gOutfits[i].itemClass = -1;
-        gOutfits[i].scanMask = 0;
-        gOutfits[i].buyRandom = 0;
-        gOutfits[i].dailyRoll = 50;
-        gOutfits[i].sameNameIndex = i;
-        gOutfits[i].govtRestrict = -1;
+        outfitSystem[i].techLevel = kOutfTechAbsent;
+        outfitSystem[i].dispWeight = 0;
+        outfitSystem[i].contributes[0] = 0;
+        outfitSystem[i].contributes[1] = 0;
+        outfitSystem[i].requires[0] = 0;
+        outfitSystem[i].requires[1] = 0;
+        outfitSystem[i].itemClass = -1;
+        outfitSystem[i].scanMask = 0;
+        outfitSystem[i].buyRandom = 0;
+        outfitSystem[i].dailyRoll = 50;
+        outfitSystem[i].sameNameIndex = i;
+        outfitSystem[i].govtRestrict = -1;
     }
 
     for (i = 0; i < kMaxStellars; i++) {
@@ -1892,39 +2472,39 @@ void InitObjects(void)
     }
 
     for (i = 0; i < kMaxSystems; i++) {
-        gSystems[i].loaded = 0;
-        gSystems[i].prepared = 0;
-        gSystems[i].govt = kSystemGovtUnset;
-        gSystems[i].asteroidCount = 0;
-        gSystems[i].astTypes = 0;
-        gSystems[i].interference = 0;
-        gSystems[i].exploreLevel = 0;
-        gSystems[i].govt = -1;
-        gSystems[i].xPos = gSystems[i].yPos = 0;
+        systemData[i].loaded = 0;
+        systemData[i].prepared = 0;
+        systemData[i].govt = kSystemGovtUnset;
+        systemData[i].asteroidCount = 0;
+        systemData[i].astTypes = 0;
+        systemData[i].interference = 0;
+        systemData[i].exploreLevel = 0;
+        systemData[i].govt = -1;
+        systemData[i].pos.h = systemData[i].pos.v = 0;
         for (j = 0; j < kMaxSystemLinks; j++)
-            gSystems[i].links[j] = -1;
+            systemData[i].links[j] = -1;
         for (j = 0; j < kNavSlots; j++)
-            gSystems[i].navDefault[j] = -1;
+            systemData[i].navDefault[j] = -1;
         for (j = 0; j < 8; j++) {
-            gSystems[i].fleets[j] = -1;
-            gSystems[i].dudeTypes[j] = -1;
-            gSystems[i].dudeProbs[j] = 0;
+            systemData[i].fleets[j] = -1;
+            systemData[i].dudeTypes[j] = -1;
+            systemData[i].dudeProbs[j] = 0;
         }
-        gSystems[i].fleetCount = 0;
-        gSystems[i].fleetProbTotal = 0;
-        gSystems[i].known = 0;
-        gSystems[i].colocNext = -1;
-        gSystems[i].colocGroup = -1;
-        gSystems[i].rgb.red = 0;
-        gSystems[i].rgb.green = 0;
-        gSystems[i].rgb.blue = 0;
-        gSystems[i].murk = 0;
-        gSystems[i].reinforceFleet = -1;
-        gSystems[i].reinforceTime = 0;
-        gSystems[i].reinforceDaysLeft = 0;
-        gSystems[i].reinforceInterval = 0;
-        gSystems[i].reinforceTimer = 0.0f;
-        strncpy((char *)gSystems[i].name, (char *)"\p", 31);
+        systemData[i].fleetCount = 0;
+        systemData[i].fleetProbTotal = 0;
+        systemData[i].known = 0;
+        systemData[i].colocNext = -1;
+        systemData[i].colocGroup = -1;
+        systemData[i].rgb.red = 0;
+        systemData[i].rgb.green = 0;
+        systemData[i].rgb.blue = 0;
+        systemData[i].murk = 0;
+        systemData[i].reinforceFleet = -1;
+        systemData[i].reinforceTime = 0;
+        systemData[i].reinforceDaysLeft = 0;
+        systemData[i].reinforceInterval = 0;
+        systemData[i].reinforceTimer = 0.0f;
+        strncpy((char *)systemData[i].name, (char *)"\p", 31);
     }
 
     for (i = 0; i < kMaxDudes; i++) {
@@ -1964,20 +2544,20 @@ void InitObjects(void)
     for (i = 0; i < kMaxAsteroids; i++)
         asteroidData[i].active = 0;
 
-    for (i = 0; i < kMaxRoidTypes; i++) {
-        asteroidType[i].strength = 100;
-        asteroidType[i].yieldQty = 0;
-        asteroidType[i].yieldType = -1;
-        asteroidType[i].fragType[0] = -1;
-        asteroidType[i].fragType[1] = -1;
-        asteroidType[i].fragCount = 0;
-        asteroidType[i].partCount = 50;
-        asteroidType[i].frameRate = 1.0f;
+    for (roid = 0; roid < kMaxRoidTypes; roid++) {
+        asteroidType[roid].strength = 100;
+        asteroidType[roid].yieldQty = 0;
+        asteroidType[roid].yieldType = -1;
+        asteroidType[roid].fragType[0] = -1;
+        asteroidType[roid].fragType[1] = -1;
+        asteroidType[roid].fragCount = 0;
+        asteroidType[roid].partCount = 50;
+        asteroidType[roid].frameRate = 1.0f;
         if (gSpriteWorld->pixelDepth == 8) {
             c.red = c.green = c.blue = kRoidGrey;
-            asteroidType[i].color = Color2Index(&c);
+            asteroidType[roid].color = Color2Index(&c);
         } else {
-            asteroidType[i].color = kRoidPixel;
+            asteroidType[roid].color = kRoidPixel;
         }
     }
 
@@ -2020,15 +2600,13 @@ void InitObjects(void)
     }
 
     for (i = 0; i < kMaxWeapTypes; i++) {
-        gWeapons[i].guidance = kResAbsent;
+        weaponStats[i].guidance = kResAbsent;
         for (j = 0; j < 4; j++)
-            gWeapons[i].jamVuln[j] = 0;
+            weaponStats[i].jamVuln[j] = 0;
     }
 
-    playerEscortOrders[0] = -1;
-    playerEscortOrders[1] = -1;
-    playerEscortOrders[2] = -1;
-    playerEscortOrders[3] = -1;
+    for (i = 0; i < 4; i++)
+        playerEscortOrders[i] = -1;
 
     for (i = 0; i < kMaxHyperRoute; i++)
         hyperRoute[i] = -1;
@@ -2044,7 +2622,7 @@ void InitObjects(void)
         missionRandom[i] = Rand(100) + 1;
 
     for (i = 0; i < kMaxCrons; i++)
-        gCrons[i].loaded = 0;
+        cronEvent[i].loaded = 0;
 
     for (i = 0; i < kMaxDisasters; i++)
         disasterData[i].loaded = 0;
@@ -2087,7 +2665,12 @@ void InitObjects(void)
     recentActivatedRank = -1;
     lastCursorAnimTime = 0;
     lastFrameTime = 0;
+#ifdef MACBUILD
+    lastFrameMicroseconds.hi = 0;
+    lastFrameMicroseconds.lo = 0;
+#else
     Microseconds(&lastFrameMicroseconds);
+#endif
     SetRect(&statusOffRect[0], 30, 8, 163, 142);
     SetRect(&statusOffRect[1], 99, 155, 173, 161);
     SetRect(&statusOffRect[2], 99, 170, 173, 176);
@@ -2128,6 +2711,9 @@ void InitObjects(void)
     menuTextColor[1].green = 0;
     menuTextColor[1].blue = 0;
     statusFontID = 0;
+#ifdef MAC1010 /* BUG: overwritten by the next line */
+    statusFontSize[0] = 12;
+#endif
     statusFontSize[0] = 11;
     menuFontID = 3;
     menuTextSize = 9;
@@ -2150,17 +2736,15 @@ void InitObjects(void)
 #define kNoDeathTimer     (-999.0f)
 #define kFreeSlot         (-1.0f)   /* boom/debris timer: < 0 means unused */
 
-#define kSpobFlags2_20 0x20
-
 /* ResetPlayer (mac _ResetPlayer). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b3350
-void ResetPlayer(char newPilot)
+// MAC: _ResetPlayer i386 0x0001d40d ppc 0x000219c8
+void ResetPlayer(Boolean newPilot)
 {
     short i;
-    short j;
-    short g;
     short link;
     short coloc;
+    short j;
 
     shipData->pos.x = shipData->pos.y = kStartY;
     shipData->vel.x = shipData->vel.y = 0.0f;
@@ -2213,27 +2797,22 @@ void ResetPlayer(char newPilot)
         shipData->weap[i].ammo = 0;
     }
     for (i = 0; i < kMaxWeapTypes; i++) {
-        shipData->weap[i].count = gShipTypes[shipData->type].weapCount[i];
-        if (gShipTypes[shipData->type].weapAmmo[i] > 0) {
-            j = gWeapons[i].ammoType;
-            if (j >= 0 && j < kMaxWeapTypes)
-                shipData->weap[j].ammo = gShipTypes[shipData->type].weapAmmo[i];
+        shipData->weap[i].count = shipClass[shipData->type].weapCount[i];
+        if (shipClass[shipData->type].weapAmmo[i] > 0) {
+            if (weaponStats[i].ammoType >= 0 && weaponStats[i].ammoType < kMaxWeapTypes)
+                shipData->weap[weaponStats[i].ammoType].ammo = shipClass[shipData->type].weapAmmo[i];
             else
-                shipData->weap[i].ammo = gShipTypes[shipData->type].weapAmmo[i];
+                shipData->weap[i].ammo = shipClass[shipData->type].weapAmmo[i];
         }
     }
     for (i = 0; i < kMaxHyperRoute; i++)
         hyperRoute[i] = -1;
     for (i = 0; i < kMaxOutfits; i++) {
-        if (newPilot || gOutfits[i].persistent == 0)
+        if (newPilot || outfitSystem[i].persistent == 0)
             shipSystems[i] = 0;
     }
-    shipData->cargo[0] = 0;
-    shipData->cargo[1] = 0;
-    shipData->cargo[2] = 0;
-    shipData->cargo[3] = 0;
-    shipData->cargo[4] = 0;
-    shipData->cargo[5] = 0;
+    for (i = 0; i <= kCargoTypes - 1; i++)
+        shipData->cargo[i] = 0;
     for (i = 0; i < kMaxJunks; i++)
         junkData[i].held = 0;
 
@@ -2257,15 +2836,15 @@ void ResetPlayer(char newPilot)
         explodData[i].delay = 0.0f;
     }
     for (i = 0; i < kMaxDebris; i++) {
-        gDebrisSlots[i].timer = kFreeSlot;
-        gDebrisSlots[i].angle = 0.0f;
+        smokeData[i].timer = kFreeSlot;
+        smokeData[i].angle = 0.0f;
     }
     for (i = 0; i < kMaxShipTypes; i++) {
-        gShipTypes[i].dailyHireRoll = Rand(kDailyRollRange) + 1;
-        gShipTypes[i].dailySaleRoll = Rand(kDailyRollRange) + 1;
+        shipClass[i].dailyHireRoll = Rand(kDailyRollRange) + 1;
+        shipClass[i].dailySaleRoll = Rand(kDailyRollRange) + 1;
     }
     for (i = 0; i < kMaxOutfits; i++)
-        gOutfits[i].dailyRoll = Rand(kDailyRollRange) + 1;
+        outfitSystem[i].dailyRoll = Rand(kDailyRollRange) + 1;
 
     killShots = 1;
     killBoxes = 1;
@@ -2277,53 +2856,50 @@ void ResetPlayer(char newPilot)
     commCount = 0;
     missionSoundID = -1;
 
-    for (i = 0; i < kMaxActiveMissions; i++) {
-        if (currentMissionObjectives[i].active != 0)
-            AbortMission(i, 0);
-        currentMissionObjectives[i].active = 0;
+    for (j = 0; j < kMaxActiveMissions; j++) {
+        if (currentMissionObjectives[j].active != 0)
+            AbortMission(j, 0);
+        currentMissionObjectives[j].active = 0;
     }
-    for (i = 0; i < kMaxMissions; i++)
-        missionRandom[i] = Rand(kDailyRollRange) + 1;
+    for (j = 0; j < kMaxMissions; j++)
+        missionRandom[j] = Rand(kDailyRollRange) + 1;
 
-    globalPriceFlux[0] = kPriceFluxBase;
-    localPriceFlux[0] = kPriceFluxBase;
-    globalPriceFlux[1] = kPriceFluxBase;
-    localPriceFlux[1] = kPriceFluxBase;
+    for (i = 0; i <= 1; i++) {
+        globalPriceFlux[i] = kPriceFluxBase;
+        localPriceFlux[i] = kPriceFluxBase;
+    }
 
     if (newPilot) {
         shipData->credits = kStartingCredits;
         for (i = 0; i < kMaxSystems; i++) {
-            gSystems[i].exploreLevel = 0;
-            g = gSystems[i].govt;
-            if (g >= 0 && g < 256)
-                playerLegalStatus[i] = govtData[g].initialRec;
+            systemData[i].exploreLevel = 0;
+            if (systemData[i].govt >= 0 && systemData[i].govt < 256)
+                playerRecord[i] = govtData[systemData[i].govt].initialRec;
             else
-                playerLegalStatus[i] = 0;
-            gSystems[i].reinforceDaysLeft = 0;
-            gSystems[i].reinforceTimer = 0.0f;
+                playerRecord[i] = 0;
+            systemData[i].reinforceDaysLeft = 0;
+            systemData[i].reinforceTimer = 0.0f;
         }
         for (i = 0; i < kNavSlots; i++) {
-            link = gSystems[shipData->curSystem].links[i];
-            if (link != -1 && gSystems[link].loaded != 0) {
-                gSystems[link].exploreLevel = 1;
+            if (systemData[shipData->curSystem].links[i] != -1 && systemData[systemData[shipData->curSystem].links[i]].loaded != 0) {
+                link = systemData[shipData->curSystem].links[i];
+                systemData[link].exploreLevel = 1;
                 coloc = FindFirstCoLocatedSystem(link);
                 if (coloc >= 0 && coloc < kMaxSystems)
-                    gSystems[coloc].exploreLevel = 1;
+                    systemData[coloc].exploreLevel = 1;
             }
         }
         for (i = 0; i < kMaxNebulae; i++)
             nebulaData[i].explored = 0;
         for (i = 0; i < kMaxPersons; i++)
             personData[i].grudge = 0;
-        playerEscortOrders[0] = -1;
-        playerEscortOrders[1] = -1;
-        playerEscortOrders[2] = -1;
-        playerEscortOrders[3] = -1;
+        for (i = 0; i < 4; i++)
+            playerEscortOrders[i] = -1;
     }
-    mapScroll.x = gSystems[shipData->curSystem].xPos;
-    mapScroll.y = gSystems[shipData->curSystem].yPos;
-    gSystems[shipData->curSystem].reinforceTimer = kFreeSlot;
-    gSystems[shipData->curSystem].reinforceDaysLeft = 0;
+    mapScroll.h = systemData[shipData->curSystem].pos.h;
+    mapScroll.v = systemData[shipData->curSystem].pos.v;
+    systemData[shipData->curSystem].reinforceTimer = kFreeSlot;
+    systemData[shipData->curSystem].reinforceDaysLeft = 0;
     lastMissionStellar = -1;
     recentActivatedRank = -1;
     playerPaint.red = playerPaint.green = playerPaint.blue =
@@ -2333,7 +2909,8 @@ void ResetPlayer(char newPilot)
 
 /* ResetPlayerRecord. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b4220
-void ResetPlayerRecord(char newPilot)
+// MAC: _ResetPlayerRecord i386 0x0001db70 ppc 0x0002231c
+void ResetPlayerRecord(Boolean newPilot)
 {
     short i;
 
@@ -2343,15 +2920,15 @@ void ResetPlayerRecord(char newPilot)
     for (i = 0; i < 2048; i++) {
         short minStatus;
 
-        if (gSystems[i].govt < 0)
-            minStatus = 0;
+        if (systemData[i].govt >= 0)
+            minStatus = govtData[systemData[i].govt].initialRec;
         else
-            minStatus = govtData[gSystems[i].govt].initialRec;
-        if (playerLegalStatus[i] < minStatus)
-            playerLegalStatus[i] = minStatus;
+            minStatus = 0;
+        if (playerRecord[i] < minStatus)
+            playerRecord[i] = minStatus;
     }
     for (i = 0; i < 2048; i++) {
-        if ((stellarData[i].flags2 & kSpobFlags2_20) != 0)
+        if ((stellarData[i].flags2 & kSpobAlwaysDominated) != 0)
             stellarData[i].dominated = 1;
         else
             stellarData[i].dominated = 0;
@@ -2359,11 +2936,90 @@ void ResetPlayerRecord(char newPilot)
     recentActivatedRank = 0xffff;
 }
 
+#ifdef MACBUILD
+/* CheckSystem (mac _CheckSystem, mac-only). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _CheckSystem i386 0x0001dc00 ppc 0x000223e8
+void CheckSystem(void)
+{
+    Str255 msg;
+    long response;
+    OSErr err;
+
+    err = Gestalt(gestaltSystemVersion, &gSystemVersion);
+    crashlog_print("system software version is ");
+    sprintf((char *)msg, "%04X", gSystemVersion);
+    crashlog_print((char *)msg);
+    crashlog_print("\n");
+    if (gSystemVersion < 0x810 || err != noErr) {
+        FadeScreenIn();
+        GetIndString(msg, kAlertStrList, 40);
+        EVNoteAlert(msg);
+        ShowTheMenuBar();
+        ST_Close();
+        ExitToShell();
+    }
+#if TARGET_API_MAC_CARBON
+    if (gSystemVersion < 0x1000) {
+        Gestalt(gestaltCarbonVersion, &response);
+        if (response < 0x131) {
+            FadeScreenIn();
+            GetIndString(msg, kAlertStrList, 41);
+            EVNoteAlert(msg);
+            ShowTheMenuBar();
+            ST_Close();
+            ExitToShell();
+        }
+    }
+#endif
+    oldDepth = 8;
+    err = Gestalt(gestaltQuickTimeVersion, &response);
+    if (response < 0x3000000 || err != noErr) {
+        FadeScreenIn();
+        GetIndString(msg, kAlertStrList, 42);
+        EVNoteAlert(msg);
+        ShowTheMenuBar();
+        ST_Close();
+        ExitToShell();
+    }
+#if V111
+    {
+        CGRect bounds;
+
+        bounds = CGDisplayBounds(CGMainDisplayID());
+        mainWindRect.top = bounds.origin.x;
+        mainWindRect.left = bounds.origin.y;
+        mainWindRect.bottom = bounds.size.height;
+        mainWindRect.right = bounds.size.width;
+    }
+#elif defined(MAC1010)
+    mainWindRect = (*mainScreenDevice)->gdRect;
+    if (mainWindRect.right - mainWindRect.left < 800 || mainWindRect.bottom - mainWindRect.top < 600) {
+        GetIndString(msg, kAlertStrList, 38);
+        if (!EVYesNoDialog(msg))
+            ExitToShell();
+    }
+#endif
+}
+
+/* BailCheck (mac _BailCheck, mac-only). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _BailCheck i386 0x0001ddd0 ppc 0x000225e0
+void BailCheck(void)
+{
+    if (KeyCheck(kEscapeKeyCode)) {
+        FlushEvents(everyEvent - diskMask, 0);
+        ShowTheMenuBar();
+        ST_Close();
+        ExitToShell();
+    }
+}
+
+#endif
 /*
  * The bounds come from the video layer's current mode rather than from a
  * window, which is why the two sources are BurgerLib globals.
  */
 
+#ifndef MACBUILD
 /* ResetScreenRect. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b42f0
 void ResetScreenRect(void)
@@ -2373,6 +3029,7 @@ void ResetScreenRect(void)
     mainWindRect.bottom = gVideoHeight;
     mainWindRect.right = gVideoWidth;
 }
+#endif
 
 /*
  * No mac twin: 1.1.1 rewrote its preferences layer for OS X (_LoadPrefs is 2243
@@ -2380,6 +3037,102 @@ void ResetScreenRect(void)
  * describe the body.
  */
 
+#ifdef MAC1010
+void SetDefaultPrefs(void)
+{
+    short depth;
+
+    if (gSpriteWorld != NULL)
+        depth = gSpriteWorld->pixelDepth;
+    else
+        depth = (*(*GetMainDevice())->gdPMap)->pixelSize;
+
+    settings.introMusic = 1;
+    settings.voicesOn = 1;
+    settings.volume = 5;
+    settings.clipping = 0;
+    settings.noMovies = 0;
+    settings.noDebris = 0;
+    settings.windowed = 0;
+    settings.yieldEvents = 1;
+    settings.unused = 0;
+    settings.shipAnimations = 1;
+    settings.engineGlows = 1;
+    settings.parallaxStars = 1;
+    settings.ambientSounds = 1;
+    settings.noHyperGamma = 0;
+    settings.noVersionCheck = 0;
+    settings.showMapBorders = 0;
+    if (depth >= 16) {
+        settings.weaponGlows = 1;
+        settings.runningLights = 1;
+    } else {
+        settings.weaponGlows = 0;
+        settings.runningLights = 0;
+    }
+    DAT_00735488 = 1;
+    pstrcpy(lastPlayerName, "\p");
+}
+
+void SetDefaultKeys(void)
+{
+    keyPrefs.selectSecondary = 0x5;
+    keyPrefs.deselectSecondary = 0x9;
+    keyPrefs.firePrimary = 0x39;
+    keyPrefs.fireSecondary = 0x33;
+    keyPrefs.hail = 0x18;
+    keyPrefs.land = 0x2d;
+    keyPrefs.dismiss = 0x2c;
+    keyPrefs.faceTarget = 0x8;
+    keyPrefs.clearTarget = 0x3a;
+    keyPrefs.map = 0x26;
+    keyPrefs.targetNext = 0x38;
+    keyPrefs.targetNearest = 0x7;
+    keyPrefs.hyperspace = 0xc;
+    keyPrefs.nextSystem = 0x22;
+    keyPrefs.jump = 0x2e;
+    keyPrefs.board = 0x3;
+    keyPrefs.turnLeft = 0x73;
+    keyPrefs.turnRight = 0x74;
+    keyPrefs.accelerate = 0x76;
+    keyPrefs.reverse = 0x75;
+    keyPrefs.pause = 0x3d;
+    keyPrefs.afterburner = 0xe;
+    keyPrefs.playerInfo = 0x2b;
+    keyPrefs.navPreset[0] = 0x72;
+    keyPrefs.navPreset[1] = 0x70;
+    keyPrefs.navPreset[2] = 0x6b;
+    keyPrefs.navPreset[3] = 0x7e;
+    keyPrefs.cheatSpawn = 0x7a;
+    keyPrefs.cheatKill = 0x7d;
+    keyPrefs.cheatRevive = 0x7b;
+    keyPrefs.cheatArmor = 0x7c;
+    keyPrefs.cheatDamage = 0x71;
+    keyPrefs.cheatAmmo = 0x4b;
+    keyPrefs.cheatCredits = 0x1d;
+    keyPrefs.cheatSpare = 0x7f;
+    keyPrefs.cheatShipNext = 0x4d;
+    keyPrefs.cheatShipPrev = 0x46;
+    keyPrefs.missions = 0x2a;
+    keyPrefs.cloak = 0x28;
+    keyPrefs.toggleFPS = 0x67;
+    keyPrefs.escortMenu = 0x6;
+    keyPrefs.jettison = 0x20;
+    keyPrefs.eject = 0xf;
+    keyPrefs.selfDestruct = 0x13;
+    keyPrefs.quickKey[0] = 0x1a;
+    keyPrefs.quickKey[1] = 0x1b;
+    keyPrefs.quickKey[2] = 0x1c;
+    keyPrefs.quickKey[3] = 0x1d;
+    keyPrefs.quickKey[4] = 0x1f;
+    keyPrefs.escortOrder[0] = 0xb;
+    keyPrefs.escortOrder[1] = 0xa;
+    keyPrefs.escortOrder[2] = 0x1;
+    keyPrefs.escortOrder[3] = 0x0;
+}
+#endif
+
+#ifndef MACBUILD
 /* SetDefaultPrefs. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b4320
 void SetDefaultPrefs(void)
@@ -2391,30 +3144,30 @@ void SetDefaultPrefs(void)
     else
         depth = 16;
 
-    musicEnabledPref = 1;
-    DAT_005914d1 = 1;
-    volumePref = 5;
-    DAT_005914d2 = 0;
-    gEarlyOutFlag = 0;
-    gNoDebris = 0;
-    windowedPref = 0;
-    yieldEventsPref = 1;
-    DAT_005914d4 = 0;
-    loadShipSetsPref = 1;
-    loadShipGlowPref = 1;
-    parallaxStarsPref = 1;
-    planetSoundsPref = 1;
-    noHyperGammaPref = 0;
-    noVersionCheckPref = 1;
-    gShowInfluence = 0;
+    settings.introMusic = 1;
+    settings.voicesOn = 1;
+    settings.volume = 5;
+    settings.clipping = 0;
+    settings.noMovies = 0;
+    settings.noDebris = 0;
+    settings.windowed = 0;
+    settings.yieldEvents = 1;
+    settings.unused = 0;
+    settings.shipAnimations = 1;
+    settings.engineGlows = 1;
+    settings.parallaxStars = 1;
+    settings.ambientSounds = 1;
+    settings.noHyperGamma = 0;
+    settings.noVersionCheck = 1;
+    settings.showMapBorders = 0;
     if (depth >= 16) {
-        loadShipWeaponsPref = 1;
-        loadShipLightsPref = 1;
+        settings.weaponGlows = 1;
+        settings.runningLights = 1;
     } else {
-        loadShipWeaponsPref = 0;
-        loadShipLightsPref = 0;
+        settings.weaponGlows = 0;
+        settings.runningLights = 0;
     }
-    gammaPref = 3;
+    settings.gamma = 3;
     DAT_00735488 = 1;
     pstrcpy(lastPlayerName, "\p");
 }
@@ -2453,13 +3206,24 @@ void SetDefaultKeys(void)
     keyPrefs.cheatSpawn = 0x68;
     keyPrefs.cheatKill = 0x69;
     keyPrefs.cheatRevive = 0x60;
+#ifdef CEFIX /* F21.11-13 */
+    keyPrefs.cheatArmor = kCEScanNone;
+    keyPrefs.cheatDamage = kCEScanNone;
+    keyPrefs.cheatAmmo = kCEScanF6;
+#else
     keyPrefs.cheatArmor = 0x62;
     keyPrefs.cheatDamage = 0x67;
     keyPrefs.cheatAmmo = 0x37;
+#endif
     keyPrefs.cheatCredits = 5;
     keyPrefs.cheatSpare = 0x65;
+#ifdef CEFIX /* F21.14-15 */
+    keyPrefs.cheatShipNext = kCEScanPageUp;
+    keyPrefs.cheatShipPrev = kCEScanPageDown;
+#else
     keyPrefs.cheatShipNext = 0x4e;
     keyPrefs.cheatShipPrev = 0x4a;
+#endif
     keyPrefs.missions = 0x17;
     keyPrefs.cloak = 0x16;
     keyPrefs.toggleFPS = 0x58;
@@ -2477,6 +3241,7 @@ void SetDefaultKeys(void)
     keyPrefs.escortOrder[2] = 0x2f;
     keyPrefs.escortOrder[3] = 0x2e;
 }
+#endif
 
 #pragma opt_repositioncode off
 
@@ -2488,38 +3253,340 @@ void SetDefaultKeys(void)
 #define kModeFlagBase   2
 #define kModeDepth      15
 #define kModeFailAlert  0x25
+#ifdef MAC1010
+#define kMonitorFailAlert 0x2b
+#if TARGET_API_MAC_CARBON
+/* a display mode as the Carbon gamma library hands it back; the fields read are named */
+typedef struct ScreenSetting {
+    long unk0;
+    Fixed refreshRate;
+    long height;
+    long width;
+    char unk10[7];
+    Boolean unk17;
+    char unk18[0x20];
+} ScreenSetting;
+extern ScreenRef NewScreenRef(GDHandle device, long *err);
+extern long GetCurrentSetting(ScreenRef screen, ScreenSetting *setting);
+extern long GetColorDepthsAtThisResolution(ScreenRef screen);
+extern long GetGamma(ScreenRef screen, ScreenGamma *gamma);
+extern long SetColorDepth(ScreenRef screen, short depth);
+extern pascal void GetAvailableWindowPositioningBounds(GDHandle device, Rect *bounds);
+extern ScreenGamma gFadeGamma;
+#endif
+#endif
 
 /* SetupMonitor. STATE: MATCH 100%, exe 46 / obj 46, byte-identical yes (under its
    scoped opt_repositioncode pragma).
    OPEN: none */
 // FUNCTION: EVNOVA 0x004b45e0
+// MAC: _SetupMonitor i386 0x0001e699 ppc 0x00022fcc
 void SetupMonitor(void)
 {
+#ifdef MAC1010
+#if TARGET_API_MAC_CARBON
+    long err;
+    ScreenSetting setting;
+    short depths;
+
+    mainScreenDevice = GetMainDevice();
+    crashlog("getting available window positioning bounds");
+    GetAvailableWindowPositioningBounds(mainScreenDevice, &screenMinusDockRect);
+    crashlog("opening RezLib");
+    gScreenRef = NewScreenRef(0, &err);
+    if (err != 0) {
+        crashlog_print("NewScreenRef returned ");
+        crashlog_print_num(err);
+        crashlog_print("\n");
+        FatalStartupError(kMonitorFailAlert);
+    }
+    setting.unk17 = 0;
+    err = GetCurrentSetting(gScreenRef, &setting);
+    if (err != 0) {
+        crashlog_print("GetCurrentSetting returned ");
+        crashlog_print_num(err);
+        crashlog_print("\n");
+        FatalStartupError(kMonitorFailAlert);
+    }
+    startupDepth = (*(*mainScreenDevice)->gdPMap)->pixelSize;
+    crashlog_print("main display at startup was ");
+    crashlog_print_num(setting.width);
+    crashlog_print("x");
+    crashlog_print_num(setting.height);
+    crashlog_print(" / ");
+    crashlog_print_num(startupDepth);
+    crashlog_print(" bits / ");
+    crashlog_print_num((unsigned long)setting.refreshRate >> 16);
+    crashlog_print(" Hz\n");
+    if (startupDepth != 8 && startupDepth != 16) {
+        depths = GetColorDepthsAtThisResolution(gScreenRef);
+        err = GetGamma(gScreenRef, &gFadeGamma);
+        if (err != 0) {
+            crashlog_print("GetGamma returned ");
+            crashlog_print_num(err);
+            crashlog_print("\n");
+            FatalStartupError(kMonitorFailAlert);
+        }
+        err = 0;
+        if (depths & 0x10) {
+            crashlog("switching to 16 bits");
+            err = SetColorDepth(gScreenRef, 16);
+            Delay(30, &tix);
+            if (err != 0) {
+                crashlog_print("SetColorDepth returned ");
+                crashlog_print_num(err);
+                crashlog_print("\n");
+            }
+        } else if (depths & 8) {
+            crashlog("switching to 8 bits");
+            err = SetColorDepth(gScreenRef, 8);
+            Delay(30, &tix);
+            if (err != 0) {
+                crashlog_print("SetColorDepth returned ");
+                crashlog_print_num(err);
+                crashlog_print("\n");
+            }
+        } else
+            FatalStartupError(0x2e);
+        if (err != 0) {
+            crashlog_print("SetColorDepth returned ");
+            crashlog_print_num(err);
+            crashlog_print("\n");
+            FatalStartupError(0x2f);
+        }
+    }
+    GetGamma(gScreenRef, &gOrigGamma);
+    mainScreenDevice = GetMainDevice();
+    if ((*(*mainScreenDevice)->gdPMap)->pixelSize != 8
+            && (*(*mainScreenDevice)->gdPMap)->pixelSize != 16)
+        FatalStartupError(kModeFailAlert);
+    mainDeviceInitBounds = (*(*mainScreenDevice)->gdPMap)->bounds;
+    InitCluts();
+#else
+    VTRequest wanted;
+    VTRequest current;
+    int err;
+    short e;
+
+    crashlog("opening monitor tool");
+    e = MT_Open();
+    err = e;
+    if (err != 0) {
+        crashlog_print("MT_Open returned ");
+        crashlog_print_num(err);
+        crashlog_print("\n");
+        FatalStartupError(0x2d);
+    }
+    mainScreenDevice = GetMainDevice();
+    MemoryClear(&wanted, sizeof(VTRequest));
+    e = MT_GetMode(1, &current);
+    err = e;
+    if (err == 0) {
+        crashlog_print("main display at startup was ");
+        crashlog_print_num(current.width);
+        crashlog_print("x");
+        crashlog_print_num(current.height);
+        crashlog_print(" / ");
+        crashlog_print_num(current.depth);
+        crashlog_print(" bits / ");
+        crashlog_print_num(current.rate);
+        crashlog_print(" Hz\n");
+        wanted.rate = current.rate;
+        wanted.rateRule = 1;
+        wanted.depth = current.depth;
+        wanted.width = current.width;
+        wanted.height = current.height;
+    } else {
+        crashlog_print("MT_GetMode returned ");
+        crashlog_print_num(err);
+        crashlog_print(", ignoring refresh rate\n");
+        wanted.rateRule = 0;
+        wanted.rate = 0;
+        wanted.width = (*(*mainScreenDevice)->gdPMap)->bounds.right - (*(*mainScreenDevice)->gdPMap)->bounds.left;
+        wanted.height = (*(*mainScreenDevice)->gdPMap)->bounds.bottom - (*(*mainScreenDevice)->gdPMap)->bounds.top;
+        wanted.depth = (*(*mainScreenDevice)->gdPMap)->pixelSize;
+    }
+    if (wanted.width < 800 && wanted.height < 600) {
+        wanted.width = 800;
+        wanted.height = 600;
+    }
+    if (wanted.depth < 8)
+        wanted.depth = 8;
+    if (wanted.depth > 16)
+        wanted.depth = 16;
+    wanted.sizeRule = 1;
+    wanted.depthRule = 1;
+    wanted.colorRule = 0;
+    wanted.color = 1;
+    crashlog_print("attempting to set main display to ");
+    crashlog_print_num(wanted.width);
+    crashlog_print("x");
+    crashlog_print_num(wanted.height);
+    crashlog_print(" / ");
+    crashlog_print_num(wanted.depth);
+    crashlog_print(" bits / ");
+    if (wanted.rateRule != 0) {
+        crashlog_print_num(wanted.rate);
+        crashlog_print(" Hz\n");
+    } else
+        crashlog_print(" any refresh rate\n");
+    if ((*(*mainScreenDevice)->gdPMap)->pixelSize < 8 || (*(*mainScreenDevice)->gdPMap)->pixelSize > 16) {
+        crashlog_print("setting main display to ");
+        crashlog_print_num(wanted.width);
+        crashlog_print("x");
+        crashlog_print_num(wanted.height);
+        crashlog_print(" / ");
+        crashlog_print_num(wanted.depth);
+        crashlog_print(" bits / ");
+        if (wanted.rateRule != 0) {
+            crashlog_print_num(wanted.rate);
+            crashlog_print(" Hz\n");
+        } else
+            crashlog_print(" any refresh rate\n");
+        e = MT_SetMode(1, &wanted);
+        err = e;
+        if (err != 0) {
+            crashlog_print("MT_SetMode returned ");
+            crashlog_print_num(err);
+            crashlog_print(", trying again\n");
+            wanted.rateRule = 0;
+            crashlog_print("setting main display to ");
+            crashlog_print_num(wanted.width);
+            crashlog_print("x");
+            crashlog_print_num(wanted.height);
+            crashlog_print(" / ");
+            crashlog_print_num(wanted.depth);
+            crashlog_print(" bits / any refresh rate (using main screen device)\n");
+            e = MT_SetMode(1, &wanted);
+            err = e;
+            if (err != 0) {
+                crashlog_print("MT_SetMode returned ");
+                crashlog_print_num(err);
+                crashlog_print(", trying again\n");
+                wanted.sizeRule = 0;
+                crashlog_print("setting main display to ");
+                crashlog_print_num(wanted.depth);
+                crashlog_print(" bits / any resolution / any refresh rate (using main screen device)\n");
+                e = MT_SetMode(1, &wanted);
+                err = e;
+                if (err != 0) {
+                    crashlog_print("MT_SetMode returned ");
+                    crashlog_print_num(err);
+                    crashlog_print(", exiting\n");
+                    FatalStartupError(0x2c);
+                }
+            }
+        }
+    }
+    mainScreenDevice = GetMainDevice();
+    if ((*(*mainScreenDevice)->gdPMap)->pixelSize != 8
+            && (*(*mainScreenDevice)->gdPMap)->pixelSize != 16)
+        FatalStartupError(kModeFailAlert);
+    mainDeviceInitBounds = (*(*mainScreenDevice)->gdPMap)->bounds;
+    InitCluts();
+#endif
+#elif defined(MACBUILD)
+#if V111
+    CGDisplayConfigRef config;
+    CFNumberRef refreshNumber;
+    long refreshRate;
+    boolean_t exactMatch;
+    CFNumberRef depthNumber;
+    long depth;
+    CGRect bounds;
+    CFDictionaryRef mode;
+
+    if (useLegacyRenderingPipeline) {
+        mainScreenDevice = GetMainDevice();
+        crashlog("getting available window positioning bounds");
+        GetAvailableWindowPositioningBounds(mainScreenDevice, &screenMinusDockRect);
+        startupDepth = CGDisplayBitsPerPixel(CGMainDisplayID());
+        bounds = CGDisplayBounds(CGMainDisplayID());
+        mode = CGDisplayCurrentMode(CGMainDisplayID());
+        if (mode != NULL) {
+            CFDictionaryGetValueIfPresent(mode, CFSTR("RefreshRate"), (const void **)&refreshNumber);
+            if (refreshNumber != NULL)
+                CFNumberGetValue(refreshNumber, kCFNumberIntType, &refreshRate);
+        }
+        crashlog_print("main display at startup was ");
+        crashlog_print_num(bounds.size.width);
+        crashlog_print("x");
+        crashlog_print_num(bounds.size.height);
+        crashlog_print(" / ");
+        crashlog_print_num(startupDepth);
+        crashlog_print(" bits / ");
+        crashlog_print_num(refreshRate);
+        crashlog_print(" Hz\n");
+        if (startupDepth != 8 && startupDepth != 16) {
+            exactMatch = 0;
+            mode = CGDisplayBestModeForParameters(CGMainDisplayID(), 16, bounds.size.width,
+                                                  bounds.size.height, &exactMatch);
+            if (mode == NULL)
+                goto done;
+            CFDictionaryGetValueIfPresent(mode, CFSTR("BitsPerPixel"), (const void **)&depthNumber);
+            if (depthNumber == NULL)
+                goto done;
+            CFNumberGetValue(depthNumber, kCFNumberIntType, &depth);
+            if (depth != 16) {
+                mode = CGDisplayBestModeForParameters(CGMainDisplayID(), 8, bounds.size.width,
+                                                      bounds.size.height, &exactMatch);
+                if (mode != NULL) {
+                    /* BUG: passes the CFNumberRef, not its address */
+                    CFDictionaryGetValueIfPresent(mode, CFSTR("BitsPerPixel"), (const void **)depthNumber);
+                    if (depthNumber != NULL)
+                        CFNumberGetValue(depthNumber, kCFNumberIntType, &depth);
+                }
+            }
+            if ((exactMatch || depth == 16 || depth == 8)
+                    && CGBeginDisplayConfiguration(&config) == kCGErrorSuccess) {
+                FadeScreenOut();
+                CGConfigureDisplayMode(config, CGMainDisplayID(), mode);
+                CGCompleteDisplayConfiguration(config, kCGConfigureForAppOnly);
+            } else {
+                CGCancelDisplayConfiguration(config);
+                FatalStartupError(46);
+            }
+        }
+    } else {
+        mainScreenDevice = GetMainDevice();
+        GetAvailableWindowPositioningBounds(mainScreenDevice, &screenMinusDockRect);
+        startupDepth = (*(*mainScreenDevice)->gdPMap)->pixelSize;
+    }
+done:
+#endif
+    mainScreenDevice = GetMainDevice();
+    if (useLegacyRenderingPipeline) {
+        if ((*(*mainScreenDevice)->gdPMap)->pixelSize != 8
+                && (*(*mainScreenDevice)->gdPMap)->pixelSize != 16)
+            FatalStartupError(kModeFailAlert);
+    }
+    GetPixBounds((*mainScreenDevice)->gdPMap, &mainDeviceInitBounds);
+    InitCluts();
+#else
     long flags;
     long width;
     long height;
 
-    flags = (windowedPref != 0 ? 0 : 1) | kModeFlagBase;
+    flags = (settings.windowed != 0 ? 0 : 1) | kModeFlagBase;
     width = GetSystemMetrics(SM_CXSCREEN);
     height = GetSystemMetrics(SM_CYSCREEN);
     if (((flags & 1) == 0 && width <= 1024)
         || SetDisplayToSize(1024, 768, kModeDepth, flags) != 0) {
         if (SetDisplayToSize(800, 600, kModeDepth, flags) != 0)
-            ShowIndAlert(kModeFailAlert);
+            FatalStartupError(kModeFailAlert);
     }
     screenMinusDockRect.top = 0;
     screenMinusDockRect.left = 0;
     screenMinusDockRect.bottom = gVideoHeight;
     screenMinusDockRect.right = gVideoWidth;
+#endif
 }
 
 #pragma opt_repositioncode reset
 
-#define kSpobDominated  0x20    /* flags2: starts under someone's control */
-#define kSpobStartsDestroyed  0x40    /* flags2: starts destroyed */
-
 /* ResetGameData. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b4690
+// MAC: _ResetGameData i386 0x0001de0c ppc 0x00022640
 void ResetGameData(void)
 {
     short i;
@@ -2531,16 +3598,16 @@ void ResetGameData(void)
         }
     }
     for (i = 0; i < kMaxStellars; i++) {
-        if ((stellarData[i].flags2 & kSpobDominated) != 0)
+        if ((stellarData[i].flags2 & kSpobAlwaysDominated) != 0)
             stellarData[i].dominated = 1;
         else
             stellarData[i].dominated = 0;
         if ((stellarData[i].flags2 & kSpobStartsDestroyed) != 0) {
             stellarData[i].deadCounter = -1;
-            if (stellarData[i].deadDays < 0)
-                stellarData[i].deadDaysLeft = 1;
-            else
+            if (stellarData[i].deadDays >= 0)
                 stellarData[i].deadDaysLeft = stellarData[i].deadDays;
+            else
+                stellarData[i].deadDaysLeft = 1;
         } else {
             stellarData[i].deadCounter = stellarData[i].strength;
             stellarData[i].deadDaysLeft = 0;
@@ -2572,10 +3639,216 @@ void ResetGameData(void)
     seenIntroScreen = 0;
 }
 
+#ifdef MACBUILD
+/* MeasureProcessorSpeed (mac _MeasureProcessorSpeed, mac-only). STATE: mac MATCH i386 and ppc.
+   OPEN: none */
+// MAC: _MeasureProcessorSpeed i386 0x0001dfea ppc 0x00022904
+void MeasureProcessorSpeed(void)
+{
+    long counts[10];
+    long total;
+    unsigned long start;
+    long average;
+    long i;
+
+    total = 0;
+    for (i = 0; i < 10; i++) {
+        counts[i] = 0;
+        start = TickCount();
+        while (TickCount() <= start + 2)
+            counts[i]++;
+        total += counts[i];
+    }
+    average = total / 10.0;
+    userSpeedSetting = 7200.0f / average;
+    if (userSpeedSetting > 3.0)
+        userSpeedSetting = 3.0;
+    else if (userSpeedSetting < 1.05)
+        userSpeedSetting = 1.0;
+}
+
+/* EmergencyBail (mac _EmergencyBail, mac-only). STATE: mac MATCH i386 and ppc. OPEN: none */
+// MAC: _EmergencyBail i386 0x0001e091 ppc 0x00022a18
+void EmergencyBail(void)
+{
+    ST_Close();
+}
+
+/* SWAddFramesFromSinglePictXY (mac _SWAddFramesFromSinglePictXY, mac-only). STATE: mac MATCH
+   i386 and ppc. OPEN: none */
+// MAC: _SWAddFramesFromSinglePictXY i386 0x0001e09a ppc 0x00022a1c
+short SWAddFramesFromSinglePictXY(SpriteWorldPtr destSpriteWorldP, SpritePtr srcSpriteP,
+        short pictResID, short maskResID, short frameWidth, short frameHeight,
+        short borderWidth, short borderHeight, short maxFrames, MaskType maskType)
+{
+    short err;
+    PicHandle tempPic;
+    CGrafPtr tempPictGWorldP;
+    CGrafPtr tempMaskGWorldP;
+    CGrafPtr tempTempMaskGWorldP;
+    FramePtr newFrameP;
+    Rect frameRect;
+    short frame;
+    Boolean needToInvertMask;
+
+    err = noErr;
+
+    if (destSpriteWorldP == NULL)
+        SWAssertFail(kEngineSourceDir "Setup.c", 4047);
+
+    tempPictGWorldP = NULL;
+    tempMaskGWorldP = NULL;
+    needToInvertMask = true;
+
+    tempPic = GetPicture(pictResID);
+    if (tempPic == NULL) {
+        err = MemError();
+        if (err == noErr)
+            err = resNotFound;
+    } else {
+        ReleaseResource((Handle)tempPic);
+    }
+
+    if (err == noErr) {
+        err = SWCreateGWorldFromPictResource(destSpriteWorldP, &tempPictGWorldP, pictResID);
+        if (err == noErr && maskType != kNoMask)
+            err = SWCreateGWorldFromPictResource(destSpriteWorldP, &tempMaskGWorldP, maskResID);
+
+        if (err == noErr) {
+            if (pictResID == maskResID && tempMaskGWorldP != NULL) {
+                err = SWCreatePixelMaskFromGWorld(tempPictGWorldP, tempMaskGWorldP, NULL);
+                needToInvertMask = false;
+                if (destSpriteWorldP->pixelDepth <= 8 && (maskType & kRegionMask) != 0) {
+                    SWInvertGWorld(tempMaskGWorldP);
+                    needToInvertMask = true;
+                }
+            } else if ((maskType & kPixelMask) != 0) {
+                SWFixImageGWorld(tempPictGWorldP, tempMaskGWorldP, NULL);
+                SetPort(tempMaskGWorldP);
+                ForeColor(blackColor);
+                BackColor(whiteColor);
+                InvertRect(GetWindowPortRect(GetWindowFromPort(tempMaskGWorldP)));
+                needToInvertMask = true;
+            }
+        }
+
+        if (maxFrames == 0) {
+            maxFrames = (GetWindowPortRect(GetWindowFromPort(tempPictGWorldP))->right / frameWidth) *
+                        (GetWindowPortRect(GetWindowFromPort(tempPictGWorldP))->bottom / frameHeight);
+        }
+
+        if (err == noErr)
+            err = SWCreateFrameFromGWorldAndRectStart(&tempTempMaskGWorldP, frameWidth,
+                    frameHeight, maskType);
+
+        if (err == noErr) {
+            frameRect.left = 0;
+            frameRect.top = 0;
+            frameRect.right = frameWidth;
+            frameRect.bottom = frameHeight;
+
+            for (frame = 0; frame < maxFrames; frame++) {
+                err = SWCreateFrameFromGWorldAndRectPartial(&newFrameP, tempPictGWorldP,
+                        tempMaskGWorldP, tempTempMaskGWorldP, &frameRect, maskType);
+
+                if (err == noErr) {
+                    err = SWAddFrame(srcSpriteP, newFrameP);
+                    if (frame < maxFrames - 1) {
+                        frameRect.left += frameWidth + borderWidth;
+                        frameRect.right = frameRect.left + frameWidth;
+                        if (frameRect.right >
+                                GetWindowPortRect(GetWindowFromPort(tempPictGWorldP))->right) {
+                            frameRect.left = 0;
+                            frameRect.right = frameWidth;
+                            frameRect.top += frameHeight + borderHeight;
+                            frameRect.bottom = frameRect.top + frameHeight;
+
+                            if (frameRect.bottom >
+                                    GetWindowPortRect(GetWindowFromPort(tempPictGWorldP))->bottom)
+                                err = kOutOfRangeErr;
+                        }
+                    }
+                }
+
+                if (err != noErr) {
+                    SWDisposeFrame(&newFrameP);
+                    break;
+                }
+            }
+
+            SWCreateFrameFromGWorldAndRectFinish(tempTempMaskGWorldP);
+        }
+
+        if (err == noErr) {
+            if ((maskType & kPixelMask) != 0) {
+                if (destSpriteWorldP->pixelDepth <= 8 && needToInvertMask)
+                    SWInvertGWorld(tempMaskGWorldP);
+            } else {
+                if (tempMaskGWorldP != NULL) {
+                    DisposeGWorld(tempMaskGWorldP);
+                    tempMaskGWorldP = NULL;
+                }
+            }
+
+            SWSetSpriteFrameRange(srcSpriteP, 0, maxFrames - 1);
+            SWSetCurrentFrameIndex(srcSpriteP, 0);
+        }
+    }
+
+    SWSetStickyIfError(err);
+    return err;
+}
+
+#endif
 #pragma opt_repositioncode off
 
 /* ConvertSpriteToRLE (mac _ConvertSpriteToRLE). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b4cf0
+// MAC: _ConvertSpriteToRLE i386 0x0001e489 ppc 0x00022d98
+#ifdef MACBUILD
+short ConvertSpriteToRLE(SpriteRec *set)
+{
+    Rect r;
+    long result;
+    short err;
+    short i;
+
+    if (set->frameArray[0]->framePort != NULL) {
+        r = *GetCPortPortRect(set->frameArray[0]->framePort);
+        if ((r.right - r.left) * (r.bottom - r.top) !=
+            (set->frameArray[0]->frameRect.right - set->frameArray[0]->frameRect.left) * set->numFrames *
+            (set->frameArray[0]->frameRect.bottom - set->frameArray[0]->frameRect.top)) {
+            crashlog("error - bad sprite image size");
+            return -1;
+        }
+    }
+    err = SWCreateRLEData(set, 0);
+    result = err;
+    if (result != 0)
+        return err;
+    if (set->frameArray[0]->framePort != NULL)
+        DisposeGWorld(set->frameArray[0]->framePort);
+    if (set->frameArray[0]->maskPort != NULL)
+        DisposeGWorld(set->frameArray[0]->maskPort);
+    if (set->frameArray[0]->maskRgn != NULL)
+        DisposeRgn(set->frameArray[0]->maskRgn);
+    for (i = 0; i < set->maxFrames; i++) {
+        set->frameArray[i]->framePort = NULL;
+        set->frameArray[i]->frameDevice = NULL;
+        set->frameArray[i]->framePixHndl = NULL;
+        set->frameArray[i]->maskPort = NULL;
+        set->frameArray[i]->maskDevice = NULL;
+        set->frameArray[i]->maskPixHndl = NULL;
+        set->frameArray[i]->maskRgn = NULL;
+    }
+    if (result == 0) {
+        set->sharedPictGWorld = NULL;
+        set->sharedMaskGWorld = NULL;
+    }
+    SWLockSprite(set);
+    return err;
+}
+#else
 short ConvertSpriteToRLE(SpriteRec *set)
 {
     int i;
@@ -2625,33 +3898,26 @@ clearCaches:
     set->sharedMaskGWorld = NULL;
     goto finish;
 }
+#endif
 
 #pragma opt_repositioncode reset
 
-/*
- * Every out-parameter is optional, so a caller that wants only the tile counts
- * passes NULL for the rest. Field names are the Nova Bible's documented spin
- * layout (six shorts: spriteID, maskID, xSize, ySize, xTiles, yTiles), which
- * the six out-parameters pick up in order.
- */
-
-
-typedef struct SpinRec {
-    short spriteID;     /* +0x00 */
-    short maskID;       /* +0x02 */
-    short xSize;        /* +0x04 */
-    short ySize;        /* +0x06 */
-    short xTiles;       /* +0x08 */
-    short yTiles;       /* +0x0a */
-} SpinRec, **SpinHandle;
+/* Every out-parameter is optional, so a caller that wants only the tile counts
+   passes NULL for the rest. */
 
 /* the setup object's globals, here and after ShanRec below */
+#ifdef MACBUILD
+extern SpinRec spriteInfo;
+SpinHandle spriteInfoHand;
+#else
 SpinRec spriteInfo;
 SpinHandle spriteInfoHand;
+#endif
 
 /* GetSpriteInfo. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b4e10
-char GetSpriteInfo(short id, short *spriteID, short *maskID, short *xSize,
+// MAC: _GetSpriteInfo i386 0x0001bf80 ppc 0x000200a0
+Boolean GetSpriteInfo(short id, short *spriteID, short *maskID, short *xSize,
                   short *ySize, short *xTiles, short *yTiles)
 {
     spriteInfoHand = (SpinHandle)GetResource(kSpinType, id);
@@ -2675,58 +3941,13 @@ char GetSpriteInfo(short id, short *spriteID, short *maskID, short *xSize,
 }
 
 
-/*
- * The `shan` resource, resized to 0xc0 on the way out.  Field names follow
- * the Nova Bible; every one of them is read below.
- */
-typedef struct ShanRec {
-    short baseImageID;          /* +0x00 */
-    short baseMaskID;           /* +0x02 */
-    short baseSetCount;         /* +0x04 */
-    short baseXSize;            /* +0x06 */
-    short baseYSize;            /* +0x08 */
-    short baseTransparency;     /* +0x0a */
-    short altImageID;           /* +0x0c */
-    short altMaskID;            /* +0x0e */
-    short altSetCount;          /* +0x10 */
-    short altXSize;             /* +0x12 */
-    short altYSize;             /* +0x14 */
-    short glowImageID;          /* +0x16 */
-    short glowMaskID;           /* +0x18 */
-    short glowXSize;            /* +0x1a */
-    short glowYSize;            /* +0x1c */
-    short lightImageID;         /* +0x1e */
-    short lightMaskID;          /* +0x20 */
-    short lightXSize;           /* +0x22 */
-    short lightYSize;           /* +0x24 */
-    short weapImageID;          /* +0x26 */
-    short weapMaskID;           /* +0x28 */
-    short weapXSize;            /* +0x2a */
-    short weapYSize;            /* +0x2c */
-    short flags;                /* +0x2e */
-    short animDelay;            /* +0x30 */
-    short weapDecay;            /* +0x32 */
-    short framesPer;            /* +0x34 */
-    short blinkMode;            /* +0x36 */
-    short blinkValue[4];        /* +0x38 */
-    short shieldImageID;        /* +0x40 */
-    short shieldMaskID;         /* +0x42 */
-    short shieldXSize;          /* +0x44 */
-    short shieldYSize;          /* +0x46 */
-    struct {
-        short x[4];             /* gun/turret/guided/beam X, four lanes */
-        short y[4];             /* ... and Y */
-    } mountPos[4];              /* +0x48 */
-    short upCompressX;          /* +0x88 */
-    short upCompressY;          /* +0x8a */
-    short downCompressX;        /* +0x8c */
-    short downCompressY;        /* +0x8e */
-    short mountPosZ[4][4];      /* +0x90 */
-    short unkB0[8];             /* +0xb0, never read: the handle is resized to 0xc0 */
-} ShanRec;
-
+#ifdef MACBUILD
+extern ShanRec shipSpriteInfo;
+ShanRec **shipSpriteInfoHand;
+#else
 ShanRec shipSpriteInfo;
 ShanRec **shipSpriteInfoHand;
+#endif
 short firstShipGlowIndex;
 short firstShipLightIndex;
 short firstShipAltIndex;
@@ -2734,32 +3955,35 @@ short firstShipWeapIndex;
 short firstShipShieldIndex;
 short shipSpriteLoaded[kMaxShipTypes][6];
 Rect mainWindRect;
+#ifdef MACBUILD
+Rect mainDeviceInitBounds;
+#else
 Rect screenMinusDockRect;
+#endif
 long fullScreenRestore;
 
 
 /* LoadExtendedShipSprites (mac _LoadExtendedShipSprites). STATE: MATCH 100.0% (1048 exact,
-   421 reloc-equiv), exe 1469 / obj 1469, byte-identical yes (5945 bytes, relocs masked).
-   OPEN: none. */
+   421 reloc-equiv), exe 1469 / obj 1469, byte-identical yes (5945 bytes, relocs masked);
+   mac MATCH both slices. OPEN: none. */
 // FUNCTION: EVNOVA 0x004b4ee0
+// MAC: _LoadExtendedShipSprites i386 0x000226af ppc 0x00026b28
 short LoadExtendedShipSprites(short shipType)
 {
+    short total;
     short spinID;
     short lightID;
     short maskID;
-    short count;
     short xSize;
-    short setCount;
     short ySize;
+    short setCount;
     short i;
     short err;
-    short total;
-    long resID;
-    unsigned long rleType;
+    short count;
+    short j;
 
     total = 0;
-    resID = shipType + 128;
-    shipSpriteInfoHand = (ShanRec **)GetResource(kShanType, resID);
+    shipSpriteInfoHand = (ShanRec **)GetResource(kShanType, shipType + 128);
     if (shipSpriteInfoHand != NULL) {
         LockAHandle((Handle)shipSpriteInfoHand);
 
@@ -2767,120 +3991,118 @@ short LoadExtendedShipSprites(short shipType)
         maskID = (*shipSpriteInfoHand)->baseMaskID;
         xSize = (*shipSpriteInfoHand)->baseXSize;
         ySize = (*shipSpriteInfoHand)->baseYSize;
-        gShipTypes[shipType].framesPer = (*shipSpriteInfoHand)->framesPer;
-        if (gShipTypes[shipType].framesPer == 0)
-            gShipTypes[shipType].framesPer = 36;
+        shipClass[shipType].framesPer = (*shipSpriteInfoHand)->framesPer;
+        if (shipClass[shipType].framesPer == 0)
+            shipClass[shipType].framesPer = 36;
         setCount = (*shipSpriteInfoHand)->baseSetCount;
         if (setCount <= 0)
             setCount = 1;
-        if (loadShipSetsPref != 0) {
+        if (settings.shipAnimations != 0) {
             count = setCount;
-            count *= gShipTypes[shipType].framesPer;
+            count *= shipClass[shipType].framesPer;
         } else {
-            count = gShipTypes[shipType].framesPer;
+            count = shipClass[shipType].framesPer;
         }
-        gShipTypes[shipType].weapDecay = (*shipSpriteInfoHand)->weapDecay * 0.333;
+        shipClass[shipType].weapDecay = (*shipSpriteInfoHand)->weapDecay * 0.333;
 
-        i = FindSlotEntry(spinID, shipType, 0);
+        i = FindPriorLoadedShipSprite(spinID, shipType, 0);
         if (i != -1) {
             SWCloneSprite(masterShipSprite[i], &masterShipSprite[shipType], NULL);
             SWLockSprite(masterShipSprite[shipType]);
             shipSpriteLoaded[shipType][0] = spinID;
-            gShipTypes[shipType].spriteIndex = i;
+            shipClass[shipType].spriteIndex = i;
         } else {
-            rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-            if (ResourceExists(rleType, spinID)) {
+            if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spinID)) {
                 err = SWCreateSpriteFromRLEResource(&masterShipSprite[shipType], NULL,
                                                     spinID, count, 0);
                 if ((long)err != 0) {
-                    crashlog_print("error loading ship base sprite from RLE, sh\x8an ID ");
-                    crashlog_print_num(resID);
+                    crashlog_print("error loading ship base sprite from RLE, " kShanTypeName " ID ");
+                    crashlog_print_num(shipType + 128);
                     crashlog_print("\n");
-                    ReportSpriteLoadError(2, resID, err);
+                    ReportSpriteLoadError(2, shipType + 128, err);
                 }
                 SWLockSprite(masterShipSprite[shipType]);
             } else {
                 err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &masterShipSprite[shipType],
                                                      NULL, spinID, maskID, xSize, ySize, 0, 0,
-                                                     gShipTypes[shipType].framesPer * setCount, 1);
+                                                     shipClass[shipType].framesPer * setCount, 1);
                 if ((long)err != 0) {
-                    crashlog_print("error loading ship base sprite from PICT, sh\x8an ID ");
-                    crashlog_print_num(resID);
+                    crashlog_print("error loading ship base sprite from PICT, " kShanTypeName " ID ");
+                    crashlog_print_num(shipType + 128);
                     crashlog_print("\n");
-                    ReportSpriteLoadError(3, resID, err);
+                    ReportSpriteLoadError(3, shipType + 128, err);
                 }
                 SWLockSprite(masterShipSprite[shipType]);
                 err = ConvertSpriteToRLE(masterShipSprite[shipType]);
                 if ((long)err != 0) {
-                    crashlog_print("error converting ship base sprite to RLE, sh\x8an ID ");
-                    crashlog_print_num(resID);
+                    crashlog_print("error converting ship base sprite to RLE, " kShanTypeName " ID ");
+                    crashlog_print_num(shipType + 128);
                     crashlog_print("\n");
-                    ReportSpriteLoadError(4, resID, err);
+                    ReportSpriteLoadError(4, shipType + 128, err);
                 }
                 masterShipSprite[shipType]->numFrames =
-                    gShipTypes[shipType].framesPer * setCount;
+                    shipClass[shipType].framesPer * setCount;
             }
         }
         shipSpriteLoaded[shipType][0] = spinID;
         total += masterShipSprite[shipType]->numFrames;
 
-        gShipTypes[shipType].shanFlags = (*shipSpriteInfoHand)->flags;
-        gShipTypes[shipType].animDelay = (*shipSpriteInfoHand)->animDelay;
-        gShipTypes[shipType].transparency = (*shipSpriteInfoHand)->baseTransparency;
-        if (loadShipSetsPref != 0)
-            gShipTypes[shipType].baseSets = setCount;
+        shipClass[shipType].shanFlags = (*shipSpriteInfoHand)->flags;
+        shipClass[shipType].animDelay = (*shipSpriteInfoHand)->animDelay;
+        shipClass[shipType].transparency = (int)(*shipSpriteInfoHand)->baseTransparency;
+        if (settings.shipAnimations != 0)
+            shipClass[shipType].baseSets = setCount;
         else
-            gShipTypes[shipType].baseSets = 1;
+            shipClass[shipType].baseSets = 1;
 
         if ((*shipSpriteInfoHand)->altImageID > 0 && (*shipSpriteInfoHand)->altSetCount > 0) {
-            if (loadShipSetsPref != 0)
-                gShipTypes[shipType].altSets = (*shipSpriteInfoHand)->altSetCount;
+            if (settings.shipAnimations != 0)
+                shipClass[shipType].altSets = (*shipSpriteInfoHand)->altSetCount;
             else
-                gShipTypes[shipType].altSets = 1;
+                shipClass[shipType].altSets = 1;
             spinID = (*shipSpriteInfoHand)->altImageID;
             maskID = (*shipSpriteInfoHand)->altMaskID;
             xSize = (*shipSpriteInfoHand)->altXSize;
             ySize = (*shipSpriteInfoHand)->altYSize;
 
-            i = FindSlotEntry(spinID, shipType, 1);
+            i = FindPriorLoadedShipSprite(spinID, shipType, 1);
             if (i != -1) {
                 SWCloneSprite(masterShipAltSprite[i], &masterShipAltSprite[shipType], NULL);
                 SWLockSprite(masterShipAltSprite[shipType]);
             } else {
-                rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-                if (ResourceExists(rleType, spinID)) {
+                if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spinID)) {
                     err = SWCreateSpriteFromRLEResource(&masterShipAltSprite[shipType], NULL,
                                                         spinID,
-                                                        gShipTypes[shipType].altSets *
-                                                            gShipTypes[shipType].framesPer, 0);
+                                                        shipClass[shipType].altSets *
+                                                            shipClass[shipType].framesPer, 0);
                     if ((long)err != 0) {
-                        crashlog_print("error loading ship alt sprite from RLE, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error loading ship alt sprite from RLE, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(2, resID, err);
+                        ReportSpriteLoadError(2, shipType + 128, err);
                     }
                     SWLockSprite(masterShipAltSprite[shipType]);
                 } else {
                     err = SWCreateSpriteFromSinglePictXY(gSpriteWorld,
                                                          &masterShipAltSprite[shipType], NULL,
                                                          spinID, maskID, xSize, ySize, 0, 0,
-                                                         gShipTypes[shipType].framesPer *
-                                                             gShipTypes[shipType].altSets, 1);
+                                                         shipClass[shipType].framesPer *
+                                                             shipClass[shipType].altSets, 1);
                     if ((long)err != 0) {
-                        crashlog_print("error loading ship alt sprite from PICT, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error loading ship alt sprite from PICT, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(3, resID, err);
+                        ReportSpriteLoadError(3, shipType + 128, err);
                     }
                     masterShipAltSprite[shipType]->numFrames =
-                        gShipTypes[shipType].framesPer * gShipTypes[shipType].altSets;
+                        shipClass[shipType].framesPer * shipClass[shipType].altSets;
                     SWLockSprite(masterShipAltSprite[shipType]);
                     err = ConvertSpriteToRLE(masterShipAltSprite[shipType]);
                     if ((long)err != 0) {
-                        crashlog_print("error converting ship alt sprite to RLE, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error converting ship alt sprite to RLE, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(4, resID, err);
+                        ReportSpriteLoadError(4, shipType + 128, err);
                     }
                 }
             }
@@ -2888,48 +4110,47 @@ short LoadExtendedShipSprites(short shipType)
             total += masterShipAltSprite[shipType]->numFrames;
         }
 
-        if ((*shipSpriteInfoHand)->glowImageID > 0 && loadShipGlowPref != 0) {
+        if ((*shipSpriteInfoHand)->glowImageID > 0 && settings.engineGlows != 0) {
             spinID = (*shipSpriteInfoHand)->glowImageID;
             maskID = (*shipSpriteInfoHand)->glowMaskID;
             xSize = (*shipSpriteInfoHand)->glowXSize;
             ySize = (*shipSpriteInfoHand)->glowYSize;
 
-            i = FindSlotEntry(spinID, shipType, 2);
+            i = FindPriorLoadedShipSprite(spinID, shipType, 2);
             if (i != -1) {
                 SWCloneSprite(masterShipGlowSprite[i], &masterShipGlowSprite[shipType], NULL);
                 SWLockSprite(masterShipGlowSprite[shipType]);
             } else {
-                rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-                if (ResourceExists(rleType, spinID)) {
+                if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spinID)) {
                     err = SWCreateSpriteFromRLEResource(&masterShipGlowSprite[shipType], NULL,
                                                         spinID, count, 0);
                     if ((long)err != 0) {
-                        crashlog_print("error loading ship glow sprite from RLE, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error loading ship glow sprite from RLE, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(2, resID, err);
+                        ReportSpriteLoadError(2, shipType + 128, err);
                     }
                     SWLockSprite(masterShipGlowSprite[shipType]);
                 } else {
                     err = SWCreateSpriteFromSinglePictXY(gSpriteWorld,
                                                          &masterShipGlowSprite[shipType], NULL,
                                                          spinID, maskID, xSize, ySize, 0, 0,
-                                                         gShipTypes[shipType].framesPer * setCount, 1);
+                                                         shipClass[shipType].framesPer * setCount, 1);
                     if ((long)err != 0) {
-                        crashlog_print("error loading ship glow sprite from PICT, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error loading ship glow sprite from PICT, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(3, resID, err);
+                        ReportSpriteLoadError(3, shipType + 128, err);
                     }
                     masterShipGlowSprite[shipType]->numFrames =
-                        gShipTypes[shipType].framesPer * setCount;
+                        shipClass[shipType].framesPer * setCount;
                     SWLockSprite(masterShipGlowSprite[shipType]);
                     err = ConvertSpriteToRLE(masterShipGlowSprite[shipType]);
                     if ((long)err != 0) {
-                        crashlog_print("error converting ship glow sprite to RLE, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error converting ship glow sprite to RLE, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(4, resID, err);
+                        ReportSpriteLoadError(4, shipType + 128, err);
                     }
                 }
             }
@@ -2937,107 +4158,105 @@ short LoadExtendedShipSprites(short shipType)
             total += masterShipGlowSprite[shipType]->numFrames;
         }
 
-        lightID = (*shipSpriteInfoHand)->lightImageID;
-        if (lightID > 0 && loadShipLightsPref != 0) {
+        if ((*shipSpriteInfoHand)->lightImageID > 0 && settings.runningLights != 0) {
+            lightID = (*shipSpriteInfoHand)->lightImageID;
             maskID = (*shipSpriteInfoHand)->lightMaskID;
             xSize = (*shipSpriteInfoHand)->lightXSize;
             ySize = (*shipSpriteInfoHand)->lightYSize;
 
-            i = FindSlotEntry(lightID, shipType, 3);
+            i = FindPriorLoadedShipSprite(lightID, shipType, 3);
             if (i != -1) {
                 SWCloneSprite(masterShipLightSprite[i], &masterShipLightSprite[shipType], NULL);
                 SWLockSprite(masterShipLightSprite[shipType]);
             } else {
-                rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-                if (ResourceExists(rleType, lightID)) {
+                if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, lightID)) {
                     err = SWCreateSpriteFromRLEResource(&masterShipLightSprite[shipType], NULL,
                                                         lightID, count, 0);
                     if ((long)err != 0) {
-                        crashlog_print("error loading ship light sprite from RLE, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error loading ship light sprite from RLE, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(2, resID, err);
+                        ReportSpriteLoadError(2, shipType + 128, err);
                     }
                     SWLockSprite(masterShipLightSprite[shipType]);
                 } else {
                     err = SWCreateSpriteFromSinglePictXY(gSpriteWorld,
                                                          &masterShipLightSprite[shipType], NULL,
                                                          lightID, maskID, xSize, ySize, 0, 0,
-                                                         gShipTypes[shipType].framesPer * setCount, 1);
+                                                         shipClass[shipType].framesPer * setCount, 1);
                     if ((long)err != 0) {
-                        crashlog_print("error loading ship light sprite from PICT, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error loading ship light sprite from PICT, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(3, resID, err);
+                        ReportSpriteLoadError(3, shipType + 128, err);
                     }
                     masterShipLightSprite[shipType]->numFrames =
-                        gShipTypes[shipType].framesPer * setCount;
+                        shipClass[shipType].framesPer * setCount;
                     SWLockSprite(masterShipLightSprite[shipType]);
                     err = ConvertSpriteToRLE(masterShipLightSprite[shipType]);
                     if ((long)err != 0) {
-                        crashlog_print("error converting ship light sprite to RLE, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error converting ship light sprite to RLE, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(4, resID, err);
+                        ReportSpriteLoadError(4, shipType + 128, err);
                     }
                 }
             }
-            gShipTypes[shipType].blinkMode = (*shipSpriteInfoHand)->blinkMode;
-            for (i = 0; i < 4; i++)
-                gShipTypes[shipType].blinkValue[i] = (*shipSpriteInfoHand)->blinkValue[i];
-            if (gShipTypes[shipType].blinkMode == 2 &&
-                gShipTypes[shipType].blinkValue[2] > 31)
-                gShipTypes[shipType].blinkValue[2] = 31;
-            if (gShipTypes[shipType].blinkMode == 3 &&
-                gShipTypes[shipType].blinkValue[1] > 31)
-                gShipTypes[shipType].blinkValue[1] = 31;
+            shipClass[shipType].blinkMode = (*shipSpriteInfoHand)->blinkMode;
+            for (j = 0; j < 4; j++)
+                shipClass[shipType].blinkValue[j] = (*shipSpriteInfoHand)->blinkValue[j];
+            if (shipClass[shipType].blinkMode == 2 &&
+                shipClass[shipType].blinkValue[2] > 31)
+                shipClass[shipType].blinkValue[2] = 31;
+            if (shipClass[shipType].blinkMode == 3 &&
+                shipClass[shipType].blinkValue[1] > 31)
+                shipClass[shipType].blinkValue[1] = 31;
             shipSpriteLoaded[shipType][3] = lightID;
             total += masterShipLightSprite[shipType]->numFrames;
         }
 
-        if ((*shipSpriteInfoHand)->weapImageID > 0 && loadShipWeaponsPref != 0) {
+        if ((*shipSpriteInfoHand)->weapImageID > 0 && settings.weaponGlows != 0) {
             spinID = (*shipSpriteInfoHand)->weapImageID;
             maskID = (*shipSpriteInfoHand)->weapMaskID;
             xSize = (*shipSpriteInfoHand)->weapXSize;
             ySize = (*shipSpriteInfoHand)->weapYSize;
 
-            i = FindSlotEntry(spinID, shipType, 4);
+            i = FindPriorLoadedShipSprite(spinID, shipType, 4);
             if (i != -1) {
                 SWCloneSprite(masterShipWeaponSprite[i],
                               &masterShipWeaponSprite[shipType], NULL);
                 SWLockSprite(masterShipWeaponSprite[shipType]);
             } else {
-                rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-                if (ResourceExists(rleType, spinID)) {
+                if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spinID)) {
                     err = SWCreateSpriteFromRLEResource(&masterShipWeaponSprite[shipType], NULL,
                                                         spinID, count, 0);
                     if ((long)err != 0) {
-                        crashlog_print("error loading ship weapon sprite from RLE, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error loading ship weapon sprite from RLE, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(2, resID, err);
+                        ReportSpriteLoadError(2, shipType + 128, err);
                     }
                     SWLockSprite(masterShipWeaponSprite[shipType]);
                 } else {
                     err = SWCreateSpriteFromSinglePictXY(gSpriteWorld,
                                                          &masterShipWeaponSprite[shipType], NULL,
                                                          spinID, maskID, xSize, ySize, 0, 0,
-                                                         gShipTypes[shipType].framesPer * setCount, 1);
+                                                         shipClass[shipType].framesPer * setCount, 1);
                     if ((long)err != 0) {
-                        crashlog_print("error loading ship weapon sprite from PICT, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error loading ship weapon sprite from PICT, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(3, resID, err);
+                        ReportSpriteLoadError(3, shipType + 128, err);
                     }
                     masterShipWeaponSprite[shipType]->numFrames =
-                        gShipTypes[shipType].framesPer * setCount;
+                        shipClass[shipType].framesPer * setCount;
                     SWLockSprite(masterShipWeaponSprite[shipType]);
                     err = ConvertSpriteToRLE(masterShipWeaponSprite[shipType]);
                     if ((long)err != 0) {
-                        crashlog_print("error converting ship weapon sprite to RLE, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error converting ship weapon sprite to RLE, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(4, resID, err);
+                        ReportSpriteLoadError(4, shipType + 128, err);
                     }
                 }
             }
@@ -3051,21 +4270,20 @@ short LoadExtendedShipSprites(short shipType)
             xSize = (*shipSpriteInfoHand)->shieldXSize;
             ySize = (*shipSpriteInfoHand)->shieldYSize;
 
-            i = FindSlotEntry(spinID, shipType, 5);
+            i = FindPriorLoadedShipSprite(spinID, shipType, 5);
             if (i != -1) {
                 SWCloneSprite(masterShipShieldSprite[i],
                               &masterShipShieldSprite[shipType], NULL);
                 SWLockSprite(masterShipShieldSprite[shipType]);
             } else {
-                rleType = (gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType;
-                if (ResourceExists(rleType, spinID)) {
+                if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spinID)) {
                     err = SWCreateSpriteFromRLEResource(&masterShipShieldSprite[shipType], NULL,
                                                         spinID, count, 0);
                     if ((long)err != 0) {
-                        crashlog_print("error loading ship shield sprite from RLE, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error loading ship shield sprite from RLE, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(2, resID, err);
+                        ReportSpriteLoadError(2, shipType + 128, err);
                     }
                     SWLockSprite(masterShipShieldSprite[shipType]);
                 } else {
@@ -3073,18 +4291,18 @@ short LoadExtendedShipSprites(short shipType)
                                                          &masterShipShieldSprite[shipType], NULL,
                                                          spinID, maskID, xSize, ySize, 0, 0, 0, 1);
                     if ((long)err != 0) {
-                        crashlog_print("error loading ship shield sprite from PICT, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error loading ship shield sprite from PICT, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(3, resID, err);
+                        ReportSpriteLoadError(3, shipType + 128, err);
                     }
                     SWLockSprite(masterShipShieldSprite[shipType]);
                     err = ConvertSpriteToRLE(masterShipShieldSprite[shipType]);
                     if ((long)err != 0) {
-                        crashlog_print("error converting ship shield sprite to RLE, sh\x8an ID ");
-                        crashlog_print_num(resID);
+                        crashlog_print("error converting ship shield sprite to RLE, " kShanTypeName " ID ");
+                        crashlog_print_num(shipType + 128);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(4, resID, err);
+                        ReportSpriteLoadError(4, shipType + 128, err);
                     }
                 }
             }
@@ -3092,66 +4310,66 @@ short LoadExtendedShipSprites(short shipType)
             total += masterShipShieldSprite[shipType]->numFrames;
         }
 
-        gShipTypes[shipType].weapPos[0][0][0] = (*shipSpriteInfoHand)->mountPos[0].x[0];
-        gShipTypes[shipType].weapPos[0][0][1] = (*shipSpriteInfoHand)->mountPos[0].y[0];
-        gShipTypes[shipType].weapPos[0][1][0] = (*shipSpriteInfoHand)->mountPos[0].x[1];
-        gShipTypes[shipType].weapPos[0][1][1] = (*shipSpriteInfoHand)->mountPos[0].y[1];
-        gShipTypes[shipType].weapPos[0][2][0] = (*shipSpriteInfoHand)->mountPos[0].x[2];
-        gShipTypes[shipType].weapPos[0][2][1] = (*shipSpriteInfoHand)->mountPos[0].y[2];
-        gShipTypes[shipType].weapPos[0][3][0] = (*shipSpriteInfoHand)->mountPos[0].x[3];
-        gShipTypes[shipType].weapPos[0][3][1] = (*shipSpriteInfoHand)->mountPos[0].y[3];
-        gShipTypes[shipType].weapPos[1][0][0] = (*shipSpriteInfoHand)->mountPos[1].x[0];
-        gShipTypes[shipType].weapPos[1][0][1] = (*shipSpriteInfoHand)->mountPos[1].y[0];
-        gShipTypes[shipType].weapPos[1][1][0] = (*shipSpriteInfoHand)->mountPos[1].x[1];
-        gShipTypes[shipType].weapPos[1][1][1] = (*shipSpriteInfoHand)->mountPos[1].y[1];
-        gShipTypes[shipType].weapPos[1][2][0] = (*shipSpriteInfoHand)->mountPos[1].x[2];
-        gShipTypes[shipType].weapPos[1][2][1] = (*shipSpriteInfoHand)->mountPos[1].y[2];
-        gShipTypes[shipType].weapPos[1][3][0] = (*shipSpriteInfoHand)->mountPos[1].x[3];
-        gShipTypes[shipType].weapPos[1][3][1] = (*shipSpriteInfoHand)->mountPos[1].y[3];
-        gShipTypes[shipType].weapPos[2][0][0] = (*shipSpriteInfoHand)->mountPos[2].x[0];
-        gShipTypes[shipType].weapPos[2][0][1] = (*shipSpriteInfoHand)->mountPos[2].y[0];
-        gShipTypes[shipType].weapPos[2][1][0] = (*shipSpriteInfoHand)->mountPos[2].x[1];
-        gShipTypes[shipType].weapPos[2][1][1] = (*shipSpriteInfoHand)->mountPos[2].y[1];
-        gShipTypes[shipType].weapPos[2][2][0] = (*shipSpriteInfoHand)->mountPos[2].x[2];
-        gShipTypes[shipType].weapPos[2][2][1] = (*shipSpriteInfoHand)->mountPos[2].y[2];
-        gShipTypes[shipType].weapPos[2][3][0] = (*shipSpriteInfoHand)->mountPos[2].x[3];
-        gShipTypes[shipType].weapPos[2][3][1] = (*shipSpriteInfoHand)->mountPos[2].y[3];
-        gShipTypes[shipType].weapPos[3][0][0] = (*shipSpriteInfoHand)->mountPos[3].x[0];
-        gShipTypes[shipType].weapPos[3][0][1] = (*shipSpriteInfoHand)->mountPos[3].y[0];
-        gShipTypes[shipType].weapPos[3][1][0] = (*shipSpriteInfoHand)->mountPos[3].x[1];
-        gShipTypes[shipType].weapPos[3][1][1] = (*shipSpriteInfoHand)->mountPos[3].y[1];
-        gShipTypes[shipType].weapPos[3][2][0] = (*shipSpriteInfoHand)->mountPos[3].x[2];
-        gShipTypes[shipType].weapPos[3][2][1] = (*shipSpriteInfoHand)->mountPos[3].y[2];
-        gShipTypes[shipType].weapPos[3][3][0] = (*shipSpriteInfoHand)->mountPos[3].x[3];
-        gShipTypes[shipType].weapPos[3][3][1] = (*shipSpriteInfoHand)->mountPos[3].y[3];
+        shipClass[shipType].weapPos[0][0].h = (*shipSpriteInfoHand)->mountPos[0].x[0];
+        shipClass[shipType].weapPos[0][0].v = (*shipSpriteInfoHand)->mountPos[0].y[0];
+        shipClass[shipType].weapPos[0][1].h = (*shipSpriteInfoHand)->mountPos[0].x[1];
+        shipClass[shipType].weapPos[0][1].v = (*shipSpriteInfoHand)->mountPos[0].y[1];
+        shipClass[shipType].weapPos[0][2].h = (*shipSpriteInfoHand)->mountPos[0].x[2];
+        shipClass[shipType].weapPos[0][2].v = (*shipSpriteInfoHand)->mountPos[0].y[2];
+        shipClass[shipType].weapPos[0][3].h = (*shipSpriteInfoHand)->mountPos[0].x[3];
+        shipClass[shipType].weapPos[0][3].v = (*shipSpriteInfoHand)->mountPos[0].y[3];
+        shipClass[shipType].weapPos[1][0].h = (*shipSpriteInfoHand)->mountPos[1].x[0];
+        shipClass[shipType].weapPos[1][0].v = (*shipSpriteInfoHand)->mountPos[1].y[0];
+        shipClass[shipType].weapPos[1][1].h = (*shipSpriteInfoHand)->mountPos[1].x[1];
+        shipClass[shipType].weapPos[1][1].v = (*shipSpriteInfoHand)->mountPos[1].y[1];
+        shipClass[shipType].weapPos[1][2].h = (*shipSpriteInfoHand)->mountPos[1].x[2];
+        shipClass[shipType].weapPos[1][2].v = (*shipSpriteInfoHand)->mountPos[1].y[2];
+        shipClass[shipType].weapPos[1][3].h = (*shipSpriteInfoHand)->mountPos[1].x[3];
+        shipClass[shipType].weapPos[1][3].v = (*shipSpriteInfoHand)->mountPos[1].y[3];
+        shipClass[shipType].weapPos[2][0].h = (*shipSpriteInfoHand)->mountPos[2].x[0];
+        shipClass[shipType].weapPos[2][0].v = (*shipSpriteInfoHand)->mountPos[2].y[0];
+        shipClass[shipType].weapPos[2][1].h = (*shipSpriteInfoHand)->mountPos[2].x[1];
+        shipClass[shipType].weapPos[2][1].v = (*shipSpriteInfoHand)->mountPos[2].y[1];
+        shipClass[shipType].weapPos[2][2].h = (*shipSpriteInfoHand)->mountPos[2].x[2];
+        shipClass[shipType].weapPos[2][2].v = (*shipSpriteInfoHand)->mountPos[2].y[2];
+        shipClass[shipType].weapPos[2][3].h = (*shipSpriteInfoHand)->mountPos[2].x[3];
+        shipClass[shipType].weapPos[2][3].v = (*shipSpriteInfoHand)->mountPos[2].y[3];
+        shipClass[shipType].weapPos[3][0].h = (*shipSpriteInfoHand)->mountPos[3].x[0];
+        shipClass[shipType].weapPos[3][0].v = (*shipSpriteInfoHand)->mountPos[3].y[0];
+        shipClass[shipType].weapPos[3][1].h = (*shipSpriteInfoHand)->mountPos[3].x[1];
+        shipClass[shipType].weapPos[3][1].v = (*shipSpriteInfoHand)->mountPos[3].y[1];
+        shipClass[shipType].weapPos[3][2].h = (*shipSpriteInfoHand)->mountPos[3].x[2];
+        shipClass[shipType].weapPos[3][2].v = (*shipSpriteInfoHand)->mountPos[3].y[2];
+        shipClass[shipType].weapPos[3][3].h = (*shipSpriteInfoHand)->mountPos[3].x[3];
+        shipClass[shipType].weapPos[3][3].v = (*shipSpriteInfoHand)->mountPos[3].y[3];
 
-        gShipTypes[shipType].weapPosZ[0][0] = (*shipSpriteInfoHand)->mountPosZ[0][0];
-        gShipTypes[shipType].weapPosZ[0][1] = (*shipSpriteInfoHand)->mountPosZ[0][1];
-        gShipTypes[shipType].weapPosZ[0][2] = (*shipSpriteInfoHand)->mountPosZ[0][2];
-        gShipTypes[shipType].weapPosZ[0][3] = (*shipSpriteInfoHand)->mountPosZ[0][3];
-        gShipTypes[shipType].weapPosZ[1][0] = (*shipSpriteInfoHand)->mountPosZ[1][0];
-        gShipTypes[shipType].weapPosZ[1][1] = (*shipSpriteInfoHand)->mountPosZ[1][1];
-        gShipTypes[shipType].weapPosZ[1][2] = (*shipSpriteInfoHand)->mountPosZ[1][2];
-        gShipTypes[shipType].weapPosZ[1][3] = (*shipSpriteInfoHand)->mountPosZ[1][3];
-        gShipTypes[shipType].weapPosZ[2][0] = (*shipSpriteInfoHand)->mountPosZ[2][0];
-        gShipTypes[shipType].weapPosZ[2][1] = (*shipSpriteInfoHand)->mountPosZ[2][1];
-        gShipTypes[shipType].weapPosZ[2][2] = (*shipSpriteInfoHand)->mountPosZ[2][2];
-        gShipTypes[shipType].weapPosZ[2][3] = (*shipSpriteInfoHand)->mountPosZ[2][3];
-        gShipTypes[shipType].weapPosZ[3][0] = (*shipSpriteInfoHand)->mountPosZ[3][0];
-        gShipTypes[shipType].weapPosZ[3][1] = (*shipSpriteInfoHand)->mountPosZ[3][1];
-        gShipTypes[shipType].weapPosZ[3][2] = (*shipSpriteInfoHand)->mountPosZ[3][2];
-        gShipTypes[shipType].weapPosZ[3][3] = (*shipSpriteInfoHand)->mountPosZ[3][3];
+        shipClass[shipType].weapPosZ[0][0] = (*shipSpriteInfoHand)->mountPosZ[0][0];
+        shipClass[shipType].weapPosZ[0][1] = (*shipSpriteInfoHand)->mountPosZ[0][1];
+        shipClass[shipType].weapPosZ[0][2] = (*shipSpriteInfoHand)->mountPosZ[0][2];
+        shipClass[shipType].weapPosZ[0][3] = (*shipSpriteInfoHand)->mountPosZ[0][3];
+        shipClass[shipType].weapPosZ[1][0] = (*shipSpriteInfoHand)->mountPosZ[1][0];
+        shipClass[shipType].weapPosZ[1][1] = (*shipSpriteInfoHand)->mountPosZ[1][1];
+        shipClass[shipType].weapPosZ[1][2] = (*shipSpriteInfoHand)->mountPosZ[1][2];
+        shipClass[shipType].weapPosZ[1][3] = (*shipSpriteInfoHand)->mountPosZ[1][3];
+        shipClass[shipType].weapPosZ[2][0] = (*shipSpriteInfoHand)->mountPosZ[2][0];
+        shipClass[shipType].weapPosZ[2][1] = (*shipSpriteInfoHand)->mountPosZ[2][1];
+        shipClass[shipType].weapPosZ[2][2] = (*shipSpriteInfoHand)->mountPosZ[2][2];
+        shipClass[shipType].weapPosZ[2][3] = (*shipSpriteInfoHand)->mountPosZ[2][3];
+        shipClass[shipType].weapPosZ[3][0] = (*shipSpriteInfoHand)->mountPosZ[3][0];
+        shipClass[shipType].weapPosZ[3][1] = (*shipSpriteInfoHand)->mountPosZ[3][1];
+        shipClass[shipType].weapPosZ[3][2] = (*shipSpriteInfoHand)->mountPosZ[3][2];
+        shipClass[shipType].weapPosZ[3][3] = (*shipSpriteInfoHand)->mountPosZ[3][3];
 
-        gShipTypes[shipType].compress[0][0] = (*shipSpriteInfoHand)->upCompressX * 0.01;
-        gShipTypes[shipType].compress[0][1] = (*shipSpriteInfoHand)->upCompressY * 0.01;
-        gShipTypes[shipType].compress[1][0] = (*shipSpriteInfoHand)->downCompressX * 0.01;
-        gShipTypes[shipType].compress[1][1] = (*shipSpriteInfoHand)->downCompressY * 0.01;
+        shipClass[shipType].compress[0].x = (*shipSpriteInfoHand)->upCompressX * 0.01;
+        shipClass[shipType].compress[0].y = (*shipSpriteInfoHand)->upCompressY * 0.01;
+        shipClass[shipType].compress[1].x = (*shipSpriteInfoHand)->downCompressX * 0.01;
+        shipClass[shipType].compress[1].y = (*shipSpriteInfoHand)->downCompressY * 0.01;
 
         for (i = 0; i <= 1; i++) {
-            if (gShipTypes[shipType].compress[i][0] <= 0.0f)
-                gShipTypes[shipType].compress[i][0] = 1.0f;
-            if (gShipTypes[shipType].compress[i][1] <= 0.0f)
-                gShipTypes[shipType].compress[i][1] = 1.0f;
+            if (shipClass[shipType].compress[i].x <= 0.0f)
+                shipClass[shipType].compress[i].x = 1.0f;
+            if (shipClass[shipType].compress[i].y <= 0.0f)
+                shipClass[shipType].compress[i].y = 1.0f;
         }
 
         AdjustHandleSize((Handle)shipSpriteInfoHand, 0xc0);
@@ -3161,54 +4379,60 @@ short LoadExtendedShipSprites(short shipType)
     return total;
 }
 
-extern "C" {
+EXTERN_C_BEGIN
 
 /* ReportSpriteLoadError. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b6620
+// MAC: _ReportSpriteLoadError i386 0x0001ea6c ppc 0x0002337c
 void ReportSpriteLoadError(short label, short value, short special)
 {
     unsigned char labelText[256];
     unsigned char valueText[256];
     unsigned char specialText[256];
-    long kind;
+#ifndef MACBUILD
     extern void NumToString(int value, unsigned char *str);  /* 0x004bbce0 */
+#endif
 
-    kind = special;
-    if (kind == 0)
+    if ((long)special == 0)
         return;
-    GetIndString(labelText, 0x8c, label);
+    GetIndString(labelText, kAlertStrList, label);
     NumToString(value, valueText);
     if (special == -0xc0)
-        GetIndString(specialText, 0x8d, 1);
+        GetIndString(specialText, kSpecialValueStrList, 1);
     else if (special == -0x27)
-        GetIndString(specialText, 0x8d, 2);
-    else if (kind == 0x6b)
-        GetIndString(specialText, 0x8d, 3);
-    else if (kind == -0x6c)
-        GetIndString(specialText, 0x8d, 4);
+        GetIndString(specialText, kSpecialValueStrList, 2);
+    else if ((long)special == 0x6b)
+        GetIndString(specialText, kSpecialValueStrList, 3);
+    else if ((long)special == -0x6c)
+        GetIndString(specialText, kSpecialValueStrList, 4);
     else
         NumToString(special, specialText);
     ParamText(labelText, valueText, specialText, "\p");
-    Alert(0x83, 0);
+    StopAlert(0x83, 0);
 }
 
-}
+EXTERN_C_END
 
-/* ShowIndAlert. STATE: MATCH, byte-identical. OPEN: none */
+/* FatalStartupError. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b6760
-void ShowIndAlert(short index)
+// MAC: _FatalStartupError i386 0x0001e62f ppc 0x00022f78
+void FatalStartupError(short index)
 {
     unsigned char text[256];
 
-    GetIndString(text, 140, index);
+#if defined(MAC1010) && !TARGET_API_MAC_CARBON
+    DisposeGammaTools();
+#endif
+    GetIndString(text, kAlertStrList, index);
     ParamText(text, "\p", "\p", "\p");
-    Alert(128, NULL);
+    StopAlert(128, NULL);
     ExitToShell();
 }
 
-/* FindSlotEntry. STATE: MATCH, byte-identical. OPEN: none */
+/* FindPriorLoadedShipSprite. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b67c0
-short FindSlotEntry(short value, short count, short field)
+// MAC: _FindPriorLoadedShipSprite i386 0x0001e5e4 ppc 0x00022f34
+short FindPriorLoadedShipSprite(short value, short count, short field)
 {
     short i;
 
@@ -3221,22 +4445,15 @@ short FindSlotEntry(short value, short count, short field)
 
 /* DisposeClonedSprite (mac _DisposeClonedSprite). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b6810
-void DisposeClonedSprite(void *p)
-{
-    SpritePtr q;
+// MAC: _DisposeClonedSprite i386 0x0001b3d0 ppc 0x0001f450
+void DisposeClonedSprite(SpritePtr *p)
+#ifdef MAC1010
+;
+#else
+#include "../engine/disposeclonedsprite.inc"
+#endif
 
-    if (p == NULL)
-        return;
-    q = *(SpritePtr *)p;
-    if (q == NULL)
-        return;
-    if (q->isEmptySprite != 0) {
-        q->frameArray = NULL;
-        q->numFrames = 0;
-    }
-    SWDisposeSprite((SpritePtr *)p);
-}
-
+#ifndef MACBUILD
 /* ScreenEndScene (mac @ScreenEndScene@0). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b6850
 void ScreenEndScene(void)
@@ -3273,7 +4490,7 @@ void FlushEvents(unsigned short whichMask, unsigned short stopMask)
 
 /* Button. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b68e0
-char Button(void)
+Boolean Button(void)
 {
     KeyboardKbhit();
     return MouseReadButtons();
@@ -3281,7 +4498,7 @@ char Button(void)
 
 /* StillDown. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b68f0
-char StillDown(void)
+Boolean StillDown(void)
 {
     KeyboardKbhit();
     return MouseReadButtons();
@@ -3300,9 +4517,14 @@ void TextFont(short font)
 // FUNCTION: EVNOVA 0x004b6920
 void TextSize(short size)
 {
+#ifdef CEFIX /* F12.82 */
+    /* CE bug: CE's replacement drops the NULL-port test (no caller in play has no port). */
+    CurrentGrafPort->txSize = CE_Scale(size);
+#else
     if (CurrentGrafPort == NULL)
         return;
     CurrentGrafPort->txSize = size;
+#endif
 }
 
 /* TextFace. STATE: MATCH, byte-identical. OPEN: none */
@@ -3349,3 +4571,168 @@ void BackColor(const RGBColor *color)
     dst->green = color->green;
     dst->blue = color->blue;
 }
+#endif
+
+#ifdef MACBUILD
+#ifdef MAC1010
+void PreflightMemoryUsage(long *base, long *engineGlow, long *runningLights, long *weaponGlow);
+long PreflightMemoryUsageTotal(void)
+#include "../engine/preflighttotal.inc"
+#endif
+
+/* PreflightMemoryUsage (mac _PreflightMemoryUsage, mac-only). STATE: mac MATCH i386 and ppc.
+   OPEN: none */
+// MAC: _PreflightMemoryUsage i386 0x00022214 ppc 0x00026624
+void PreflightMemoryUsage(long *base, long *engineGlow, long *runningLights, long *weaponGlow)
+{
+    long sizes[6];
+    short i;
+    short j;
+    short k;
+    short id;
+    Handle h;
+    short baseSets;
+    short altSets;
+    long total;
+
+    for (i = 0; i < kMaxShipTypes; i++)
+        for (k = 0; k < 6; k++)
+            shipSpriteLoaded[i][k] = -1;
+    *base = *engineGlow = *runningLights = *weaponGlow = 0;
+    for (i = 0; i < kMaxShipTypes; i++) {
+        shipSpriteInfoHand = NULL;
+        shipSpriteInfoHand = (ShanRec **)GetResource(kShanType, i + 128);
+        if (shipSpriteInfoHand == NULL)
+            continue;
+        baseSets = (*shipSpriteInfoHand)->baseSetCount;
+        altSets = (*shipSpriteInfoHand)->altSetCount;
+        if (baseSets < 1)
+            baseSets = 1;
+        if (altSets < 1)
+            altSets = 1;
+        for (j = 0; j < 6; j++) {
+            sizes[j] = 0;
+            if (j == 0)
+                id = (*shipSpriteInfoHand)->baseImageID;
+            else if (j == 1)
+                id = (*shipSpriteInfoHand)->altImageID;
+            else if (j == 2)
+                id = (*shipSpriteInfoHand)->glowImageID;
+            else if (j == 3)
+                id = (*shipSpriteInfoHand)->lightImageID;
+            else if (j == 4)
+                id = (*shipSpriteInfoHand)->weapImageID;
+            else if (j == 5)
+                id = (*shipSpriteInfoHand)->shieldImageID;
+            if (id <= 0)
+                continue;
+            for (k = 0; k < i; k++) {
+                if (shipSpriteLoaded[k][j] == id) {
+                    id = -1;
+                    break;
+                }
+            }
+            if (id == -1)
+                continue;
+#ifdef MAC1010
+            SetResLoad(false);
+#endif
+            h = GetResource((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, id);
+            if (h != NULL) {
+                sizes[j] = GetResourceSizeOnDisk(h);
+                ReleaseResource(h);
+            }
+#ifdef MAC1010
+            SetResLoad(true);
+#endif
+            shipSpriteLoaded[i][j] = id;
+        }
+        *base = *base + sizes[0];
+        *base = *base + sizes[1];
+        *base = *base + sizes[5];
+        *engineGlow = *engineGlow + sizes[2];
+        *runningLights = *runningLights + sizes[3];
+        *weaponGlow = *weaponGlow + sizes[4];
+        total = 0;
+        for (j = 0; j < 6; j++)
+            total += sizes[j];
+        ReleaseResource((Handle)shipSpriteInfoHand);
+    }
+}
+
+#ifdef MAC1010
+void DisposeClonedSprite(SpritePtr *p)
+#include "../engine/disposeclonedsprite.inc"
+#endif
+
+/* PreflightMemoryUsageTotal (mac _PreflightMemoryUsageTotal, mac-only). STATE: mac MATCH i386
+   and ppc. OPEN: none */
+// MAC: _PreflightMemoryUsageTotal i386 0x00022438 ppc 0x000268b0
+long PreflightMemoryUsageTotal(void)
+#ifdef MAC1010
+;
+#else
+#include "../engine/preflighttotal.inc"
+#endif
+
+/* DoMemoryUsageDialog (mac _DoMemoryUsageDialog, mac-only). STATE: mac MATCH i386 and ppc.
+   OPEN: none */
+// MAC: _DoMemoryUsageDialog i386 0x00022492 ppc 0x0002693c
+void DoMemoryUsageDialog(void)
+{
+    DialogPtr dlg;
+    short itemHit;
+    short itemType;
+    Handle itemHand;
+    Rect itemRect;
+    Boolean done;
+    ControlHandle ctl;
+
+    dlg = GetNewDialog(5000, NULL, -1);
+    if (dlg == NULL)
+        return;
+    ShowWindow(GetDialogWindow(dlg));
+    SetPort(GetDialogPort(dlg));
+    SelectWindow(GetDialogWindow(dlg));
+    FrameDefaultButton(dlg, 1);
+    done = false;
+    do {
+        GetDialogItem(dlg, 3, &itemType, &itemHand, &itemRect);
+        ctl = (ControlHandle)itemHand;
+        if (settings.shipAnimations)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(dlg, 4, &itemType, &itemHand, &itemRect);
+        ctl = (ControlHandle)itemHand;
+        if (settings.engineGlows)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(dlg, 5, &itemType, &itemHand, &itemRect);
+        ctl = (ControlHandle)itemHand;
+        if (settings.runningLights)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        GetDialogItem(dlg, 6, &itemType, &itemHand, &itemRect);
+        ctl = (ControlHandle)itemHand;
+        if (settings.weaponGlows)
+            SetControlValue(ctl, 1);
+        else
+            SetControlValue(ctl, 0);
+        ModalDialog(NULL, &itemHit);
+        if (itemHit == 1)
+            done = true;
+        if (itemHit == 3)
+            settings.shipAnimations = !settings.shipAnimations;
+        if (itemHit == 4)
+            settings.engineGlows = !settings.engineGlows;
+        if (itemHit == 5)
+            settings.runningLights = !settings.runningLights;
+        if (itemHit == 6)
+            settings.weaponGlows = !settings.weaponGlows;
+    } while (!done);
+    DisposeDialog(dlg);
+}
+#endif

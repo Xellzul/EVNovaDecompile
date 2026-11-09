@@ -9,6 +9,7 @@
 #include "burgerplat.h"
 #include "burger.h"
 #include "win32.h"
+#include "cefix.h"
 
 /* one realised GDI font */
 typedef struct FontEntry {
@@ -58,7 +59,9 @@ void InitFonts(void)
     GetFNum("\pTimes", &gTimesFont);
     GetFNum("\pNewYork", &scratch);
     GetFNum("\pGeneva", &scratch);
+#ifndef CEFIX /* F08.01 */
     gMacRomanToCP1252 = iconv_open("CP1252", "MacRoman");
+#endif
 }
 
 FontMap gFontMap[kFontMapCount] = {                      /* 0x00575d80 (name invented) */
@@ -87,7 +90,11 @@ static FontEntry *MakeFontEntry(FontFamily *family, int size, int style)
     void *hdc;
 
     useDeviceCaps = 0;
+#ifdef CEFIX /* F09.01 */
+    for (i = 0; i < kCEFontMapCount; i++) {
+#else
     for (i = 0; i < kFontMapCount; i++) {
+#endif
         if (stricmp(family->name, gFontMap[i].macName) == 0) {
             if ((style & kFontBold) != 0)
                 weight = gFontMap[i].boldWeight;
@@ -100,7 +107,11 @@ static FontEntry *MakeFontEntry(FontFamily *family, int size, int style)
             break;
         }
     }
+#ifdef CEFIX /* F09.02 */
+    if (i == kCEFontMapCount) {
+#else
     if (i == kFontMapCount) {
+#endif
         if ((style & kFontBold) != 0)
             weight = FW_BOLD;
         else

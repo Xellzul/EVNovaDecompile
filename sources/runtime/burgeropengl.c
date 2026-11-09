@@ -29,7 +29,7 @@ void OpenGLSolidRect(int x, int y, Word Width, Word Height, Word32 Color)
     ScreenUse2DCoords(1);
     ScreenSetTexture(0);
     glBegin(GL_QUADS);
-    glColor4ub((Word8)(Color >> 16), (Word8)(Color >> 8), (Word8)Color, (Word8)(Color >> 24));
+    glColor4ub((Color >> 16), (Color >> 8), Color, (Color >> 24));
     glVertex2i(x, y);
     glVertex2i(x + Width, y);
     glVertex2i(x + Width, y + Height);

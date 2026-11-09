@@ -5,7 +5,9 @@
 
 #include "burgertypes.h"
 #include "burger.h"
+#ifndef MAC1010
 #include "win32.h"
+#endif
 
 ULong gPlatLockOwnerThread;                              /* 0x008705d0 owning thread */
 static long gAtomicCount;                        /* 0x0086b6b8 lock depth */
@@ -17,7 +19,7 @@ void AtomicEnterCritical(void *token)
     long *state;
     long err;
 
-    state = (long *)token;
+    state = token;
     err = 0;
     if (gPlatLockOwnerThread != GetCurrentThreadId()) {
         EnterCriticalSection(gPlatCritSec);
@@ -33,7 +35,7 @@ void AtomicLeaveCritical(void *token)
     long *state;
     long err;
 
-    state = (long *)token;
+    state = token;
     err = 0;
     gAtomicCount = gAtomicCount - 1;
     if (gAtomicCount == 0) {

@@ -6,7 +6,9 @@
 #include "burgertypes.h"
 #include "burger.h"
 #include "burgerplat.h"
+#ifndef MAC1010
 #include "win32.h"
+#endif
 
 char DAT_00577a80[256] = "*";                      /* 0x00577a80 nothing reads it */
 char DAT_00577b80[256] = "*";                      /* 0x00577b80 nothing reads it */
@@ -20,7 +22,7 @@ unsigned short EndpointGetElem(void *ref)
     NetSocket *s;
 
     err = 0;
-    s = (NetSocket *)ref;
+    s = ref;
     return s->kind;
 }
 
@@ -33,7 +35,7 @@ unsigned short EndpointGetStack(void *ref)
     NetSocket *s;
 
     err = 0;
-    s = (NetSocket *)ref;
+    s = ref;
     return s->unk6;
 }
 
@@ -46,7 +48,7 @@ unsigned short EndpointGetStatus(void *ref)
     NetSocket *s;
 
     err = 0;
-    s = (NetSocket *)ref;
+    s = ref;
     return BufferedStreamStatus(ref, s->state);
 }
 
@@ -60,7 +62,7 @@ void EndpointGetCallback(void *handle, NetProc *proc, void **ref)
     long err;
 
     err = 0;
-    s = (NetSocket *)handle;
+    s = handle;
     AtomicEnterCritical(token);
     *proc = s->proc;
     *ref = s->ref;
@@ -187,7 +189,7 @@ void DatagramGetQueues(void *ref, MutexList **sentList, MutexList **freeList,
     NetSocket *s;
     long err;
 
-    s = (NetSocket *)ref;
+    s = ref;
     err = 0;
     if (sentList != 0)
         *sentList = s->sentList;
@@ -208,7 +210,7 @@ void StreamGetQueues(void *ref, MutexList **sentList, MutexList **freeList,
     NetStream *s;
     long err;
 
-    s = (NetStream *)ref;
+    s = ref;
     err = 0;
     if (sentList != 0)
         *sentList = s->sentList;

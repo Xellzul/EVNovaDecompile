@@ -212,7 +212,7 @@ Lookup:
                 work = (Word8 *)*prefix;
                 do {
                     --index;
-                } while (index != (Word)-1 && work[index] != ':');
+                } while (index != -1 && work[index] != ':');
                 ++index;
             }
             ++name;
@@ -258,7 +258,7 @@ unsigned int SetAPrefix(unsigned int num, const char *name)
             if (path[0] != 0) {
                 handle = StrCopyHandle(path);
                 if (handle == 0)
-                    return (unsigned int)-1;
+                    return -1;
             }
         }
         DeallocAHandle(PrefixHandles[num]);
@@ -266,7 +266,7 @@ unsigned int SetAPrefix(unsigned int num, const char *name)
         return 0;
     }
     NonFatal("Invalid prefix number\n");
-    return (unsigned int)-1;
+    return -1;
 }
 
 /* BurgerLib's GetAPrefix: a copy of prefix num in a new pointer ("" when unset). */

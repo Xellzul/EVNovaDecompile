@@ -7,7 +7,9 @@
 #include "burger.h"
 #include "ambrosia.h"
 #include "burgerplat.h"
+#ifndef MACBUILD
 #include "win32.h"
+#endif
 #include "game.h"
 #include "missions.h"
 
@@ -40,7 +42,7 @@
 /* the product hash every path recomputes from the product name */
 #define HASH_PRODUCT(h, p)                                          \
     do {                                                            \
-        const unsigned char *q_ = (const unsigned char *)(p);       \
+        const unsigned char *q_ = (p);       \
         (h) = 0;                                                    \
         for (; *q_ != 0; q_++)                                      \
             (h) = ((h) >> 29) ^ ((h) << 2) ^ *q_;                   \
@@ -267,7 +269,14 @@ long RT3_GetLicenseCopies(void)
     long err = 0;
     long result = 0;
 
+#ifdef CEFIX /* F01.02-05 */
+    /* CE bug: CE writes 1 into the count's low byte only, so a licence of 256 copies or
+       more keeps its upper bytes. */
+    *(unsigned char *)&gRT3_License.copies = 1;
+    return gRT3_License.copies;
+#else
     return gRT3_License.copies > 0 ? gRT3_License.copies : 0;
+#endif
 }
 
 /* RT3_GetLicenseName (mac _RT3_GetLicenseName). STATE: MATCH, byte-identical. OPEN: none */
@@ -307,7 +316,11 @@ char *RT3_GetDisplayName(void)
     if (gRT3_License.name[0] != 0)
         result = gRT3_License.name;
     else
+#ifdef CEFIX /* F01.06 */
+        result = "EV Nova Community";
+#else
         result = gDefaultLicenseName;
+#endif
     return result;
 }
 
@@ -429,6 +442,7 @@ done:
     return err;
 }
 
+#ifndef MACBUILD /* the mac keeps the log in a file and CFPreferences */
 /* _RT3_WriteLogEntry (mac __RT3_WriteLogEntry). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d4900
 long _RT3_WriteLogEntry(RT3LogEntry *entry)
@@ -627,6 +641,7 @@ done:
         IndirectDeallocate(log);
     return err;
 }
+#endif
 
 /* Stand-in: the linker strips this; the exe keeps its literals (body not recoverable). */
 void RT3_PathJoinStub(char *path)
@@ -1014,7 +1029,7 @@ unsigned short RT3_ExtractLicenseBlock1(ULongLong v)
     r |= ((ULong)(v >> 27) & kNibble) << 4;
     r |= (ULong)(v >> 41) & kNibble;
     r |= ((ULong)(v >> 55) & kNibble) << 12;
-    return (unsigned short)r;
+    return r;
 }
 
 /* RT3_LicenseTextToCode (mac _RT3_LicenseTextToCode). STATE: MATCH, byte-identical (exe 49 / obj 49). OPEN: none */
@@ -1050,15 +1065,15 @@ ULongLong RT3_CalcMainHash(const char *product, const char *name, long copies)
     h = 0;
     for (i = 0; (c = *product) != 0; product++, i++) {
         h = h >> 60 | h << 4;
-        h ^= (long long)c;
+        h ^= c;
         h = h >> 63 | h << 1;
-        h ^= (ULong)((i + 7) * copies);
+        h ^= ((i + 7) * copies);
     }
     for (j = 0; (d = *name) != 0; name++, j++) {
         h = h >> 61 | h << 3;
-        h ^= (long long)d;
+        h ^= d;
         h = h >> 63 | h << 1;
-        h ^= (ULong)((j + 13) * copies * 3);
+        h ^= ((j + 13) * copies * 3);
     }
     if (!h)
         h = 1;

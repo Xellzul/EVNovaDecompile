@@ -17,7 +17,7 @@ extern unsigned char _IT_ParseAttributeGetFlag(unsigned char wide, const char *s
 extern ITElement *_IT_ParseTreeFindThisData(ITElement *e, const char *text);          /* itattr.c */
 extern ITElement *_IT_ParseTreeFindNextData(ITElement *root, ITElement *node);        /* itattr.c */
 
-#define kVariablesOffset    0x160   /* WindowNode.variables */
+#define kVariablesOffset    ((long)&((WindowNode *)0)->variables)
 
 #define kBadIndex           -7001
 #define kNoSuchControl      -7005
@@ -26,17 +26,42 @@ static ITRect gIT_EnableControlZeroRect;                      /* 0x0086bba0 IT_V
 static ITRect gIT_ShowControlZeroRect;                      /* 0x0086bb90 IT_ViewSetItemVisible's empty clip */
 static ITRect DAT_0086bb50[4];                   /* 0x0086bb50, unreferenced */
 
+#ifdef MAC1010 /* 1.0.10 spelling */
+#define INDEX_LEFT(i) ((ULong)i-- != 0)
+#else
+#define INDEX_LEFT(i) (i--)
+#endif
+
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+#define ParamWideArg unsigned char
+#else
+#define ParamWideArg long
+#endif
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+#define kHashWide 0x01000001
+extern ULong C2UGetByteCount(const char *s);
+extern unsigned char HashRemoveUnicode(struct HashTable *t, const unsigned short *key);
+extern long HashAppendUnicode(struct HashTable *t, const unsigned short *key, const unsigned short *value);
+#endif
+
 /* _IT_ViewParamText (set a text variable, replacing any old value, in a window's table or, for no
    window, the global one, created on first use). STATE: MATCH 100%, exe 48 / obj 48, byte-
    identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051f083
-long _IT_ViewParamText(WindowNode *window, const char *key, const char *value, long unused)
+long _IT_ViewParamText(WindowNode *window, const char *key, const char *value, ParamWideArg unused)
 {
     struct HashTable **table;
     struct HashTable **alias;
     long err, e;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    unsigned short *buffer;
+    unsigned short wideKey[256];
+#endif
 
     err = 0;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    buffer = 0;
+#endif
     table = 0;
     alias = 0;
     table = (struct HashTable **)window;
@@ -44,11 +69,43 @@ long _IT_ViewParamText(WindowNode *window, const char *key, const char *value, l
         table = (struct HashTable **)((char *)table + kVariablesOffset);
     else
         table = (struct HashTable **)&gIT_DefaultHash;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    if (*table == 0) {
+        if ((*table = HashCreate(kHashWide)) == 0) {
+            err = kOutOfMemory;
+            goto done;
+        }
+    }
+    if (unused) {
+        C2UStringCopySafe(wideKey, key, sizeof(wideKey), -1);
+        while (HashRemoveUnicode(*table, wideKey))
+            ;
+        e = HashAppendUnicode(*table, wideKey, value);
+        if (e != 0)
+            err = e;
+    } else {
+        buffer = MemoryAllocate(C2UGetByteCount(value) + 2);
+        if (buffer == 0) {
+            err = kOutOfMemory;
+            goto done;
+        }
+        C2UStringCopySafe(buffer, value, -1, -1);
+        C2UStringCopySafe(wideKey, key, sizeof(wideKey), -1);
+        while (HashRemoveUnicode(*table, wideKey))
+            ;
+        e = HashAppendUnicode(*table, wideKey, buffer);
+        if (e != 0)
+            err = e;
+    }
+done:
+    if (buffer != 0)
+        MemoryDeallocate(buffer);
+    return err;
+#else
     alias = table;
     if (*table == 0) {
         e = 1;
-        *table = HashCreate(1);
-        if (*table == 0) {
+        if ((*table = HashCreate(1)) == 0) {
             err = kOutOfMemory;
             goto done;
         }
@@ -60,6 +117,7 @@ long _IT_ViewParamText(WindowNode *window, const char *key, const char *value, l
         err = e;
 done:
     return err;
+#endif
 }
 
 /* IT_ViewParamText (set a text variable). STATE: MATCH 100%, exe 7 / obj 7, byte-identical yes.
@@ -70,6 +128,13 @@ long IT_ViewParamText(WindowNode *window, const char *key, const char *value)
     return _IT_ViewParamText(window, key, value, 0);
 }
 
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+long IT_ViewParamTextWide(WindowNode *window, const char *key, const unsigned short *value)
+{
+    return _IT_ViewParamText(window, key, value, 1);
+}
+#endif
+
 /* IT_ViewGetItemRect (the bounds of the control at `index'; -7001 for a negative index, -7005 past the
    end). STATE: MATCH 100%, exe 45 / obj 45, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051f109
@@ -79,7 +144,7 @@ long IT_ViewGetItemRect(void *windowRef, long index, ITRect *r)
     WindowNode *window;
     ITControl *control;
 
-    window = (WindowNode *)windowRef;
+    window = windowRef;
     err = 0;
     control = 0;
     if (index < 0) {
@@ -87,7 +152,7 @@ long IT_ViewGetItemRect(void *windowRef, long index, ITRect *r)
         goto done;
     }
     DT_SetRect(r, 0, 0, 0, 0);
-    for (control = window->controls->first; control != 0 && index--; control = control->next)
+    for (control = window->controls->first; control != 0 && INDEX_LEFT(index); control = control->next)
         ;
     if (control == 0) {
         err = kNoSuchControl;
@@ -108,7 +173,7 @@ long IT_ViewGetItemEnabled(void *windowRef, long index, unsigned char *enabled)
     WindowNode *window;
     ITControl *control;
 
-    window = (WindowNode *)windowRef;
+    window = windowRef;
     err = 0;
     control = 0;
     if (index < 0) {
@@ -116,7 +181,7 @@ long IT_ViewGetItemEnabled(void *windowRef, long index, unsigned char *enabled)
         goto done;
     }
     *enabled = 0;
-    for (control = window->controls->first; control != 0 && index--; control = control->next)
+    for (control = window->controls->first; control != 0 && INDEX_LEFT(index); control = control->next)
         ;
     if (control == 0) {
         err = kNoSuchControl;
@@ -133,18 +198,28 @@ done:
    and new areas invalidated, message 0x41, the window refreshed; -7001 for a negative index,
    -7005 past the end). STATE: MATCH 100%, exe 149 / obj 149, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051f1cc
-long IT_ViewSetItemRect(WindowNode *window, long index, const ITRect *r)
+long IT_ViewSetItemRect(void *windowRef, long index, const ITRect *r)
 {
+#ifndef MAC1010
     static ITRect nowhere;
+#endif
+    WindowNode *window;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    ITRect clip = {0, 0, 0, 0};
+#else
     ITRect clip;
-    void *saved;
+#endif
     long err;
+    void *saved;
     long e;
     ITControl *control;
     ITRect area;
 
+    window = windowRef;
     err = 0;
+#ifndef MAC1010
     clip = nowhere;
+#endif
     saved = 0;
     control = 0;
     if (index < 0) {
@@ -161,7 +236,7 @@ long IT_ViewSetItemRect(WindowNode *window, long index, const ITRect *r)
         err = e;
         goto done;
     }
-    for (control = window->controls->first; control != 0 && index--; control = control->next)
+    for (control = window->controls->first; control != 0 && INDEX_LEFT(index); control = control->next)
         ;
     if (control == 0) {
         err = kNoSuchControl;
@@ -215,9 +290,14 @@ done:
    index, -7005 past the end). STATE: MATCH 100%, exe 188 / obj 188, byte-identical yes. OPEN:
    none */
 // FUNCTION: EVNOVA 0x0051f35e
-long IT_ViewSetItemVisible(WindowNode *window, long index, unsigned char show)
+long IT_ViewSetItemVisible(void *windowRef, long index, unsigned char show)
 {
+    WindowNode *window;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    ITRect clip = {0, 0, 0, 0};
+#else
     ITRect clip;
+#endif
     void *saved;
     long err;
     long e;
@@ -225,8 +305,11 @@ long IT_ViewSetItemVisible(WindowNode *window, long index, unsigned char show)
     ITRect area;
     WindowNode *root;
 
+    window = windowRef;
     err = 0;
+#ifndef MAC1010
     clip = gIT_ShowControlZeroRect;
+#endif
     saved = 0;
     root = 0;
     control = 0;
@@ -244,7 +327,7 @@ long IT_ViewSetItemVisible(WindowNode *window, long index, unsigned char show)
         err = e;
         goto done;
     }
-    for (control = window->controls->first; control != 0 && index--; control = control->next)
+    for (control = window->controls->first; control != 0 && INDEX_LEFT(index); control = control->next)
         ;
     if (control == 0) {
         err = kNoSuchControl;
@@ -318,9 +401,14 @@ done:
 /* IT_ViewSetItemEnabled (enable or disable the control at `index'; IT_ViewSetItemVisible's twin with message 0x4b).
    STATE: MATCH 100%, exe 188 / obj 188, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051f565
-long IT_ViewSetItemEnabled(WindowNode *window, long index, unsigned char enable)
+long IT_ViewSetItemEnabled(void *windowRef, long index, unsigned char enable)
 {
+    WindowNode *window;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    ITRect clip = {0, 0, 0, 0};
+#else
     ITRect clip;
+#endif
     void *saved;
     long err;
     long e;
@@ -328,8 +416,11 @@ long IT_ViewSetItemEnabled(WindowNode *window, long index, unsigned char enable)
     ITRect area;
     WindowNode *root;
 
+    window = windowRef;
     err = 0;
+#ifndef MAC1010
     clip = gIT_EnableControlZeroRect;
+#endif
     saved = 0;
     root = 0;
     control = 0;
@@ -347,7 +438,7 @@ long IT_ViewSetItemEnabled(WindowNode *window, long index, unsigned char enable)
         err = e;
         goto done;
     }
-    for (control = window->controls->first; control != 0 && index--; control = control->next)
+    for (control = window->controls->first; control != 0 && INDEX_LEFT(index); control = control->next)
         ;
     if (control == 0) {
         err = kNoSuchControl;
@@ -427,6 +518,7 @@ long IT_ItemHandlerInstall(WindowNode *owner, const char *name, ITControlProc pr
     long err;
 
     err = 0;
+    CHECK_WINDOWS(0);
     type = MemoryAllocateClear(sizeof(ControlType));
     if (type == 0) {
         err = kOutOfMemory;
@@ -455,6 +547,7 @@ ITControlProc IT_ItemHandlerLookup(WindowNode *owner, const char *name)
 
     err2 = err = 0;
     type = 0;
+    CHECK_WINDOWS(0);
     String2UpperCopySafe(wanted, name, sizeof(wanted));
     if (owner != 0) {
         for (type = owner->controlTypes; type != 0; type = type->next) {
@@ -482,6 +575,7 @@ unsigned char IT_ItemCallbackIsViewEnabled(void)
     unsigned char ok;
 
     err = 0;
+    CHECK_WINDOWS(0);
     ok = 1;
     w = 0;
     ok = 1;
@@ -518,6 +612,7 @@ long IT_ItemCallbackGrabFocus(long item)
     long e;
 
     err = 0;
+    CHECK_WINDOWS(0);
     saved = 0;
     root = 0;
     for (root = gIT_CurrentView; root->parent != 0; root = root->parent)
@@ -582,13 +677,21 @@ char *IT_ItemCallbackGetParam(const char *key, unsigned char inherit)
 long IT_ItemCallbackGetImage(const char *name, ITImage **image, ITImage **mask, ITTransparent *trans)
 {
     long err;
-    long e;
+    ITPreload *p;
     unsigned char created;
     unsigned char flag;
+    long e;
     WindowNode *root;
-    ITPreload *p;
     void **data;
 
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    err = 0;
+    created = 0;
+    data = 0;
+    CHECK_WINDOWS(0);
+    *image = 0;
+    *mask = 0;
+#else
     err = 0;
     p = 0;
     created = 0;
@@ -597,6 +700,7 @@ long IT_ItemCallbackGetImage(const char *name, ITImage **image, ITImage **mask, 
     root = 0;
     *image = (ITImage *)(root = 0);
     *mask = 0;
+#endif
     DT_AlphaInfoDefaults(trans);
     for (root = gIT_CurrentView; root->parent != 0; root = root->parent)
         ;
@@ -660,8 +764,12 @@ long IT_ItemCallbackGetNumber(const char *s)
 {
     unsigned char ok;
 
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    return _IT_ParseAttributeGetNumber(gIT_CurrentItem->element->wide, s);
+#else
     ok = 0;
     return _IT_ParseAttributeGetNumber(0, s);
+#endif
 }
 
 /* IT_ItemCallbackGetColor (a colour attribute's value). STATE: MATCH 100%, exe 8 / obj 8, byte-identical yes.
@@ -671,8 +779,12 @@ ITColor IT_ItemCallbackGetColor(const char *s)
 {
     unsigned char ok;
 
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    return _IT_ParseAttributeGetColor(gIT_CurrentItem->element->wide, s);
+#else
     ok = 0;
     return _IT_ParseAttributeGetColor(0, s);
+#endif
 }
 
 /* IT_ItemCallbackGetFlag (a boolean attribute's value). STATE: MATCH 100%, exe 8 / obj 8, byte-identical yes.
@@ -682,8 +794,12 @@ unsigned char IT_ItemCallbackGetFlag(const char *s)
 {
     unsigned char ok;
 
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    return _IT_ParseAttributeGetFlag(gIT_CurrentItem->element->wide, s);
+#else
     ok = 0;
     return _IT_ParseAttributeGetFlag(0, s);
+#endif
 }
 
 /* IT_ItemCallbackGetAlign (the served control's ALIGN, inherited up to its nearest CENTER element or the
@@ -692,10 +808,16 @@ unsigned char IT_ItemCallbackGetFlag(const char *s)
 // FUNCTION: EVNOVA 0x0051fb70
 unsigned char IT_ItemCallbackGetAlign(long *align)
 {
-    ITElement *root;
-    ITElement *element;
-    ITElement *center;
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    unsigned char wide;
     char *value;
+#endif
+    ITElement *root;
+    ITElement *center;
+#if !(defined(MAC1010) && TARGET_API_MAC_CARBON)
+    char *value;
+#endif
+    ITElement *element;
     long err;
     unsigned char result;
 
@@ -712,9 +834,16 @@ unsigned char IT_ItemCallbackGetAlign(long *align)
     if (center != 0)
         root = center;
     value = _IT_ParseTreeFindAttribute(root, element, 0, "ALIGN", 1);
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    wide = gIT_CurrentItem->element->wide;
+    if (value != 0)
+        *align = _IT_ParseAttributeGetAlign(wide, value);
+    return value != 0;
+#else
     if (value != 0)
         *align = _IT_ParseAttributeGetAlign(0, value);
     return value != 0 ? true : false;
+#endif
 }
 
 /* IT_ItemCallbackGetFont (the text style in force at the served control, 0x00540814). STATE: MATCH 100%,

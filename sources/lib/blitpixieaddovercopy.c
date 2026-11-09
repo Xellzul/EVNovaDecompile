@@ -5,6 +5,52 @@
 
 /* BlitPixieAddOverCopy (mac _BlitPixieAddOverCopy). STATE: MATCH 100.0%, byte-identical. OPEN: none. */
 // FUNCTION: EVNOVA 0x00473b60
+// MAC: _BlitPixieAddOverCopy i386 0x000c177d ppc 0x000cd7d4
+#ifdef MACBUILD
+#ifdef MACBUILD
+void BlitPixieAddOverCopy(unsigned char *dstPixels, unsigned char *srcPixels,
+                  long byteWidth)
+{
+    long i;
+    unsigned long *sp;
+    unsigned long *dp;
+
+    sp = (unsigned long *)srcPixels;
+    dp = (unsigned long *)dstPixels;
+    for (i = 0; i < (byteWidth >> 2); i++) {
+        *dp |= *sp++;
+        dp++;
+    }
+
+    srcPixels = (unsigned char *)sp;
+    dstPixels = (unsigned char *)dp;
+
+    if (byteWidth & 2)
+        *(unsigned short *)dstPixels |= *(unsigned short *)srcPixels;
+
+    if (byteWidth & 1)
+        *dstPixels |= *srcPixels;
+}
+#else
+void BlitPixieAddOverCopy(unsigned char *dstPixels, unsigned char *srcPixels,
+                  long byteWidth)
+{
+    long i;
+
+    for (i = 0; i < (byteWidth >> 2); i++) {
+        *dstPixels |= *srcPixels;
+        srcPixels += 4;
+        dstPixels += 4;
+    }
+
+    if (byteWidth & 2)
+        *dstPixels |= *srcPixels;
+
+    if (byteWidth & 1)
+        *dstPixels |= *srcPixels;
+}
+#endif
+#else
 void BlitPixieAddOverCopy(unsigned char *dstPixels, unsigned char *srcPixels,
                   long byteWidth)
 {
@@ -33,3 +79,4 @@ void BlitPixieAddOverCopy(unsigned char *dstPixels, unsigned char *srcPixels,
         *d = *d | *s;
     }
 }
+#endif

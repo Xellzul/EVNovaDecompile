@@ -1,6 +1,6 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
-/* parser.c -- the Parser.c object: the mission-bit expression machine, ParseTextDescription and the parse-buffer save/restore (win 0x00448ba0-0x0044aa60, from its head SkipSpaces, the space skipper). Notes: Research/notes/parser.md */
+/* parser.c -- the Parser.c object: the mission-bit expression machine, ParseTextDescription and the parse-buffer save/restore (win 0x00448ba0-0x0044aa60, from its head Trim, the space skipper). Notes: Research/notes/parser.md */
 /*
  * The filename is not a guess: both functions assert with the literal
  * "Parser.c" and a line number (1116 and 1126), so the original TU is named
@@ -22,9 +22,10 @@
 #include "render.h"
 #include "stellar.h"
 
-/* SkipSpaces. STATE: MATCH, byte-identical. OPEN: none */
+/* Trim. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00448ba0
-void SkipSpaces(short *pos)
+// MAC: _Trim i386 0x000147ac ppc 0x00018064
+void Trim(short *pos)
 {
     while (parseBuffer[*pos] == ' ') {
         *pos += 1;
@@ -35,12 +36,11 @@ void SkipSpaces(short *pos)
 
 /* GetToken. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00448be0
+// MAC: _GetToken i386 0x000147e9 ppc 0x000180c4
 char GetToken(short *pos)
 {
     short i;
-    short num;
     char c;
-    char r;
 
     c = parseBuffer[*pos];
     if (c == '(') {
@@ -67,18 +67,20 @@ char GetToken(short *pos)
             *pos += 1;
         return '|';
     } else if (c == 'p' || c == 'P') {
-        *pos += 1;
+        short num;
+
         num = 0;
+        *pos += 1;
         i = *pos;
         while (i < strlen(parseBuffer)) {
             if (parseBuffer[i] < '0' || parseBuffer[i] > '9')
                 break;
-            *pos += 1;
             num = num * 10 + parseBuffer[i] - '0';
+            *pos += 1;
             i++;
         }
-        if ((gShipTypes[gameIsRegisteredIndex].registered != 0 ? 1 : 0) != 0
-                || gSharewareDays < num)
+        if ((shipClass[gameIsRegisteredIndex].registered != 0 ? 1 : 0) != 0
+                || totalDaysPlayed < num)
             return '1';
         return '0';
     } else if (c == 'g' || c == 'G') {
@@ -86,18 +88,21 @@ char GetToken(short *pos)
         if (playerGender == 1)
             return '1';
         return '0';
-    } else if (c == '<' || c == '=' || c == '>') {
+    } else if (c == '<' || c == '>' || c == '=') {
         *pos += 1;
         return parseBuffer[*pos - 1];
     } else if (c == 'b' || c == 'B') {
-        *pos += 1;
+        short num;
+        char r;
+
         num = 0;
+        *pos += 1;
         i = *pos;
         while (i < strlen(parseBuffer)) {
             if (parseBuffer[i] < '0' || parseBuffer[i] > '9')
                 break;
-            *pos += 1;
             num = num * 10 + parseBuffer[i] - '0';
+            *pos += 1;
             i++;
         }
         r = '0';
@@ -105,14 +110,17 @@ char GetToken(short *pos)
             r = '1';
         return r;
     } else if (c == 'o' || c == 'O') {
-        *pos += 1;
+        short num;
+        char r;
+
         num = 0;
+        *pos += 1;
         i = *pos;
         while (i < strlen(parseBuffer)) {
             if (parseBuffer[i] < '0' || parseBuffer[i] > '9')
                 break;
-            *pos += 1;
             num = num * 10 + parseBuffer[i] - '0';
+            *pos += 1;
             i++;
         }
         r = '0';
@@ -123,28 +131,33 @@ char GetToken(short *pos)
         }
         return r;
     } else if (c == 'e' || c == 'E') {
-        *pos += 1;
+        short num;
+        char r;
+
         num = 0;
+        *pos += 1;
         i = *pos;
         while (i < strlen(parseBuffer)) {
             if (parseBuffer[i] < '0' || parseBuffer[i] > '9')
                 break;
-            *pos += 1;
             num = num * 10 + parseBuffer[i] - '0';
+            *pos += 1;
             i++;
         }
         r = '0';
-        if (num >= 128 && num < 2176 && gSystems[num - 128].exploreLevel > 0)
+        if (num >= 128 && num < 2176 && systemData[num - 128].exploreLevel > 0)
             r = '1';
         return r;
     } else if (c >= '0' && c <= '9') {
+        short num;
+
         num = 0;
         i = *pos;
         while (i < strlen(parseBuffer)) {
             if (parseBuffer[i] < '0' || parseBuffer[i] > '9')
                 break;
-            *pos += 1;
             num = num * 10 + parseBuffer[i] - '0';
+            *pos += 1;
             i++;
         }
         lastInteger = num;
@@ -157,28 +170,45 @@ char GetToken(short *pos)
 /* EvalTestExp. STATE: MATCH 100.0%, exe 227 / obj 227, byte-identical yes (838 bytes).
    OPEN: none. see notes */
 // FUNCTION: EVNOVA 0x00449020
+// MAC: _EvalTestExp i386 0x00015cd4 ppc 0x00019968
 short EvalTestExp(short *pos)
 {
+#ifdef MAC1010 /* 1.0.10 spelling */
+    short end;
+    short count;
+    short lastVal;
+    short j;
+    short result;
+    short opens;
+    Boolean negate;
+    short closes;
     char op;
     char c;
-    short end;
+    short sub;
     short i;
+    char tok;
+#else
+    short end;
+    short closes;
+    short count;
     short j;
     short opens;
-    short closes;
+    char c;
     short lastVal;
-    short count;
+    Boolean negate;
+    char op;
     short result;
     short sub;
-    char negate;
+    short i;
     char tok;
+#endif
 
     i = *pos;
     c = parseBuffer[*pos];
-    if (c == '(' || c == '[')
-        opens = 0;
-    else
+    if (c != '(' && c != '[')
         opens = 1;
+    else
+        opens = 0;
     closes = 0;
     end = -1;
     j = *pos;
@@ -196,22 +226,38 @@ short EvalTestExp(short *pos)
     if (end == -1)
         end = j;
 
+#ifdef MACBUILD
+    result = 1;
+    lastVal = 0;
+    negate = 0;
+    count = 0;
+    op = '?';
+    i = *pos;
+#else
     op = '?';
     i = *pos;
     result = 1;
     lastVal = 0;
     negate = 0;
     count = 0;
+#endif
     while (i < strlen(parseBuffer)) {
         if (parseBuffer[i] == ' ') {
-            SkipSpaces(&i);
+            Trim(&i);
         } else {
             tok = GetToken(&i);
             if (tok == '(' || tok == '[') {
                 sub = EvalTestExp(&i);
                 if (negate != 0) {
                     negate = 0;
+#ifdef MACBUILD
+                    if (sub == 0)
+                        sub = 1;
+                    else
+                        sub = 0;
+#else
                     sub = sub == 0 ? 1 : 0;
+#endif
                 }
                 if (op == '&') {
                     if (sub == 0)
@@ -251,9 +297,9 @@ short EvalTestExp(short *pos)
             } else if (tok == '&') {
                 op = '&';
                 result = lastVal;
-            } else if (tok == '<' || tok == '=' || tok == '>') {
-                result = 0;
+            } else if (tok == '<' || tok == '>' || tok == '=') {
                 op = tok;
+                result = 0;
             } else if (tok == '#') {
                 if (op == '<') {
                     if (lastVal < lastInteger)
@@ -293,25 +339,41 @@ short EvalTestExp(short *pos)
 /* EvalSetExp (mac _EvalSetExp). STATE: MATCH 100.0%, 875/875, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00449370
+// MAC: _EvalSetExp i386 0x000150fc ppc 0x00018ab0
 void EvalSetExp(void)
 {
     /* short 4th argument here; game.h declares char sound */
 
     short max;
     unsigned char str[256];
-    short i;
-    short pick;
-    short seen;
-    char c;
+#if V111 /* V111 spelling */
     char op;
-    char armed;
+    short i;
+    short seen;
+    short pick;
+    char c;
+    Boolean armed;
     unsigned char out[256];
     short num;
     short n;
     int j;
     void *saved;
     short k;
-    char wasSet;
+#else
+    char op;
+    void *saved;
+    short i;
+    short k;
+    short pick;
+    int j;
+    Boolean armed;
+    char c;
+    unsigned char out[256];
+    short n;
+    short seen;
+    short num;
+#endif
+    Boolean wasSet;
     short m;
 
     op = '?';
@@ -320,8 +382,8 @@ void EvalSetExp(void)
     num = 0;
     i = 0;
     while (i <= strlen(parseBuffer)) {
-        c = parseBuffer[i];
         armed = 0;
+        c = parseBuffer[i];
         switch (toupper(c)) {
         case 'B':
             num = 0;
@@ -349,7 +411,11 @@ void EvalSetExp(void)
         case 'Y':
         case '^':
             num = 0;
+#if V111 /* V111 spelling */
+            op = toupper(parseBuffer[i]);
+#else
             op = toupper(c);
+#endif
             break;
         case 'R':
             seen = 0;
@@ -357,13 +423,18 @@ void EvalSetExp(void)
             pick = Rand(2);
             break;
         default:
+#if V111 /* V111 spelling */
+            if (parseBuffer[i] >= '0' && parseBuffer[i] <= '9') {
+                num = num * 10 + parseBuffer[i] - '0';
+#else
             if (c >= '0' && c <= '9') {
                 num = num * 10 + c - '0';
+#endif
             } else if (pick != -1 && seen == pick) {
-                if (seen != 0)
-                    seen++;
-                else
+                if (seen == 0)
                     i++;
+                else
+                    seen++;
                 pick = -1;
                 op = '?';
             } else {
@@ -393,7 +464,7 @@ void EvalSetExp(void)
                 if (num >= kFirstResourceID && num < kFirstResourceID + kMaxMissions) {
                     for (k = 0; k < kMaxActiveMissions; k++) {
                         if (currentMissionObjectives[k].active != 0
-                                && num - kFirstResourceID == currentMissions[k].misnIndex) {
+                                && currentMissions[k].misnIndex == num - kFirstResourceID) {
                             saved = SaveBuffer();
                             AbortMission(k, 1);
                             RestoreBuffer(saved);
@@ -405,20 +476,29 @@ void EvalSetExp(void)
                 if (num >= kFirstResourceID && num < kFirstResourceID + kMaxMissions) {
                     for (k = 0; k < kMaxActiveMissions; k++) {
                         if (currentMissionObjectives[k].active != 0
-                                && num - kFirstResourceID == currentMissions[k].misnIndex)
+                                && currentMissions[k].misnIndex == num - kFirstResourceID)
                             currentMissionObjectives[k].failed = 1;
                     }
                 }
                 break;
             case 'S':
+#if V111 /* V111 spelling */
+                n = num - kFirstResourceID;
+                if (n >= 0 && n < kMaxMissions) {
+#else
                 if (num >= kFirstResourceID && num < kFirstResourceID + kMaxMissions) {
+#endif
                     wasSet = offeringFromShip;
                     if (playerIsLanded != 0)
                         offeringFromShip = 0;
                     else
                         offeringFromShip = 1;
                     saved = SaveBuffer();
+#if V111 /* V111 spelling */
+                    j = n;
+#else
                     j = num - kFirstResourceID;
+#endif
                     RandomizeOneMission(j);
                     DoMissionAccept(j);
                     offeringFromShip = wasSet;
@@ -451,28 +531,39 @@ void EvalSetExp(void)
                     saved = SaveBuffer();
                     ShipStatsToSystemInfo();
                     if (op == 'H') {
+#if V111 /* V111 spelling */
+                        for (j = 0; j < kMaxOutfits; j++) {
+                            if ((outfitSystem[j].flags & (kOutfPersistent | kOutfMissionPersistent)) == 0)
+                                shipSystems[j] = 0;
+                        }
+#else
                         for (j = 0; (short)j < kMaxOutfits; j++) {
-                            if ((gOutfits[j].flags & (kOutfPersistent | kOutfMissionPersistent)) == 0)
+#ifdef MAC1010 /* 1.0.10 spelling */
+                            if ((outfitSystem[(short)j].flags & (kOutfPersistent | kOutfMissionPersistent)) == 0)
+#else
+                            if ((outfitSystem[j].flags & (kOutfPersistent | kOutfMissionPersistent)) == 0)
+#endif
                                 shipSystems[(short)j] = 0;
                         }
+#endif
                     }
                     SystemInfoToShipStats();
                     shipData->type = num - kFirstResourceID;
                     if (op == 'E' || op == 'H') {
                         for (k = 0; k < kMaxWeapTypes; k++) {
                             shipData->weap[k].count +=
-                                gShipTypes[shipData->type].weapCount[k];
-                            if (gWeapons[k].ammoType >= 0 && gWeapons[k].ammoType < kMaxWeapTypes)
-                                shipData->weap[gWeapons[k].ammoType].ammo +=
-                                    gShipTypes[shipData->type].weapAmmo[k];
+                                shipClass[shipData->type].weapCount[k];
+                            if (weaponStats[k].ammoType >= 0 && weaponStats[k].ammoType < kMaxWeapTypes)
+                                shipData->weap[weaponStats[k].ammoType].ammo +=
+                                    shipClass[shipData->type].weapAmmo[k];
                             else
                                 shipData->weap[k].ammo +=
-                                    gShipTypes[shipData->type].weapAmmo[k];
+                                    shipClass[shipData->type].weapAmmo[k];
                         }
                         for (k = 0; k < 8; k++) {
-                            if (gShipTypes[shipData->type].defOutfCount[k] > 0)
-                                shipSystems[gShipTypes[shipData->type].defOutfID[k]] +=
-                                    gShipTypes[shipData->type].defOutfCount[k];
+                            if (shipClass[shipData->type].defOutfCount[k] > 0)
+                                shipSystems[shipClass[shipData->type].defOutfID[k]] +=
+                                    shipClass[shipData->type].defOutfCount[k];
                         }
                         ShipStatsToSystemInfo();
                         for (k = 0; k < kMaxOutfits; k++) {
@@ -485,7 +576,7 @@ void EvalSetExp(void)
                     }
                     SystemInfoToShipStats();
                     while (IsDisabled(shipData) != 0
-                            && ShipArmorCapacity(shipData) > shipData->armor)
+                            && shipData->armor < ShipArmorCapacity(shipData))
                         shipData->armor += 1.0f;
                     LoadIntfResource();
                     RestoreBuffer(saved);
@@ -497,14 +588,14 @@ void EvalSetExp(void)
                     shipData->curSystem = n;
                     shipData->targetStellar = -1;
                     for (k = 0; k < kNavSlots; k++) {
-                        if (gSystems[n].navDefault[k] != -1) {
+                        if (systemData[n].navDefault[k] != -1) {
                             if (playerIsLanded != 0) {
-                                shipData->targetStellar = gSystems[n].navDefault[k];
+                                shipData->targetStellar = systemData[n].navDefault[k];
                             } else {
                                 shipData->pos.x =
-                                    stellarData[gSystems[n].navDefault[k]].pos.h;
+                                    stellarData[systemData[n].navDefault[k]].pos.h;
                                 shipData->pos.y =
-                                    stellarData[gSystems[n].navDefault[k]].pos.v;
+                                    stellarData[systemData[n].navDefault[k]].pos.v;
                                 shipData->vel.x = 0;
                                 shipData->vel.y = 0;
                                 shipData->targetStellar = -1;
@@ -561,10 +652,10 @@ void EvalSetExp(void)
                 }
                 break;
             case 'K':
-                k = num - kFirstResourceID;
-                if (k >= 0 && k < kMaxRanks) {
+                n = num - kFirstResourceID;
+                if (n >= 0 && n < kMaxRanks) {
                     saved = SaveBuffer();
-                    ActivateRank((char *)rankData + k * kRankStride);
+                    ActivateRank((char *)rankData + n * kRankStride);
                     RestoreBuffer(saved);
                 }
                 break;
@@ -580,42 +671,42 @@ void EvalSetExp(void)
                 missionSoundID = num;
                 break;
             case 'Y':
-                k = num - kFirstResourceID;
-                if (k >= 0 && k < kMaxStellars) {
-                    if (shipData->curSystem == stellarData[k].system) {
-                        if (StellarIsDestroyed(&stellarData[k]) == 0
-                                && stellarData[k].explodType != -1)
+                n = num - kFirstResourceID;
+                if (n >= 0 && n < kMaxStellars) {
+                    if (stellarData[n].system == shipData->curSystem) {
+                        if (StellarIsDestroyed(&stellarData[n]) == 0
+                                && stellarData[n].explodType != -1)
                             CreateExplosion(
-                                XYShortToFloat(stellarData[k].pos),
-                                stellarData[k].explodType, 0, 1);
+                                XYShortToFloat(stellarData[n].pos),
+                                stellarData[n].explodType, 0, 1);
                     }
-                    if (stellarData[k].deadDays >= 0)
-                        stellarData[k].deadDaysLeft = stellarData[k].deadDays;
+                    if (stellarData[n].deadDays >= 0)
+                        stellarData[n].deadDaysLeft = stellarData[n].deadDays;
                     else
-                        stellarData[k].deadDaysLeft = 1;
-                    stellarData[k].deadCounter = -1;
+                        stellarData[n].deadDaysLeft = 1;
+                    stellarData[n].deadCounter = -1;
                 }
                 break;
             case 'U':
-                k = num - kFirstResourceID;
-                if (k >= 0 && k < kMaxStellars) {
-                    stellarData[k].deadDaysLeft = -1;
-                    stellarData[k].deadCounter = stellarData[k].strength;
+                n = num - kFirstResourceID;
+                if (n >= 0 && n < kMaxStellars) {
+                    stellarData[n].deadDaysLeft = -1;
+                    stellarData[n].deadCounter = stellarData[n].strength;
                 }
                 break;
             case 'T':
                 GetRandomIndString(str, num);
                 if (str[0] != 0) {
                     out[0] = 0;
-                    for (n = 1; n <= str[0]; n++) {
-                        if (str[n] == '*') {
+                    for (k = 1; k <= str[0]; k++) {
+                        if (str[k] == '*') {
                             for (m = 1; m <= shipName[0]; m++) {
                                 out[0]++;
                                 out[out[0]] = shipName[m];
                             }
                         } else {
                             out[0]++;
-                            out[out[0]] = str[n];
+                            out[out[0]] = str[k];
                         }
                     }
                     for (k = 0; k <= out[0]; k++)
@@ -636,10 +727,10 @@ void EvalSetExp(void)
                 }
                 break;
             case 'X':
-                k = num - kFirstResourceID;
-                if (k >= 0 && k < kMaxSystems) {
-                    if (gSystems[k].exploreLevel < 1)
-                        gSystems[k].exploreLevel = 1;
+                n = num - kFirstResourceID;
+                if (n >= 0 && n < kMaxSystems) {
+                    if (systemData[n].exploreLevel < 1)
+                        systemData[n].exploreLevel = 1;
                 }
                 break;
             default:
@@ -664,20 +755,22 @@ void EvalSetExp(void)
 /* ParseTextDescription (mac _ParseTextDescription). STATE: MATCH 284/284, byte-identical,
    once compiled after EvalSetExp, its predecessor in the original object. OPEN: none */
 // FUNCTION: EVNOVA 0x0044a4d0
+// MAC: _ParseTextDescription i386 0x00014bdd ppc 0x00018598
 void ParseTextDescription(void)
 {
     char out[kParseBufSize];
     char c;
-    char negate;
     char kind;
-    char escape;
-    long state;
     long i;
     long outLen;
     long num;
+    long state;
+    Boolean negate;
+    Boolean escape;
     long j;
     long k;
-    char keep;
+    long rank;
+    Boolean keep;
 
     state = 0;
     outLen = 0;
@@ -688,17 +781,24 @@ void ParseTextDescription(void)
     for (i = 0; i < strlen(parseBuffer); i++) {
         if (state == 1) {
             if (parseBuffer[i] == 'g' || parseBuffer[i] == 'G') {
-                if (negate != 0)
-                    state = playerGender == 1 ? 5 : 3;
-                else
-                    state = playerGender == 1 ? 3 : 5;
+                if (negate != 0) {
+                    if (playerGender == 1)
+                        state = 5;
+                    else
+                        state = 3;
+                } else {
+                    if (playerGender == 1)
+                        state = 3;
+                    else
+                        state = 5;
+                }
             } else if (parseBuffer[i] == 'p' || parseBuffer[i] == 'P') {
-                num = 0;
                 kind = 'P';
+                num = 0;
                 state = 2;
             } else if (parseBuffer[i] == 'b' || parseBuffer[i] == 'B') {
-                num = 0;
                 kind = 'B';
+                num = 0;
                 state = 2;
             } else if (parseBuffer[i] == '!') {
                 negate = 1;
@@ -709,10 +809,10 @@ void ParseTextDescription(void)
                 num = num * 10 + c - '0';
             } else {
                 if (kind == 'P') {
-                    if ((gShipTypes[gameIsRegisteredIndex].registered != 0
+                    if ((shipClass[gameIsRegisteredIndex].registered != 0
                              ? 1 : 0) != 0)
                         keep = 1;
-                    else if (gSharewareDays < num)
+                    else if (totalDaysPlayed < num)
                         keep = 1;
                     else
                         keep = 0;
@@ -723,10 +823,17 @@ void ParseTextDescription(void)
                 }
                 if (negate != 0)
                     keep = keep == 0;
-                if (keep != 0)
-                    state = c == '"' ? 4 : 3;
-                else
-                    state = c == '"' ? 6 : 5;
+                if (keep != 0) {
+                    if (c == '"')
+                        state = 4;
+                    else
+                        state = 3;
+                } else {
+                    if (c == '"')
+                        state = 6;
+                    else
+                        state = 5;
+                }
                 kind = '?';
             }
         } else if (state == 3) {
@@ -773,6 +880,33 @@ void ParseTextDescription(void)
     out[outLen] = 0;
     strcpy(parseBuffer, out);
     if (strlen(parseBuffer) > 5) {
+#ifdef MAC1010
+        for (i = 0; i < strlen(parseBuffer) - 5; i++) {
+            if (parseBuffer[i] == '<'
+                && (parseBuffer[i + 1] == 'P' || parseBuffer[i + 1] == 'S')
+                && parseBuffer[i + 2] == 'R' && parseBuffer[i + 3] == 'K'
+                && parseBuffer[i + 4] != '>') {
+                num = 0;
+                for (outLen = i + 4; outLen < strlen(parseBuffer); outLen++) {
+                    if (parseBuffer[outLen] < '0' || parseBuffer[outLen] > '9')
+                        break;
+                    num = num * 10 + parseBuffer[outLen] - '0';
+                }
+                if (num >= kFirstResourceID && num < kFirstResourceID + kMaxGovts) {
+                    if (parseBuffer[i + 1] == 'P')
+                        descRankGovt[0] = num - kFirstResourceID;
+                    else
+                        descRankGovt[1] = num - kFirstResourceID;
+                } else {
+                    if (parseBuffer[i + 1] == 'P')
+                        descRankGovt[0] = -1;
+                    else
+                        descRankGovt[1] = -1;
+                }
+                i += 4;
+            }
+        }
+#else
         for (outLen = 0; outLen < strlen(parseBuffer) - 5; outLen++) {
             if (parseBuffer[outLen] == '<') {
                 j = outLen + 1;
@@ -783,22 +917,22 @@ void ParseTextDescription(void)
                         if (parseBuffer[k] == 'K') {
                             k = outLen + 4;
                             if (parseBuffer[k] != '>') {
-                                num = 0;
+                                rank = 0;
                                 for (i = outLen + 4; i < strlen(parseBuffer); i++) {
                                     if (parseBuffer[i] < '0' || parseBuffer[i] > '9')
                                         break;
-                                    num = num * 10 + parseBuffer[i] - '0';
+                                    rank = rank * 10 + parseBuffer[i] - '0';
                                 }
-                                if (num >= kFirstResourceID && num < kFirstResourceID + kMaxGovts) {
+                                if (rank >= kFirstResourceID && rank < kFirstResourceID + kMaxGovts) {
                                     if (parseBuffer[j] == 'P')
-                                        gDescRankGovt[0] = num - kFirstResourceID;
+                                        descRankGovt[0] = rank - kFirstResourceID;
                                     else
-                                        gDescRankGovt[1] = num - kFirstResourceID;
+                                        descRankGovt[1] = rank - kFirstResourceID;
                                 } else {
                                     if (parseBuffer[j] == 'P')
-                                        gDescRankGovt[0] = -1;
+                                        descRankGovt[0] = -1;
                                     else
-                                        gDescRankGovt[1] = -1;
+                                        descRankGovt[1] = -1;
                                 }
                                 outLen += 4;
                             }
@@ -807,28 +941,39 @@ void ParseTextDescription(void)
                 }
             }
         }
+#endif
     }
 }
 
 /* SaveBuffer. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0044a980
+// MAC: _SaveBuffer i386 0x000150ae ppc 0x00018a54
 void *SaveBuffer(void)
 {
     void *saved;
 
     saved = AllocAPointer(kParseBufSize);
     if (saved == NULL)
+#ifdef MACBUILD
+        SWAssertFail(kEngineSourceDir "Parser.c", 1117);
+#else
         SWAssertFail("Parser.c", 0x45c);
+#endif
     BlockMove(parseBuffer, saved, kParseBufSize);
     return saved;
 }
 
 /* RestoreBuffer. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0044a9d0
+// MAC: _RestoreBuffer i386 0x00015066 ppc 0x00018a00
 void RestoreBuffer(void *saved)
 {
     if (saved == NULL)
+#ifdef MACBUILD
+        SWAssertFail(kEngineSourceDir "Parser.c", 1127);
+#else
         SWAssertFail("Parser.c", 0x466);
+#endif
     BlockMove(saved, parseBuffer, kParseBufSize);
     DeallocAPointer(saved);
 }
@@ -839,6 +984,7 @@ void RestoreBuffer(void *saved)
  * 0x004d3000 and are declared extern rather than written.
  */
 
+#ifndef MACBUILD
 /* RegScramA. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0044aa10
 unsigned char RegScramA(unsigned int x)
@@ -863,7 +1009,7 @@ int RegScramC(unsigned char x)
 
 /* RegScramD. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0044aa50
-char RegScramD(char *p)
+Boolean RegScramD(char *p)
 {
     TimerGetSeconds();
     return *p;
@@ -871,12 +1017,15 @@ char RegScramD(char *p)
 
 /* RegScramE. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0044aa60
-char RegScramE(void)
+Boolean RegScramE(void)
 {
     return 0;
 }
+#endif
 
 char parseBuffer[8192];
 short lastInteger;
+#ifndef MACBUILD
 unsigned char DAT_007caa12[6];
 unsigned char gRT3Table[256];
+#endif

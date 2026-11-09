@@ -2,19 +2,35 @@
 // COMPILER: mwccsym2 2.4.7 build 335
 // COMPILE-WHY: REGGIE, Ambrosia's Windows-only client over AmbrosiaTools' network layer, a library of its own: AmbrosiaTools' compiler and intrinsics line (it shares that layer's structs) with debug information on (-g), as libpng's line:the exe opens 13 REGGIE bodies with one zero copied into two dead locals (`xor eax,eax / mov ecx,eax / mov edi,eax'), a prologue found nowhere else in AmbrosiaTools and emitted by -g and by no spelling on the plain line; -g loses MATCHes in every AmbrosiaTools file and none in REGGIE; build 335 has no -proc; Research/runtime-compiler-ceiling.md
 /* reggie.c -- Ambrosia's REGGIE client (the version check against tracker.ambrosia.net, sessions, lookups, NAT probing and peer matching). Notes: Research/notes/reggie.md */
-
 #include <stdarg.h>
 #include <string.h>
-
 #include "burgertypes.h"
 #include "macport.h"
 #include "burger.h"
 #include "ambrosia.h"
 #include "burgerplat.h"
 #include "reggiesession.h"
+#ifndef MAC1010
 #include "win32.h"
+#endif
 
+#ifdef MAC1010 /* 1.0.10 real: the exe defines these here in this order, the hooks in atnetsock.c */
+struct NatRoute;
+NetAddress gReggiePrivateAddress;
+MutexList gReggiePrivateFreeQ;
+MutexList gReggiePrivateRecvQ;
+unsigned char gReggieOpen = 0;
+unsigned char gReggieBusy = 0;
+SessionContext *gReggieList = 0;
+struct NatRoute *gMappingList = 0;
+GlobalEntry *gVersionList = 0;
+ULong gReggiePrivateStamp = 0;
+NetSocket *gReggiePrivateRef = 0;
+#define ReggieLocal static          /* local symbols in the 1.1.1 framework */
+#else
 GlobalEntry *gVersionList;                     /* 0x008701ac list head */
+#define ReggieLocal
+#endif
 
 void _ReggieServerOffline(SessionContext *ctx, const char *reason);
 long ReggieLookupTimer(SessionContext *ctx, SessionEntry *entry);
@@ -23,6 +39,7 @@ long ReggieLookupTimer(SessionContext *ctx, SessionEntry *entry);
 #define kReplyFlags     8                        /* any of ! : < = > ~ separates */
 #define kIdleSeconds    10
 
+#ifndef MAC1010
 NetSocket *gReggiePrivateRef;                       /* 0x00870944 the tracker socket */
 MutexList gReggiePrivateRecvQ;                      /* 0x0086d680 packets received */
 MutexList gReggiePrivateFreeQ;                          /* 0x0086d690 packets free */
@@ -31,7 +48,9 @@ ULong gReggiePrivateStamp;                       /* 0x0087005c last tracker traf
 SessionContext *gReggieList;                       /* 0x0086ffa0 the sessions */
 unsigned char gReggieOpen;                       /* 0x00870e07 network hooks installed */
 unsigned char gReggieBusy;                       /* 0x00870e03 reset counting off */
+#endif
 static unsigned char pollRunning = 0;            /* 0x008674a0 a poll is running */
+#ifndef MAC1010 /* atnetsock.c defines the hooks */
 unsigned char (*gReggieSharedProc)(NetSocket *s); /* 0x008707c4 */
 unsigned char (*gReggiePacketProc)(NetSocket *s, const char *data, ULong length,
                                const NetAddress *from);      /* 0x008707fc */
@@ -40,6 +59,7 @@ unsigned char (*gReggiePrejoinProc)(NetSocket *s, const NetAddress *local,
 unsigned char (*gReggieSendFailedProc)(NetSocket *s, const NetAddress *from); /* 0x00870928 */
 long (*gNT_MatchedProc)(NetSocket *s, const NetAddress *peer);  /* 0x0086ffac MATCH hook */
 long (*gNT_InvitedProc)(NetSocket *s, const NetAddress *peer); /* 0x0086fffc INVITE hook */
+#endif
 
 #define kNatNone        0
 #define kNatUnknown     1
@@ -67,7 +87,9 @@ typedef struct NatRoute {
     unsigned char tcp;
 } NatRoute;
 
+#ifndef MAC1010
 NatRoute *gMappingList;                          /* 0x00870174 the NAT routes seen */
+#endif
 #define kNameBuffer kSessionNameLen
 #define kZlibTag            0x7a6c6962
 #define kPunchNone      0
@@ -75,29 +97,29 @@ NatRoute *gMappingList;                          /* 0x00870174 the NAT routes se
 #define kPunchGuess     2
 #define kLineBytes          0x1000
 
-NatRoute *_ReggieFindMapping(unsigned short port, ULong ip, unsigned char tcp);
-long ReggieOpenTracker(void);
+AT_STATIC NatRoute *_ReggieFindMapping(unsigned short port, ULong ip, unsigned char tcp);
+AT_STATIC long ReggieOpenTracker(void);
 long _ReggieSendHash(SessionContext *ctx, struct HashTable *t);
-long _ReggieSendString(SessionContext *ctx, const char *fmt, ...);
-long _ReggieSendIndirect(SessionContext *ctx, void **h);
-SessionEntry *_ReggieMatchChannel(SessionContext *ctx, long kind, unsigned char tcp, const NetAddress *local, const NetAddress *remote);
-long _ReggieMatchBegin(void *ref, long kind, unsigned char tcp, const NetAddress *local, const NetAddress *remote);
-long _ReggieProbeEnd(SessionContext *ctx, SessionEntry *entry);
-void _ReggieProbeUpdate(SessionContext *ctx, SessionEntry *entry, const NetAddress *from, const char *seen);
-ULong ReggieMeetMethod(ULong nat, ULong peerNat);
-ULong ReggieProbeCheck(void *ref, unsigned char tcp, const NetAddress *local, NetAddress *out);
-SessionEntry *_ReggieMessageChannel(SessionContext *ctx);
-long ReggieSendPermissions(SessionContext *ctx, SessionEntry *entry);
-long _ReggieSearchEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
-ULong ReggieProbePrejoin(SessionContext *ctx, const NetAddress *address);
-long _ReggieInsertEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
-long ReggieInsertBegin(void *ref, ULong slot, long mode, struct HashTable *record);
-long _ReggieChannelClose(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
-long ReggieRawPacket(void *ref, const char *data, ULong length, const NetAddress *from);
-long _ReggiePacketExtract(void **h, struct HashTable **out);
-long _ReggiePacketDecode(char *data, ULong length, struct ZState *z, unsigned char binary, void ***out);
-long ReggiePacket(SessionContext *ctx, MutexNode *node);
-long _ReggieOpen(void);
+AT_STATIC long _ReggieSendString(SessionContext *ctx, const char *fmt, ...);
+AT_STATIC long _ReggieSendIndirect(SessionContext *ctx, void **h);
+AT_STATIC SessionEntry *_ReggieMatchChannel(SessionContext *ctx, long kind, unsigned char tcp, const NetAddress *local, const NetAddress *remote);
+long _ReggieMatchBegin(void *ref, ULong kind, unsigned char tcp, const NetAddress *local, const NetAddress *remote);
+AT_STATIC long _ReggieProbeEnd(SessionContext *ctx, SessionEntry *entry);
+AT_STATIC void _ReggieProbeUpdate(SessionContext *ctx, SessionEntry *entry, const NetAddress *from, const char *seen);
+AT_STATIC ULong ReggieMeetMethod(ULong nat, ULong peerNat);
+AT_STATIC ULong ReggieProbeCheck(void *ref, unsigned char tcp, const NetAddress *local, NetAddress *out);
+AT_STATIC SessionEntry *_ReggieMessageChannel(SessionContext *ctx);
+AT_STATIC long ReggieSendPermissions(SessionContext *ctx, SessionEntry *entry);
+AT_STATIC long _ReggieSearchEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
+AT_STATIC ULong ReggieProbePrejoin(SessionContext *ctx, const NetAddress *address);
+AT_STATIC long _ReggieInsertEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
+AT_STATIC long ReggieInsertBegin(void *ref, ULong slot, long mode, struct HashTable *record);
+AT_STATIC long _ReggieChannelClose(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
+AT_STATIC long ReggieRawPacket(void *ref, const char *data, ULong length, const NetAddress *from);
+AT_STATIC long _ReggiePacketExtract(void **h, struct HashTable **out);
+AT_STATIC long _ReggiePacketDecode(char *data, ULong length, struct ZState *z, unsigned char binary, void ***out);
+AT_STATIC long ReggiePacket(void *ref, MutexNode *node);
+AT_STATIC long _ReggieOpen(void);
 
 #define kStateIdle          0
 #define kStateClosed        (-1)
@@ -132,28 +154,35 @@ long _ReggieOpen(void);
 #define kLookupsFormat      "REGGIE LOOKUP CXID=%s HOSTID=%lu RECORDS='%s'"
 #define kCancelFormat       "REGGIE CANCEL CXID=%s HOSTID=%lu"
 
-long ReggieOpenTracker(void);
-long _ReggieOpen(void);
+AT_STATIC long ReggieOpenTracker(void);
+AT_STATIC long _ReggieOpen(void);
 long _ReggieSendHash(SessionContext *ctx, struct HashTable *t);
-long _ReggieSendString(SessionContext *ctx, const char *fmt, ...);
-long _ReggieSendIndirect(SessionContext *ctx, void **h);
-void _ReggieProbeUpdate(SessionContext *ctx, SessionEntry *entry, const NetAddress *from,
+AT_STATIC long _ReggieSendString(SessionContext *ctx, const char *fmt, ...);
+AT_STATIC long _ReggieSendIndirect(SessionContext *ctx, void **h);
+AT_STATIC void _ReggieProbeUpdate(SessionContext *ctx, SessionEntry *entry, const NetAddress *from,
                   const char *seen);
-SessionEntry *_ReggieMatchChannel(SessionContext *ctx, long kind, unsigned char tcp,
+AT_STATIC SessionEntry *_ReggieMatchChannel(SessionContext *ctx, long kind, unsigned char tcp,
                            const NetAddress *local, const NetAddress *remote);
-long _ReggieMatchBegin(void *ref, long kind, unsigned char tcp, const NetAddress *local,
+long _ReggieMatchBegin(void *ref, ULong kind, unsigned char tcp, const NetAddress *local,
                   const NetAddress *remote);
-ULong ReggieProbeCheck(void *ref, unsigned char tcp, const NetAddress *local,
+AT_STATIC ULong ReggieProbeCheck(void *ref, unsigned char tcp, const NetAddress *local,
                    NetAddress *out);
-SessionEntry *_ReggieMessageChannel(SessionContext *ctx);
-long ReggieSendPermissions(SessionContext *ctx, SessionEntry *entry);
-long _ReggieSearchEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
-long _ReggieInsertEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
-long ReggieInsertBegin(void *ref, ULong slot, long mode, struct HashTable *record);
-long _ReggieChannelClose(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
-long ReggieRawPacket(void *ref, const char *data, ULong length,
+AT_STATIC SessionEntry *_ReggieMessageChannel(SessionContext *ctx);
+AT_STATIC long ReggieSendPermissions(SessionContext *ctx, SessionEntry *entry);
+AT_STATIC long _ReggieSearchEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
+AT_STATIC long _ReggieInsertEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
+AT_STATIC long ReggieInsertBegin(void *ref, ULong slot, long mode, struct HashTable *record);
+AT_STATIC long _ReggieChannelClose(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
+AT_STATIC long ReggieRawPacket(void *ref, const char *data, ULong length,
                   const NetAddress *from);
-long ReggiePacket(SessionContext *ctx, MutexNode *node);
+AT_STATIC long ReggiePacket(void *ref, MutexNode *node);
+
+/* Keep the first error from a call and leave for the cleanup. */
+#define FAIL(x) do { err = (x); goto done; } while (0)
+#define TRY(x)  do { long e = (x); if (e != 0) FAIL(e); } while (0)
+#define TRYE(x) do { e = (x); if (e != 0) { err = e; goto done; } } while (0)
+#define TRYV(x) do { long e = (x); if (e) FAIL(e); } while (0)
+#define TRYALLOC(x) do { if ((x) == 0) FAIL(kOutOfMemory); } while (0)
 
 /* The owner's callback, with the entry's slot (0 without one). */
 static inline void Notify(SessionContext *ctx, SessionEntry *entry, long event)
@@ -172,7 +201,11 @@ static inline void Notify(SessionContext *ctx, SessionEntry *entry, long event)
 static inline long TableNumber(struct HashTable *t, const char *key)
 {
     const char *s;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    long value;
+#else
     ULong value;
+#endif
 
     s = 0;
     value = 0;
@@ -326,16 +359,14 @@ static inline long SendCancel(SessionContext *ctx, SessionEntry *entry)
     long e;
 
     err = 0;
-    entry->counter++;
     e = _ReggieSendString(ctx, kCancelFormat,
                      StringFormatSafe(entry->idText, kSessionNameLen, "%lu/%lu", entry->slot,
-                                  entry->counter),
+                                  ++entry->counter),
                      ctx->hostSource);
     if (e != 0) {
         err = e;
     } else {
-        entry->cancelledAt = TimerGetElapsedSeconds();
-        ctx->sentAt = entry->cancelledAt;
+        ctx->sentAt = entry->cancelledAt = TimerGetElapsedSeconds();
         entry->requestedAt = 0;
         entry->retries = 0;
     }
@@ -410,8 +441,7 @@ static inline long CheckInstance(SessionContext *ctx, struct HashTable *table)
     s = HashLookup(table, "$INSTANCE", 0);
     if (s != 0 && *s != 0 && ctx->instance[0] != 0 && StringCompare(s, ctx->instance) != 0) {
         _ReggieServerOffline(ctx, "Server has been restarted");
-        ctx->stateAt = 1;
-        ctx->receivedAt = ctx->stateAt;
+        ctx->receivedAt = ctx->stateAt = 1;
     }
     return err;
 }
@@ -472,7 +502,7 @@ unsigned char ReggieDescribeConnection(SessionContext *ctx, const char *host, ch
     NatRoute *route;
     ULong i;
     ULong count;
-    long err, e;
+    long err;
     long ok;
 
     err = 0;
@@ -487,21 +517,13 @@ unsigned char ReggieDescribeConnection(SessionContext *ctx, const char *host, ch
     if (natText != 0)
         *natText = 0;
     if (host != 0 && *host != 0) {
-        e = SimpleResolve(0, host, &address);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(SimpleResolve(0, host, &address));
         AddressDecomposeTCPIP(&address, &port, &ip);
         route = _ReggieFindMapping(port, ip, 0);
         if (route == 0)
             route = _ReggieFindMapping(port, ip, 1);
     } else if (ctx->mode == kModeShared) {
-        e = DatagramGetAddress(ctx->socket, &address);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(DatagramGetAddress(ctx->socket, &address));
         AddressDecomposeTCPIP(&address, &port, 0);
         route = _ReggieFindMapping(port, ip, 0);
     }
@@ -512,11 +534,7 @@ unsigned char ReggieDescribeConnection(SessionContext *ctx, const char *host, ch
         AddressTranscribe(&address, publicText);
     }
     if (localText != 0) {
-        e = DatagramGetAddress(ctx->socket, &address);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(DatagramGetAddress(ctx->socket, &address));
         AddressDecomposeTCPIP(&address, &port, &ip);
         if (ip != 0) {
             AddressTranscribe(&address, localText);
@@ -524,7 +542,7 @@ unsigned char ReggieDescribeConnection(SessionContext *ctx, const char *host, ch
             count = NetworkStackGetAddressList(0, own, kOwnAddresses);
             for (i = 0; i < count; i++) {
                 AddressDecomposeTCPIP(&own[i], 0, &ip);
-                if ((long long)Swap32(ip) != kLoopbackHost) {
+                if (WideNet32(ip) != kLoopbackHost) {
                     AddressComposeTCPIP(&address, port, ip);
                     AddressTranscribe(&address, text);
                     if (*localText != 0)
@@ -566,7 +584,7 @@ done:
    this machine counts as local). STATE: MATCH 100%, exe 72 / obj 72, byte-identical yes. OPEN:
    none */
 // FUNCTION: EVNOVA 0x004f3b4c
-NatRoute *_ReggieFindMapping(unsigned short port, ULong ip, unsigned char tcp)
+AT_STATIC NatRoute *_ReggieFindMapping(unsigned short port, ULong ip, unsigned char tcp)
 {
     NetAddress own[kOwnAddresses];
     NatRoute *route;
@@ -653,7 +671,7 @@ long _ReggieHashTimestamp(struct HashTable *t, unsigned char forward, long secon
     char *value;
     char number[kTextBytes];
     ULong v;
-    long err, e;
+    long err;
     ULong count;
     char tag;
 
@@ -671,12 +689,8 @@ long _ReggieHashTimestamp(struct HashTable *t, unsigned char forward, long secon
                 v = (v + 30) / 60 * 60;
             value = StringFromNumber(number, v);
         }
-        e = _HashInsertAppend(t, key, StringGetLength((unsigned char *)key), value,
-                         StringGetLength((unsigned char *)value), tag, 0, 0);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(_HashInsertAppend(t, key, StringGetLength((unsigned char *)key), value,
+                         StringGetLength((unsigned char *)value), tag, 0, 0));
         HashRemove(t, key);
     }
 done:
@@ -687,8 +701,13 @@ done:
 // FUNCTION: EVNOVA 0x004f3e0a
 void _ReggieFixProductName(char *out, const char *src)
 {
+#ifdef MAC1010 /* 1.0.10 spelling */
+    ULong n;
+    char *start;
+#else
     char *start;
     ULong n;
+#endif
     char c;
 
     start = out;
@@ -697,7 +716,9 @@ void _ReggieFixProductName(char *out, const char *src)
         if (c >= 'a' && c <= 'z') {
             *out += 'A' - 'a';
             out++;
-        } else if ((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
+        } else if (c >= 'A' && c <= 'Z') {
+            out++;
+        } else if (c >= '0' && c <= '9') {
             out++;
         } else {
             *out++ = '_';
@@ -711,21 +732,48 @@ void _ReggieFixProductName(char *out, const char *src)
    context says so, else a text line). STATE: MATCH 100%, exe 52 / obj 52, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f3e67
-ULong _ReggieBufferCallback(long unk0, void *ref, NetChunk *chunk, unsigned char second)
+ReggieLocal ULong _ReggieBufferCallback(long unk0, void *ref, NetChunk *chunk, unsigned char second)
 {
     SessionContext *ctx;
     ULong length;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    char *data;
+#else
     unsigned char *data;
+#endif
     ULong n;
     ULong i;
 
     ctx = ref;
     length = chunk->length;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    data = chunk->data;
+    if (ctx->lengthFrames != 0) {
+        if (length < kLengthPrefix)
+            return kNoFrame;
+        i = Net16(*(unsigned short *)data) + kLengthPrefix;
+        if (i > chunk->size)
+            i = chunk->size;
+        return i;
+    }
+    for (i = 0; i < length; i++) {
+        if (data[i] == '\r') {
+            n = i + 1;
+            if (n == length)
+                return n;
+            if (data[i + 1] == '\n')
+                n = i + 2;
+            return n;
+        }
+        if (data[i] == '\n')
+            return i + 1;
+    }
+#else
     data = (unsigned char *)chunk->data;
     if (ctx->lengthFrames != 0) {
         if (length < kLengthPrefix)
             return kNoFrame;
-        n = Swap16(*(unsigned short *)data) + kLengthPrefix;
+        n = Net16(*(unsigned short *)data) + kLengthPrefix;
         if (n > chunk->size)
             n = chunk->size;
         return n;
@@ -741,6 +789,7 @@ ULong _ReggieBufferCallback(long unk0, void *ref, NetChunk *chunk, unsigned char
         if (data[i] == '\n')
             return i + 1;
     }
+#endif
     return kNoFrame;
 }
 
@@ -748,11 +797,11 @@ ULong _ReggieBufferCallback(long unk0, void *ref, NetChunk *chunk, unsigned char
    stream lost; no CSV row). STATE: MATCH 100%, exe 7 / obj 7, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f3ee8
-void _ReggieNetworkCallback(NetSocket *s, void *ref, unsigned short event)
+ReggieLocal void _ReggieNetworkCallback(NetSocket *s, void *ref, unsigned short event)
 {
     SessionContext *ctx;
 
-    ctx = (SessionContext *)ref;
+    ctx = ref;
     switch (event) {
     case kEventPeerClosed:
     case kEventFailed:
@@ -849,11 +898,15 @@ void ReggieOnHello(SessionContext *ctx, const char *instance, const char *motd,
     e = 0;
     StringCopySafe(ctx->instance, instance != 0 ? instance : "", kSessionNameLen);
     StringCopySafe(ctx->motd, motd != 0 ? motd : "", kSessionNameLen);
+#ifdef MAC1010 /* 1.0.10 spelling */
+    StringCopySafe(ctx->motdUrl, motdUrl != 0 ? motdUrl : "", kSessionNameLen);
+#else
     if (motdUrl != 0)
         text = motdUrl;
     else
         text = "";
     StringCopySafe(ctx->motdUrl, text, kSessionNameLen);
+#endif
     if (probe != 0 && *probe != 0) {
         e = SimpleResolve(0, probe, &ctx->probe);
         if (e != 0)
@@ -872,15 +925,38 @@ void ReggieOnHello(SessionContext *ctx, const char *instance, const char *motd,
     ctx->resets = 0;
     messages = _ReggieMessageChannel(ctx);
     if (messages != 0) {
-        e = ReggieSendPermissions(ctx, messages);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(ReggieSendPermissions(ctx, messages));
     }
     Notify(ctx, 0, kEventOnline);
 done:
     ;
+}
+
+/* _ReggieVersionRemove (drop a product from the list; nothing calls it). Words from the mac 1.1.1
+   AmbrosiaTools framework, its local symbol between _ReggiePrivateDispose and _ReggieVersionInsert. */
+static unsigned char _ReggieVersionRemove(const char *product)
+{
+    GlobalEntry **link;
+    GlobalEntry *entry;
+    unsigned char removed;
+
+    removed = 0;
+    link = &gVersionList;
+    while ((entry = *link) != 0) {
+        if (StringCompare(product, entry->name) == 0) {
+            if (entry->payload != 0)
+                HashDispose(entry->payload);
+            *link = (*link)->next;
+            MemoryDeallocate(entry);
+            link = 0;
+            removed = 1;
+        }
+        if (link != 0)
+            link = &(*link)->next;
+        else
+            link = &gVersionList;
+    }
+    return removed;
 }
 
 /* _ReggieVersionInsert (add a product to the list, with its reply table or a new one holding
@@ -888,7 +964,7 @@ done:
 // FUNCTION: EVNOVA 0x004f420b
 GlobalEntry *_ReggieVersionInsert(const char *name, struct HashTable *reply)
 {
-    long err, e;
+    long err;
     GlobalEntry *entry;
 
     err = 0;
@@ -906,11 +982,7 @@ GlobalEntry *_ReggieVersionInsert(const char *name, struct HashTable *reply)
             err = kOutOfMemory;
             goto done;
         }
-        e = HashInsert(entry->payload, "$PRODUCT", name);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(HashInsert(entry->payload, "$PRODUCT", name));
     }
     StringCopySafe(entry->name, name, kSessionNameLen);
     entry->next = gVersionList;
@@ -931,6 +1003,18 @@ done:
 // FUNCTION: EVNOVA 0x004f42cd
 void _ReggiePrivateTickle(void)
 {
+#ifdef MAC1010 /* 1.0.10 spelling */
+    char *product;
+    char *value;
+    char *key;
+    NetPacket *packet;
+    struct HashTable *reply;
+    char *version;
+    ULong i;
+    GlobalEntry **link;
+    unsigned char removed;
+    GlobalEntry *entry;
+#else
     unsigned char removed;
     char *product;
     char *value;
@@ -941,6 +1025,7 @@ void _ReggiePrivateTickle(void)
     GlobalEntry **link;
     ULong i;
     GlobalEntry *entry;
+#endif
     GlobalEntry *spare;
     long err;
     long e;
@@ -957,6 +1042,17 @@ void _ReggiePrivateTickle(void)
         goto done;
 
     while ((packet = (NetPacket *)QueueRemove(&gReggiePrivateRecvQ)) != 0) {
+#ifdef MAC1010 /* 1.0.10 spelling */
+        product = "REGGIE RESULT VERSION ";
+        if (packet->length == packet->capacity)
+            packet->length--;
+        packet->data[packet->length] = 0;
+        if (!AddressCompare(&packet->from, &gReggiePrivateAddress))
+            goto next;
+        e = StringCompareSafe(packet->data, product, StringGetLength(product));
+        if (e != 0)
+            goto next;
+#else
         prefix = "REGGIE RESULT VERSION ";
         if (packet->length == packet->capacity)
             packet->length--;
@@ -965,6 +1061,7 @@ void _ReggiePrivateTickle(void)
             goto next;
         if (StringCompareSafe(packet->data, prefix, StringGetLength((const unsigned char *)prefix)) != 0)
             goto next;
+#endif
         if ((reply = HashInitialize(kReplyFlags, packet->data)) == 0) {
             err = kOutOfMemory;
             goto done;
@@ -980,6 +1077,17 @@ void _ReggiePrivateTickle(void)
         product = HashLookup(reply, "$PRODUCT", 0);
         if (product == 0)
             goto next;
+#ifdef MAC1010 /* 1.0.10 spelling */
+        version = HashLookup(reply, "$VERSION", 0);
+        if (version == 0)
+            goto next;
+
+        e = removed = 0;
+        link = &gVersionList;
+        while ((entry = *link) != 0) {
+            e = StringCompare(product, entry->name);
+            if (e == 0) {
+#else
         if (HashLookup(reply, "$VERSION", 0) == 0)
             goto next;
 
@@ -988,6 +1096,7 @@ void _ReggiePrivateTickle(void)
         link = &gVersionList;
         while ((entry = *link) != 0) {
             if (StringCompare(product, (*link)->name) == 0) {
+#endif
                 if (entry->payload != 0)
                     HashDispose(entry->payload);
                 *link = (*link)->next;
@@ -1002,7 +1111,12 @@ void _ReggiePrivateTickle(void)
         }
         if (removed == 0)
             goto next;
+#ifdef MAC1010 /* 1.0.10 spelling */
+        found = _ReggieVersionInsert(product, reply);
+        if (found == 0) {
+#else
         if (_ReggieVersionInsert(product, reply) == 0) {
+#endif
             err = kOutOfMemory;
             goto done;
         }
@@ -1035,12 +1149,21 @@ done:
 // FUNCTION: EVNOVA 0x004f4513
 long ReggieBeginVersionDirect(const char *name)
 {
-    long err, e;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    GlobalEntry **link;
+    GlobalEntry *entry;
+    NetPacket *packet;
+    unsigned char found;
+    long result;
+    long err;
+#else
+    long err;
     NetPacket *packet;
     GlobalEntry **link;
     GlobalEntry *entry;
     unsigned char found;
     long result;
+#endif
 
     err = 0;
     packet = 0;
@@ -1048,7 +1171,11 @@ long ReggieBeginVersionDirect(const char *name)
     found = false;
     link = &gVersionList;
     while ((entry = *link) != 0) {
+#ifdef MAC1010 /* 1.0.10 spelling */
+        if (StringCompare(name, entry->name) == 0) {
+#else
         if (StringCompare(name, (*link)->name) == 0) {
+#endif
             if (entry->payload != 0)
                 HashDispose(entry->payload);
             *link = (*link)->next;
@@ -1065,18 +1192,10 @@ long ReggieBeginVersionDirect(const char *name)
         err = kOutOfMemory;
         goto done;
     }
-    e = ReggieOpenTracker();
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(ReggieOpenTracker());
     packet = (NetPacket *)QueueRemove(&gReggiePrivateFreeQ);
     if (packet == 0) {
-        e = NetworkQueueFill(&gReggiePrivateFreeQ, kListPackets, 4, kPacketBytes);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(NetworkQueueFill(&gReggiePrivateFreeQ, kListPackets, 4, kPacketBytes));
     }
     /* BUG: takes a second packet even when the first succeeded, and the first is lost */
     packet = (NetPacket *)QueueRemove(&gReggiePrivateFreeQ);
@@ -1087,11 +1206,7 @@ long ReggieBeginVersionDirect(const char *name)
     AddressDuplicate(&packet->from, &gReggiePrivateAddress);
     StringFormatSafe(packet->data, packet->capacity, "REGGIE VERSION $PRODUCT='%s'", name);
     packet->length = StringGetLength((unsigned char *)packet->data);
-    e = DatagramSend(gReggiePrivateRef, packet);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(DatagramSend(gReggiePrivateRef, packet));
     packet = 0;
     gReggiePrivateStamp = TimerGetElapsedSeconds();
 done:
@@ -1104,40 +1219,20 @@ done:
    packet lists and a UDP socket). STATE: MATCH 100%, exe 92 / obj 92, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f4650
-long ReggieOpenTracker(void)
+AT_STATIC long ReggieOpenTracker(void)
 {
     long err, e;
 
     err = 0;
     if (gReggiePrivateRef != 0)
         goto done;
-    e = _ReggieOpen();
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(_ReggieOpen());
     MemoryClear(&gReggiePrivateFreeQ, sizeof(MutexList));
     MemoryClear(&gReggiePrivateRecvQ, sizeof(MutexList));
-    e = SimpleResolve(0, kTrackerHost, &gReggiePrivateAddress);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
-    e = QueueCreate(&gReggiePrivateFreeQ);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
-    e = QueueCreate(&gReggiePrivateRecvQ);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
-    e = NetworkQueueFill(&gReggiePrivateFreeQ, kListPackets, 4, kPacketBytes);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(SimpleResolve(0, kTrackerHost, &gReggiePrivateAddress));
+    TRY(QueueCreate(&gReggiePrivateFreeQ));
+    TRY(QueueCreate(&gReggiePrivateRecvQ));
+    TRY(NetworkQueueFill(&gReggiePrivateFreeQ, kListPackets, 4, kPacketBytes));
     gReggiePrivateRef = DatagramCreate(0, 0, 0, &gReggiePrivateFreeQ, &gReggiePrivateFreeQ, &gReggiePrivateRecvQ,
                                 &gReggiePrivateRecvQ);
     if (gReggiePrivateRef == 0) {
@@ -1201,7 +1296,9 @@ void ReggieStoreLookupRecord(SessionContext *ctx, SessionEntry *entry, struct Ha
     entry->updates++;
     entry->answered = 0;
     for (i = 0; i < entry->recordCount; i++) {
-        if (entry->records[i].table == 0 || HashIsEmpty(entry->records[i].table) != 0)
+        if (entry->records[i].table == 0)
+            entry->answered++;
+        else if (HashIsEmpty(entry->records[i].table) != 0)
             entry->answered++;
         else if (HashIndex(entry->records[i].table, 1, &key, &value) != 0)
             entry->answered++;
@@ -1220,11 +1317,11 @@ void _ReggieLookupRequest(SessionContext *ctx, SessionEntry *entry, ULong max, c
     long err;
     ULong now;
     ULong timeout;
-    ULong listed;
-    ULong end;
-    ULong best;
     ULong i;
     ULong n;
+    ULong end;
+    ULong best;
+    ULong listed;
     ULong asked;
 
     err = 0;
@@ -1250,12 +1347,21 @@ void _ReggieLookupRequest(SessionContext *ctx, SessionEntry *entry, ULong max, c
     end = entry->recordCount;
     for (; i < end; i++) {
         if (entry->records[i].askedAt == kNeverAsked) {
+#ifdef MAC1010 /* 1.0.10 spelling */
+            n = i + kAskSpan;
+            if (end <= n)
+                n = end;
+            StringFormat(out, i + 1 < n ? "%lu-%lu" : "%lu", i + 1, n);
+            /* BUG: both runs count one record too many, and the second marks one past its end */
+            listed += n - i + 1;
+#else
             if (end > i + kAskSpan)
                 end = i + kAskSpan;
             best = end;
             StringFormat(out, i + 1 < end ? "%lu-%lu" : "%lu", i + 1, end);
             /* BUG: both runs count one record too many, and the second marks one past its end */
             listed += end - i + 1;
+#endif
             end = i;
             break;
         }
@@ -1295,7 +1401,7 @@ long ReggieLookupTimer(SessionContext *ctx, SessionEntry *entry)
     double factor;
     ULong timeout;
     ULong now;
-    long err, e;
+    long err;
 
     err = 0;
     if (ctx->state != kStateOnline) {
@@ -1308,7 +1414,7 @@ long ReggieLookupTimer(SessionContext *ctx, SessionEntry *entry)
         factor = 3.0;
     else
         factor = 0.25;
-    timeout = (ULong)(TimerGetTickRate() * factor);
+    timeout = (TimerGetTickRate() * factor);
     now = TimerGetTicks();
     if (now - entry->lastAsked <= timeout)
         goto done;
@@ -1318,12 +1424,8 @@ long ReggieLookupTimer(SessionContext *ctx, SessionEntry *entry)
         goto done;
     entry->received = 0;
     entry->lastAsked = now;
-    e = _ReggieSendString(ctx, StringFindDelimiter(ranges, "-,") != 0 ? kLookupsFormat : kLookupFormat,
-                     entry->idText, ctx->hostSource, ranges);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(_ReggieSendString(ctx, StringFindDelimiter(ranges, "-,") != 0 ? kLookupsFormat : kLookupFormat,
+                     entry->idText, ctx->hostSource, ranges));
     ctx->sentAt = TimerGetElapsedSeconds();
 done:
     return err;
@@ -1335,7 +1437,7 @@ done:
 long ReggieMakeLookupRecords(SessionContext *ctx, SessionEntry *entry, const char *key,
                   const char *value, ULong count)
 {
-    long err, e;
+    long err;
     ULong i;
 
     err = 0;
@@ -1358,11 +1460,7 @@ long ReggieMakeLookupRecords(SessionContext *ctx, SessionEntry *entry, const cha
             goto done;
         }
         if (key != 0 && *key != 0) {
-            e = HashInsert(entry->records[i].table, key, value);
-            if (e != 0) {
-                err = e;
-                goto done;
-            }
+            TRY(HashInsert(entry->records[i].table, key, value));
         }
         entry->records[i].askedAt = kNeverAsked;
     }
@@ -1389,11 +1487,7 @@ long _ReggieSendHash(SessionContext *ctx, struct HashTable *t)
         err = kOutOfMemory;
         goto done;
     }
-    e = _ReggieHashTimestamp(copy, 0, ctx->clockOffset);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(_ReggieHashTimestamp(copy, 0, ctx->clockOffset));
     h = HashSave(copy);
     if (h == 0) {
         err = kOutOfMemory;
@@ -1413,12 +1507,12 @@ done:
 /* _ReggieSendString (send a formatted request line). STATE: MATCH 100%, exe 56 / obj 56, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f4de4
-long _ReggieSendString(SessionContext *ctx, const char *fmt, ...)
+AT_STATIC long _ReggieSendString(SessionContext *ctx, const char *fmt, ...)
 {
     char text[kLineBytes];
     va_list args;
-    void **h;
     long err;
+    void **h;
     long result;
 
     err = 0;
@@ -1444,14 +1538,17 @@ long _ReggieSendString(SessionContext *ctx, const char *fmt, ...)
    length; a failure drops the connection). STATE: MATCH 100%, exe 103 / obj 103,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f4e7c
-long _ReggieSendIndirect(SessionContext *ctx, void **h)
+AT_STATIC long _ReggieSendIndirect(SessionContext *ctx, void **h)
 {
     unsigned short length;
+#ifndef MAC1010
     char text[kLineBytes];
     ULong size;
+#endif
     long err, e;
 
     err = 0;
+#ifndef MAC1010
     size = IndirectGetSize(h);
     if (size < kLineBytes - 1) {
         /* BUG: copies 0xfff bytes from a handle shorter than that */
@@ -1460,28 +1557,25 @@ long _ReggieSendIndirect(SessionContext *ctx, void **h)
     } else {
         StringCopySafe(text, *h, kLineBytes);
     }
+#endif
     if (ctx->lengthFrames != 0) {
         if (ctx->mode == kModeTcp) {
-            e = ProgressiveCompress(h, &ctx->deflater);
+            TRYE(ProgressiveCompress(h, &ctx->deflater));
+            length = Net16(IndirectGetSize(h));
+            e = IndirectInsertData(h, &length, sizeof(length));
             if (e != 0) {
                 err = e;
                 goto done;
             }
-            length = (unsigned short)Swap16(IndirectGetSize(h));
-            e = IndirectInsertData(h, &length, sizeof(length));
         } else {
             e = IndirectCompress(h, kZlibTag, 0);
-        }
-        if (e != 0) {
-            err = e;
-            goto done;
+            if (e != 0) {
+                err = e;
+                goto done;
+            }
         }
     } else if (ctx->mode == kModeTcp) {
-        e = IndirectAppendData(h, "\r\n", 2);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRYE(IndirectAppendData(h, "\r\n", 2));
     }
     e = SimpleSend(ctx->socket, &ctx->server, h);
     if (e != 0)
@@ -1495,7 +1589,7 @@ done:
 /* _ReggieIdleCallback (the REGGIE idle proc: poll every session, then the tracker socket; no CSV
    row). STATE: MATCH 100%, exe 15 / obj 15, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f4f9c
-void _ReggieIdleCallback(void)
+ReggieLocal void _ReggieIdleCallback(void)
 {
     SessionContext *ctx;
     SessionContext *next;
@@ -1549,9 +1643,8 @@ long ReggieResultVersion(SessionContext *ctx, SessionEntry *entry, struct HashTa
     entry->cancelledAt = 0;
     StripOtherKeys(reply);
     /* BUG: overwrites the previous product table without freeing it */
-    entry->u.named.product = (version != 0 && *version != 0) ? HashClone(reply)
-                                                            : HashCreate(kTableKind);
-    if (entry->u.named.product == 0) {
+    if ((entry->u.named.product = (version != 0 && *version != 0) ? HashClone(reply)
+                                                                 : HashCreate(kTableKind)) == 0) {
         err = kOutOfMemory;
         goto done;
     }
@@ -1568,7 +1661,6 @@ long ReggieResultSearch(SessionContext *ctx, SessionEntry *entry, struct HashTab
     char kindName[kSessionNameLen];
     char ranges[kTextBytes];
     ULong count;
-    long e;
     long err;
     const char *s;
 
@@ -1598,11 +1690,7 @@ long ReggieResultSearch(SessionContext *ctx, SessionEntry *entry, struct HashTab
     entry->cancelledAt = 0;
     count = TableNumber(reply, "COUNT");
     if (entry->u.lookup.finished == 0) {
-        e = ReggieMakeLookupRecords(ctx, entry, "$KIND", entry->u.lookup.kindName, count);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(ReggieMakeLookupRecords(ctx, entry, "$KIND", entry->u.lookup.kindName, count));
         _ReggieLookupRequest(ctx, entry, kAskSpan, ranges);
     } else {
         entry->wanted = count;
@@ -1614,12 +1702,8 @@ long ReggieResultSearch(SessionContext *ctx, SessionEntry *entry, struct HashTab
     if (ranges[0] != 0) {
         entry->lastAsked = TimerGetTicks();
         entry->received = 0;
-        e = _ReggieSendString(ctx, StringFindDelimiter(ranges, "-,") != 0 ? kLookupsFormat : kLookupFormat,
-                         entry->idText, ctx->hostSource, ranges);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(_ReggieSendString(ctx, StringFindDelimiter(ranges, "-,") != 0 ? kLookupsFormat : kLookupFormat,
+                         entry->idText, ctx->hostSource, ranges));
         ctx->sentAt = TimerGetElapsedSeconds();
     }
     entry->updates++;
@@ -1688,14 +1772,9 @@ long ReggieResultMessage(SessionContext *ctx, SessionEntry *entry, struct HashTa
     entry->requestedAt = 0;
     entry->cancelledAt = 0;
     if ((entry->request = PopRequest(entry->u.messages.pending)) != 0) {
-        entry->counter++;
-        e = HashAppend(entry->request, "CXID",
+        TRY(HashAppend(entry->request, "CXID",
                          StringFormatSafe(entry->idText, kSessionNameLen, "%lu/%lu", entry->slot,
-                                      entry->counter));
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+                                      ++entry->counter)));
         e = _ReggieChannelPacket(ctx, entry);
         if (e != 0)
             err = e;
@@ -1736,6 +1815,17 @@ long ReggieResultMatch(SessionContext *ctx, SessionEntry *entry, struct HashTabl
 // FUNCTION: EVNOVA 0x004f578e
 long _ReggieRecv_RESULT_LOOKUP(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
 {
+#ifdef MAC1010 /* 1.0.10 spelling */
+    char kindName[kSessionNameLen];
+    const char *s;
+    ULong i;
+    char *value;
+    char *key;
+    ULong index;
+    long err;
+    struct HashTable *copy;
+    long result;
+#else
     char kindName[kSessionNameLen];
     struct HashTable *copy;
     const char *s;
@@ -1744,8 +1834,8 @@ long _ReggieRecv_RESULT_LOOKUP(SessionContext *ctx, SessionEntry *entry, struct 
     ULong index;
     ULong i;
     long err;
-    long e;
     long result;
+#endif
 
     err = 0;
     copy = 0;
@@ -1759,7 +1849,7 @@ long _ReggieRecv_RESULT_LOOKUP(SessionContext *ctx, SessionEntry *entry, struct 
         _ReggieSearchEnd(ctx, entry, 0);
         goto done;
     }
-    if (HashLookup(reply, "$KIND", 0) == 0 || HashLookup(reply, "$UNIQUEID", 0) == 0)
+    if ((s = HashLookup(reply, "$KIND", 0)) == 0 || HashLookup(reply, "$UNIQUEID", 0) == 0)
         goto done;
     s = HashLookup(reply, "$KIND", 0);
     StringCopySafe(kindName, s, sizeof(kindName));
@@ -1775,11 +1865,7 @@ long _ReggieRecv_RESULT_LOOKUP(SessionContext *ctx, SessionEntry *entry, struct 
             i--;
         }
     }
-    e = _ReggieHashTimestamp(reply, 1, ctx->clockOffset);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(_ReggieHashTimestamp(reply, 1, ctx->clockOffset));
     copy = HashClone(reply);
     if (copy == 0) {
         err = kOutOfMemory;
@@ -1861,6 +1947,9 @@ long _ReggieRecv_RESULT_HELLO(SessionContext *ctx, SessionEntry *entry, struct H
     long hostId;
     long e;
     long result;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    const char *text;
+#endif
 
     if (ctx->state != kStateHelloSent)
         goto done;
@@ -1875,17 +1964,18 @@ long _ReggieRecv_RESULT_HELLO(SessionContext *ctx, SessionEntry *entry, struct H
                  HashLookup(reply, "$ADDRESS", 0), hostId, TableNumber(reply, "$TIME"));
     if (ctx->natType <= kNatRestrictive && ctx->mode == kModeShared &&
         AddressIsEmpty(&ctx->probe) == 0) {
+#ifdef MAC1010 /* 1.0.10 spelling */
+        text = "REGGIE PROBE=UDP SIMPLE";
+        packet = IndirectInitialize(text, StringGetLength(text));
+#else
         packet = "REGGIE PROBE=UDP SIMPLE";
         packet = IndirectInitialize(packet, StringGetLength(packet));
+#endif
         if (packet == 0) {
             err = kOutOfMemory;
             goto done;
         }
-        e = SimpleSend(ctx->socket, &ctx->probe, packet);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(SimpleSend(ctx->socket, &ctx->probe, packet));
         e = SimpleSend(ctx->socket, &ctx->probe, packet);
         if (e != 0)
             err = e;
@@ -1953,14 +2043,9 @@ long _ReggieRecv_RESULT_BLOCK(SessionContext *ctx, SessionEntry *entry, struct H
     entry->requestedAt = 0;
     entry->cancelledAt = 0;
     if ((entry->request = PopRequest(entry->u.messages.pending)) != 0) {
-        entry->counter++;
-        e = HashInsert(entry->request, "CXID",
+        TRY(HashInsert(entry->request, "CXID",
                          StringFormatSafe(entry->idText, kSessionNameLen, "%lu/%lu", entry->slot,
-                                      entry->counter));
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+                                      ++entry->counter)));
         e = _ReggieChannelPacket(ctx, entry);
         if (e != 0)
             err = e;
@@ -1974,7 +2059,7 @@ done:
 // FUNCTION: EVNOVA 0x004f5f33
 long ReggieRequestPing(SessionContext *ctx, SessionEntry *entry, struct HashTable *request)
 {
-    long err, e;
+    long err;
     struct HashTable *reply;
 
     err = 0;
@@ -1984,23 +2069,11 @@ long ReggieRequestPing(SessionContext *ctx, SessionEntry *entry, struct HashTabl
         err = kOutOfMemory;
         goto done;
     }
-    e = HashInsert(reply, "RESULT", "");
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(HashInsert(reply, "RESULT", ""));
     if (ctx->mode != kModeTcp) {
-        e = HashInsert(reply, "REGGIE", "");
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(HashInsert(reply, "REGGIE", ""));
     }
-    e = _ReggieSendHash(ctx, reply);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(_ReggieSendHash(ctx, reply));
     ctx->sentAt = TimerGetElapsedSeconds();
 done:
     if (reply != 0)
@@ -2015,7 +2088,7 @@ long _ReggieRecv_NOTIFY(SessionContext *ctx, SessionEntry *entry, struct HashTab
 {
     struct HashTable *reply;
     const char *s;
-    long err, e;
+    long err;
 
     err = 0;
     reply = 0;
@@ -2032,23 +2105,11 @@ long _ReggieRecv_NOTIFY(SessionContext *ctx, SessionEntry *entry, struct HashTab
         err = kOutOfMemory;
         goto done;
     }
-    e = HashInsert(reply, "RESULT", "");
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(HashInsert(reply, "RESULT", ""));
     if (ctx->mode != kModeTcp) {
-        e = HashInsert(reply, "REGGIE", "");
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(HashInsert(reply, "REGGIE", ""));
     }
-    e = _ReggieSendHash(ctx, reply);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(_ReggieSendHash(ctx, reply));
     ctx->sentAt = TimerGetElapsedSeconds();
 done:
     if (reply != 0)
@@ -2063,10 +2124,9 @@ done:
 long _ReggieRecv_MESSAGE(SessionContext *ctx, SessionEntry *entry, struct HashTable *request)
 {
     long err;
-    struct HashTable *copy;
     struct HashTable *reply;
+    struct HashTable *copy;
     const char *cxid;
-    long e;
     long result;
 
     err = 0;
@@ -2105,23 +2165,11 @@ long _ReggieRecv_MESSAGE(SessionContext *ctx, SessionEntry *entry, struct HashTa
         goto done;
     }
     StripDollarKeys(reply);
-    e = HashInsert(reply, "RESULT", "");
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(HashInsert(reply, "RESULT", ""));
     if (ctx->mode != kModeTcp) {
-        e = HashInsert(reply, "REGGIE", "");
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(HashInsert(reply, "REGGIE", ""));
     }
-    e = _ReggieSendHash(ctx, reply);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(_ReggieSendHash(ctx, reply));
     ctx->sentAt = TimerGetElapsedSeconds();
 done:
     if (reply != 0)
@@ -2143,6 +2191,7 @@ long _ReggieRecv_MATCH(SessionContext *ctx, SessionEntry *entry, struct HashTabl
     struct HashTable *reply;
     const char *result;
     const char *s;
+    const char *t;
     long e;
     unsigned char ok;
 
@@ -2155,8 +2204,8 @@ long _ReggieRecv_MATCH(SessionContext *ctx, SessionEntry *entry, struct HashTabl
         result = "Invalid $SENDER in MATCH packet";
         goto answer;
     }
-    s = HashLookup(request, "$TARGET", 0);
-    if (s == 0 || SimpleResolve(0, s, &target) != 0) {
+    t = HashLookup(request, "$TARGET", 0);
+    if (t == 0 || SimpleResolve(0, t, &target) != 0) {
         result = "Invalid $TARGET in MATCH packet";
         goto answer;
     }
@@ -2171,23 +2220,11 @@ answer:
         err = kOutOfMemory;
         goto done;
     }
-    e = HashInsert(reply, "RESULT", result);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(HashInsert(reply, "RESULT", result));
     if (ctx->mode != kModeTcp) {
-        e = HashInsert(reply, "REGGIE", "");
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(HashInsert(reply, "REGGIE", ""));
     }
-    e = _ReggieSendHash(ctx, reply);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(_ReggieSendHash(ctx, reply));
     /* BUG: an invalid packet leaves entry the dispatcher's CXID entry, so this still fires */
     if (entry != 0)
         Notify(ctx, 0, kEventMatch);
@@ -2244,23 +2281,11 @@ answer:
         err = kOutOfMemory;
         goto done;
     }
-    e = HashInsert(reply, "RESULT", result);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(HashInsert(reply, "RESULT", result));
     if (ctx->mode != kModeTcp) {
-        e = HashInsert(reply, "REGGIE", "");
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(HashInsert(reply, "REGGIE", ""));
     }
-    e = _ReggieSendHash(ctx, reply);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(_ReggieSendHash(ctx, reply));
     /* BUG: an invalid packet leaves entry the dispatcher's CXID entry, so this still fires */
     if (entry != 0)
         Notify(ctx, 0, kEventInvite);
@@ -2278,20 +2303,16 @@ done:
 /* _ReggieMatchChannel (record an incoming MATCH or INVITE: our address and the peer's). STATE: MATCH
    100%, exe 67 / obj 67, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f6601
-SessionEntry *_ReggieMatchChannel(SessionContext *ctx, long kind, unsigned char tcp,
+AT_STATIC SessionEntry *_ReggieMatchChannel(SessionContext *ctx, long kind, unsigned char tcp,
                            const NetAddress *local, const NetAddress *remote)
 {
-    SessionEntry *entry;
     ULong slot;
-    long err, e;
+    long err;
+    SessionEntry *entry;
 
     err = 0;
     entry = 0;
-    e = ReggieChannelOpen(ctx, &slot);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(ReggieChannelOpen(ctx, &slot));
     entry = MemoryAllocate(kSessionEntry);
     if (entry == 0) {
         err = kOutOfMemory;
@@ -2316,7 +2337,7 @@ done:
    $METHOD only for MATCH). STATE: MATCH 100%, exe 197 / obj 197, byte-identical yes. OPEN:
    none */
 // FUNCTION: EVNOVA 0x004f66b7
-long _ReggieMatchBegin(void *ref, long kind, unsigned char tcp, const NetAddress *local,
+long _ReggieMatchBegin(void *ref, ULong kind, unsigned char tcp, const NetAddress *local,
                   const NetAddress *remote)
 {
     ULong slot;
@@ -2327,7 +2348,7 @@ long _ReggieMatchBegin(void *ref, long kind, unsigned char tcp, const NetAddress
     long err, e;
     long result;
 
-    ctx = (SessionContext *)ref;
+    ctx = ref;
     err = 0;
     result = 0;
     entry = 0;
@@ -2338,11 +2359,7 @@ long _ReggieMatchBegin(void *ref, long kind, unsigned char tcp, const NetAddress
         AddressIsEmpty(local);
     if (remote != 0)
         AddressIsEmpty(remote);
-    e = ReggieChannelOpen(ctx, &slot);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(ReggieChannelOpen(ctx, &slot));
     entry = MemoryAllocate(kSessionEntry);
     if (entry == 0) {
         err = kOutOfMemory;
@@ -2364,53 +2381,24 @@ long _ReggieMatchBegin(void *ref, long kind, unsigned char tcp, const NetAddress
         goto done;
     }
     if (kind == kEntryKindMatch) {
-        e = HashInsert(entry->request, "$METHOD", tcp != 0 ? "TCP" : "UDP");
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(HashInsert(entry->request, "$METHOD", tcp != 0 ? "TCP" : "UDP"));
     }
     AddressTranscribe(remote, text);
-    e = HashInsert(entry->request, "$TARGET", text);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(HashInsert(entry->request, "$TARGET", text));
     AddressTranscribe(local, text);
-    e = HashInsert(entry->request, "$SENDER", text);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(HashInsert(entry->request, "$SENDER", text));
     if (ctx->mode != kModeTcp && ctx->hostSource != 0) {
         ULong host = ctx->hostSource;
         struct HashTable *t = entry->request;
 
-        e = HashInsert(t, "HOSTID", StringFromNumber(hostText, host));
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(HashInsert(t, "HOSTID", StringFromNumber(hostText, host)));
     }
-    entry->counter++;
-    e = HashInsert(entry->request, "CXID",
+    TRY(HashInsert(entry->request, "CXID",
                      StringFormatSafe(entry->idText, kSessionNameLen, "%lu/%lu", entry->slot,
-                                  entry->counter));
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
-    e = HashInsert(entry->request, kind == kEntryKindMatch ? "MATCH" : "INVITE", "REQUEST");
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+                                  ++entry->counter)));
+    TRY(HashInsert(entry->request, kind == kEntryKindMatch ? "MATCH" : "INVITE", "REQUEST"));
     if (ctx->mode != kModeTcp) {
-        e = HashInsert(entry->request, "REGGIE", "");
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(HashInsert(entry->request, "REGGIE", ""));
     }
     e = _ReggieChannelPacket(ctx, entry);
     if (e != 0)
@@ -2422,7 +2410,7 @@ done:
 /* _ReggieProbeEnd (close a direct entry's socket, UDP or TCP, and empty its two lists). STATE:
    MATCH 100%, exe 48 / obj 48, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f6940
-long _ReggieProbeEnd(SessionContext *ctx, SessionEntry *entry)
+AT_STATIC long _ReggieProbeEnd(SessionContext *ctx, SessionEntry *entry)
 {
     NetSocket *s;
     long err;
@@ -2452,7 +2440,7 @@ long _ReggieProbeEnd(SessionContext *ctx, SessionEntry *entry)
 // FUNCTION: EVNOVA 0x004f69d1
 long _ReggieReinsert(SessionContext *ctx)
 {
-    long err, e;
+    long err;
     struct HashTable *copy;
     SessionEntry *entry;
 
@@ -2466,11 +2454,7 @@ long _ReggieReinsert(SessionContext *ctx)
                 err = kOutOfMemory;
                 goto done;
             }
-            e = ReggieInsertBegin(ctx, entry->slot, entry->insertMode, copy);
-            if (e != 0) {
-                err = e;
-                goto done;
-            }
+            TRY(ReggieInsertBegin(ctx, entry->slot, entry->insertMode, copy));
             HashDispose(copy);
             copy = 0;
         }
@@ -2485,7 +2469,7 @@ done:
    saw; a better type is recorded as a route and the owner told). STATE: MATCH 100%, exe 258 /
    obj 258, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f6a47
-void _ReggieProbeUpdate(SessionContext *ctx, SessionEntry *entry, const NetAddress *from,
+AT_STATIC void _ReggieProbeUpdate(SessionContext *ctx, SessionEntry *entry, const NetAddress *from,
                   const char *seen)
 {
     long err = 0;
@@ -2522,8 +2506,9 @@ void _ReggieProbeUpdate(SessionContext *ctx, SessionEntry *entry, const NetAddre
         if (seen != 0 &&
             AddressCompare(entry != 0 ? &entry->u.direct.peer : &ctx->publicAddress,
                          &seenAddress) != 0) {
-            if ((entry != 0 && entry->u.direct.portMapped != 0) ||
-                (entry == 0 && ctx->portMapped != 0))
+            if (entry != 0 && entry->u.direct.portMapped != 0)
+                nat = kNatProtective;
+            else if (entry == 0 && ctx->portMapped != 0)
                 nat = kNatProtective;
             else
                 nat = kNatConsistent;
@@ -2572,7 +2557,7 @@ void _ReggieProbeUpdate(SessionContext *ctx, SessionEntry *entry, const NetAddre
         if (entry != 0) {
             localPort = entry->u.direct.localPort;
         } else if (ctx->mode == kModeTcp) {
-            StreamGetAddress((NetStream *)ctx->socket, &local, &remote);
+            StreamGetAddress(ctx->socket, &local, &remote);
             AddressDecomposeTCPIP(&local, &localPort, 0);
         } else {
             DatagramGetAddress(ctx->socket, &local);
@@ -2583,11 +2568,7 @@ void _ReggieProbeUpdate(SessionContext *ctx, SessionEntry *entry, const NetAddre
             err = kOutOfMemory;
             goto done;
         }
-        e = _ReggieReinsert(ctx);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(_ReggieReinsert(ctx));
         Notify(ctx, entry, kEventNat);
     }
 done:
@@ -2601,15 +2582,14 @@ done:
 // FUNCTION: EVNOVA 0x004f6dc1
 long ReggiePollDirect(SessionContext *ctx, SessionEntry *entry)
 {
+    long err;
+    unsigned char timedOut;
     NetPacket *packet;
     void **message;
     struct HashTable *table;
     unsigned short localPort;
     unsigned short port;
     ULong ip;
-    ULong period;
-    unsigned char timedOut;
-    long err;
     long result;
 
     err = 0;
@@ -2644,15 +2624,13 @@ long ReggiePollDirect(SessionContext *ctx, SessionEntry *entry)
             table = 0;
         }
     } else if (entry->u.direct.tcp != 0 && (int)EndpointGetStatus(entry->u.direct.socket) == 2) {
-        result = StreamAcceptServer((NetStream *)entry->u.direct.socket, 0);
+        result = StreamAcceptServer(entry->u.direct.socket, 0);
         if (result != 0)
             err = result;
         entry->u.direct.natType = kNatDirect;
         Notify(ctx, entry, kEventNat);
     } else {
-        period = TimerGetTickRate();
-        period *= 5;
-        if (TimerGetTicks() - entry->u.direct.startedAt >= period) {
+        if (TimerGetTicks() - entry->u.direct.startedAt >= TimerGetTickRate() * 5) {
             if (entry->u.direct.natType < kNatRestrictive)
                 entry->u.direct.natType = kNatRestrictive;
             timedOut = 1;
@@ -2687,7 +2665,7 @@ done:
    answer with a low-TTL PING and INVITE it, or MATCH it; no CSV row for the hook table).
    STATE: MATCH 100%, exe 157 / obj 157, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f705c
-unsigned char _ReggieProbePrejoin(NetSocket *s, const NetAddress *local, const NetAddress *from)
+ReggieLocal unsigned char _ReggieProbePrejoin(NetSocket *s, const NetAddress *local, const NetAddress *from)
 {
     NetAddress mine;
     SessionContext *ctx;
@@ -2750,7 +2728,7 @@ unsigned char _ReggieProbePrejoin(NetSocket *s, const NetAddress *local, const N
    first). STATE: MATCH 100%, exe 65 / obj 65, byte-identical yes. OPEN: the method codes'
    names are guesses; which side each argument is was not traced */
 // FUNCTION: EVNOVA 0x004f7223
-ULong ReggieMeetMethod(ULong nat, ULong peerNat)
+AT_STATIC ULong ReggieMeetMethod(ULong nat, ULong peerNat)
 {
     ULong method;
     long err;
@@ -2837,7 +2815,7 @@ ULong ReggieMeetMethod(ULong nat, ULong peerNat)
    it maps to: the context's own, a direct entry's, or a recorded route). STATE: MATCH 100%,
    exe 135 / obj 135, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f72c5
-ULong ReggieProbeCheck(void *ref, unsigned char tcp, const NetAddress *local,
+AT_STATIC ULong ReggieProbeCheck(void *ref, unsigned char tcp, const NetAddress *local,
                    NetAddress *out)
 {
     SessionContext *ctx;
@@ -2917,8 +2895,10 @@ void *ReggieVersionCheck(void *ref, const char *name)
     if (ctx != 0) {
         ReggieTickle(ref);
         entry = FindNamed(ctx, name);
-        if (entry != 0 && (found = entry->u.named.product) != 0)
+        if (entry != 0 && entry->u.named.product != 0) {
+            found = entry->u.named.product;
             goto done;
+        }
         found = ctx->fallback;
         goto done;
     }
@@ -2955,12 +2935,8 @@ long ReggieVersionBegin(SessionContext *ctx, const char *name)
     if (ctx != 0) {
         entry = FindNamed(ctx, name);
         if (entry == 0) {
-            e = ReggieChannelOpen(ctx, &slot);
-            if (e != 0) {
-                err = e;
-                goto done;
-            }
-            entry = (SessionEntry *)MemoryAllocate(kSessionEntry);
+            TRY(ReggieChannelOpen(ctx, &slot));
+            entry = MemoryAllocate(kSessionEntry);
             if (entry == 0) {
                 err = kOutOfMemory;
                 goto done;
@@ -2975,46 +2951,22 @@ long ReggieVersionBegin(SessionContext *ctx, const char *name)
                 err = kOutOfMemory;
                 goto done;
             }
-            e = HashInsert(entry->u.named.product, "$PRODUCT", entry->u.named.name);
-            if (e != 0) {
-                err = e;
-                goto done;
-            }
+            TRY(HashInsert(entry->u.named.product, "$PRODUCT", entry->u.named.name));
         }
         if ((entry->request = HashCreate(kRequestKind)) == 0) {
             err = kOutOfMemory;
             goto done;
         }
-        e = HashInsert(entry->request, "$PRODUCT", entry->u.named.name);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(HashInsert(entry->request, "$PRODUCT", entry->u.named.name));
         if (ctx->mode != kModeNoExtras && ctx->hostSource != 0) {
-            if ((e = AddHostID(entry->request, ctx->hostSource)) != 0) {
-                err = e;
-                goto done;
-            }
+            TRYV(AddHostID(entry->request, ctx->hostSource));
         }
-        entry->counter++;
-        e = HashInsert(entry->request, "CXID",
+        TRY(HashInsert(entry->request, "CXID",
                          StringFormatSafe(entry->idText, kSessionNameLen, "%lu/%lu",
-                                      entry->slot, entry->counter));
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
-        e = HashInsert(entry->request, "VERSION", "");
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+                                      entry->slot, ++entry->counter)));
+        TRY(HashInsert(entry->request, "VERSION", ""));
         if (ctx->mode != kModeNoExtras) {
-            e = HashInsert(entry->request, "REGGIE", "");
-            if (e != 0) {
-                err = e;
-                goto done;
-            }
+            TRY(HashInsert(entry->request, "REGGIE", ""));
         }
         e = _ReggieChannelPacket(ctx, entry);
         if (e != 0)
@@ -3076,22 +3028,17 @@ long ReggieFreeMessages(SessionContext *ctx, SessionEntry *entry)
    and the permissions table). STATE: MATCH 100%, exe 80 / obj 80, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f78c3
-SessionEntry *_ReggieMessageChannel(SessionContext *ctx)
+AT_STATIC SessionEntry *_ReggieMessageChannel(SessionContext *ctx)
 {
     long err = 0;
     SessionEntry *entry = 0;
     ULong slot;
-    long e;
 
     for (entry = ctx->entries; entry != 0; entry = entry->next)
         if (entry->kind == kEntryKindMessages)
             return entry;
     if (entry == 0) {
-        e = ReggieChannelOpen(ctx, &slot);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(ReggieChannelOpen(ctx, &slot));
         entry = MemoryAllocate(kSessionEntry);
         if (entry == 0) {
             err = kOutOfMemory;
@@ -3123,13 +3070,13 @@ done:
    meaning everyone; the first goes out, the rest queue behind it). STATE: MATCH 100%, exe 148
    / obj 148, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f79b3
-long ReggieSendPermissions(SessionContext *ctx, SessionEntry *entry)
+AT_STATIC long ReggieSendPermissions(SessionContext *ctx, SessionEntry *entry)
 {
     ULong i;
     char *target;
     char *value;
     char hostText[kTextBytes];
-    long err, e, result;
+    long err;
     struct HashTable *t;
 
     err = 0;
@@ -3141,59 +3088,31 @@ long ReggieSendPermissions(SessionContext *ctx, SessionEntry *entry)
             break;
         }
         if (StringCompare(target, "*") != 0) {
-            e = HashInsert(t, "$TARGET", target);
-            if (e != 0) {
-                err = e;
-                break;
-            }
+            TRY(HashInsert(t, "$TARGET", target));
         }
         if (ctx->mode != kModeTcp && ctx->hostSource != 0) {
             SessionContext *c = ctx;
             ULong host = c->hostSource;
 
-            e = HashInsert(t, "HOSTID", StringFromNumber(hostText, host));
-            if (e != 0) {
-                err = e;
-                break;
-            }
+            TRY(HashInsert(t, "HOSTID", StringFromNumber(hostText, host)));
         }
-        e = HashInsert(t, *value != 0 ? "BLOCK" : "ALLOW", "");
-        if (e != 0) {
-            err = e;
-            break;
-        }
+        TRY(HashInsert(t, *value != 0 ? "BLOCK" : "ALLOW", ""));
         if (ctx->mode != kModeTcp) {
-            e = HashInsert(t, "REGGIE", "");
-            if (e != 0) {
-                err = e;
-                break;
-            }
+            TRY(HashInsert(t, "REGGIE", ""));
         }
         if (entry->requestedAt != 0) {
-            result = AppendTable(entry->u.messages.pending, t);
-            if (result) {
-                err = result;
-                break;
-            }
+            TRYV(AppendTable(entry->u.messages.pending, t));
             t = 0;
         } else {
-            entry->counter++;
-            e = HashAppend(t, "CXID",
+            TRY(HashAppend(t, "CXID",
                              StringFormatSafe(entry->idText, kSessionNameLen, "%lu/%lu",
-                                          entry->slot, entry->counter));
-            if (e != 0) {
-                err = e;
-                break;
-            }
+                                          entry->slot, ++entry->counter)));
             entry->request = t;
             t = 0;
-            e = _ReggieChannelPacket(ctx, entry);
-            if (e != 0) {
-                err = e;
-                break;
-            }
+            TRY(_ReggieChannelPacket(ctx, entry));
         }
     }
+done:
     if (t != 0)
         HashDispose(t);
     return err;
@@ -3202,7 +3121,7 @@ long ReggieSendPermissions(SessionContext *ctx, SessionEntry *entry)
 /* _ReggieSearchEnd (end a lookup: at once, or by sending CANCEL first). STATE: MATCH 100%, exe 97
    / obj 97, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f7b7e
-long _ReggieSearchEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel)
+AT_STATIC long _ReggieSearchEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel)
 {
     long err;
     long e;
@@ -3239,7 +3158,7 @@ long _ReggieSearchEnd(SessionContext *ctx, SessionEntry *entry, unsigned char ca
    the port, else without it; 1 when none says, 0 when the context has no +0x004). STATE: MATCH
    100%, exe 113 / obj 113, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f7c96
-ULong ReggieProbePrejoin(SessionContext *ctx, const NetAddress *address)
+AT_STATIC ULong ReggieProbePrejoin(SessionContext *ctx, const NetAddress *address)
 {
     char text[kTextBytes];
     ULong result;
@@ -3254,16 +3173,30 @@ ULong ReggieProbePrejoin(SessionContext *ctx, const NetAddress *address)
     e = 0;
     t = 0;
     result = 0;
+#ifdef MAC1010 /* 1.0.10 real */
+    if (ctx->state == 0) {
+        result = 0;
+        goto done;
+    }
+#else
     if (ctx->state == 0)
         goto done;
+#endif
     AddressTranscribe(address, text);
     for (e = ctx->entries; e != 0; e = e->next) {
         if (e->kind == kEntryKindLookup && e->u.lookup.finished == 0) {
             for (i = 0; i < e->recordCount; i++) {
                 t = e->records[i].table;
                 if (t != 0 && (seen = HashLookup(t, "$ADDRESS", 0)) != 0 &&
+#ifdef MAC1010 /* 1.0.10 real */
+                    StringCompare(seen, text) == 0) {
+                    result = _ReggieNetworkFromString(ctx, HashLookup(t, "$NETWORK", 0));
+                    goto done;
+                }
+#else
                     StringCompare(seen, text) == 0)
                     goto found;
+#endif
             }
         }
     }
@@ -3292,7 +3225,7 @@ done:
 /* _ReggieInsertEnd (end an insert: at once, or by sending CANCEL first). STATE: MATCH 100%, exe 82
    / obj 82, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f7dc3
-long _ReggieInsertEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel)
+AT_STATIC long _ReggieInsertEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel)
 {
     long err;
     long e;
@@ -3338,7 +3271,7 @@ void ReggieSearchBegin(struct HashTable *record, struct HashTable *request)
    public and private addresses and NAT type added when the record lacks them).
    STATE: MATCH 100%, exe 269 / obj 269, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f7eb7
-long ReggieInsertBegin(void *ref, ULong slot, long mode, struct HashTable *record)
+AT_STATIC long ReggieInsertBegin(void *ref, ULong slot, long mode, struct HashTable *record)
 {
     SessionContext *ctx = ref;
     long err = 0;
@@ -3385,11 +3318,7 @@ long ReggieInsertBegin(void *ref, ULong slot, long mode, struct HashTable *recor
     }
     while (HashRemove(entry->request, "$KIND") != 0)
         ;
-    e = HashInsert(entry->request, "$KIND", entry->u.lookup.kindName);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(HashInsert(entry->request, "$KIND", entry->u.lookup.kindName));
     s = HashLookup(entry->request, "$ADDRESS", 0);
     if (ReggieDescribeConnection(ctx, s, publicText, localText, natText) != 0) {
         if (s != 0 && *s != 0 && StringCompare(s, publicText) != 0) {
@@ -3397,42 +3326,22 @@ long ReggieInsertBegin(void *ref, ULong slot, long mode, struct HashTable *recor
             while (HashRemove(record, "$ADDRESS") != 0)
                 ;
             if (publicText[0] != 0) {
-                e = HashInsert(entry->request, "$ADDRESS", publicText);
-                if (e != 0) {
-                    err = e;
-                    goto done;
-                }
+                TRY(HashInsert(entry->request, "$ADDRESS", publicText));
             }
         }
         if (localText[0] != 0 && HashLookup(record, "$PRIVATE", 0) == 0) {
-            e = HashInsert(entry->request, "$PRIVATE", localText);
-            if (e != 0) {
-                err = e;
-                goto done;
-            }
+            TRY(HashInsert(entry->request, "$PRIVATE", localText));
         }
         if (natText[0] != 0 && HashLookup(record, "$NETWORK", 0) == 0) {
-            e = HashInsert(entry->request, "$NETWORK", natText);
-            if (e != 0) {
-                err = e;
-                goto done;
-            }
+            TRY(HashInsert(entry->request, "$NETWORK", natText));
         }
     }
     if (ctx->mode != kModeTcp && ctx->hostSource != 0) {
-        if ((e = AddHostID(entry->request, ctx->hostSource)) != 0) {
-            err = e;
-            goto done;
-        }
+        TRYV(AddHostID(entry->request, ctx->hostSource));
     }
-    entry->counter++;
-    e = HashInsert(entry->request, "CXID",
+    TRY(HashInsert(entry->request, "CXID",
                      StringFormatSafe(entry->idText, kSessionNameLen, "%lu/%lu", entry->slot,
-                                  entry->counter));
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+                                  ++entry->counter)));
     /* BUG: no default, so any other mode sends the request's $ADDRESS as the INSERT value */
     switch (mode) {
     case kInsertHost:
@@ -3445,17 +3354,9 @@ long ReggieInsertBegin(void *ref, ULong slot, long mode, struct HashTable *recor
         s = "DATA";
         break;
     }
-    e = HashInsert(entry->request, "INSERT", s);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(HashInsert(entry->request, "INSERT", s));
     if (ctx->mode != kModeTcp) {
-        e = HashInsert(entry->request, "REGGIE", "");
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(HashInsert(entry->request, "REGGIE", ""));
     }
     e = _ReggieChannelPacket(ctx, entry);
     if (e != 0)
@@ -3470,11 +3371,10 @@ done:
    then its request, and unlink and free it). STATE: MATCH 100%, exe 119 / obj 119,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f8245
-long _ReggieChannelClose(SessionContext *ctx, SessionEntry *entry, unsigned char cancel)
+AT_STATIC long _ReggieChannelClose(SessionContext *ctx, SessionEntry *entry, unsigned char cancel)
 {
     long err = 0;
     SessionEntry **link = 0;
-    long e;
     long result;
     long dropped;
     long released;
@@ -3488,28 +3388,16 @@ long _ReggieChannelClose(SessionContext *ctx, SessionEntry *entry, unsigned char
         }
         break;
     case kEntryKindLookup:
-        e = _ReggieSearchEnd(ctx, entry, cancel);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(_ReggieSearchEnd(ctx, entry, cancel));
         break;
     case kEntryKindMessages:
-        e = ReggieFreeMessages(ctx, entry);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(ReggieFreeMessages(ctx, entry));
         break;
     case kEntryKindNamed:
         dropped = DropNamed(&entry);
         break;
     case kEntryKindDirect:
-        e = _ReggieProbeEnd(ctx, entry);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(_ReggieProbeEnd(ctx, entry));
         break;
     case kEntryKindMatch:
     case kEntryKindInvite:
@@ -3585,11 +3473,7 @@ long _ReggieChannelTickle(SessionContext *ctx, SessionEntry *entry)
         polled = PollHandle(ctx, entry);
         break;
     case kEntryKindDirect:
-        e = ReggiePollDirect(ctx, entry);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRYE(ReggiePollDirect(ctx, entry));
         break;
     case kEntryKindMatch:
     case kEntryKindInvite:
@@ -3609,13 +3493,12 @@ long _ReggieChannelTickle(SessionContext *ctx, SessionEntry *entry)
             if (ctx->mode == kModeTcp)
                 goto done;
         }
-        e = _ReggieSendHash(ctx, entry->request);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRYE(_ReggieSendHash(ctx, entry->request));
         ctx->sentAt = entry->requestedAt = TimerGetElapsedSeconds();
         entry->cancelledAt = 0;
+#ifdef MAC1010 /* 1.0.10 spelling */
+        entry->retries++;
+#endif
     } else {
         if (entry->cancelledAt == 0)
             goto done;
@@ -3631,18 +3514,19 @@ long _ReggieChannelTickle(SessionContext *ctx, SessionEntry *entry)
             if (ctx->mode == kModeTcp)
                 goto done;
         }
-        e = _ReggieSendString(ctx, kCancelFormat,
+        TRYE(_ReggieSendString(ctx, kCancelFormat,
                          StringFormatSafe(entry->idText, kSessionNameLen, "%lu/%lu", entry->slot,
                                       ++entry->counter),
-                         ctx->hostSource);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+                         ctx->hostSource));
         ctx->sentAt = entry->cancelledAt = TimerGetElapsedSeconds();
         entry->requestedAt = 0;
+#ifdef MAC1010 /* 1.0.10 spelling */
+        entry->retries++;
+    }
+#else
     }
     entry->retries++;
+#endif
 done:
     return err;
 }
@@ -3650,20 +3534,15 @@ done:
 /* _ReggieChannelPacket (send an entry's request now when online, else mark it waiting). STATE: MATCH
    100%, exe 41 / obj 41, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f8610
-long _ReggieChannelPacket(SessionContext *ctx, SessionEntry *entry)
+AT_STATIC long _ReggieChannelPacket(SessionContext *ctx, SessionEntry *entry)
 {
-    long err, e;
+    long err;
 
     err = 0;
     HashLookup(entry->request, "CXID", 0);
     if (ctx->state == kStateOnline) {
-        e = _ReggieSendHash(ctx, entry->request);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
-        entry->requestedAt = TimerGetElapsedSeconds();
-        ctx->sentAt = entry->requestedAt;
+        TRY(_ReggieSendHash(ctx, entry->request));
+        ctx->sentAt = entry->requestedAt = TimerGetElapsedSeconds();
         entry->cancelledAt = 0;
         entry->retries = 0;
     } else {
@@ -3707,12 +3586,12 @@ SessionEntry *ReggieFindByCxid(SessionContext *ctx, const char *cxid)
 
 /* ReggieChannelOpen. STATE: MATCH 100%, exe 21 / obj 21, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f8733
-long ReggieChannelOpen(void *ref, ULong *slot)
+AT_STATIC long ReggieChannelOpen(void *ref, ULong *slot)
 {
     SessionContext *ctx;
     SessionEntry *entry;
 
-    ctx = (SessionContext *)ref;
+    ctx = ref;
     entry = 0;
     *slot = 0;
     ctx->lastSlot++;
@@ -3728,6 +3607,24 @@ long ReggieChannelOpen(void *ref, ULong *slot)
     *slot = ctx->lastSlot;
     return 0;
 }
+
+#ifdef MAC1010
+/* Stand-in (mac _ReggieDispose), stripped: the first reference of gReggieBusy, as 1.1.1's body unlinks. */
+void ReggieDispose(SessionContext *ctx)
+{
+    SessionContext **link;
+
+    gReggieBusy = true;
+    for (link = &gReggieList; *link != 0; link = &(*link)->next) {
+        if (*link == ctx) {
+            *link = ctx->next;
+            break;
+        }
+    }
+    gReggieBusy = false;
+    _ReggieSendString(ctx, "REGGIE GOODBYE HOSTID=%lu", ctx->hostSource);
+}
+#endif
 
 /* ReggieSendFailed (the shared socket's hook for a connection reset from an address: count it
    against every session whose server that is; no CSV row). STATE: MATCH 100%, exe 29 / obj 29,
@@ -3756,7 +3653,7 @@ unsigned char ReggieSendFailed(NetSocket *s, const NetAddress *from)
 /* _ReggieSharedEndpoint (does a session own this socket; no CSV row). STATE: MATCH 100%, exe 17 / obj
    17, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f87b9
-unsigned char _ReggieSharedEndpoint(NetSocket *s)
+ReggieLocal unsigned char _ReggieSharedEndpoint(NetSocket *s)
 {
     long err;
     SessionContext *ctx;
@@ -3770,20 +3667,22 @@ unsigned char _ReggieSharedEndpoint(NetSocket *s)
     return ctx != 0 ? true : false;
 }
 
+#ifndef MAC1010
 /* Stand-in (mac _ReggieDispose): the linker strips this; the exe keeps its literals. */
 void ReggieDispose(SessionContext *ctx)
 {
     _ReggieSendString(ctx, "REGGIE GOODBYE HOSTID=%lu", ctx->hostSource);
 }
+#endif
 
 /* _ReggiePacketSniffer (the shared socket's hook for a datagram: a session's server, or anyone's PROBE
    result, is taken). STATE: MATCH 100%, exe 51 / obj 51, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f87e1
-unsigned char _ReggiePacketSniffer(NetSocket *s, const char *data, ULong length,
+ReggieLocal unsigned char _ReggiePacketSniffer(NetSocket *s, const char *data, ULong length,
                            const NetAddress *from)
 {
-    SessionContext *ctx;
     unsigned char taken;
+    SessionContext *ctx;
     long err, e;
 
     err = 0;
@@ -3807,7 +3706,7 @@ unsigned char _ReggiePacketSniffer(NetSocket *s, const char *data, ULong length,
 /* ReggieRawPacket (a hooked datagram into one of the session's packets, dispatched at once).
    STATE: MATCH 100%, exe 57 / obj 57, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f8852
-long ReggieRawPacket(void *ref, const char *data, ULong length,
+AT_STATIC long ReggieRawPacket(void *ref, const char *data, ULong length,
                   const NetAddress *from)
 {
     SessionContext *ctx;
@@ -3829,10 +3728,12 @@ long ReggieRawPacket(void *ref, const char *data, ULong length,
     AddressDuplicate(&packet->from, from);
     err = ReggiePacket(ref, node);
     node = 0;
+#ifndef MAC1010 /* 1.0.10 real */
     if (err != 0) {
         node = 0;
         goto done;
     }
+#endif
 done:
     if (node != 0)
         QueueInsert(ctx->freeList, node);
@@ -3842,30 +3743,43 @@ done:
 /* _ReggiePacketExtract (take lines off the front of a handle until one parses to a non-empty
    KEY=VALUE table). STATE: MATCH 100%, exe 127 / obj 127, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f88e6
-long _ReggiePacketExtract(void **h, struct HashTable **out)
+AT_STATIC long _ReggiePacketExtract(void **h, struct HashTable **out)
 {
     ULong size, rest;
     long err, e;
+#ifndef MAC1010
     char line[kLineBytes];
+#endif
     void **first;
     ULong n;
+    ULong i;
 
     err = 0;
     first = 0;
     *out = 0;
     while (*out == 0 && (size = IndirectGetSize(h)) != 0) {
+#ifdef MAC1010 /* 1.0.10 spelling */
+        for (i = 0; i < size; i++) {
+            if (((char *)*h)[i] == '\r' || ((char *)*h)[i] == '\n')
+                break;
+        }
+        n = i;
+#else
         for (n = 0; n < size; n++) {
             if (((char *)*h)[n] == '\r' || ((char *)*h)[n] == '\n')
                 break;
         }
+#endif
         for (; n < size; n++) {
             if (((char *)*h)[n] != '\r' && ((char *)*h)[n] != '\n')
                 break;
         }
         /* BUG: a skipped empty line's handle is never freed before this replaces it */
         first = IndirectAllocate(n);
-        if (first == 0)
-            goto nomem;
+        if (first == 0) {
+            err = kOutOfMemory;
+            break;
+        }
         MemoryCopy(*first, *h, n);
         rest = size - n;
         MemoryMove(*h, (char *)*h + n, rest);
@@ -3874,10 +3788,11 @@ long _ReggiePacketExtract(void **h, struct HashTable **out)
             err = e;
             break;
         }
+#ifndef MAC1010
         StringFormatSafe(line, sizeof(line), "%*.*s", IndirectGetSize(first), IndirectGetSize(first),
                      *first);
+#endif
         if ((*out = HashLoad(kTableKind, first)) == 0) {
-nomem:
             err = kOutOfMemory;
             break;
         }
@@ -3900,7 +3815,7 @@ nomem:
    with its NULs turned to spaces). STATE: MATCH 100%, exe 87 / obj 87, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f8a31
-long _ReggiePacketDecode(char *data, ULong length, struct ZState *z, unsigned char binary,
+AT_STATIC long _ReggiePacketDecode(char *data, ULong length, struct ZState *z, unsigned char binary,
                   void ***out)
 {
     ULong i;
@@ -3918,19 +3833,21 @@ long _ReggiePacketDecode(char *data, ULong length, struct ZState *z, unsigned ch
         if ((*out = IndirectInitialize(data, length)) == 0) {
             err = kOutOfMemory;
         } else {
-            if (z != 0)
+            if (z != 0) {
                 result = ProgressiveDecompress(*out, z);
-            else
+                if (result != 0)
+                    err = result;
+            } else {
                 result = IndirectDecompress(*out, kZlibTag, 0);
-            if (result != 0)
-                err = result;
+                if (result != 0)
+                    err = result;
+            }
         }
     } else {
         for (i = 0; i < length; i++)
             if (data[i] == 0)
                 data[i] = ' ';
-        *out = IndirectInitialize(data, length);
-        if (*out == 0)
+        if ((*out = IndirectInitialize(data, length)) == 0)
             err = kOutOfMemory;
     }
     if (err != 0 && *out != 0) {
@@ -3945,8 +3862,9 @@ long _ReggiePacketDecode(char *data, ULong length, struct ZState *z, unsigned ch
    anything else is answered "Unexpected or invalid request"). STATE: MATCH 100%, exe 616 /
    obj 616, byte-identical (see the commit). OPEN: none */
 // FUNCTION: EVNOVA 0x004f8b05
-long ReggiePacket(SessionContext *ctx, MutexNode *node)
+AT_STATIC long ReggiePacket(void *ref, MutexNode *node)
 {
+    SessionContext *ctx = ref;
     long err = 0;
     unsigned char handled = 0;
     char *key;
@@ -3974,13 +3892,9 @@ long ReggiePacket(SessionContext *ctx, MutexNode *node)
     if (ctx->mode == kModeTcp) {
         chunk = (NetChunk *)node;
         AddressDuplicate(&from, &ctx->server);
-        e = _ReggiePacketDecode(chunk->data, chunk->length,
+        TRY(_ReggiePacketDecode(chunk->data, chunk->length,
                          ctx->lengthFrames != 0 ? &ctx->inflater : 0, ctx->lengthFrames,
-                         &message);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+                         &message));
         QueueInsert(ctx->freeList, node);
         node = 0;
     } else {
@@ -3989,21 +3903,13 @@ long ReggiePacket(SessionContext *ctx, MutexNode *node)
             StringCompareSafe(packet->data, kProbeReply, sizeof(kProbeReply) - 1) != 0)
             goto done;
         AddressDuplicate(&from, &packet->from);
-        e = _ReggiePacketDecode(packet->data, packet->length, 0, 1, &message);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(_ReggiePacketDecode(packet->data, packet->length, 0, 1, &message));
         QueueInsert(ctx->freeList, node);
         node = 0;
     }
     ctx->receivedAt = TimerGetElapsedSeconds();
     ctx->resets = 0;
-    e = _ReggiePacketExtract(message, &table);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(_ReggiePacketExtract(message, &table));
     while (table != 0) {
         if (HashIndex(table, 0, &key, &value) != 0 && StringCompare(key, "REGGIE") == 0) {
             StringCopySafe(version, value != 0 ? value : "", sizeof(version));
@@ -4027,15 +3933,15 @@ long ReggiePacket(SessionContext *ctx, MutexNode *node)
                 e = _ReggieRecv_MATCH(ctx, entry, table);
                 if (e != 0)
                     err = e;
+                err = 0;
+                handled = 1;
             } else if (StringCompare(key, "MESSAGE") == 0) {
                 e = _ReggieRecv_MESSAGE(ctx, entry, table);
                 if (e != 0)
                     err = e;
-            } else {
-                break;
+                err = 0;
+                handled = 1;
             }
-            err = 0;
-            handled = 1;
             break;
         case 'N':
             if (StringCompare(key, "NOTIFY") != 0)
@@ -4142,7 +4048,9 @@ long ReggiePacket(SessionContext *ctx, MutexNode *node)
                 goto result;
             case 'P':
                 if (StringCompare(key, "PING") == 0) {
-                    result = CheckInstance(ctx, table);
+                    do {
+                        result = CheckInstance(ctx, table);
+                    } while (0);
                     err = 0;
                     handled = 1;
                 } else if (StringCompare(key, "PROBE") == 0) {
@@ -4189,25 +4097,13 @@ long ReggiePacket(SessionContext *ctx, MutexNode *node)
                 err = kOutOfMemory;
                 goto done;
             }
-            e = HashInsert(reply, "RESULT", "Unexpected or invalid request");
-            if (e != 0) {
-                err = e;
-                goto done;
-            }
-            e = _ReggieSendHash(ctx, reply);
-            if (e != 0) {
-                err = e;
-                goto done;
-            }
+            TRY(HashInsert(reply, "RESULT", "Unexpected or invalid request"));
+            TRY(_ReggieSendHash(ctx, reply));
             ctx->sentAt = TimerGetElapsedSeconds();
         }
         HashDispose(table);
         table = 0;
-        e = _ReggiePacketExtract(message, &table);
-        if (e != 0) {
-            err = e;
-            goto done;
-        }
+        TRY(_ReggiePacketExtract(message, &table));
     }
 done:
     if (node != 0)
@@ -4226,7 +4122,7 @@ done:
    PING, timeouts -- then each entry's timers while online). STATE: MATCH 100%, exe 393 /
    obj 393, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f9309
-long ReggieTickle(void *ref)
+AT_STATIC long ReggieTickle(void *ref)
 {
     SessionContext *ctx;
     struct HashTable *hello;
@@ -4240,7 +4136,7 @@ long ReggieTickle(void *ref)
     unsigned char polling;
 
     polling = 0;
-    ctx = (SessionContext *)ref;
+    ctx = ref;
     err = 0;
     now = TimerGetElapsedSeconds();
     retry = 0;
@@ -4272,7 +4168,7 @@ long ReggieTickle(void *ref)
         if (ctx->state != kStateIdle)
             _ReggieServerOffline(ctx, "Connection unexpectedly closed");
     }
-    switch ((ULong)ctx->state) {
+    switch (ctx->state) {
     case kStateIdle:
         elapsed = now - ctx->receivedAt;
         if (elapsed < 15) {
@@ -4302,13 +4198,10 @@ long ReggieTickle(void *ref)
                 ProgressiveDispose(&ctx->inflater);
                 ctx->stateAt = TimerGetElapsedSeconds();
                 StreamDispose(ctx->socket);
-                if ((ctx->socket = (NetSocket *)StreamCreateBuffered(0, ctx, _ReggieNetworkCallback, (long)_ReggieBufferCallback,
+                TRYALLOC(ctx->socket = (NetSocket *)StreamCreateBuffered(0, ctx, _ReggieNetworkCallback, (long)_ReggieBufferCallback,
                                                              ctx->freeList, ctx->freeList,
-                                                             ctx->recvList, ctx->recvList)) == 0) {
-                    err = kOutOfMemory;
-                    goto done;
-                }
-                result = StreamOpenClient((NetStream *)ctx->socket, 0, &ctx->server, 0);
+                                                             ctx->recvList, ctx->recvList));
+                result = StreamOpenClient(ctx->socket, 0, &ctx->server, 0);
                 if (result != 0) {
                     err = result;
                     goto done;
@@ -4350,43 +4243,19 @@ long ReggieTickle(void *ref)
             goto done;
         }
         if (ctx->password[0] != 0) {
-            result = HashInsert(hello, "$PASS", ctx->password);
-            if (result != 0) {
-                err = result;
-                goto done;
-            }
+            TRYV(HashInsert(hello, "$PASS", ctx->password));
         }
         if (ctx->user[0] != 0) {
-            result = HashInsert(hello, "$USER", ctx->user);
-            if (result != 0) {
-                err = result;
-                goto done;
-            }
+            TRYV(HashInsert(hello, "$USER", ctx->user));
         }
         if (ctx->kind[0] != 0) {
-            result = HashInsert(hello, "$KIND", ctx->kind);
-            if (result != 0) {
-                err = result;
-                goto done;
-            }
+            TRYV(HashInsert(hello, "$KIND", ctx->kind));
         }
         if (ctx->mode == kModeShared) {
-            result = HashInsert(hello, "PROBE", "UDP");
-            if (result != 0) {
-                err = result;
-                goto done;
-            }
+            TRYV(HashInsert(hello, "PROBE", "UDP"));
         }
-        result = HashInsert(hello, "HELLO", "");
-        if (result != 0) {
-            err = result;
-            goto done;
-        }
-        result = HashInsert(hello, "REGGIE", "");
-        if (result != 0) {
-            err = result;
-            goto done;
-        }
+        TRYV(HashInsert(hello, "HELLO", ""));
+        TRYV(HashInsert(hello, "REGGIE", ""));
         result = _ReggieSendHash(ctx, hello);
         if (result != 0) {
             err = result;
@@ -4422,17 +4291,12 @@ long ReggieTickle(void *ref)
             _ReggieServerOffline(ctx, "Lost connection to server");
             break;
         }
-        elapsed = now - ctx->receivedAt;
-        if (elapsed > 130) {
+        if ((long)(now - ctx->receivedAt) > 130) {
             _ReggieServerOffline(ctx, "Lost connection to server");
             break;
         }
-        if (elapsed > 30 && (long)(now - ctx->sentAt) > 30) {
-            result = _ReggieSendString(ctx, "REGGIE PING HOSTID=%lu", ctx->hostSource);
-            if (result != 0) {
-                err = result;
-                goto done;
-            }
+        if ((long)(now - ctx->receivedAt) > 30 && (long)(now - ctx->sentAt) > 30) {
+            TRYV(_ReggieSendString(ctx, "REGGIE PING HOSTID=%lu", ctx->hostSource));
             ctx->sentAt = TimerGetElapsedSeconds();
         }
         break;
@@ -4456,24 +4320,16 @@ done:
 /* _ReggieOpen (network start-up for REGGIE, once: the idle proc and the shared socket's four
    hooks). STATE: MATCH 100%, exe 27 / obj 27, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f9899
-long _ReggieOpen(void)
+AT_STATIC long _ReggieOpen(void)
 {
-    long err, e;
+    long err;
 
     err = 0;
     if (gReggieOpen != 0)
         goto done;
-    e = PlatformOpen();
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(PlatformOpen());
     SystemSetIdleProc(_ReggieIdleCallback);
-    e = NetworkStackLoad(1);
-    if (e != 0) {
-        err = e;
-        goto done;
-    }
+    TRY(NetworkStackLoad(1));
     gReggieSharedProc = _ReggieSharedEndpoint;
     gReggiePacketProc = _ReggiePacketSniffer;
     gReggiePrejoinProc = _ReggieProbePrejoin;

@@ -11,10 +11,35 @@
 
 /* SWCreateGWorldFromPictResource (mac _SWCreateGWorldFromPictResource). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00478f30
+// MAC: _SWCreateGWorldFromPictResource i386 0x000a7f51 ppc 0x000b2d8c
+#ifdef MACBUILD
+short SWCreateGWorldFromPictResource(SpriteWorldPtr destSpriteWorld,
+                                     CGrafPtr *pictGWorldP, short pictResID)
+{
+    OSErr err = noErr;
+    PicHandle newPictH;
+
+    newPictH = GetPicture(pictResID);
+
+    if (newPictH != NULL) {
+        err = SWCreateGWorldFromPict(destSpriteWorld, pictGWorldP, newPictH);
+
+        ReleaseResource((Handle)newPictH);
+    } else {
+        err = ResError();
+        if (err == noErr) {
+            err = resNotFound;
+        }
+    }
+
+    SWSetStickyIfError(err);
+    return err;
+}
+#else
 short SWCreateGWorldFromPictResource(SpriteWorldPtr destSpriteWorld,
                                      CGrafPtr *pictGWorldP,
                                      short pictResID,
-                                     char useGetPicture)
+                                     Boolean useGetPicture)
 {
     short err = noErr;
     void *newPictH;
@@ -36,3 +61,4 @@ short SWCreateGWorldFromPictResource(SpriteWorldPtr destSpriteWorld,
 
     return err;
 }
+#endif

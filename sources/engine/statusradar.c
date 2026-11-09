@@ -19,6 +19,7 @@
 #include "ai.h"
 #include "game.h"
 #include "missions.h"
+#include "cefix.h"
 
 /* the cargo panel is statusOffRect[7], the weapon readout statusOffRect[5] */
 
@@ -54,31 +55,32 @@
 #define kRadarScale         0.03125     /* 1/32: system units to radar pixels */
 #define kRadarStaticFrames  10
 #define kRadarArrowDist     7000000.0   /* draw the departure arrow past this */
-#define kSpobNoRadarOval    0x10        /* spob Flags: draw a box, not an oval */
 /* DrawStatusRadar (mac _DrawStatusRadar). STATE: MATCH 100.0% (916 exact, 132
    reloc-equiv, 0 mismatched; exe 1048 / obj 1048), frame 0x44 EXACT, refs 23 of 23,
    relocregcheck 0 of 132, call/imm/fcmp censuses exact, poolcheck 7 of 7 literals equal,
    no string literals; byte-identical pending the next regate --update (bytediff reads the
    baseline). OPEN: nothing. */
 // FUNCTION: EVNOVA 0x0045d600
-void DrawStatusRadar(char highlight)
+// MAC: _DrawStatusRadar i386 0x000496e0 ppc 0x000520ec
+void DrawStatusRadar(Boolean highlight)
 {
     Rect dstRect;
     Rect srcRect;
-    FloatPoint tip;
     Rect blipRect;
+    FloatPoint tip;
     FloatPoint barb;
     RGBColor color;
-    char hasDensity;
-    char hasIFF;
-    char visible;
     long cx;
     long cy;
+    Boolean hasIFF;
+    Boolean hasDensity;
+    Boolean visible;
     long i;
     long stellar;
     long size;
     long angle;
     long links;
+    long half;
 
     if (statusOffRect[kRadarRect].left >= statusOffRect[kRadarRect].right ||
         statusOffRect[kRadarRect].top >= statusOffRect[kRadarRect].bottom)
@@ -88,6 +90,10 @@ void DrawStatusRadar(char highlight)
     hasIFF = HasIFF(shipData);
     hasDensity = HasDensityScanner(shipData);
     SetGWorldContainer(&loadPort);
+#ifdef MACBUILD
+    srcRect = statusOffRect[kRadarRect];
+    dstRect = srcRect;
+#else
     srcRect.top = statusOffRect[kRadarRect].top;
     srcRect.left = statusOffRect[kRadarRect].left;
     srcRect.bottom = statusOffRect[kRadarRect].bottom;
@@ -96,23 +102,28 @@ void DrawStatusRadar(char highlight)
     dstRect.left = srcRect.left;
     dstRect.bottom = srcRect.bottom;
     dstRect.right = srcRect.right;
+#endif
+#ifdef CEFIX /* F14.06 */
+    OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - ceStatusBarWidth, 0);
+#else
     OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - kTargPanelInset, 0);
+#endif
     if (highlight == 0 && interferenceThisFrame != 0) {
         cx = Rand(kRadarStaticFrames);
         if (staticPat[cx] != NULL)
             FillCRect(&dstRect, staticPat[cx]);
     } else {
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         if (hasIFF != 0)
             PaintRect(&dstRect);
         else
-            CopyBits(GetGWCPixMap(&statusOffPort), (BitMapPtr)GetGWCPixMap(&loadPort),
+            CopyBits(GWorldContainerPixMap(&statusOffPort), (BitMapPtr)GWorldContainerBits(&loadPort),
                      &srcRect, &dstRect, 0, 0);
         cx = (dstRect.left + dstRect.right) * 0.5;
         cy = (dstRect.top + dstRect.bottom) * 0.5;
         if (highlight == 0) {
             for (i = 0; i < kNavSlots; i++) {
-                stellar = gSystems[shipData[0].curSystem].navDefault[i];
+                stellar = systemData[shipData[0].curSystem].navDefault[i];
                 if (stellar != -1) {
                     blipRect.left = blipRect.right =
                         (cx + (long)(stellarData[stellar].pos.h -
@@ -120,8 +131,8 @@ void DrawStatusRadar(char highlight)
                     blipRect.top = blipRect.bottom =
                         (cy + (long)(stellarData[stellar].pos.v -
                                      shipData[0].pos.y) * kRadarScale);
-                    if ((stellarData[stellar].flags & kSpobNoRadarOval) != 0 ||
-                        (stellarData[stellar].flags2 & kSpobNoNav) != 0) {
+                    if ((stellarData[stellar].flags & kSpobIsStation) != 0 ||
+                        (stellarData[stellar].flags2 & kSpobGateOrWormhole) != 0) {
                         if (hasIFF != 0) {
                             ColorCodeStellar(&stellarData[stellar], &color);
                             RGBForeColor(&color);
@@ -144,32 +155,31 @@ void DrawStatusRadar(char highlight)
                         if (masterStellarSprite[stellarData[stellar].type] != NULL &&
                             masterStellarSprite[stellarData[stellar].type]->frameArray != NULL)
                             size = GetSpriteXSize(masterStellarSprite[stellarData[stellar].type]);
-                        if (size < 200) {
-                            if (size >= 90)
-                                InsetRect(&blipRect, -2, -2);
-                            else
-                                InsetRect(&blipRect, -1, -1);
-                        } else {
+                        if (size >= 200)
                             InsetRect(&blipRect, -3, -3);
-                        }
+                        else if (size >= 90)
+                            InsetRect(&blipRect, -2, -2);
+                        else
+                            InsetRect(&blipRect, -1, -1);
                         SectRect(&blipRect, &dstRect, &blipRect);
                         if (blipRect.left != 0 || blipRect.top != 0 ||
                             blipRect.left != 0 || blipRect.right != 0)
                             FrameOval(&blipRect);
+                        half = size / 2;
                     }
                 }
             }
             for (i = 1; i < kMaxShips; i++) {
                 if (shipData[i].active != 0 &&
-                    shipData[0].curSystem == shipData[i].curSystem) {
-                    if (ShipIsCloaked(&shipData[i]) == 0) {
+                    shipData[i].curSystem == shipData[0].curSystem) {
+                    if (ShipIsCloaked(&shipData[i]) != 0) {
+                        if (ShipCloakVisibleOnRadar(&shipData[i]) != 0 ||
+                            shipData[0].seesCloaked[1] == 1)
+                            visible = 1;
+                        else
+                            visible = 0;
+                    } else
                         visible = 1;
-                    } else if (ShipCloakVisibleOnRadar(&shipData[i]) == 0 &&
-                               shipData[0].seesCloakedRadar != 1) {
-                        visible = 0;
-                    } else {
-                        visible = 1;
-                    }
                     if (visible) {
                         blipRect.left = blipRect.right =
                             (cx + (long)(shipData[i].pos.x -
@@ -196,8 +206,14 @@ void DrawStatusRadar(char highlight)
                         } else {
                             RGBForeColor(radarStatusColor[0]);
                         }
-                        if (hasDensity == 0 ||
-                            gShipTypes[shipData[i].type].mass < 100) {
+                        if (hasDensity != 0 &&
+                            shipClass[shipData[i].type].mass >= 100) {
+                            InsetRect(&blipRect, -1, -1);
+                            SectRect(&blipRect, &dstRect, &blipRect);
+                            if (blipRect.left != 0 || blipRect.top != 0 ||
+                                blipRect.left != 0 || blipRect.right != 0)
+                                FrameRect(&blipRect);
+                        } else {
                             if (blipRect.left >= dstRect.left &&
                                 blipRect.left <= dstRect.right &&
                                 blipRect.top >= dstRect.top &&
@@ -205,12 +221,6 @@ void DrawStatusRadar(char highlight)
                                 MoveTo(blipRect.left, blipRect.top);
                                 Line(0, 0);
                             }
-                        } else {
-                            InsetRect(&blipRect, -1, -1);
-                            SectRect(&blipRect, &dstRect, &blipRect);
-                            if (blipRect.left != 0 || blipRect.top != 0 ||
-                                blipRect.left != 0 || blipRect.right != 0)
-                                FrameRect(&blipRect);
                         }
                     }
                 }
@@ -228,7 +238,7 @@ void DrawStatusRadar(char highlight)
     if (radarCount != 0 && shipData[0].navTargetKind != 3) {
         links = 0;
         for (i = 0; i < kNavSlots; i++) {
-            if (gSystems[shipData[0].curSystem].navDefault[i] != -1)
+            if (systemData[shipData[0].curSystem].navDefault[i] != -1)
                 links++;
         }
         if (links > 0) {
@@ -252,14 +262,14 @@ void DrawStatusRadar(char highlight)
                 Accel((angle - 0x87), 6.0f, &tip);
                 MoveTo(barb.x, barb.y);
                 LineTo(tip.x, tip.y);
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
             }
         }
     }
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     SWSetPortToWindow(gSpriteWorld);
     if (preventStatusCopy == 0)
-        CopyBits(GetGWCPixMap(&loadPort),
+        CopyBits(GWorldContainerBits(&loadPort),
                  GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                  &dstRect, &dstRect, 0, 0);
 }

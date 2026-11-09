@@ -87,7 +87,7 @@ void ResolverDispose(void *ref)
     NetResolver *r;
     long err;
 
-    r = (NetResolver *)ref;
+    r = ref;
     err = 0;
     ResolverClose(ref);
     NOTIFY_RESOLVER(r, kEventDisposed);
@@ -105,7 +105,7 @@ long ResolverOpen(void *ref)
     ULong threadId;
     long err, e;
 
-    r = (NetResolver *)ref;
+    r = ref;
     err = 0;
     threadId = 0;
     e = QueueCreate(&r->requests);
@@ -139,7 +139,7 @@ long ResolverControl(void *ref, NetLookup *lookup)
     NetResolver *r;
     long err;
 
-    r = (NetResolver *)ref;
+    r = ref;
     err = 0;
     AddressComposeEmpty(&lookup->address);
     if (_AddressFromString(&lookup->address, lookup->name)) {
@@ -161,7 +161,7 @@ void ResolverClose(void *ref)
     NetResolver *r;
     long err;
 
-    r = (NetResolver *)ref;
+    r = ref;
     err = 0;
     SystemCheckCallback();
     r->state = 0;

@@ -6,8 +6,18 @@
 /* BlitPixieRLECollisionWithPoint (mac _BlitPixieRLECollisionWithPoint). STATE: MATCH, exe 103 / obj 103 instrs, byte-identical yes.
    OPEN: none. see notes */
 // FUNCTION: EVNOVA 0x00472420
-char BlitPixieRLECollisionWithPoint(unsigned char *rleData, Point *pt, Rect *r)
+// MAC: _BlitPixieRLECollisionWithPoint i386 0x000c0ebf ppc 0x000ccd04
+Boolean BlitPixieRLECollisionWithPoint(unsigned char *rleData, Point *pt, Rect *r)
 {
+#ifdef MAC1010 /* 1.0.10 spelling */
+    unsigned long token;
+    unsigned long opcode;
+    unsigned long op;
+    unsigned long count;
+    long runStart;
+    long i;
+    long x;
+#else
     long runStart;
     unsigned long opcode;
     unsigned long op;
@@ -15,6 +25,7 @@ char BlitPixieRLECollisionWithPoint(unsigned char *rleData, Point *pt, Rect *r)
     long i;
     unsigned long token;
     long x;
+#endif
 
     for (i = 0; i < pt->v - r->top; i++) {
         token = *(unsigned long *)rleData;
@@ -50,7 +61,11 @@ char BlitPixieRLECollisionWithPoint(unsigned char *rleData, Point *pt, Rect *r)
                 return 1;
 
             rleData += count;
+#if defined(MACBUILD) && V111
+            (long)rleData += (-(long)rleData) & 3;
+#else
             rleData += (-(long)rleData) & 3;
+#endif
             break;
 
         case 3:

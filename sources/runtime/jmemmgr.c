@@ -9,7 +9,9 @@
 #include "jpeglib.h"
 #include "jmemsys.h"
 
+#ifndef ALIGN_TYPE
 #define ALIGN_TYPE  double
+#endif
 
 typedef union small_pool_struct * small_pool_ptr;
 

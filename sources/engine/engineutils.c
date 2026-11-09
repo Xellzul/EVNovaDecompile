@@ -26,16 +26,60 @@
 #include "missions.h"
 #include "burger.h"
 #include "crashlog.h"
+#include "cefix.h"
+#ifndef MAC_FASTRANDOM_ONLY
+#ifdef MACBUILD
+#if V111
+#include <mach/mach.h>
+#endif
+/* Util.o's own globals and its mac-only functions (defined below at their places) */
+extern void PointToXYShort(Point pt, ShortPoint *xy);
+extern void XYShortToPoint(ShortPoint xy, Point *pt);
+extern short FindNextStellarInSystem(short cur, short system);
+extern void DrawCenteredText(StringPtr s, short left, short right, short y);
+extern StringPtr KeyCodeToString(short code);
+extern long isPressed(unsigned char *keys, unsigned short k);
+extern void ShowHint(void);
+extern void InitCluts(void);
+extern void SetOrigClut(void);
+extern void FlushKeys(void);
+extern void InstantFighterRecall(void);
+extern void ShowFreeMem(void);
+extern void *LoadFrameFromCICN(short id);
+extern float FindDecayedShotPower(ShotObj *shot);
+extern void DebugInt(long n);
+extern Boolean isPowerPC(void);
+extern Boolean isG3(void);
+extern Boolean isG4(void);
+extern Boolean meetsMinimumRequirements(void);
+extern short ScanForKeys(void);
+extern Boolean QuickKeyCheckPlusEscorts(short code);
+extern void DebugCStr(char *s);
+extern void DebugStrInt(StringPtr s, short n);
+extern void PlaySoundWait(void *snd);
+extern Boolean HasMaxFightersOnBoard(short shipType);
+extern void UnsplitTwoLineString(const unsigned char *src, unsigned char *dst);
+extern void FadeWhiteIn(void);
+extern void FadeWhiteOut(void);
+/* the AmbrosiaTools DrawTools calls DrawPicHandle makes that burger.h does not declare */
+#include "burgerplat.h"
+extern struct ITRect Sys2DT_Rect(const Rect *r);
+extern long DT_DrawImage(struct ITImage *dst, const struct ITRect *dstRect, struct ITImage *image,
+                         struct ITImage *mask, const struct ITTransparent *trans, const struct ITRect *srcRect);
+extern void DateToShortString(DateTimeRec date, char *out);
+extern void GraphicsEmergencyBail(void);
+#endif
 
 #define kRoidYieldBase   0x32
 #define kRoidYieldSpread 0x65
 
-extern "C" {
+EXTERN_C_BEGIN
 
 /* DestroyAsteroid (mac _DestroyAsteroid). STATE: MATCH 100.0%, exe 223 / obj 223 instrs, relocregcheck 23/23 clean.
    OPEN: byte-identity unchecked (bytediff only covers baseline-MATCH rows); the function
    still carries its address name -- no mac twin looked up. see notes */
 // FUNCTION: EVNOVA 0x00462550
+// MAC: _DestroyAsteroid i386 0x0000adc9 ppc 0x0000d688
 void DestroyAsteroid(AsteroidObj *roid)
 {
 
@@ -44,13 +88,12 @@ void DestroyAsteroid(AsteroidObj *roid)
     short n;
     short spread;
 
-    expl[0] = asteroidType[roid->type].fragType[0];
     spread = asteroidType[roid->type].fragCount;
+    expl[0] = asteroidType[roid->type].fragType[0];
     expl[1] = asteroidType[roid->type].fragType[1];
 
     if (asteroidType[roid->type].yieldQty > 0) {
-        n = ((Rand(kRoidYieldSpread) + kRoidYieldBase)
-                   * asteroidType[roid->type].yieldQty * 0.01);
+        n = (asteroidType[roid->type].yieldQty * (Rand(kRoidYieldSpread) + kRoidYieldBase) * 0.01);
         if (n > 0) {
             for (i = 0; i < n; i++)
                 SpawnScoopableBox(&roid->pos,
@@ -86,16 +129,17 @@ void DestroyAsteroid(AsteroidObj *roid)
 
 /* FindNearestShipToPlayer (mac _FindNearestShipToPlayer). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00462850
+// MAC: _FindNearestShipToPlayer i386 0x0000923f ppc 0x0000b3e8
 short FindNearestShipToPlayer(void)
 {
     short i;
     short best;
-    char hasDetect2;
-    char hasDetect1;
+    Boolean hasDetect2;
     float bestDist;
     float dx;
     float dy;
     float dist;
+    Boolean hasDetect1;
 
     hasDetect1 = ShipCanTargetUntargetableShips(shipData);
     hasDetect2 = ShipCanTargetCloakedShips(shipData);
@@ -112,11 +156,11 @@ short FindNearestShipToPlayer(void)
             continue;
         if (ShipIsCloaked(&shipData[i]) && !hasDetect2)
             continue;
-        if (shipData[0].curSystem != shipData[i].curSystem)
+        if (shipData[i].curSystem != shipData[0].curSystem)
             continue;
         if (AIShipIsEmergingFromHypergate(&shipData[i]))
             continue;
-        if (!hasDetect1 && (gShipTypes[shipData[i].type].flags2 & kShipFlag2Untargetable) != 0)
+        if (!hasDetect1 && (shipClass[shipData[i].type].flags2 & kShipUntargetable) != 0)
             continue;
 
         dx = FloatAbs(shipData[0].pos.x - shipData[i].pos.x);
@@ -132,10 +176,11 @@ short FindNearestShipToPlayer(void)
 
 /* IsThreatToStellar (mac _IsThreatToStellar). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004629e0
-char IsThreatToStellar(ShipObj *ship, SpobRecord *spob)
+// MAC: _IsThreatToStellar i386 0x00009ef7 ppc 0x0000c488
+Boolean IsThreatToStellar(ShipObj *ship, SpobRecord *spob)
 {
     short target;
-    char found;
+    Boolean found;
 
     if (spob->dominated != 0)
         return 0;
@@ -145,7 +190,7 @@ char IsThreatToStellar(ShipObj *ship, SpobRecord *spob)
             return 0;
     }
 
-    if (spob->flags2 & 0x200) {
+    if (spob->flags2 & kSpobFiresWhenProvoked) {
         if (spob->defenseActive != 0) {
             if (ship->index == 0 || ship->parentShip == 0)
                 return 1;
@@ -153,48 +198,45 @@ char IsThreatToStellar(ShipObj *ship, SpobRecord *spob)
         goto fail;
     }
 
-    if (ship->index != 0 && ship->parentShip != 0) {
-        if (GovtEnemies(spob->govt, ship->govt))
+    if (ship->index == 0 || ship->parentShip == 0) {
+        target = -1;
+        if (spob->govt != -1) {
+            target = spob->govt;
+        } else {
+            if (systemData[shipData->curSystem].govt != -1)
+                target = systemData[shipData->curSystem].govt;
+        }
+
+        found = 0;
+        if (target != -1) {
+            if (playerRecord[shipData->curSystem] < -govtData[target].crimeTol)
+                found = 1;
+            if (!found) {
+                if (govtData[target].flags & kGovtXenophobic) {
+                    if (playerRecord[shipData->curSystem] < 0)
+                        found = 1;
+                } else {
+                    if (GovtEnemies(shipClass[shipData->type].inherentGovt, spob->govt))
+                        found = 1;
+                }
+            }
+            if (found) {
+                if (PlayerBlessedByGovt(spob->govt, 0))
+                    found = 0;
+                if (govtData[target].iffScrambled != 0)
+                    found = 0;
+            }
+        }
+
+        if (dockTarget == spob->index)
+            found = 0;
+
+        if (found)
             return 1;
         goto fail;
     }
-
-    target = -1;
-    if (spob->govt == -1) {
-        short sysGovt = gSystems[shipData->curSystem].govt;
-        if (sysGovt != -1)
-            target = sysGovt;
-    } else {
-        target = spob->govt;
-    }
-
-    found = 0;
-    if (target != -1) {
-        if (playerLegalStatus[shipData->curSystem] < -govtData[target].crimeTol)
-            found = 1;
-        if (!found) {
-            if (govtData[target].flags & kGovtXenophobic) {
-                if (playerLegalStatus[shipData->curSystem] < 0)
-                    found = 1;
-            } else {
-                if (GovtEnemies(gShipTypes[shipData->type].inherentGovt, spob->govt))
-                    found = 1;
-            }
-        }
-        if (found) {
-            if (PlayerBlessedByGovt(spob->govt, 0))
-                found = 0;
-            if (govtData[target].iffScrambled != 0)
-                found = 0;
-        }
-    }
-
-    if (dockTarget == spob->index)
-        found = 0;
-
-    if (!found)
-        goto fail;
-    return 1;
+    if (GovtEnemies(spob->govt, ship->govt))
+        return 1;
 
 fail:
     return 0;
@@ -204,14 +246,15 @@ fail:
 
 /* FindNearestThreatToPlayer (mac _FindNearestThreatToPlayer). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00462bd0
+// MAC: _FindNearestThreatToPlayer i386 0x000093f9 ppc 0x0000b5f8
 short FindNearestThreatToPlayer(void)
 {
     short i;
     short best;
     short target;
-    char hasDetect1;
-    char hasDetect2;
-    char valid;
+    Boolean hasDetect1;
+    Boolean hasDetect2;
+    Boolean valid;
     float bestDist;
     float dx;
     float dy;
@@ -234,9 +277,9 @@ short FindNearestThreatToPlayer(void)
             continue;
         if (shipData[i].parentShip == 0)
             continue;
-        if (shipData[0].curSystem != shipData[i].curSystem)
+        if (shipData[i].curSystem != shipData[0].curSystem)
             continue;
-        if (!hasDetect1 && (gShipTypes[shipData[i].type].flags2 & kShipFlag2Untargetable) != 0)
+        if (!hasDetect1 && (shipClass[shipData[i].type].flags2 & kShipUntargetable) != 0)
             continue;
 
         valid = 0;
@@ -264,12 +307,13 @@ short FindNearestThreatToPlayer(void)
 
 /* FindNearestStellar (mac _FindNearestStellar). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00462db0
+// MAC: _FindNearestStellar i386 0x0000276c ppc 0x000031c8
 short FindNearestStellar(ShipObj *ship)
 {
     short i;
     short stellar;
     short best;
-    char inRange;
+    Boolean inRange;
     float bestDist;
     float dx;
     float dy;
@@ -278,7 +322,7 @@ short FindNearestStellar(ShipObj *ship)
     best = -1;
     bestDist = -1.0f;
     for (i = 0; i < kNavSlots; i++) {
-        stellar = gSystems[ship->curSystem].navDefault[i];
+        stellar = systemData[ship->curSystem].navDefault[i];
         if (stellar != -1 && stellarData[stellar].loaded != 0
             && SpobCanLand(&stellarData[stellar])) {
             dx = FloatAbs(ship->pos.x - stellarData[stellar].pos.h);
@@ -303,13 +347,14 @@ short FindNearestStellar(ShipObj *ship)
 /* ShipStatsToSystemInfo. STATE: MATCH 100.0%, 195/195, byte-identical yes (927 bytes).
    OPEN: none */
 // FUNCTION: EVNOVA 0x00462ec0
+// MAC: _ShipStatsToSystemInfo i386 0x0000caee ppc 0x0000fc04
 void ShipStatsToSystemInfo(void)
 {
     short countBuf[kMaxWeapTypes];
     short ammoBuf[kMaxWeapTypes];
-    short k;
     short slot;
     short i;
+    short k;
 
     for (i = 0; i < kMaxWeapTypes; i++) {
         countBuf[i] = shipData->weap[i].count;
@@ -319,20 +364,20 @@ void ShipStatsToSystemInfo(void)
     for (i = 0; i < kMaxOutfits; i++) {
         if (shipSystems[i] <= 0)
             continue;
-        if (gOutfits[i].techLevel >= 0x8000)
+        if (outfitSystem[i].techLevel >= 0x8000)
             continue;
-        if (gOutfits[i].modType[0] == kOutfModWeapon
-                && gOutfits[i].modVal[0] >= 0 && gOutfits[i].modVal[0] < kMaxWeapTypes) {
-            slot = gOutfits[i].modVal[0];
+        if (outfitSystem[i].modType[0] == kOutfModWeapon
+                && outfitSystem[i].modVal[0] >= 0 && outfitSystem[i].modVal[0] < kMaxWeapTypes) {
+            slot = outfitSystem[i].modVal[0];
             if (shipSystems[i] >= countBuf[slot]) {
                 shipSystems[i] = countBuf[slot];
                 countBuf[slot] = 0;
             } else {
                 countBuf[slot] -= shipSystems[i];
             }
-        } else if (gOutfits[i].modType[0] == kOutfModAmmo
-                && gOutfits[i].modVal[0] >= 0 && gOutfits[i].modVal[0] < kMaxWeapTypes) {
-            slot = gOutfits[i].modVal[0];
+        } else if (outfitSystem[i].modType[0] == kOutfModAmmo
+                && outfitSystem[i].modVal[0] >= 0 && outfitSystem[i].modVal[0] < kMaxWeapTypes) {
+            slot = outfitSystem[i].modVal[0];
             if (shipSystems[i] >= ammoBuf[slot]) {
                 shipSystems[i] = ammoBuf[slot];
                 ammoBuf[slot] = 0;
@@ -350,8 +395,8 @@ void ShipStatsToSystemInfo(void)
     for (k = 0; k < kMaxWeapTypes; k++) {
         if (countBuf[k] > 0) {
             for (i = 0; i < kMaxOutfits; i++) {
-                if (gOutfits[i].techLevel < 0x8000 && gOutfits[i].modType[0] == kOutfModWeapon
-                        && gOutfits[i].modVal[0] == k) {
+                if (outfitSystem[i].techLevel < 0x8000 && outfitSystem[i].modType[0] == kOutfModWeapon
+                        && outfitSystem[i].modVal[0] == k) {
                     shipSystems[i] += countBuf[k];
                     countBuf[k] = 0;
                     break;
@@ -360,8 +405,8 @@ void ShipStatsToSystemInfo(void)
         }
         if (ammoBuf[k] > 0) {
             for (i = 0; i < kMaxOutfits; i++) {
-                if (gOutfits[i].techLevel < 0x8000 && gOutfits[i].modType[0] == kOutfModAmmo
-                        && gOutfits[i].modVal[0] == k) {
+                if (outfitSystem[i].techLevel < 0x8000 && outfitSystem[i].modType[0] == kOutfModAmmo
+                        && outfitSystem[i].modVal[0] == k) {
                     shipSystems[i] += ammoBuf[k];
                     ammoBuf[k] = 0;
                     break;
@@ -382,6 +427,7 @@ void ShipStatsToSystemInfo(void)
 
 /* SystemInfoToShipStats. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00463260
+// MAC: _SystemInfoToShipStats i386 0x0000ca33 ppc 0x0000fb0c
 void SystemInfoToShipStats(void)
 {
     short i;
@@ -394,22 +440,23 @@ void SystemInfoToShipStats(void)
     for (i = 0; i < 512; i++) {
         if (shipSystems[i] <= 0)
             continue;
-        if (gOutfits[i].techLevel >= kOutfTechAbsent)
+        if (outfitSystem[i].techLevel >= kOutfTechAbsent)
             continue;
-        if (gOutfits[i].modType[0] == kOutfModWeapon)
-            shipData->weap[gOutfits[i].modVal[0]].count += shipSystems[i];
-        if (gOutfits[i].modType[0] == kOutfModAmmo)
-            shipData->weap[gOutfits[i].modVal[0]].ammo += shipSystems[i];
+        if (outfitSystem[i].modType[0] == kOutfModWeapon)
+            shipData->weap[outfitSystem[i].modVal[0]].count += shipSystems[i];
+        if (outfitSystem[i].modType[0] == kOutfModAmmo)
+            shipData->weap[outfitSystem[i].modVal[0]].ammo += shipSystems[i];
     }
 
     ResetPlayerPrecalcedValues();
 }
 
-/* FreeMass. STATE: MATCH, byte-identical. OPEN: none */
+/* ShipFreeMass. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00463470
-long FreeMass(void)
+// MAC: _ShipFreeMass i386 0x0000b462 ppc 0x0000dee4
+long ShipFreeMass(void)
 {
-    int i;
+    short i;
     short type;
     long free;
     long mass;
@@ -417,11 +464,11 @@ long FreeMass(void)
     type = shipData[0].type;
     if (type < 0 || type >= 768)
         return 0;
-    free = gShipTypes[type].freeMass;
-    for (i = 0; (short)i < 512; i++) {
-        if (shipSystems[(short)i] > 0) {
-            mass = AdjustedItemMass(&gOutfits[i], &gShipTypes[shipData[0].type]);
-            free -= mass * shipSystems[(short)i];
+    free = shipClass[type].freeMass;
+    for (i = 0; i < 512; i++) {
+        if (shipSystems[i] > 0) {
+            mass = AdjustedItemMass(&outfitSystem[i], &shipClass[shipData[0].type]);
+            free -= mass * shipSystems[i];
         }
     }
     if (free < 0)
@@ -440,6 +487,7 @@ long FreeMass(void)
 
 /* XYShortToFloat (mac _XYShortToFloat). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00463520
+// MAC: _XYShortToFloat i386 0x000028c3 ppc 0x000033ac
 FloatPoint XYShortToFloat(ShortPoint pt)
 {
     FloatPoint f;
@@ -450,6 +498,7 @@ FloatPoint XYShortToFloat(ShortPoint pt)
 }
 
 /* not linked, not verified against the exe (mac _XYFloatToShort, _VectorToAngle, _CalcShipStopDist) */
+// MAC: _XYFloatToShort i386 0x000028ec ppc 0x00003400
 ShortPoint XYFloatToShort(FloatPoint f)
 {
     ShortPoint pt;
@@ -459,6 +508,7 @@ ShortPoint XYFloatToShort(FloatPoint f)
     return pt;
 }
 
+// MAC: _VectorToAngle i386 0x0000290b ppc 0x00003444
 short VectorToAngle(FloatPoint *v)
 {
     Rect unit;
@@ -472,6 +522,7 @@ short VectorToAngle(FloatPoint *v)
     return angle;
 }
 
+// MAC: _CalcShipStopDist i386 0x0000298a ppc 0x000034dc
 float CalcShipStopDist(void)
 {
     return 20000.0f;
@@ -479,15 +530,14 @@ float CalcShipStopDist(void)
 
 /* ShipShieldCapacity (mac _ShipShieldCapacity). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00463550
+// MAC: _ShipShieldCapacity i386 0x00002995 ppc 0x000034e8
 float ShipShieldCapacity(ShipObj *ship)
 {
     long i;
     float cap;
     short j;
-    short pers;
-    float mult;
 
-    cap = gShipTypes[ship->type].shield;
+    cap = shipClass[ship->type].shield;
     if (ship->index == 0) {
         if (playerShieldCapacity >= 0.0f) {
             cap = playerShieldCapacity;
@@ -495,8 +545,8 @@ float ShipShieldCapacity(ShipObj *ship)
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModShieldBoost)
-                            cap += gOutfits[i].modVal[j] * shipSystems[i];
+                        if (outfitSystem[i].modType[j] == kOutfModShieldBoost)
+                            cap += outfitSystem[i].modVal[j] * shipSystems[i];
                     }
                 }
             }
@@ -505,15 +555,13 @@ float ShipShieldCapacity(ShipObj *ship)
             playerShieldCapacity = cap;
         }
     } else {
-        pers = ship->persType;
-        if (pers != -1) {
-            mult = personData[pers].shieldMod;
-            if (mult > 0.0f)
-                cap = cap * mult;
+        if (ship->persType != -1) {
+            if (personData[ship->persType].shieldMod > 0.0f)
+                cap = cap * personData[ship->persType].shieldMod;
         }
     }
     if (ship->index != 0 && ship->aiType == 5)
-        cap = cap * 1.333;
+        cap *= 1.333;
     return cap;
 }
 
@@ -521,6 +569,7 @@ float ShipShieldCapacity(ShipObj *ship)
 
 /* ShipShieldRechargeRate (mac _ShipShieldRechargeRate). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00463680
+// MAC: _ShipShieldRechargeRate i386 0x00002abb ppc 0x0000367c
 float ShipShieldRechargeRate(ShipObj *ship)
 {
     short i;
@@ -528,30 +577,29 @@ float ShipShieldRechargeRate(ShipObj *ship)
     short j;
     int tmp;
 
-    tmp = ship->type;
-    cap = gShipTypes[tmp].shieldRech;
+    cap = shipClass[tmp = ship->type].shieldRech;
     if (ship->index == 0) {
-        if (gCachedShieldRech >= 0.0f) {
-            cap = gCachedShieldRech;
+        if (playerShieldRechargeRate >= 0.0f) {
+            cap = playerShieldRechargeRate;
         } else {
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModShieldRech)
-                            cap += gOutfits[i].modVal[j] * 0.001
+                        if (outfitSystem[i].modType[j] == kOutfModShieldRech)
+                            cap += (float)outfitSystem[i].modVal[j] * 0.001
                                    * shipSystems[i];
                     }
                 }
             }
             if (cap < 0.0f)
                 cap = 0.0f;
-            gCachedShieldRech = cap;
+            playerShieldRechargeRate = cap;
         }
     }
     if (cap < 0.0f)
         cap = 0.0f;
     if (ship->index != 0 && ship->aiType == 5)
-        cap = cap * 1.333;
+        cap *= 1.333;
     return cap;
 }
 
@@ -565,41 +613,40 @@ float ShipShieldRechargeRate(ShipObj *ship)
 
 /* ShipArmorCapacity (mac _ShipArmorCapacity). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004637a0
+// MAC: _ShipArmorCapacity i386 0x00002bc0 ppc 0x000037e4
 float ShipArmorCapacity(ShipObj *ship)
 {
     short i;
     float cap;
     short j;
     short pers;
-    float mult;
 
-    cap = gShipTypes[ship->type].armor;
+    cap = shipClass[ship->type].armor;
     if (ship->index == 0) {
-        if (gCachedArmorCap >= 0.0f) {
-            cap = gCachedArmorCap;
+        if (playerArmorCapacity >= 0.0f) {
+            cap = playerArmorCapacity;
         } else {
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModArmor)
-                            cap += gOutfits[i].modVal[j] * shipSystems[i];
+                        if (outfitSystem[i].modType[j] == kOutfModArmor)
+                            cap += outfitSystem[i].modVal[j] * shipSystems[i];
                     }
                 }
             }
             if (cap < 0.0f)
                 cap = 0.0f;
-            gCachedArmorCap = cap;
+            playerArmorCapacity = cap;
         }
     } else {
         pers = ship->persType;
         if (pers >= 0 && pers < kMaxPersons) {
-            mult = personData[pers].shieldMod;
-            if (mult > 0.0f)
-                cap = cap * mult;
+            if (personData[pers].shieldMod > 0.0f)
+                cap = cap * personData[pers].shieldMod;
         }
     }
     if (ship->index != 0 && ship->aiType == 5)
-        cap = cap * 1.333;
+        cap *= 1.333;
     return cap;
 }
 
@@ -607,6 +654,7 @@ float ShipArmorCapacity(ShipObj *ship)
 
 /* ShipArmorRechargeRate (mac _ShipArmorRechargeRate). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004638e0
+// MAC: _ShipArmorRechargeRate i386 0x00002e0e ppc 0x00003acc
 float ShipArmorRechargeRate(ShipObj *ship)
 {
     short i;
@@ -615,29 +663,29 @@ float ShipArmorRechargeRate(ShipObj *ship)
 
     if (IsDisabled(ship))
         return 0.0f;
-    cap = gShipTypes[ship->type].armorRech;
+    cap = shipClass[ship->type].armorRech;
     if (ship->index == 0) {
-        if (gCachedArmorRech >= 0.0f) {
-            cap = gCachedArmorRech;
+        if (playerArmorRechargeRate >= 0.0f) {
+            cap = playerArmorRechargeRate;
         } else {
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModArmorRech)
-                            cap += gOutfits[i].modVal[j] * 0.001
+                        if (outfitSystem[i].modType[j] == kOutfModArmorRech)
+                            cap += (float)outfitSystem[i].modVal[j] * 0.001
                                    * shipSystems[i];
                     }
                 }
             }
             if (cap < 0.0f)
                 cap = 0.0f;
-            gCachedArmorRech = cap;
+            playerArmorRechargeRate = cap;
         }
     }
     if (cap < 0.0f)
         cap = 0.0f;
     if (ship->index == 0 && cheatsActive != 0)
-        cap = cap * 50.0f;
+        cap *= 50.0f;
     return cap;
 }
 
@@ -646,22 +694,23 @@ float ShipArmorRechargeRate(ShipObj *ship)
 
 /* ShipFuelCapacity. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00463a20
+// MAC: _ShipFuelCapacity i386 0x00002f21 ppc 0x00003c74
 short ShipFuelCapacity(ShipObj *ship)
 {
     short i;
     short j;
     long total;
 
-    total = gShipTypes[ship->type].fuel;
+    total = shipClass[ship->type].fuel;
     if (ship->index == 0) {
-        if (gCachedFuelCap >= 0.0f) {
-            total = gCachedFuelCap;
+        if (playerFuelCapacity >= 0.0f) {
+            total = playerFuelCapacity;
         } else {
             for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModType12)
-                            total += gOutfits[i].modVal[j]
+                        if (outfitSystem[i].modType[j] == kOutfModType12)
+                            total += outfitSystem[i].modVal[j]
                                      * shipSystems[i];
                     }
                 }
@@ -670,18 +719,18 @@ short ShipFuelCapacity(ShipObj *ship)
                 total = 0;
             if (total > kMaxFuel)
                 total = kMaxFuel;
-            gCachedFuelCap = total;
+            playerFuelCapacity = total;
         }
     }
     return total;
 }
 
 #define kOutfModType18  0x12
-#define kShipFlagRate   0x8    /* ShipRec flags bit 3; meaning TBC */
 
 /* ShipFuelGenRate (mac _ShipFuelGenRate). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00463b30
-char ShipFuelGenRate(ShipObj *ship, float *rate)
+// MAC: _ShipFuelGenRate i386 0x00002ffb ppc 0x00003d88
+Boolean ShipFuelGenRate(ShipObj *ship, float *rate)
 {
     short i;
     short j;
@@ -689,35 +738,34 @@ char ShipFuelGenRate(ShipObj *ship, float *rate)
     if (ship->fuelRegenState < 0) {
         ship->fuelRegenState = 0;
         ship->fuelRegenRate = 0;
-        if (gShipTypes[ship->type].fuelRegen > 0 &&
-            ((gShipTypes[ship->type].flags & kShipFlagRate) != 0 ||
+        if (shipClass[ship->type].fuelRegen > 0 &&
+            ((shipClass[ship->type].flags & kShipFuelRegen) != 0 ||
              ship->index != 0)) {
             ship->fuelRegenState = 1;
-            ship->fuelRegenRate = 1.0 / gShipTypes[ship->type].fuelRegen;
+            ship->fuelRegenRate = 1.0 / (float)shipClass[ship->type].fuelRegen;
         }
         if (ship->index == 0) {
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModType18) {
+                        if (outfitSystem[i].modType[j] == kOutfModType18) {
                             ship->fuelRegenState = 1;
-                            ship->fuelRegenRate += 1.0 / gOutfits[i].modVal[j] *
-                                             shipSystems[i];
+                            ship->fuelRegenRate += (float)shipSystems[i] * (1.0 / (float)outfitSystem[i].modVal[j]);
                         }
                     }
                 }
             }
         } else {
             for (i = 0; i < 8; i++) {
-                if (gShipTypes[ship->type].defOutfCount[i] > 0) {
-                    short id = gShipTypes[ship->type].defOutfID[i];
+                if (shipClass[ship->type].defOutfCount[i] > 0) {
+                    short id = shipClass[ship->type].defOutfID[i];
 
                     if (id >= 0 && id < 512) {
                         for (j = 0; j < kOutfMods; j++) {
-                            if (gOutfits[id].modType[j] == kOutfModType18) {
+                            if (outfitSystem[id].modType[j] == kOutfModType18) {
                                 ship->fuelRegenState = 1;
-                                ship->fuelRegenRate += 1.0 / gOutfits[id].modVal[j] *
-                                    gShipTypes[ship->type].defOutfCount[i];
+                                ship->fuelRegenRate += (float)shipClass[ship->type].defOutfCount[i]
+                                    * (1.0 / (float)outfitSystem[id].modVal[j]);
                             }
                         }
                     }
@@ -733,19 +781,20 @@ char ShipFuelGenRate(ShipObj *ship, float *rate)
     return 1;
 }
 
-#define kWeapNeedsQuickTurn 0x8    /* name TBC */
-
 /* SuitableMissileType. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00463dc0
-char SuitableMissileType(short weap, ShipObj *ship)
+// MAC: _SuitableMissileType i386 0x000034e1 ppc 0x00004400
+Boolean SuitableMissileType(short weap, ShipObj *ship)
 {
     short turns;
 
     turns = ShipTurnRate(ship);
-    if ((gWeapons[weap].flags & kWeapNeedsQuickTurn) != 0 && turns > 3)
-        return 0;
-    if (gWeapons[weap].guidedTurn <= 2.0f && turns > 3)
-        return 0;
+    if ((weaponStats[weap].flags & kWeapNoFastTargets) != 0)
+        if (turns > 3)
+            return 0;
+    if (weaponStats[weap].guidedTurn <= 2.0f)
+        if (turns > 3)
+            return 0;
     return 1;
 }
 
@@ -755,6 +804,7 @@ char SuitableMissileType(short weap, ShipObj *ship)
 
 /* ShipTurnRate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00463e70
+// MAC: _ShipTurnRate i386 0x000032f7 ppc 0x000041b8
 float ShipTurnRate(ShipObj *ship)
 {
     short i;
@@ -762,23 +812,23 @@ float ShipTurnRate(ShipObj *ship)
     short j;
     float ratio;
 
-    v = gShipTypes[ship->type].turnRate;
+    v = shipClass[ship->type].turnRate;
     if (ship->index == 0) {
-        if (gCachedTurnRate >= 0.0f) {
-            v = gCachedTurnRate;
+        if (playerTurnRate >= 0.0f) {
+            v = playerTurnRate;
         } else {
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModTurn)
-                            v += gOutfits[i].modVal[j]
+                        if (outfitSystem[i].modType[j] == kOutfModTurn)
+                            v += outfitSystem[i].modVal[j]
                                  * shipSystems[i] * 0.01;
                     }
                 }
             }
-            if (v < 1.0f && gShipTypes[ship->type].turnRate > 0.0f)
+            if (v < 1.0f && shipClass[ship->type].turnRate > 0.0f)
                 v = 1.0f;
-            gCachedTurnRate = v;
+            playerTurnRate = v;
         }
     } else {
         if (ship->tractorShip != -1 && ship->tractorShip != ship->index)
@@ -788,7 +838,7 @@ float ShipTurnRate(ShipObj *ship)
         if (v < 6.0f)
             v += 1.0f;
     }
-    if (gShipTypes[ship->type].turnRate >= 1.0f && v < 1.0f)
+    if (shipClass[ship->type].turnRate >= 1.0f && v < 1.0f)
         v = 1.0f;
     if (ship->ionization > 0.0f && ship->jumpTimer <= 0.0f) {
         ratio = ShipIonizationFactor(ship);
@@ -805,6 +855,7 @@ float ShipTurnRate(ShipObj *ship)
 
 /* ShipAccelRate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004640a0
+// MAC: _ShipAccelRate i386 0x0000353b ppc 0x00004490
 float ShipAccelRate(ShipObj *ship)
 {
     short i;
@@ -812,33 +863,35 @@ float ShipAccelRate(ShipObj *ship)
     short j;
     float ratio;
 
-    v = gShipTypes[ship->type].accel;
+    v = shipClass[ship->type].accel;
     if (ship->index == 0) {
-        if (gCachedAccelRate >= 0.0f) {
-            v = gCachedAccelRate;
+        if (playerAccelRate >= 0.0f) {
+            v = playerAccelRate;
         } else {
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModAccel)
-                            v += (float)(gOutfits[i].modVal[j] / 10000.0)
-                                 * shipSystems[i];
+                        if (outfitSystem[i].modType[j] == kOutfModAccel)
+                            v += (float)((float)(outfitSystem[i].modVal[j] / 10000.0)
+                                 * shipSystems[i]);
                     }
                 }
             }
             if (v < 0.0f)
                 v = 0.0f;
-            gCachedAccelRate = v;
+            playerAccelRate = v;
         }
         v *= 2.0;
     } else {
-        if ((gShipTypes[ship->type].flags & kShipFlagNoMove) != 0)
+        if ((shipClass[ship->type].flags & kShipPlanetType) != 0)
             return 0.0f;
         v *= ship->skill;
         if (ship->govt != -1)
             v *= govtData[ship->govt].skillMult;
         if (ship->tractorShip != -1 && ship->tractorShip != ship->index)
             v *= 0.333;
+        else if (ship->parentShip == 0)
+            v *= 2.0;
         else
             v *= 2.0;
     }
@@ -857,44 +910,45 @@ float ShipAccelRate(ShipObj *ship)
 
 /* ShipMaxSpeed. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004642e0
+// MAC: _ShipMaxSpeed i386 0x000036f2 ppc 0x000046c4
 float ShipMaxSpeed(ShipObj *ship)
 {
     short i;
     float v;
     short j;
 
-    v = gShipTypes[ship->type].maxSpeed;
+    v = shipClass[ship->type].maxSpeed;
     if (ship->index == 0) {
-        if (gCachedMaxSpeed >= 0.0f) {
-            v = gCachedMaxSpeed;
+        if (playerMaxSpeed >= 0.0f) {
+            v = playerMaxSpeed;
         } else {
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModSpeed)
-                            v += (float)(gOutfits[i].modVal[j] / 100.0)
-                                 * shipSystems[i];
+                        if (outfitSystem[i].modType[j] == kOutfModSpeed)
+                            v += (float)((float)(outfitSystem[i].modVal[j] / 100.0)
+                                 * shipSystems[i]);
                     }
                 }
             }
             if (v < 0.0f)
                 v = 0.0f;
-            gCachedMaxSpeed = v;
+            playerMaxSpeed = v;
         }
     } else {
-        if ((gShipTypes[ship->type].flags & kShipFlagNoMove) != 0)
+        if ((shipClass[ship->type].flags & kShipPlanetType) != 0)
             return 0.0f;
-        v = v * ship->skill;
+        v *= ship->skill;
         if (ship->govt != -1)
-            v = v * govtData[ship->govt].skillMult;
+            v *= govtData[ship->govt].skillMult;
         if (ship->tractorShip != -1 && ship->tractorShip != ship->index)
-            v = v * 0.333;
+            v *= 0.333;
     }
     if (ship->persType == kPersCaptainHector)
-        v = v * 2.0;
+        v *= 2.0;
     if (ship->index == 0 || ship->parentShip == 0) {
         if (strictPlay == 0)
-            v = v * 1.5;
+            v *= 1.5;
     }
     if (v < 0.0f)
         v = 0.0f;
@@ -904,11 +958,11 @@ float ShipMaxSpeed(ShipObj *ship)
 /* Guidance 99 is the carried-ship type. */
 
 #define kOutfModBay      11
-#define kShipFlagCarried  0x8000  /* ShipRec flags bit 15; name TBC */
 
 /* HasEscapePod (mac _HasEscapePod). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004644a0
-char HasEscapePod(ShipObj *ship)
+// MAC: _HasEscapePod i386 0x0000b83d ppc 0x0000e3e0
+Boolean HasEscapePod(ShipObj *ship)
 {
     short i;
     short j;
@@ -917,7 +971,7 @@ char HasEscapePod(ShipObj *ship)
         for (i = 0; i < 512; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModBay)
+                    if (outfitSystem[i].modType[j] == kOutfModBay)
                         return 1;
                 }
             }
@@ -928,18 +982,36 @@ char HasEscapePod(ShipObj *ship)
     return 0;
 }
 
+#ifdef MACBUILD
+/* GraphicsEmergencyBail (mac _GraphicsEmergencyBail, mac-only). STATE: see the mac gate. */
+// MAC: _GraphicsEmergencyBail i386 0x0000b8f8 ppc 0x0000e4d0
+void GraphicsEmergencyBail(void)
+{
+    Str255 msg;
+
+    ShowTheCursor();
+    FadeScreenIn();
+    GetIndString(msg, kAlertStrList, 48);
+    EVNoteAlert(msg);
+    ShowTheMenuBar();
+    ST_Close();
+    ExitToShell();
+}
+#endif
+
 /* HasEscapeShip (mac _HasEscapeShip). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00464520
-char HasEscapeShip(ShipObj *ship)
+// MAC: _HasEscapeShip i386 0x0000386e ppc 0x000048c4
+Boolean HasEscapeShip(ShipObj *ship)
 {
     short i;
     short type;
 
     for (i = 0; i < 256; i++) {
-        if (gWeapons[i].guidance == kGuidanceBay &&
+        if (weaponStats[i].guidance == kGuidanceBay &&
             ship->weap[i].ammo > 0) {
-            type = gWeapons[i].ammoType - 128;
-            if ((gShipTypes[type].flags & kShipFlagCarried) != 0)
+            type = weaponStats[i].ammoType - 128;
+            if ((shipClass[type].flags & kShipEscapeShip) != 0)
                 return 1;
         }
     }
@@ -948,35 +1020,35 @@ char HasEscapeShip(ShipObj *ship)
 
 /* EscapeShipType (mac _EscapeShipType). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00464590
+// MAC: _EscapeShipType i386 0x000038d0 ppc 0x00004938
 short EscapeShipType(ShipObj *ship)
 {
     short i;
     short type;
 
     for (i = 0; i < 256; i++) {
-        if (gWeapons[i].guidance == kGuidanceBay &&
+        if (weaponStats[i].guidance == kGuidanceBay &&
             ship->weap[i].ammo > 0) {
-            type = gWeapons[i].ammoType - 128;
-            if ((gShipTypes[type].flags & kShipFlagCarried) != 0)
+            type = weaponStats[i].ammoType - 128;
+            if ((shipClass[type].flags & kShipEscapeShip) != 0)
                 return type;
         }
     }
     return -1;
 }
 
-#define kShipCanLaunch 0x8000       /* name TBC */
-
 /* EscapeShipWeapType. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00464600
+// MAC: _EscapeShipWeapType i386 0x00003936 ppc 0x000049ac
 short EscapeShipWeapType(ShipObj *ship)
 {
-    int i;
+    short i;
     short type;
 
-    for (i = 0; (short)i < kMaxWeapTypes; i++) {
-        if (gWeapons[i].guidance == kGuidanceBay && ship->weap[i].ammo > 0) {
-            type = gWeapons[i].ammoType - kFirstResourceID;
-            if ((gShipTypes[type].flags & kShipCanLaunch) != 0)
+    for (i = 0; i < kMaxWeapTypes; i++) {
+        if (weaponStats[i].guidance == kGuidanceBay && ship->weap[i].ammo > 0) {
+            type = weaponStats[i].ammoType - kFirstResourceID;
+            if ((shipClass[type].flags & kShipEscapeShip) != 0)
                 return i;
         }
     }
@@ -985,19 +1057,20 @@ short EscapeShipWeapType(ShipObj *ship)
 
 /* KeyCarriedShipTypeOnboard (mac _KeyCarriedShipTypeOnboard). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00464670
-char KeyCarriedShipTypeOnboard(ShipObj *ship)
+// MAC: _KeyCarriedShipTypeOnboard i386 0x0000399c ppc 0x00004a28
+Boolean KeyCarriedShipTypeOnboard(ShipObj *ship)
 {
     short i;
     short escort;
     short bay;
 
-    escort = gShipTypes[ship->type].keyCarried;
+    escort = shipClass[ship->type].keyCarried;
     if (escort == -1)
         return 0;
     for (i = 0; i < 256; i++) {
-        if (gWeapons[i].guidance == kGuidanceBay &&
+        if (weaponStats[i].guidance == kGuidanceBay &&
             ship->weap[i].count > 0 && ship->weap[i].ammo > 0) {
-            bay = (gWeapons[i].ammoType - 128);
+            bay = (weaponStats[i].ammoType - 128);
             if (bay == escort)
                 return 1;
         }
@@ -1012,7 +1085,8 @@ char KeyCarriedShipTypeOnboard(ShipObj *ship)
 
 /* HasAutoEject (mac _HasAutoEject). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00464700
-char HasAutoEject(ShipObj *ship)
+// MAC: _HasAutoEject i386 0x00003a14 ppc 0x00004ab4
+Boolean HasAutoEject(ShipObj *ship)
 {
     short i;
     short j;
@@ -1021,7 +1095,7 @@ char HasAutoEject(ShipObj *ship)
         for (i = 0; i < 512; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType20)
+                    if (outfitSystem[i].modType[j] == kOutfModType20)
                         return 1;
                 }
             }
@@ -1032,7 +1106,8 @@ char HasAutoEject(ShipObj *ship)
 
 /* HasAfterburner (mac _HasAfterburner). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00464760
-char HasAfterburner(ShipObj *ship)
+// MAC: _HasAfterburner i386 0x00003a6d ppc 0x00004b24
+Boolean HasAfterburner(ShipObj *ship)
 {
     short i;
     short j;
@@ -1048,7 +1123,7 @@ char HasAfterburner(ShipObj *ship)
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModType15) {
+                        if (outfitSystem[i].modType[j] == kOutfModType15) {
                             playerHasAfterburner = 1;
                             return 1;
                         }
@@ -1061,10 +1136,10 @@ char HasAfterburner(ShipObj *ship)
 }
 
 #define kOutfModType33  0x21
-#define kGovtHalfDefense 0x80
 
 /* ShipECM (mac _ShipECM). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00464810
+// MAC: _ShipECM i386 0x00003aff ppc 0x00004bdc
 short ShipECM(ShipObj *ship, short kind)
 {
     short i;
@@ -1079,10 +1154,10 @@ short ShipECM(ShipObj *ship, short kind)
     if (ship->jamming[kind] >= 0)
         return ship->jamming[kind];
 
-    if (gShipTypes[ship->type].inherentGovtB >= 0 &&
-        gShipTypes[ship->type].inherentGovtB < 256)
+    if (shipClass[ship->type].inherentGovtB >= 0 &&
+        shipClass[ship->type].inherentGovtB < 256)
         ship->jamming[kind] =
-            govtData[gShipTypes[ship->type].inherentGovtB].inhJam[kind];
+            govtData[shipClass[ship->type].inherentGovtB].inhJam[kind];
     else
         ship->jamming[kind] = 0;
 
@@ -1090,24 +1165,24 @@ short ShipECM(ShipObj *ship, short kind)
         for (i = 0; i < 512; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType33 + kind)
-                        ship->jamming[kind] += gOutfits[i].modVal[j];
+                    if (outfitSystem[i].modType[j] == kOutfModType33 + kind)
+                        ship->jamming[kind] += outfitSystem[i].modVal[j];
                 }
             }
         }
     } else {
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] ==
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
                         kOutfModType33 + kind)
                         ship->jamming[kind] +=
-                            gOutfits[gShipTypes[ship->type].defOutfID[i]].modVal[j];
+                            outfitSystem[shipClass[ship->type].defOutfID[i]].modVal[j];
                 }
             }
         }
         if (ship->govt >= 0 && ship->govt < 256 &&
-            (govtData[ship->govt].flags & kGovtHalfDefense) != 0)
+            (govtData[ship->govt].flags & kGovtFreighterHalfJam) != 0)
             ship->jamming[kind] = ship->jamming[kind] / 2;
     }
 
@@ -1129,7 +1204,8 @@ short ShipECM(ShipObj *ship, short kind)
 
 /* ShipVisibleToShip. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00464a90
-char ShipVisibleToShip(ShipObj *ship, ShipObj *viewer)
+// MAC: _ShipVisibleToShip i386 0x0000971c ppc 0x0000ba14
+Boolean ShipVisibleToShip(ShipObj *ship, ShipObj *viewer)
 {
     if (AIShipIsEmergingFromHypergate(ship))
         return 0;
@@ -1142,10 +1218,10 @@ char ShipVisibleToShip(ShipObj *ship, ShipObj *viewer)
             if (HasCloak(viewer))
                 return 1;
         }
-        if (viewer->seesCloaked == 1) {
-            d = fabs(viewer->pos.x - ship->pos.x);
+        if (viewer->seesCloaked[0] == 1) {
+            d = FloatAbs(viewer->pos.x - ship->pos.x);
             if (d <= kDetectRange) {
-                d = fabs(viewer->pos.y - ship->pos.y);
+                d = FloatAbs(viewer->pos.y - ship->pos.y);
                 if (d <= kDetectRange)
                     return 1;
             }
@@ -1170,7 +1246,8 @@ char ShipVisibleToShip(ShipObj *ship, ShipObj *viewer)
 
 /* HasCloak (mac _HasCloak). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00464b50
-char HasCloak(ShipObj *ship)
+// MAC: _HasCloak i386 0x000095f2 ppc 0x0000b85c
+Boolean HasCloak(ShipObj *ship)
 {
     short i;
     short j;
@@ -1179,7 +1256,7 @@ char HasCloak(ShipObj *ship)
         for (i = 0; i < 512; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType17)
+                    if (outfitSystem[i].modType[j] == kOutfModType17)
                         return 1;
                 }
             }
@@ -1190,9 +1267,9 @@ char HasCloak(ShipObj *ship)
             HasAreaCloak(&shipData[ship->parentShip]))
             return 1;
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] ==
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
                         kOutfModType17)
                         return 1;
                 }
@@ -1207,35 +1284,37 @@ char HasCloak(ShipObj *ship)
 
 /* HasAreaCloak (mac _HasAreaCloak). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00464c80
-char HasAreaCloak(ShipObj *ship)
+// MAC: _HasAreaCloak i386 0x00003d49 ppc 0x00004e84
+Boolean HasAreaCloak(ShipObj *ship)
 {
     short i;
     short j;
 
     if (ship->index == 0) {
-        if (playerHasAreaCloak == -1) {
+        if (playerHasAreaCloak != -1) {
+            if (playerHasAreaCloak == 1)
+                return 1;
+        } else {
             playerHasAreaCloak = 0;
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModType17 &&
-                            (gOutfits[i].modVal[j] & kOutfModVal17Bit12) != 0) {
+                        if (outfitSystem[i].modType[j] == kOutfModType17 &&
+                            (outfitSystem[i].modVal[j] & kOutfModVal17Bit12) != 0) {
                             playerHasAreaCloak = 1;
                             return 1;
                         }
                     }
                 }
             }
-        } else if (playerHasAreaCloak == 1) {
-            return 1;
         }
     } else {
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] ==
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
                             kOutfModType17 &&
-                        (gOutfits[gShipTypes[ship->type].defOutfID[i]].modVal[j] &
+                        (outfitSystem[shipClass[ship->type].defOutfID[i]].modVal[j] &
                             kOutfModVal17Bit12) != 0)
                         return 1;
                 }
@@ -1253,6 +1332,7 @@ char HasAreaCloak(ShipObj *ship)
  */
 /* CloakFuelUsage (mac _CloakFuelUsage). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00464db0
+// MAC: _CloakFuelUsage i386 0x00003e25 ppc 0x00004fb8
 short CloakFuelUsage(ShipObj *ship)
 {
     short i;
@@ -1262,8 +1342,8 @@ short CloakFuelUsage(ShipObj *ship)
         for (i = 0; i < 512; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModNibblePair)
-                        return (gOutfits[i].modVal[j] >> 4) & 0xf;
+                    if (outfitSystem[i].modType[j] == kOutfModNibblePair)
+                        return (outfitSystem[i].modVal[j] >> 4) & 0xf;
                 }
             }
         }
@@ -1273,7 +1353,8 @@ short CloakFuelUsage(ShipObj *ship)
 
 /* CloakZeroesShields (mac _CloakZeroesShields). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00464e30
-char CloakZeroesShields(ShipObj *ship)
+// MAC: _CloakZeroesShields i386 0x00003e9d ppc 0x00005040
+Boolean CloakZeroesShields(ShipObj *ship)
 {
     short i;
     short j;
@@ -1282,8 +1363,8 @@ char CloakZeroesShields(ShipObj *ship)
         for (i = 0; i < 512; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType17) {
-                        if ((gOutfits[i].modVal[j] & kOutfModVal30Bit2) != 0)
+                    if (outfitSystem[i].modType[j] == kOutfModType17) {
+                        if ((outfitSystem[i].modVal[j] & kOutfModVal30Bit2) != 0)
                             return 1;
                         return 0;
                     }
@@ -1292,11 +1373,11 @@ char CloakZeroesShields(ShipObj *ship)
         }
     } else {
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] ==
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
                         kOutfModType17) {
-                        if ((gOutfits[gShipTypes[ship->type].defOutfID[i]].modVal[j] &
+                        if ((outfitSystem[shipClass[ship->type].defOutfID[i]].modVal[j] &
                              kOutfModVal30Bit2) != 0)
                             return 1;
                         return 0;
@@ -1310,7 +1391,8 @@ char CloakZeroesShields(ShipObj *ship)
 
 /* ShipDecloaksWhenHit (mac _ShipDecloaksWhenHit). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00464f60
-char ShipDecloaksWhenHit(ShipObj *ship)
+// MAC: _ShipDecloaksWhenHit i386 0x00003f68 ppc 0x00005180
+Boolean ShipDecloaksWhenHit(ShipObj *ship)
 {
     short i;
     short j;
@@ -1319,8 +1401,8 @@ char ShipDecloaksWhenHit(ShipObj *ship)
         for (i = 0; i < 512; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType17) {
-                        if ((gOutfits[i].modVal[j] & kOutfModVal30Bit3) != 0)
+                    if (outfitSystem[i].modType[j] == kOutfModType17) {
+                        if ((outfitSystem[i].modVal[j] & kOutfModVal30Bit3) != 0)
                             return 1;
                         return 0;
                     }
@@ -1329,11 +1411,11 @@ char ShipDecloaksWhenHit(ShipObj *ship)
         }
     } else {
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] ==
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
                         kOutfModType17) {
-                        if ((gOutfits[gShipTypes[ship->type].defOutfID[i]].modVal[j] &
+                        if ((outfitSystem[shipClass[ship->type].defOutfID[i]].modVal[j] &
                              kOutfModVal30Bit3) != 0)
                             return 1;
                         return 0;
@@ -1347,6 +1429,7 @@ char ShipDecloaksWhenHit(ShipObj *ship)
 
 /* CloakShieldUsage (mac _CloakShieldUsage). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00465090
+// MAC: _CloakShieldUsage i386 0x00004033 ppc 0x000052c0
 short CloakShieldUsage(ShipObj *ship)
 {
     short i;
@@ -1356,18 +1439,18 @@ short CloakShieldUsage(ShipObj *ship)
         for (i = 0; i < 512; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType17)
-                        return (gOutfits[i].modVal[j] >> 8) & 0xf;
+                    if (outfitSystem[i].modType[j] == kOutfModType17)
+                        return (outfitSystem[i].modVal[j] >> 8) & 0xf;
                 }
             }
         }
     } else {
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] ==
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
                         kOutfModType17)
-                        return (gOutfits[gShipTypes[ship->type].defOutfID[i]].modVal[j] >>
+                        return (outfitSystem[shipClass[ship->type].defOutfID[i]].modVal[j] >>
                                 8) & 0xf;
                 }
             }
@@ -1385,7 +1468,8 @@ short CloakShieldUsage(ShipObj *ship)
 
 /* ShipCloakVisibleOnRadar. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004651a0
-char ShipCloakVisibleOnRadar(ShipObj *ship)
+// MAC: _ShipCloakVisibleOnRadar i386 0x000040f8 ppc 0x000053f8
+Boolean ShipCloakVisibleOnRadar(ShipObj *ship)
 {
     short i;
     short j;
@@ -1394,19 +1478,19 @@ char ShipCloakVisibleOnRadar(ShipObj *ship)
         for (i = 0; i < 512; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType17 &&
-                        (gOutfits[i].modVal[j] & kOutfModVal17Bit1) != 0)
+                    if (outfitSystem[i].modType[j] == kOutfModType17 &&
+                        (outfitSystem[i].modVal[j] & kOutfModVal17Bit1) != 0)
                         return 1;
                 }
             }
         }
     } else {
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] ==
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
                             kOutfModType17 &&
-                        (gOutfits[gShipTypes[ship->type].defOutfID[i]].modVal[j] &
+                        (outfitSystem[shipClass[ship->type].defOutfID[i]].modVal[j] &
                             kOutfModVal17Bit1) != 0)
                         return 1;
                 }
@@ -1422,7 +1506,8 @@ char ShipCloakVisibleOnRadar(ShipObj *ship)
 
 /* ShipCanSeeCloakedShips (mac _ShipCanSeeCloakedShips). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004652a0
-char ShipCanSeeCloakedShips(ShipObj *ship, short which)
+// MAC: _ShipCanSeeCloakedShips i386 0x000041a9 ppc 0x000054f4
+Boolean ShipCanSeeCloakedShips(ShipObj *ship, short which)
 {
     short i;
     short j;
@@ -1433,11 +1518,11 @@ char ShipCanSeeCloakedShips(ShipObj *ship, short which)
         for (i = 0; i < 512; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType30) {
-                        if ((gOutfits[i].modVal[j] & kOutfModVal30Bit1) != 0 &&
+                    if (outfitSystem[i].modType[j] == kOutfModType30) {
+                        if ((outfitSystem[i].modVal[j] & kOutfModVal30Bit1) != 0 &&
                             which == 0)
                             return 1;
-                        if ((gOutfits[i].modVal[j] & kOutfModVal30Bit0) != 0 &&
+                        if ((outfitSystem[i].modVal[j] & kOutfModVal30Bit0) != 0 &&
                             which == 1)
                             return 1;
                     }
@@ -1446,16 +1531,16 @@ char ShipCanSeeCloakedShips(ShipObj *ship, short which)
         }
     } else {
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] ==
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
                         kOutfModType30) {
                         if (which == 0 &&
-                            (gOutfits[gShipTypes[ship->type].defOutfID[i]].modVal[j] &
+                            (outfitSystem[shipClass[ship->type].defOutfID[i]].modVal[j] &
                                 kOutfModVal30Bit1) != 0)
                             return 1;
                         if (which == 1 &&
-                            (gOutfits[gShipTypes[ship->type].defOutfID[i]].modVal[j] &
+                            (outfitSystem[shipClass[ship->type].defOutfID[i]].modVal[j] &
                                 kOutfModVal30Bit0) != 0)
                             return 1;
                     }
@@ -1468,22 +1553,23 @@ char ShipCanSeeCloakedShips(ShipObj *ship, short which)
 
 /* HasDensityScanner. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00465410
-char HasDensityScanner(ShipObj *ship)
+// MAC: _HasDensityScanner i386 0x000042c0 ppc 0x00005634
+Boolean HasDensityScanner(ShipObj *ship)
 {
     short i;
     short j;
 
     if (ship->index == 0) {
-        if (gHasModType13 >= 0) {
-            if (gHasModType13 != 0)
+        if (playerHasDensityScanner >= 0) {
+            if (playerHasDensityScanner != 0)
                 return 1;
         } else {
-            gHasModType13 = 0;
+            playerHasDensityScanner = 0;
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModType13) {
-                            gHasModType13 = 1;
+                        if (outfitSystem[i].modType[j] == kOutfModType13) {
+                            playerHasDensityScanner = 1;
                             return 1;
                         }
                     }
@@ -1497,22 +1583,23 @@ char HasDensityScanner(ShipObj *ship)
 /* the literal twin of the above, one modifier type along and its own cache */
 /* HasIFF (mac _HasIFF). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004654b0
-char HasIFF(ShipObj *ship)
+// MAC: _HasIFF i386 0x00004348 ppc 0x000056d4
+Boolean HasIFF(ShipObj *ship)
 {
     short i;
     short j;
 
     if (ship->index == 0) {
-        if (gHasModType14 >= 0) {
-            if (gHasModType14 != 0)
+        if (playerHasIFF >= 0) {
+            if (playerHasIFF != 0)
                 return 1;
         } else {
-            gHasModType14 = 0;
+            playerHasIFF = 0;
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModType14) {
-                            gHasModType14 = 1;
+                        if (outfitSystem[i].modType[j] == kOutfModType14) {
+                            playerHasIFF = 1;
                             return 1;
                         }
                     }
@@ -1527,25 +1614,24 @@ char HasIFF(ShipObj *ship)
 
 /* ShipHyperTransitTime (mac _ShipHyperTransitTime). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00465550
+// MAC: _ShipHyperTransitTime i386 0x000043d0 ppc 0x00005774
 short ShipHyperTransitTime(ShipObj *ship)
 {
-    int i;
+    short i;
     short j;
     short count;
-    short mass;
 
     count = 1;
-    mass = gShipTypes[ship->type].mass;
-    if (mass >= 100)
+    if (shipClass[ship->type].mass >= 100)
         count++;
-    if (mass >= 200)
+    if (shipClass[ship->type].mass >= 200)
         count++;
     if (ship->index == 0) {
-        for (i = 0; (short)i < 512; i++) {
-            if (shipSystems[(short)i] > 0) {
+        for (i = 0; i < 512; i++) {
+            if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType22)
-                        count += shipSystems[(short)i] * gOutfits[i].modVal[j];
+                    if (outfitSystem[i].modType[j] == kOutfModType22)
+                        count += outfitSystem[i].modVal[j] * shipSystems[i];
                 }
             }
         }
@@ -1563,20 +1649,20 @@ short ShipHyperTransitTime(ShipObj *ship)
 
 /* ShipHyperSafeDist. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00465610
+// MAC: _ShipHyperSafeDist i386 0x00004485 ppc 0x00005830
 long ShipHyperSafeDist(ShipObj *ship)
 {
-    int i;
+    short i;
     short j;
     long range;
 
     range = 1000;
     if (ship->index == 0) {
-        for (i = 0; (short)i < 512; i++) {
-            if (shipSystems[(short)i] > 0) {
+        for (i = 0; i < 512; i++) {
+            if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType23)
-                        range += shipSystems[(short)i] *
-                                 gOutfits[i].modVal[j];
+                    if (outfitSystem[i].modType[j] == kOutfModType23)
+                        range += outfitSystem[i].modVal[j] * shipSystems[i];
                 }
             }
         }
@@ -1593,17 +1679,26 @@ long ShipHyperSafeDist(ShipObj *ship)
 /* HasMaxOfItem. STATE: MATCH, 299/299; byte check pending the next regate (bytediff reads
    the baseline). OPEN: none */
 // FUNCTION: EVNOVA 0x004656a0
-char HasMaxOfItem(short index, short *outBound, short *outCap)
+// MAC: _HasMaxOfItem i386 0x00004512 ppc 0x000058b4
+Boolean HasMaxOfItem(short index, short *outBound, short *outCap)
 {
-    long idx;
-    short limit;
-    short maxCount;
-    short maxAmmo;
-    short j;
-    short k;
+#ifdef MAC1010 /* 1.0.10 spelling */
     short sumOwned;
     short sumFlag1;
     short sumFlag2;
+    short j;
+    short k;
+    short limit;
+    short ammo;
+#else
+    short limit;
+    short maxCount;
+    short j;
+    short k;
+    short sumFlag1;
+    short sumFlag2;
+    short sumOwned;
+#endif
 
     if (index < 0 || index >= 0x200) {
         if (outBound)
@@ -1613,41 +1708,58 @@ char HasMaxOfItem(short index, short *outBound, short *outCap)
         return 1;
     }
 
-    idx = index;
-    maxCount = gOutfits[idx].maxCount;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    limit = outfitSystem[index].maxCount;
+    if (outCap)
+        *outCap = limit;
+
+    if (outfitSystem[index].modType[0] == kOutfModAmmo) {
+        if (weaponStats[outfitSystem[index].modVal[0]].maxAmmo > 0) {
+            ammo = weaponStats[outfitSystem[index].modVal[0]].maxAmmo * shipData->weap[outfitSystem[index].modVal[0]].count;
+            if (outCap && ammo < *outCap)
+                *outCap = ammo;
+            if (shipSystems[index] >= ammo) {
+                if (outBound)
+                    *outBound = ammo;
+                return 1;
+            }
+        }
+    }
+#else
+    maxCount = outfitSystem[index].maxCount;
     if (outCap)
         *outCap = maxCount;
 
-    if (gOutfits[idx].modType[0] == kOutfModAmmo) {
-        maxAmmo = gWeapons[gOutfits[idx].modVal[0]].maxAmmo;
-        if (maxAmmo > 0) {
-            limit = maxAmmo * shipData->weap[gOutfits[(unsigned long)idx].modVal[0]].count;
+    if (outfitSystem[index].modType[0] == kOutfModAmmo) {
+        if (weaponStats[outfitSystem[index].modVal[0]].maxAmmo > 0) {
+            limit = weaponStats[outfitSystem[index].modVal[0]].maxAmmo * shipData->weap[outfitSystem[index].modVal[0]].count;
             if (outCap && limit < *outCap)
                 *outCap = limit;
-            if (shipSystems[idx] >= limit) {
+            if (shipSystems[index] >= limit) {
                 if (outBound)
                     *outBound = limit;
                 return 1;
             }
         }
     }
+#endif
 
     sumOwned = 0;
     for (j = 0; j < 0x200; j++) {
         if (shipSystems[j] > 0) {
             for (k = 0; k < kOutfMods; k++) {
-                if (gOutfits[j].modType[k] == kModTypeMaxOwned &&
-                    gOutfits[j].modVal[k] == index + 128)
+                if (outfitSystem[j].modType[k] == kModTypeMaxOwned &&
+                    outfitSystem[j].modVal[k] == index + 128)
                     sumOwned += shipSystems[j];
             }
         }
     }
     if (sumOwned < 1)
         sumOwned = 1;
-    limit = sumOwned * gOutfits[idx].maxCount;
+    limit = sumOwned * outfitSystem[index].maxCount;
     if (outCap && (limit < *outCap || sumOwned > 1))
         *outCap = limit;
-    if (shipSystems[idx] >= limit) {
+    if (shipSystems[index] >= limit) {
         if (outBound)
             *outBound = limit;
         return 1;
@@ -1656,20 +1768,20 @@ char HasMaxOfItem(short index, short *outBound, short *outCap)
     sumFlag1 = sumFlag2 = 0;
     for (j = 0; j < 0x200; j++) {
         if (shipSystems[j] > 0) {
-            if (gOutfits[j].flags & kOutfFixedGun)
+            if (outfitSystem[j].flags & kOutfFixedGun)
                 sumFlag1 += shipSystems[j];
-            if (gOutfits[j].flags & kOutfTurret)
+            if (outfitSystem[j].flags & kOutfTurret)
                 sumFlag2 += shipSystems[j];
         }
     }
 
-    if (gOutfits[idx].flags & kOutfFixedGun) {
-        limit = gShipTypes[shipData->type].maxGuns;
+    if (outfitSystem[index].flags & kOutfFixedGun) {
+        limit = shipClass[shipData->type].maxGuns;
         for (j = 0; j < 0x200; j++) {
             if (shipSystems[j] > 0) {
                 for (k = 0; k < kOutfMods; k++) {
-                    if (gOutfits[j].modType[k] == kModTypeGunLimit) {
-                        limit += gOutfits[j].modVal[k];
+                    if (outfitSystem[j].modType[k] == kModTypeGunLimit) {
+                        limit += outfitSystem[j].modVal[k];
                         break;
                     }
                 }
@@ -1677,26 +1789,25 @@ char HasMaxOfItem(short index, short *outBound, short *outCap)
         }
         if (outCap && limit < *outCap)
             *outCap = limit;
-        if (limit > 0) {
-            if (sumFlag1 >= limit) {
-                if (outBound)
-                    *outBound = limit;
-                return 1;
-            }
-        } else {
+        if (limit <= 0) {
             if (outBound)
                 *outBound = 0;
             return 1;
         }
+        if (sumFlag1 >= limit) {
+            if (outBound)
+                *outBound = limit;
+            return 1;
+        }
     }
 
-    if (gOutfits[idx].flags & kOutfTurret) {
-        limit = gShipTypes[shipData->type].maxTurrets;
+    if (outfitSystem[index].flags & kOutfTurret) {
+        limit = shipClass[shipData->type].maxTurrets;
         for (j = 0; j < 0x200; j++) {
             if (shipSystems[j] > 0) {
                 for (k = 0; k < kOutfMods; k++) {
-                    if (gOutfits[j].modType[k] == kModTypeTurretLimit) {
-                        limit += gOutfits[j].modVal[k];
+                    if (outfitSystem[j].modType[k] == kModTypeTurretLimit) {
+                        limit += outfitSystem[j].modVal[k];
                         break;
                     }
                 }
@@ -1704,26 +1815,26 @@ char HasMaxOfItem(short index, short *outBound, short *outCap)
         }
         if (outCap && limit < *outCap)
             *outCap = limit;
-        if (limit > 0) {
-            if (sumFlag2 >= limit) {
-                if (outBound)
-                    *outBound = limit;
-                return 1;
-            }
-        } else {
+        if (limit <= 0) {
             if (outBound)
                 *outBound = 0;
+            return 1;
+        }
+        if (sumFlag2 >= limit) {
+            if (outBound)
+                *outBound = limit;
             return 1;
         }
     }
 
     if (outBound)
-        *outBound = shipSystems[idx];
+        *outBound = shipSystems[index];
     return 0;
 }
 
 /* DrawCommaNumber. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00465af0
+// MAC: _DrawCommaNumber i386 0x00004895 ppc 0x00005cb0
 void DrawCommaNumber(long value)
 {
     long group;
@@ -1733,31 +1844,31 @@ void DrawCommaNumber(long value)
         NumToString(value, str);
         DrawString(str);
     } else if (value < 1000000) {
-        group = value % 1000;
         NumToString(value / 1000, str);
         DrawString(str);
-        DrawString((unsigned char *)"\1,");
-        if (group < 100)
-            DrawString((unsigned char *)"\0010");
-        if (group < 10)
-            DrawString((unsigned char *)"\0010");
-        NumToString(group, str);
+        DrawString("\p,");
+        if (value % 1000 < 100)
+            DrawString("\p0");
+        if (value % 1000 < 10)
+            DrawString("\p0");
+        NumToString(value % 1000, str);
         DrawString(str);
     } else {
         NumToString(value / 1000000, str);
         DrawString(str);
-        DrawString((unsigned char *)"\1.");
-        group = (value % 1000000) / 10000;
-        NumToString(group, str);
-        if (group < 10)
-            DrawString((unsigned char *)"\0010");
+        DrawString("\p.");
+        group = value % 1000000;
+        NumToString(group / 10000, str);
+        if (group / 10000 < 10)
+            DrawString("\p0");
         DrawString(str);
-        DrawString((unsigned char *)"\1M");
+        DrawString("\pM");
     }
 }
 
 /* StrcatCommaNumber. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00465c10
+// MAC: _StrcatCommaNumber i386 0x00008820 ppc 0x0000a8e0
 void StrcatCommaNumber(long value, char *dst)
 {
     long group;
@@ -1768,16 +1879,15 @@ void StrcatCommaNumber(long value, char *dst)
         PtoCstr(str);
         strcat(dst, (char *)str);
     } else if (value < 1000000) {
-        group = value % 1000;
         NumToString(value / 1000, str);
         PtoCstr(str);
         strcat(dst, (char *)str);
         strcat(dst, ",");
-        if (group < 100)
+        if (value % 1000 < 100)
             strcat(dst, "0");
-        if (group < 10)
+        if (value % 1000 < 10)
             strcat(dst, "0");
-        NumToString(group, str);
+        NumToString(value % 1000, str);
         PtoCstr(str);
         strcat(dst, (char *)str);
     } else {
@@ -1785,9 +1895,9 @@ void StrcatCommaNumber(long value, char *dst)
         PtoCstr(str);
         strcat(dst, (char *)str);
         strcat(dst, ".");
-        group = (value % 1000000) / 10000;
-        NumToString(group, str);
-        if (group < 10)
+        group = value % 1000000;
+        NumToString(group / 10000, str);
+        if (group / 10000 < 10)
             strcat(dst, "0");
         PtoCstr(str);
         strcat(dst, (char *)str);
@@ -1803,14 +1913,15 @@ void StrcatCommaNumber(long value, char *dst)
  */
 /* StrcatOrdinalNumber. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00465d90
-void StrcatOrdinalNumber(short n, char *dst, char capitalize)
+// MAC: _StrcatOrdinalNumber i386 0x00008ab4 ppc 0x0000ab98
+void StrcatOrdinalNumber(short n, char *dst, Boolean capitalize)
 {
     unsigned char numStr[256];
     unsigned char word[256];
 
     if (n >= 1 && n <= 10) {
         strcpy((char *)word, "");
-        AppendIndString((char *)word, kOrdinalsSTR, n + kOrdinalsBase);
+        StrcatIndCString((char *)word, kOrdinalsSTR, n + kOrdinalsBase);
     } else {
         NumToString(n, numStr);
         PtoCstr(numStr);
@@ -1821,9 +1932,33 @@ void StrcatOrdinalNumber(short n, char *dst, char capitalize)
     strcat(dst, (char *)word);
 }
 
+#ifdef MACBUILD
+/* DateToShortString (mac _DateToShortString, mac-only). STATE: see the mac gate. */
+// MAC: _DateToShortString i386 0x00008b79 ppc 0x0000ac68
+void DateToShortString(DateTimeRec date, char *out)
+{
+    Str255 str;
+
+    strcpy(out, datePrefix);
+    NumToString(date.month, str);
+    PtoCstr(str);
+    strcat(out, (char *)str);
+    strcat(out, "/");
+    NumToString(date.day, str);
+    PtoCstr(str);
+    strcat(out, (char *)str);
+    strcat(out, "/");
+    NumToString(date.year, str);
+    PtoCstr(str);
+    strcat(out, (char *)str);
+    strcat(out, dateSuffix);
+}
+#endif
+
 /* CanBuyGoods (mac _CanBuyGoods). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00465e50
-char CanBuyGoods(short item)
+// MAC: _CanBuyGoods i386 0x0000ccec ppc 0x0000fe3c
+Boolean CanBuyGoods(short item)
 {
     if (shipData->credits < tradePrice[item])
         return 0;
@@ -1834,7 +1969,8 @@ char CanBuyGoods(short item)
 
 /* CanSellGoods (mac _CanSellGoods). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00465ea0
-char CanSellGoods(short item)
+// MAC: _CanSellGoods i386 0x00004a94 ppc 0x00005efc
+Boolean CanSellGoods(short item)
 {
     short junk;
 
@@ -1853,6 +1989,7 @@ char CanSellGoods(short item)
 
 /* ColorCodeShip (mac _ColorCodeShip). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00465f00
+// MAC: _ColorCodeShip i386 0x00004ae8 ppc 0x00005f6c
 void ColorCodeShip(ShipObj *ship, RGBColor *color)
 {
     short parent;
@@ -1864,9 +2001,7 @@ void ColorCodeShip(ShipObj *ship, RGBColor *color)
         return;
     }
     if (IsDisabled(ship)) {
-        color->red = rgbDarkGrey.red;
-        color->green = rgbDarkGrey.green;
-        color->blue = rgbDarkGrey.blue;
+        *color = rgbDarkGrey;
     } else if (IsThreatToPlayer(ship)) {
         color->red = 0xffff;
         color->green = 0;
@@ -1874,17 +2009,15 @@ void ColorCodeShip(ShipObj *ship, RGBColor *color)
     } else {
         parent = ship->parentShip;
         if (parent == 0 && ship->defenseStellar == -1) {
-            color->red = brightGreen.red;
-            color->green = brightGreen.green;
-            color->blue = brightGreen.blue;
-        } else if (parent == -1) {
-            color->red = 0;
-            color->green = 0;
-            color->blue = 0xffff;
-        } else if (shipData[parent].parentShip == 0) {
-            color->red = brightGreen.red;
-            color->green = brightGreen.green;
-            color->blue = brightGreen.blue;
+            *color = brightGreen;
+        } else if (parent != -1) {
+            if (shipData[parent].parentShip == 0) {
+                *color = brightGreen;
+            } else {
+                color->red = 0;
+                color->green = 0;
+                color->blue = 0xffff;
+            }
         } else {
             color->red = 0;
             color->green = 0;
@@ -1895,32 +2028,32 @@ void ColorCodeShip(ShipObj *ship, RGBColor *color)
 
 /* ColorCodeStellar (mac _ColorCodeStellar). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00466030
+// MAC: _ColorCodeStellar i386 0x0000aa26 ppc 0x0000d1ac
 void ColorCodeStellar(SpobRecord *spob, RGBColor *color)
 {
-    char uninhabited;
-    short minStatus;
+    Boolean uninhabited;
 
     uninhabited = SpobUninhabited(spob);
     if (!StellarIsLandable(spob)) {
-        color->red = rgbMedGrey.red;
-        color->green = rgbMedGrey.green;
-        color->blue = rgbMedGrey.blue;
+        *color = rgbMedGrey;
     } else if (uninhabited) {
-        color->red = rgbMedGrey.red;
-        color->green = rgbMedGrey.green;
-        color->blue = rgbMedGrey.blue;
+        *color = rgbMedGrey;
     } else if (spob->flags2 & kSpobHypergate) {
-        if (spob->govt == -1 || !PlayerBlessedByGovt(spob->govt, 1)) {
-            minStatus = spob->minStatus;
-            if (minStatus == 0x7fff ||
-                (playerLegalStatus[spob->system] < minStatus && minStatus > -0x7fff)) {
-                if (playerLegalStatus[spob->system] < 0) {
+        if (spob->govt != -1 && PlayerBlessedByGovt(spob->govt, 1)) {
+            color->red = 0xffff;
+            color->green = 0xffff;
+            color->blue = 0;
+        } else {
+            if (spob->minStatus == 0x7fff
+                    || (playerRecord[spob->system] < spob->minStatus
+                        && spob->minStatus > -0x7fff)) {
+                if (playerRecord[spob->system] >= 0) {
                     color->red = 0xffff;
-                    color->green = 0;
+                    color->green = 0x6666;
                     color->blue = 0;
                 } else {
                     color->red = 0xffff;
-                    color->green = 0x6666;
+                    color->green = 0;
                     color->blue = 0;
                 }
             } else {
@@ -1928,27 +2061,27 @@ void ColorCodeStellar(SpobRecord *spob, RGBColor *color)
                 color->green = 0xffff;
                 color->blue = 0;
             }
-        } else {
-            color->red = 0xffff;
-            color->green = 0xffff;
-            color->blue = 0;
         }
     } else if (spob->flags2 & kSpobWormhole) {
         color->red = 0;
         color->green = 0x55f0;
         color->blue = 0x55f0;
     } else if (spob->dominated == 0) {
-        if (spob->govt == -1 || !PlayerBlessedByGovt(spob->govt, 1)) {
-            minStatus = spob->minStatus;
-            if (minStatus == 0x7fff ||
-                (playerLegalStatus[spob->system] < minStatus && minStatus > -0x7fff)) {
-                if (playerLegalStatus[spob->system] < 0) {
+        if (spob->govt != -1 && PlayerBlessedByGovt(spob->govt, 1)) {
+            color->red = 0xffff;
+            color->green = 0xffff;
+            color->blue = 0;
+        } else {
+            if (spob->minStatus == 0x7fff
+                    || (playerRecord[spob->system] < spob->minStatus
+                        && spob->minStatus > -0x7fff)) {
+                if (playerRecord[spob->system] >= 0) {
                     color->red = 0xffff;
-                    color->green = 0;
+                    color->green = 0x6666;
                     color->blue = 0;
                 } else {
                     color->red = 0xffff;
-                    color->green = 0x6666;
+                    color->green = 0;
                     color->blue = 0;
                 }
             } else {
@@ -1956,10 +2089,6 @@ void ColorCodeStellar(SpobRecord *spob, RGBColor *color)
                 color->green = 0xffff;
                 color->blue = 0;
             }
-        } else {
-            color->red = 0xffff;
-            color->green = 0xffff;
-            color->blue = 0;
         }
     } else {
         color->red = 0;
@@ -1970,83 +2099,73 @@ void ColorCodeStellar(SpobRecord *spob, RGBColor *color)
 
 /* ColorCodeSystem (mac _ColorCodeSystem). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00466260
+// MAC: _ColorCodeSystem i386 0x0000d672 ppc 0x00010b04
 void ColorCodeSystem(short sys, RGBColor *color)
 {
-    short first;
+    short i;
     short special;
+    short friendly;
     short warned;
     short hostile;
-    short i;
-    short friendly;
     short spob;
-    short minStatus;
+    short first;
 
     first = FindFirstCoLocatedSystem(sys);
     sys = FindActiveCoLocatedSystem(sys);
-    color->red = rgbDarkGrey.red;
-    color->green = rgbDarkGrey.green;
-    color->blue = rgbDarkGrey.blue;
+    *color = rgbDarkGrey;
     if (sys < 0 || sys >= 2048 || first < 0 || first >= 2048)
         return;
-    if (gSystems[first].exploreLevel <= 0) {
-        color->red = rgbDarkGrey.red;
-        color->green = rgbDarkGrey.green;
-        color->blue = rgbDarkGrey.blue;
-    } else if (SystemIsInhabited(sys)) {
-        friendly = 0;
-        special = 0;
-        warned = 0;
-        hostile = 0;
-        for (i = 0; i < kNavSlots; i++) {
-            spob = gSystems[sys].navDefault[i];
-            if (spob != -1 && stellarData[spob].loaded != 0 &&
-                !SpobIsHyperOrWorm(&stellarData[spob]) &&
-                !SpobUninhabited(&stellarData[spob]) &&
-                StellarIsLandable(&stellarData[spob])) {
-                if (stellarData[spob].dominated != 0) {
-                    special++;
-                } else if (stellarData[spob].govt != -1 &&
-                           PlayerBlessedByGovt(stellarData[spob].govt, 1)) {
-                    friendly++;
-                } else {
-                    minStatus = stellarData[spob].minStatus;
-                    if (minStatus == 0x7fff ||
-                        (playerLegalStatus[first] < minStatus && minStatus > -0x7fff)) {
-                        if (playerLegalStatus[first] < 0)
-                            hostile++;
-                        else
+    if (systemData[first].exploreLevel > 0) {
+        if (SystemIsInhabited(sys)) {
+            special = 0;
+            friendly = 0;
+            warned = 0;
+            hostile = 0;
+            for (i = 0; i < kNavSlots; i++) {
+                spob = systemData[sys].navDefault[i];
+                if (spob != -1 && stellarData[spob].loaded != 0 &&
+                    !SpobIsHyperOrWorm(&stellarData[spob]) &&
+                    !SpobUninhabited(&stellarData[spob]) &&
+                    StellarIsLandable(&stellarData[spob])) {
+                    if (stellarData[spob].dominated != 0) {
+                        special++;
+                    } else if (stellarData[spob].govt != -1 &&
+                               PlayerBlessedByGovt(stellarData[spob].govt, 1)) {
+                        friendly++;
+                    } else if (stellarData[spob].minStatus == 0x7fff ||
+                               (playerRecord[first] < stellarData[spob].minStatus &&
+                                stellarData[spob].minStatus > -0x7fff)) {
+                        if (playerRecord[first] >= 0)
                             warned++;
+                        else
+                            hostile++;
                     } else {
                         friendly++;
                     }
                 }
             }
-        }
-        if (special > 0) {
-            color->red = brightGreen.red;
-            color->green = brightGreen.green;
-            color->blue = brightGreen.blue;
-        } else if (friendly > 0) {
-            color->red = 0;
-            color->green = 0;
-            color->blue = 0xffff;
-        } else if (warned > 0) {
-            color->red = 0xffff;
-            color->green = 0x6666;
-            color->blue = 0;
-        } else if (hostile > 0) {
-            color->red = 0xffff;
-            color->green = 0;
-            color->blue = 0;
+            if (special > 0) {
+                *color = brightGreen;
+            } else if (friendly > 0) {
+                color->red = 0;
+                color->green = 0;
+                color->blue = 0xffff;
+            } else if (warned > 0) {
+                color->red = 0xffff;
+                color->green = 0x6666;
+                color->blue = 0;
+            } else if (hostile > 0) {
+                color->red = 0xffff;
+                color->green = 0;
+                color->blue = 0;
+            } else {
+                *color = rgbLightGrey;
+            }
         } else {
-            color->red = rgbLightGrey.red;
-            color->green = rgbLightGrey.green;
-            color->blue = rgbLightGrey.blue;
+            *color = rgbLightGrey;
         }
     } else {
-        color->red = rgbLightGrey.red;
-        color->green = rgbLightGrey.green;
-        color->blue = rgbLightGrey.blue;
+        *color = rgbDarkGrey;
     }
 }
 
@@ -2054,60 +2173,112 @@ void ColorCodeSystem(short sys, RGBColor *color)
 
 /* CenterPict. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00466540
+// MAC: _CenterPict i386 0x00008652 ppc 0x0000a6c8
+#if !defined(MACBUILD) || !V111
 void CenterPict(void *pict, Rect *bounds)
-{
-    short top;
-    short left;
-    short bottom;
-    short right;
-    Rect frame;
+#include "../engine/centerpict.inc"
+#endif
 
-    if (pict != 0) {
-        top = bounds->top;
-        left = bounds->left;
-        bottom = bounds->bottom;
-        right = bounds->right;
-        QDGetPictureBounds((PicHandle)pict, &frame);
-        bounds->top = (((bottom - top) - (frame.bottom - frame.top)) / 2 + top);
-        bounds->bottom = (frame.bottom - frame.top) + bounds->top;
-        bounds->left = (((right - left) - (frame.right - frame.left)) / 2 + left);
-        bounds->right = (frame.right - frame.left) + bounds->left;
-    }
+#ifdef MACBUILD
+/* KeyCodeToString (mac _KeyCodeToString, mac-only). STATE: see the mac gate. */
+// MAC: _KeyCodeToString i386 0x00004ca0 ppc 0x00006190
+StringPtr KeyCodeToString(short code)
+{
+    Str255 name;
+
+    GetIndString(name, kKeyNameStrList, code + 1);
+    /* BUG: returns the address of a dead stack buffer */
+    return name[0] ? name : "\pUnknown";
 }
+#endif
 
 /* MSL <ctype.h> inlines tolower's table lookup; the exe calls the library
    function (0x004d6230), so declare it without the header. */
 
 /* CullNameString (mac _CullNameString). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004665f0
+// MAC: _CullNameString i386 0x0000dbe2 ppc 0x00011150
 void CullNameString(unsigned char *name)
 {
-    int t;
     short skip;
     short len;
     short i;
-    unsigned char culled[256];
+    short count;
     unsigned char work[256];
+    unsigned char culled[256];
 
     pstrcpy(work, name);
     PtoCstr(work);
     skip = 0;
     len = strlen((char *)work);
+    count = len;
     if (tolower(work[0]) == 't' && tolower(work[1]) == 'h'
             && tolower(work[2]) == 'e') {
-        t = work[3];
-        if (t == ' ') {
+        if (work[3] == ' ') {
             skip += 4;
-            len -= 4;
+            count -= 4;
         }
     }
-    for (i = 0; i < len; i++)
+    for (i = 0; i < count; i++)
         culled[i] = work[i + skip];
     culled[i] = 0;
     CtoPstr((char *)culled);
     pstrcpy(name, culled);
 }
 
+#ifdef MACBUILD
+/* DebugCStr (mac _DebugCStr, mac-only). STATE: see the mac gate. */
+// MAC: _DebugCStr i386 0x0000dd2d ppc 0x000112f4
+void DebugCStr(char *s)
+{
+    Str255 p;
+
+    strcpy((char *)p, s);
+    CtoPstr((char *)p);
+    DebugStr(p);
+}
+
+/* DebugStrInt (mac _DebugStrInt, mac-only). STATE: see the mac gate. */
+// MAC: _DebugStrInt i386 0x0000dd82 ppc 0x00011368
+void DebugStrInt(StringPtr s, short n)
+{
+    Str255 str;
+    Str255 num;
+
+    pstrcpy(str, s);
+    PtoCstr(str);
+    NumToString(n, num);
+    PtoCstr(num);
+    strcat((char *)str, (char *)num);
+    CtoPstr((char *)str);
+    DebugStr(str);
+}
+#endif
+
+#ifdef MAC1010
+/* ScanForKeys (mac _ScanForKeys, mac-only): 1.0.10 defines it where win has FirstKeyDown.
+   STATE: see the mac gate. */
+short ScanForKeys(void)
+{
+    KeyMap keys;
+    short i;
+    short word;
+    short bit;
+
+    GetKeys(keys);
+    for (i = 0; i <= 127; i++) {
+        word = (i >> 4) & 0xf;
+        bit = i & 0xf;
+        if (i != 0x1a && i != 0x1b && i != 0x1c && i != 0x1d && i != 0x77 && i != 0x31
+            && i != 0x72 && i != 0x70 && i != 0x7e && i != 0x6b && i != 0x68 && i != 0x32
+            && (((unsigned short *)keys)[word] & (1 << bit)))
+            return i;
+    }
+    return -1;
+}
+#endif
+
+#ifndef MACBUILD
 /* FirstKeyDown. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00466810
 long FirstKeyDown(void)
@@ -2131,103 +2302,120 @@ long FirstKeyDown(void)
     } while (code <= 0x7f);
     return -1;
 }
+#endif
 
+#if !defined(MACBUILD) || !V111
 /* KeyPrefsToSlotTable. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00466850
 void KeyPrefsToSlotTable(void)
 {
-    gSlotTable[0] = keyPrefs.accelerate;
-    gSlotTable[1] = keyPrefs.reverse;
-    gSlotTable[2] = keyPrefs.turnRight;
-    gSlotTable[3] = keyPrefs.turnLeft;
-    gSlotTable[4] = keyPrefs.afterburner;
-    gSlotTable[5] = keyPrefs.faceTarget;
-    gSlotTable[6] = keyPrefs.hyperspace;
-    gSlotTable[7] = keyPrefs.nextSystem;
-    gSlotTable[8] = keyPrefs.jump;
-    gSlotTable[9] = keyPrefs.clearTarget;
-    gSlotTable[10] = keyPrefs.hail;
-    gSlotTable[11] = keyPrefs.land;
-    gSlotTable[12] = keyPrefs.firePrimary;
-    gSlotTable[13] = keyPrefs.fireSecondary;
-    gSlotTable[14] = keyPrefs.selectSecondary;
-    gSlotTable[15] = keyPrefs.deselectSecondary;
-    gSlotTable[16] = keyPrefs.targetNext;
-    gSlotTable[17] = keyPrefs.targetNearest;
-    gSlotTable[18] = keyPrefs.escortMenu;
-    gSlotTable[19] = keyPrefs.escortOrder[0];
-    gSlotTable[20] = keyPrefs.escortOrder[1];
-    gSlotTable[21] = keyPrefs.escortOrder[2];
-    gSlotTable[22] = keyPrefs.escortOrder[3];
-    gSlotTable[23] = keyPrefs.pause;
-    gSlotTable[24] = keyPrefs.dismiss;
-    gSlotTable[25] = keyPrefs.board;
-    gSlotTable[26] = keyPrefs.jettison;
-    gSlotTable[27] = keyPrefs.eject;
-    gSlotTable[28] = keyPrefs.selfDestruct;
-    gSlotTable[29] = keyPrefs.cloak;
-    gSlotTable[30] = keyPrefs.map;
-    gSlotTable[31] = keyPrefs.playerInfo;
-    gSlotTable[32] = keyPrefs.missions;
-    gSlotTable[33] = keyPrefs.toggleFPS;
+    newKeyPrefs[0] = keyPrefs.accelerate;
+    newKeyPrefs[1] = keyPrefs.reverse;
+    newKeyPrefs[2] = keyPrefs.turnRight;
+    newKeyPrefs[3] = keyPrefs.turnLeft;
+    newKeyPrefs[4] = keyPrefs.afterburner;
+    newKeyPrefs[5] = keyPrefs.faceTarget;
+    newKeyPrefs[6] = keyPrefs.hyperspace;
+    newKeyPrefs[7] = keyPrefs.nextSystem;
+    newKeyPrefs[8] = keyPrefs.jump;
+    newKeyPrefs[9] = keyPrefs.clearTarget;
+    newKeyPrefs[10] = keyPrefs.hail;
+    newKeyPrefs[11] = keyPrefs.land;
+    newKeyPrefs[12] = keyPrefs.firePrimary;
+    newKeyPrefs[13] = keyPrefs.fireSecondary;
+    newKeyPrefs[14] = keyPrefs.selectSecondary;
+    newKeyPrefs[15] = keyPrefs.deselectSecondary;
+    newKeyPrefs[16] = keyPrefs.targetNext;
+    newKeyPrefs[17] = keyPrefs.targetNearest;
+    newKeyPrefs[18] = keyPrefs.escortMenu;
+    newKeyPrefs[19] = keyPrefs.escortOrder[0];
+    newKeyPrefs[20] = keyPrefs.escortOrder[1];
+    newKeyPrefs[21] = keyPrefs.escortOrder[2];
+    newKeyPrefs[22] = keyPrefs.escortOrder[3];
+    newKeyPrefs[23] = keyPrefs.pause;
+    newKeyPrefs[24] = keyPrefs.dismiss;
+    newKeyPrefs[25] = keyPrefs.board;
+    newKeyPrefs[26] = keyPrefs.jettison;
+    newKeyPrefs[27] = keyPrefs.eject;
+    newKeyPrefs[28] = keyPrefs.selfDestruct;
+    newKeyPrefs[29] = keyPrefs.cloak;
+    newKeyPrefs[30] = keyPrefs.map;
+    newKeyPrefs[31] = keyPrefs.playerInfo;
+    newKeyPrefs[32] = keyPrefs.missions;
+    newKeyPrefs[33] = keyPrefs.toggleFPS;
 }
 
 /* SlotTableToKeyPrefs. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00466a30
 void SlotTableToKeyPrefs(void)
 {
-    keyPrefs.accelerate = gSlotTable[0];
-    keyPrefs.reverse = gSlotTable[1];
-    keyPrefs.turnRight = gSlotTable[2];
-    keyPrefs.turnLeft = gSlotTable[3];
-    keyPrefs.afterburner = gSlotTable[4];
-    keyPrefs.faceTarget = gSlotTable[5];
-    keyPrefs.hyperspace = gSlotTable[6];
-    keyPrefs.nextSystem = gSlotTable[7];
-    keyPrefs.jump = gSlotTable[8];
-    keyPrefs.clearTarget = gSlotTable[9];
-    keyPrefs.hail = gSlotTable[10];
-    keyPrefs.land = gSlotTable[11];
-    keyPrefs.firePrimary = gSlotTable[12];
-    keyPrefs.fireSecondary = gSlotTable[13];
-    keyPrefs.selectSecondary = gSlotTable[14];
-    keyPrefs.deselectSecondary = gSlotTable[15];
-    keyPrefs.targetNext = gSlotTable[16];
-    keyPrefs.targetNearest = gSlotTable[17];
-    keyPrefs.escortMenu = gSlotTable[18];
-    keyPrefs.escortOrder[0] = gSlotTable[19];
-    keyPrefs.escortOrder[1] = gSlotTable[20];
-    keyPrefs.escortOrder[2] = gSlotTable[21];
-    keyPrefs.escortOrder[3] = gSlotTable[22];
-    keyPrefs.pause = gSlotTable[23];
-    keyPrefs.dismiss = gSlotTable[24];
-    keyPrefs.board = gSlotTable[25];
-    keyPrefs.jettison = gSlotTable[26];
-    keyPrefs.eject = gSlotTable[27];
-    keyPrefs.selfDestruct = gSlotTable[28];
-    keyPrefs.cloak = gSlotTable[29];
-    keyPrefs.map = gSlotTable[30];
-    keyPrefs.playerInfo = gSlotTable[31];
-    keyPrefs.missions = gSlotTable[32];
-    keyPrefs.toggleFPS = gSlotTable[33];
+    keyPrefs.accelerate = newKeyPrefs[0];
+    keyPrefs.reverse = newKeyPrefs[1];
+    keyPrefs.turnRight = newKeyPrefs[2];
+    keyPrefs.turnLeft = newKeyPrefs[3];
+    keyPrefs.afterburner = newKeyPrefs[4];
+    keyPrefs.faceTarget = newKeyPrefs[5];
+    keyPrefs.hyperspace = newKeyPrefs[6];
+    keyPrefs.nextSystem = newKeyPrefs[7];
+    keyPrefs.jump = newKeyPrefs[8];
+    keyPrefs.clearTarget = newKeyPrefs[9];
+    keyPrefs.hail = newKeyPrefs[10];
+    keyPrefs.land = newKeyPrefs[11];
+    keyPrefs.firePrimary = newKeyPrefs[12];
+    keyPrefs.fireSecondary = newKeyPrefs[13];
+    keyPrefs.selectSecondary = newKeyPrefs[14];
+    keyPrefs.deselectSecondary = newKeyPrefs[15];
+    keyPrefs.targetNext = newKeyPrefs[16];
+    keyPrefs.targetNearest = newKeyPrefs[17];
+    keyPrefs.escortMenu = newKeyPrefs[18];
+    keyPrefs.escortOrder[0] = newKeyPrefs[19];
+    keyPrefs.escortOrder[1] = newKeyPrefs[20];
+    keyPrefs.escortOrder[2] = newKeyPrefs[21];
+    keyPrefs.escortOrder[3] = newKeyPrefs[22];
+    keyPrefs.pause = newKeyPrefs[23];
+    keyPrefs.dismiss = newKeyPrefs[24];
+    keyPrefs.board = newKeyPrefs[25];
+    keyPrefs.jettison = newKeyPrefs[26];
+    keyPrefs.eject = newKeyPrefs[27];
+    keyPrefs.selfDestruct = newKeyPrefs[28];
+    keyPrefs.cloak = newKeyPrefs[29];
+    keyPrefs.map = newKeyPrefs[30];
+    keyPrefs.playerInfo = newKeyPrefs[31];
+    keyPrefs.missions = newKeyPrefs[32];
+    keyPrefs.toggleFPS = newKeyPrefs[33];
 }
+#endif
 
-/* IsKeySlotInUse. STATE: MATCH, byte-identical. OPEN: none */
+#ifdef MACBUILD
+/* isPressed (mac _isPressed, mac-only). STATE: see the mac gate. */
+// MAC: _isPressed i386 0x00004d48 ppc 0x0000626c
+long isPressed(unsigned char *keys, unsigned short k)
+{
+    unsigned char b = keys[k >> 3];
+
+    b >>= (k & 7);
+    return b & 1;
+}
+#endif
+
+/* DupKeyCheck. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00466c10
-char IsKeySlotInUse(short value, short skip)
+// MAC: _DupKeyCheck i386 0x00004d69 ppc 0x00006284
+Boolean DupKeyCheck(short value, short skip)
 {
     short i;
 
     for (i = 0; i < 0x22; i++) {
-        if (value == gSlotTable[i] && i != skip)
+        if (value == newKeyPrefs[i] && i != skip)
             return 1;
     }
     return 0;
 }
 
-/* AdvanceDate. STATE: MATCH, byte-identical. OPEN: none */
+/* IncrementDate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00466c40
-void AdvanceDate(DateTimeRec *date, long daysToAdd)
+// MAC: _IncrementDate i386 0x00004da6 ppc 0x000062cc
+void IncrementDate(DateTimeRec *date, long daysToAdd)
 {
     short days;
 
@@ -2264,12 +2452,13 @@ void AdvanceDate(DateTimeRec *date, long daysToAdd)
 
 /* IncrementGameTime (mac _IncrementGameTime). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00466cb0
+// MAC: _IncrementGameTime i386 0x0000b516 ppc 0x0000dfdc
 void IncrementGameTime(void)
 {
     short i;
     short j;
     short wave;
-    AdvanceDate(&gameTime, 0);
+    IncrementDate(&gameTime, 0);
     CronEventHandler();
 
     for (i = 0; i < kMaxActiveMissions; i++) {
@@ -2285,9 +2474,10 @@ void IncrementGameTime(void)
             stellarData[j].reloadTimer = 0;
             stellarData[j].burstShots = 0;
             if (stellarData[j].dominated != 0) {
-                wave = stellarData[j].defCount;
-                if (wave > kDefWaveEncoded)
-                    wave = wave % kDefWaveEncoded;
+                if (stellarData[j].defCount > kDefWaveEncoded)
+                    wave = stellarData[j].defCount % kDefWaveEncoded;
+                else
+                    wave = stellarData[j].defCount;
                 if (stellarData[j].defWaveSize < wave && Rand(kDefGrowOdds) == 0)
                     stellarData[j].defWaveSize++;
             }
@@ -2312,35 +2502,33 @@ void IncrementGameTime(void)
         }
     }
 
-    for (i = 0; i < kMaxStellars; i++) {
-        if (gSystems[i].loaded != 0 && gSystems[i].reinforceDaysLeft > 0)
-            gSystems[i].reinforceDaysLeft--;
+    for (j = 0; j < kMaxStellars; j++) {
+        if (systemData[j].loaded != 0 && systemData[j].reinforceDaysLeft > 0)
+            systemData[j].reinforceDaysLeft--;
     }
 
-    for (i = 0; i < kMaxRanks; i++) {
-        if (rankData[i].active != 0 && rankData[i].loaded != 0 && rankData[i].salary != 0) {
-            if (shipData->credits < rankData[i].salaryCap || rankData[i].salaryCap <= 0)
-                shipData->credits += rankData[i].salary;
+    for (j = 0; j < kMaxRanks; j++) {
+        if (rankData[j].active != 0 && rankData[j].loaded != 0 && rankData[j].salary != 0) {
+            if (shipData->credits < rankData[j].salaryCap || rankData[j].salaryCap <= 0)
+                shipData->credits += rankData[j].salary;
             if (shipData->credits < 0)
                 shipData->credits = 0;
         }
     }
 
-    for (i = 0; i < kMaxShipTypes; i++) {
-        gShipTypes[i].dailyHireRoll = Rand(kDailyRollRange) + 1;
-        gShipTypes[i].dailySaleRoll = Rand(kDailyRollRange) + 1;
+    for (j = 0; j < kMaxShipTypes; j++) {
+        shipClass[j].dailyHireRoll = Rand(kDailyRollRange) + 1;
+        shipClass[j].dailySaleRoll = Rand(kDailyRollRange) + 1;
     }
 
-    for (i = 0; i < kMaxOutfits; i++)
-        gOutfits[i].dailyRoll = Rand(kDailyRollRange) + 1;
+    for (j = 0; j < kMaxOutfits; j++)
+        outfitSystem[j].dailyRoll = Rand(kDailyRollRange) + 1;
 }
-
-#define kRankAlwaysLoses            0x40  /* name TBC */
-#define kRankLosesOnPenaltyType     0x04  /* name TBC */
 
 /* SlapWithPenalty (mac _SlapWithPenalty). STATE: MATCH 100.0%, exe 112 / obj 112
    instrs, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00466fc0
+// MAC: _SlapWithPenalty i386 0x00009bbc ppc 0x0000c108
 void SlapWithPenalty(short sys, short govt, short type, short mode)
 {
     short i;
@@ -2350,7 +2538,7 @@ void SlapWithPenalty(short sys, short govt, short type, short mode)
             return;
     }
     for (i = 0; i < kMaxSystems; i++)
-        systemVisited[i] = 0;
+        systemFlag[i] = 0;
 
     if (mode == -1) {
         RecursivePenaltySlap(sys, govt, type, 1.0);
@@ -2359,9 +2547,9 @@ void SlapWithPenalty(short sys, short govt, short type, short mode)
             if (rankData[i].active != 0 && rankData[i].loaded != 0
                     && (rankData[i].flags & kRankNeverDropped) == 0
                     && GovtAllies(govt, rankData[i].govt) != 0) {
-                if ((rankData[i].flags & kRankAlwaysLoses) != 0)
+                if ((rankData[i].flags & kRankLostOnCrime) != 0)
                     DeactivateRank((char *)&rankData[i]);
-                else if ((rankData[i].flags & kRankLosesOnPenaltyType) != 0
+                else if ((rankData[i].flags & kRankLostOnAttack) != 0
                         && (type == 1 || type == 3))
                     DeactivateRank((char *)&rankData[i]);
             }
@@ -2369,105 +2557,98 @@ void SlapWithPenalty(short sys, short govt, short type, short mode)
     }
 }
 
-#define kGovtFlag1  0x0001   /* govtData[].flags bit, name TBC */
-
-
 /* RecursivePenaltySlap (mac _RecursivePenaltySlap). STATE: MATCH 100.0%, exe 387 / obj 387
    instrs, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00467140
+// MAC: _RecursivePenaltySlap i386 0x0000980a ppc 0x0000bb40
 void RecursivePenaltySlap(short sys, short govt, short type, double amount)
 {
-    short startSys, curSys, i;
-    short sysFlag1, sysFlag2;
+    short startSys, i;
     short govtFlag1;
-    char dirty;
+    short sysFlag1, sysFlag2;
+    Boolean dirty;
     float penalty;
 
     if (sys < 0 || sys >= kMaxSystems)
         return;
-    if (systemVisited[sys])
+    if (systemFlag[sys])
         return;
-    systemVisited[sys] = 1;
+    systemFlag[sys] = 1;
 
     if (govt != -1)
-        govtFlag1 = govtData[govt].flags & kGovtFlag1;
+        govtFlag1 = govtData[govt].flags & kGovtXenophobic;
     else
         govtFlag1 = 0;
 
     startSys = sys;
     dirty = 0;
-    if (gSystems[sys].colocGroup != -1)
-        sys = gSystems[sys].colocGroup;
-    if (sys != -1) {
-        curSys = sys;
-        for (;;) {
-            systemVisited[curSys] = 1;
-            if (gSystems[curSys].loaded) {
-                penalty = 0;
-                sysFlag1 = 0;
-                sysFlag2 = 0;
-                if (gSystems[curSys].govt != -1) {
-                    sysFlag1 = govtData[gSystems[curSys].govt].flags & kGovtFlag1;
-                    sysFlag2 = govtData[gSystems[curSys].govt].flags & kGovtFlag2;
-                }
-
-                if (gSystems[curSys].govt == -1) {
-                    if (govt == -1) {
-                        penalty = govtData[0].penalties[type] * 0.5;
-                    } else if (govtFlag1) {
-                        penalty = -govtData[govt].penalties[type] * 0.5;
-                    } else {
-                        penalty = govtData[govt].penalties[type] * 0.25;
-                    }
-                } else if (govt == gSystems[curSys].govt) {
-                    penalty = govtData[govt].penalties[type];
-                } else if (govt == -1) {
-                    if (sysFlag1)
-                        penalty = -govtData[gSystems[curSys].govt].penalties[type] * 0.5;
-                    else if (sysFlag2)
-                        penalty = govtData[gSystems[curSys].govt].penalties[type] * 0.5;
-                } else if (!GovtAllies(govt, gSystems[curSys].govt)) {
-                    penalty = -govtData[gSystems[curSys].govt].penalties[type] * 0.5;
-                } else if (!GovtEnemies(govt, gSystems[curSys].govt)) {
-                    if (GovtAllies(govt, gSystems[curSys].govt))
-                        penalty = govtData[govt].penalties[type];
-                    else
-                        penalty = govtData[govt].penalties[type] * 0.5;
-                } else {
-                    penalty = -govtData[gSystems[curSys].govt].penalties[type] * 0.5;
-                }
-
-                penalty *= amount;
-                if (penalty >= 1.0 || penalty <= -1.0) {
-                    dirty = 1;
-                    if (penalty > 0.0) {
-                        if (playerLegalStatus[curSys] - penalty < -32000.0f)
-                            playerLegalStatus[curSys] = -32000;
-                        else
-                            playerLegalStatus[curSys] -= penalty;
-                    } else {
-                        if (playerLegalStatus[curSys] - penalty > 32000.0f)
-                            playerLegalStatus[curSys] = 32000;
-                        else
-                            playerLegalStatus[curSys] -= penalty;
-                    }
-                    if (playerLegalStatus[curSys] > 32000)
-                        playerLegalStatus[curSys] = 32000;
-                    if (playerLegalStatus[curSys] < -32000)
-                        playerLegalStatus[curSys] = -32000;
-                }
+    if (systemData[sys].colocGroup != -1)
+        sys = systemData[sys].colocGroup;
+    while (sys != -1) {
+        systemFlag[sys] = 1;
+        if (systemData[sys].loaded) {
+            penalty = 0;
+            sysFlag1 = 0;
+            sysFlag2 = 0;
+            if (systemData[sys].govt != -1) {
+                sysFlag1 = govtData[systemData[sys].govt].flags & kGovtXenophobic;
+                sysFlag2 = govtData[systemData[sys].govt].flags & kGovtEnforcesAbroad;
             }
-            curSys = gSystems[curSys].colocNext;
-            if (curSys == -1)
-                break;
+
+            if (systemData[sys].govt == -1) {
+                if (govt == -1) {
+                    penalty = govtData[0].penalties[type] * 0.5;
+                } else if (govtFlag1) {
+                    penalty = -govtData[govt].penalties[type] * 0.5;
+                } else {
+                    penalty = govtData[govt].penalties[type] * 0.25;
+                }
+            } else if (govt == systemData[sys].govt) {
+                penalty = govtData[govt].penalties[type];
+            } else if (govt == -1) {
+                if (sysFlag1)
+                    penalty = -govtData[systemData[sys].govt].penalties[type] * 0.5;
+                else if (sysFlag2)
+                    penalty = govtData[systemData[sys].govt].penalties[type] * 0.5;
+            } else if (!GovtAllies(govt, systemData[sys].govt)) {
+                penalty = -govtData[systemData[sys].govt].penalties[type] * 0.5;
+            } else if (!GovtEnemies(govt, systemData[sys].govt)) {
+                if (GovtAllies(govt, systemData[sys].govt))
+                    penalty = govtData[govt].penalties[type];
+                else
+                    penalty = govtData[govt].penalties[type] * 0.5;
+            } else {
+                penalty = -govtData[systemData[sys].govt].penalties[type] * 0.5;
+            }
+
+            penalty *= amount;
+            if (penalty >= 1.0 || penalty <= -1.0) {
+                dirty = 1;
+                if (penalty > 0.0) {
+                    if (playerRecord[sys] - penalty < -32000.0f)
+                        playerRecord[sys] = -32000;
+                    else
+                        playerRecord[sys] -= penalty;
+                } else {
+                    if (playerRecord[sys] - penalty > 32000.0f)
+                        playerRecord[sys] = 32000;
+                    else
+                        playerRecord[sys] -= penalty;
+                }
+                if (playerRecord[sys] > 32000)
+                    playerRecord[sys] = 32000;
+                if (playerRecord[sys] < -32000)
+                    playerRecord[sys] = -32000;
+            }
         }
+        sys = systemData[sys].colocNext;
     }
 
     if (dirty) {
         amount *= 0.65;
         for (i = 0; i < kMaxSystemLinks; i++) {
-            if (gSystems[startSys].links[i] != -1)
-                RecursivePenaltySlap(FindFirstCoLocatedSystem(gSystems[startSys].links[i]),
+            if (systemData[startSys].links[i] != -1)
+                RecursivePenaltySlap(FindFirstCoLocatedSystem(systemData[startSys].links[i]),
                                      govt, type, amount);
         }
     }
@@ -2477,19 +2658,29 @@ void RecursivePenaltySlap(short sys, short govt, short type, double amount)
 #define kMessageStrings 1000    /* STR# holding the numbered player messages */
 
 
-}
+EXTERN_C_END
 
 /* scratch recursion marks, one per system (name invented) */
-char systemVisited[kMaxSystems];
-unsigned char DAT_007ccd90[2];
-short exploreDepthLimit;
+Boolean systemFlag[kMaxSystems];
+Boolean speechMgrPresent;
+short maxAutoExploreJumps;
+#ifdef MAC1010
+unsigned short keyMap[8];
+#elif defined(MACBUILD)
+KeyMapByteArray keyMap;
+#else
 unsigned char DAT_007ccd94[68];
-unsigned long gRandSeed;
+#endif
+#ifndef MACBUILD
+unsigned long randomSeed;
+#endif
 
-extern "C" {
+EXTERN_C_BEGIN
 
 /* screen fade state (names invented; the mac fades via CGDisplayFade instead) */
+#ifndef MACBUILD
 long screenGamma = 0x00010000;           /* 0x00575878 — 16.16, 1.0 = full brightness */
+#endif
 
 /*
  * The windows port drives the palette from the DirectDraw side, so the mac
@@ -2500,18 +2691,20 @@ long screenGamma = 0x00010000;           /* 0x00575878 — 16.16, 1.0 = full bri
 
 /* EscapeStellarSearch. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00467710
+// MAC: _EscapeStellarSearch i386 0x0000d28f ppc 0x00010648
 short EscapeStellarSearch(short sys)
 {
     short i;
 
     for (i = 0; i < kMaxSystems; i++)
-        systemVisited[i] = 0;
-    systemVisited[sys] = 1;
+        systemFlag[i] = 0;
+    systemFlag[sys] = 1;
     return RecursiveEscapeStellarSearch(sys);
 }
 
 /* RecursiveEscapeStellarSearch. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004677a0
+// MAC: _RecursiveEscapeStellarSearch i386 0x0000d0fe ppc 0x00010464
 short RecursiveEscapeStellarSearch(short sys)
 {
     short i;
@@ -2519,24 +2712,23 @@ short RecursiveEscapeStellarSearch(short sys)
     short link;
     short link2;
     short stellar;
-    short minStatus;
 
-    systemVisited[sys] = 1;
+    systemFlag[sys] = 1;
 
     for (i = 0; i < kNavSlots; i++) {
-        link = gSystems[sys].links[i];
+        link = systemData[sys].links[i];
         if (link == -1)
             continue;
-        if (gSystems[link].loaded == 0)
+        if (systemData[link].loaded == 0)
             continue;
-        if (gSystems[link].known == 0)
+        if (systemData[link].known == 0)
             continue;
-        if (gSystems[link].exploreLevel <= 0)
+        if (systemData[link].exploreLevel <= 0)
             continue;
-        if (systemVisited[link] != 0)
+        if (systemFlag[link] != 0)
             continue;
         for (j = 0; j < kNavSlots; j++) {
-            stellar = gSystems[link].navDefault[j];
+            stellar = systemData[link].navDefault[j];
             if (stellar == -1)
                 continue;
             if (stellarData[stellar].loaded == 0)
@@ -2545,24 +2737,24 @@ short RecursiveEscapeStellarSearch(short sys)
                 continue;
             if ((stellarData[stellar].flags & kSpobHasShipyard) == 0)
                 continue;
-            minStatus = stellarData[stellar].minStatus;
-            if (minStatus != 0x7fff &&
-                    (playerLegalStatus[link] >= minStatus || minStatus == -0x7fff))
+            if (stellarData[stellar].minStatus != 0x7fff &&
+                    (playerRecord[link] >= stellarData[stellar].minStatus
+                     || stellarData[stellar].minStatus == -0x7fff))
                 return stellar;
         }
     }
 
     for (i = 0; i < kNavSlots; i++) {
-        link2 = gSystems[sys].links[i];
+        link2 = systemData[sys].links[i];
         if (link2 == -1)
             continue;
-        if (gSystems[link2].loaded == 0)
+        if (systemData[link2].loaded == 0)
             continue;
-        if (gSystems[link2].known == 0)
+        if (systemData[link2].known == 0)
             continue;
-        if (gSystems[link2].exploreLevel <= 0)
+        if (systemData[link2].exploreLevel <= 0)
             continue;
-        if (systemVisited[link2] != 0)
+        if (systemFlag[link2] != 0)
             continue;
         stellar = RecursiveEscapeStellarSearch(link2);
         if (stellar != -1)
@@ -2573,6 +2765,7 @@ short RecursiveEscapeStellarSearch(short sys)
 
 /* AutoSetExploration (mac _AutoSetExploration). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00467970
+// MAC: _AutoSetExploration i386 0x0000daba ppc 0x00010ff4
 void AutoSetExploration(short sys, short maxDepth, short level)
 {
     short i;
@@ -2580,21 +2773,21 @@ void AutoSetExploration(short sys, short maxDepth, short level)
     short link;
 
     for (i = 0; i < kMaxSystems; i++)
-        systemVisited[i] = 0;
+        systemFlag[i] = 0;
 
-    exploreDepthLimit = maxDepth;
+    maxAutoExploreJumps = maxDepth;
     RecursiveAutoExplore(sys, 0, level);
 
     for (i = 0; i < kMaxSystems; i++) {
-        if (gSystems[i].loaded != 0 && gSystems[i].prepared != 0 &&
-            gSystems[i].exploreLevel > 0) {
-            gSystems[i].known = 1;
+        if (systemData[i].loaded != 0 && systemData[i].prepared != 0 &&
+            systemData[i].exploreLevel > 0) {
+            systemData[i].known = 1;
             for (j = 0; j < kNavSlots; j++) {
-                link = gSystems[i].links[j];
+                link = systemData[i].links[j];
                 if (link != -1) {
                     link = FindActiveCoLocatedSystem(link);
                     if (link != -1)
-                        gSystems[link].known = 1;
+                        systemData[link].known = 1;
                 }
             }
         }
@@ -2603,31 +2796,32 @@ void AutoSetExploration(short sys, short maxDepth, short level)
 
 /* RecursiveAutoExplore (mac _RecursiveAutoExplore). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00467ab0
+// MAC: _RecursiveAutoExplore i386 0x0000d942 ppc 0x00010e4c
 void RecursiveAutoExplore(short sys, short depth, short level)
 {
     short i;
     short coloc;
     short link;
 
-    if (depth > exploreDepthLimit)
+    if (depth > maxAutoExploreJumps)
         return;
-    if (systemVisited[sys] != 0)
+    if (systemFlag[sys] != 0)
         return;
-    systemVisited[sys] = 1;
+    systemFlag[sys] = 1;
 
     ExploreNebulaeFromSystem(sys);
 
-    if (gSystems[sys].exploreLevel < level)
-        gSystems[sys].exploreLevel = level;
+    if (systemData[sys].exploreLevel < level)
+        systemData[sys].exploreLevel = level;
 
     coloc = FindFirstCoLocatedSystem(sys);
     if (coloc != sys && coloc >= 0 && coloc < kMaxSystems) {
-        if (gSystems[coloc].exploreLevel < level)
-            gSystems[coloc].exploreLevel = level;
+        if (systemData[coloc].exploreLevel < level)
+            systemData[coloc].exploreLevel = level;
     }
 
     for (i = 0; i < kNavSlots; i++) {
-        link = gSystems[sys].links[i];
+        link = systemData[sys].links[i];
         if (link != -1) {
             link = FindActiveCoLocatedSystem(link);
             if (link != -1)
@@ -2639,9 +2833,11 @@ void RecursiveAutoExplore(short sys, short depth, short level)
 /* Any nebula whose (inset) map rectangle contains this system counts as visited. */
 /* ExploreNebulaeFromSystem (mac _ExploreNebulaeFromSystem). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00467bd0
+// MAC: _ExploreNebulaeFromSystem i386 0x0000508f ppc 0x00006600
 void ExploreNebulaeFromSystem(short sys)
 {
     Rect box;
+    Point pt;
     short top;
     short i;
 
@@ -2652,7 +2848,9 @@ void ExploreNebulaeFromSystem(short sys)
                     nebulaData[i].xPos + nebulaData[i].width,
                     top + nebulaData[i].height);
             InsetRect(&box, 8, 8);
-            if (PtInRect(gSystems[sys].xPos, gSystems[sys].yPos, &box) != 0) {
+            pt.h = systemData[sys].pos.h;
+            pt.v = systemData[sys].pos.v;
+            if (PtInRectPoint(pt, &box) != 0) {
                 nebulaData[i].explored = 1;
                 crashlog_mission_bit_set("exploring nebula", 0, i + 128, -1,
                                          nebulaData[i].onExplore);
@@ -2662,19 +2860,43 @@ void ExploreNebulaeFromSystem(short sys)
     }
 }
 
+#ifdef MACBUILD
+/* ShowHint (mac _ShowHint, mac-only). STATE: see the mac gate. */
+// MAC: _ShowHint i386 0x000051be ppc 0x00006724
+void ShowHint(void)
+{
+    Handle h;
+    short count;
+    Str255 hint;
+
+    h = GetResource('STR#', kHintStrList);
+    if (h == NULL)
+        return;
+    HLock(h);
+    BlockMoveData(*h, &count, 2);
+    HUnlock(h);
+    HPurge(h);
+    ReleaseResource(h);
+    GetIndString(hint, kHintStrList, Rand(count) + 1);
+    DisplayComm(hint, 250, 0, 12, &rgbWhite, 0, 0);
+}
+#endif
+
 /* Show numbered message `index`, letting a plug-in override the built-in text. */
 /* DisplayMessage (mac _DisplayMessage). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00467cf0
+// MAC: _DisplayMessage i386 0x00005289 ppc 0x000067d0
 void DisplayMessage(short index)
 {
-    Str255 text;
+    char text[256];
 
-    if (LoadPluginString(index + kMessageStrings - 1, text) == 0)
-        GetIndString(text, kMessageStrings, index);
-    DisplayComm(text, 480, 0, 12, &rgbWhite, 0, 0);
+    if (LoadPluginString(index + kMessageStrings - 1, (StringPtr)text) == 0)
+        GetIndString((StringPtr)text, kMessageStrings, index);
+    DisplayComm((StringPtr)text, 480, 0, 12, &rgbWhite, 0, 0);
 }
 
 /* Walk the gamma ramp to `percent` brightness over `duration` milliseconds. */
+#ifndef MACBUILD
 /* FadeGammaTo. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00467d60
 void FadeGammaTo(unsigned long percent, unsigned long duration)
@@ -2697,57 +2919,212 @@ void FadeGammaTo(unsigned long percent, unsigned long duration)
     }
     screenGamma = target;
 }
+#endif
 
 /* FadeScreenOut (mac _FadeScreenOut). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00467de0
+// MAC: _FadeScreenOut i386 0x0000530f ppc 0x00006848
+#ifdef V111 /* V111: the Quartz display fade; mac 1.0.10 imports no CGDisplayFade */
+/* the fade reservation FadeScreenIn/Out and FadeWhiteIn/Out share (a file static on mac) */
+static CGDisplayFadeReservationToken token;
+
+void FadeScreenOut(void)
+{
+    if (screenFaded || inBackground)
+        return;
+    if (!settings.windowed) { /* POTENTIAL BUG (win V111): windowed skips the present 1.0.10's ScreenEndScene() gave */
+        if (gWind != NULL)
+            QDFlushPortBuffer(GetWindowPort(gWind), NULL);
+        if (CGAcquireDisplayFadeReservation(15.0, &token) == kCGErrorSuccess)
+            CGDisplayFade(token, 1.0, kCGDisplayBlendNormal, kCGDisplayBlendSolidColor,
+                          0.0, 0.0, 0.0, true);
+    }
+    screenFaded = true;
+}
+#elif defined(MAC1010)
+void FadeScreenOut(void)
+{
+#if TARGET_API_MAC_CARBON
+    RGBColor black;
+
+#endif
+    if (screenFaded != 0 || inBackground != 0)
+        return;
+#if TARGET_API_MAC_CARBON
+    if (gScreenRef != 0 && settings.windowed == 0) {
+        if (gWind != NULL)
+            QDFlushPortBuffer(GetWindowPort(gWind), NULL);
+        black.red = black.green = black.blue = 0;
+        FadeToColor(gScreenRef, &black, 0.5f);
+    }
+#else
+    if (settings.windowed == 0)
+        GammaFadeTo(1, 0, kFadeMillis);
+#endif
+    screenFaded = 1;
+}
+#else
 void FadeScreenOut(void)
 {
     if (screenFaded != 0 || inBackground != 0)
         return;
     ScreenEndScene();
-    if (windowedPref == 0)
+    if (settings.windowed == 0)
         FadeGammaTo(0, kFadeMillis);
     screenFaded = 1;
 }
+#endif
 
 /* FadeScreenIn (mac _FadeScreenIn). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00467e20
+// MAC: _FadeScreenIn i386 0x000053b2 ppc 0x00006924
+#ifdef V111 /* V111: the Quartz display fade */
+void FadeScreenIn(void)
+{
+    if (!screenFaded)
+        return;
+    if (!settings.windowed) { /* POTENTIAL BUG (win V111): windowed skips the present 1.0.10's ScreenEndScene() gave */
+        if (gWind != NULL)
+            QDFlushPortBuffer(GetWindowPort(gWind), NULL);
+        if (token != 0 || CGAcquireDisplayFadeReservation(15.0, &token) == kCGErrorSuccess) {
+            CGDisplayFade(token, 1.0, kCGDisplayBlendSolidColor, kCGDisplayBlendNormal,
+                          0.0, 0.0, 0.0, true);
+            CGReleaseDisplayFadeReservation(token);
+            token = 0;
+        }
+    }
+    screenFaded = false;
+}
+#ifdef MACBUILD
+/* FadeWhiteIn (mac _FadeWhiteIn, mac-only). STATE: see the mac gate. */
+// MAC: _FadeWhiteIn i386 0x0000546f ppc 0x00006a04
+void FadeWhiteIn(void)
+{
+    screenFaded = true;
+    if (CGAcquireDisplayFadeReservation(15.0, &token) == kCGErrorSuccess)
+        CGDisplayFade(token, 1.5, kCGDisplayBlendNormal, kCGDisplayBlendSolidColor,
+                      1.0, 1.0, 1.0, false);
+}
+
+/* FadeWhiteOut (mac _FadeWhiteOut, mac-only). STATE: see the mac gate. */
+// MAC: _FadeWhiteOut i386 0x000054d1 ppc 0x00006a98
+void FadeWhiteOut(void)
+{
+    CGDisplayFade(token, 1.5, kCGDisplayBlendSolidColor, kCGDisplayBlendNormal,
+                  1.0, 1.0, 1.0, false);
+    CGReleaseDisplayFadeReservation(token);
+    screenFaded = false;
+}
+#endif
+
+#elif defined(MAC1010)
+void FadeScreenIn(void)
+{
+    if (screenFaded == 0)
+        return;
+#if TARGET_API_MAC_CARBON
+    if (gScreenRef != 0 && settings.windowed == 0) {
+        if (gWind != NULL)
+            QDFlushPortBuffer(GetWindowPort(gWind), NULL);
+        FadeToGamma(gScreenRef, &gOrigGamma, 0.5f);
+    }
+#else
+    if (settings.windowed == 0)
+        GammaFadeTo(1, 100, kFadeMillis);
+#endif
+    screenFaded = 0;
+}
+#else
 void FadeScreenIn(void)
 {
     if (screenFaded == 0)
         return;
     ScreenEndScene();
-    if (windowedPref == 0)
+    if (settings.windowed == 0)
         FadeGammaTo(100, kFadeMillis);
     screenFaded = 0;
 }
+#endif
 
 /* OnTheFlyWhiteFade (mac _OnTheFlyWhiteFade). STATE: MATCH, byte-identical.
    OPEN: none. `pct' is pushed by the caller and never read here. */
 // FUNCTION: EVNOVA 0x00467e60
+// MAC: _OnTheFlyWhiteFade i386 0x00005528 ppc 0x00006b18
 void OnTheFlyWhiteFade(short pct)
+{
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    ScreenGamma gamma;
+    float scale;
+    float white;
+    short i;
+
+    if (settings.windowed != 0)
+        return;
+    if (pct < 0)
+        pct = 0;
+    if (pct > 100)
+        pct = 100;
+    scale = (100 - pct) * 0.01;
+    white = pct * 0.01;
+    for (i = 0; i < 256; i++) {
+        gamma.red[i] = scale * gOrigGamma.red[i] + white;
+        gamma.green[i] = gOrigGamma.green[i] * scale + white;
+        gamma.blue[i] = gOrigGamma.blue[i] * scale + white;
+        if (gamma.red[i] > 1.0)
+            gamma.red[i] = 1.0f;
+        if (gamma.green[i] > 1.0)
+            gamma.green[i] = 1.0f;
+        if (gamma.blue[i] > 1.0)
+            gamma.blue[i] = 1.0f;
+    }
+    SetGamma(gScreenRef, &gamma);
+#elif defined(MAC1010)
+    long white[3];
+
+    if (settings.windowed != 0)
+        return;
+    if (pct < 0)
+        pct = 0;
+    if (pct > 100)
+        pct = 100;
+    white[0] = white[1] = white[2] = -1;
+    GammaFadeToColor(1, white, pct, 1, 1);
+#endif
+}
+
+#ifdef MACBUILD
+/* InitCluts (mac _InitCluts, mac-only). STATE: see the mac gate. */
+// MAC: _InitCluts i386 0x0000552d ppc 0x00006b1c
+void InitCluts(void)
 {
 }
 
+/* SetOrigClut (mac _SetOrigClut, mac-only). STATE: see the mac gate. */
+// MAC: _SetOrigClut i386 0x00005532 ppc 0x00006b20
+void SetOrigClut(void)
+{
+}
+#endif
+
 /* RestoreOrigClut (mac _RestoreOrigClut). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00467e70
+// MAC: _RestoreOrigClut i386 0x00005537 ppc 0x00006b24
 void RestoreOrigClut(void)
 {
 }
 
-#define kShipFlags2Bit10 0x400
-
 /* ShipCanCloak (no mac symbol). STATE: MATCH 100.0%, exe 174 / obj 174 instrs,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00467e80
-char ShipCanCloak(ShipObj *ship)
+// MAC: _ShipCanCloak i386 0x0000553c ppc 0x00006b28
+Boolean ShipCanCloak(ShipObj *ship)
 {
     short idx;
-    char found;
     short i;
     short j;
-    char nibbleLo;
-    char nibbleHi;
+    Boolean found;
+    Boolean nibbleLo;
+    Boolean nibbleHi;
 
     if (IsDisabled(ship))
         return 0;
@@ -2758,11 +3135,11 @@ char ShipCanCloak(ShipObj *ship)
         for (i = 0; i < 512; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType17) {
+                    if (outfitSystem[i].modType[j] == kOutfModType17) {
                         found = 1;
                         /* BUG: both branches read modType[j] for modVal[j], so the nibbles are always 1 and 0 */
-                        nibbleLo = (gOutfits[i].modType[j] >> 4) & 0xf;
-                        nibbleHi = (gOutfits[i].modType[j] >> 8) & 0xf;
+                        nibbleLo = (outfitSystem[i].modType[j] >> 4) & 0xf;
+                        nibbleHi = (outfitSystem[i].modType[j] >> 8) & 0xf;
                         break;
                     }
                 }
@@ -2770,13 +3147,13 @@ char ShipCanCloak(ShipObj *ship)
         }
     } else {
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] ==
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
                             kOutfModType17) {
                         found = 1;
-                        nibbleLo = (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] >> 4) & 0xf;
-                        nibbleHi = (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] >> 8) & 0xf;
+                        nibbleLo = (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] >> 4) & 0xf;
+                        nibbleHi = (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] >> 8) & 0xf;
                         break;
                     }
                 }
@@ -2794,16 +3171,17 @@ char ShipCanCloak(ShipObj *ship)
                 return 0;
         }
 
-        if (idx != 0 || !(ship->jumpTimer > 0.0f)
-            || (gShipTypes[ship->type].flags2 & kShipFlags2Bit10) != 0)
-            return 1;
-        return 0;
+        if (idx == 0 && ship->jumpTimer > 0.0f
+            && (shipClass[ship->type].flags2 & kShipCloaksToJump) == 0)
+            return 0;
+        return 1;
     }
     return 0;
 }
 
 /* DoShipCloak. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004680d0
+// MAC: _DoShipCloak i386 0x0000de73 ppc 0x00011490
 void DoShipCloak(ShipObj *ship)
 {
     if (!ShipIsCloaked(ship)) {
@@ -2825,40 +3203,39 @@ void DoShipCloak(ShipObj *ship)
 
 /* DoShipUncloak. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00468190
+// MAC: _DoShipUncloak i386 0x0000df55 ppc 0x000115f0
 void DoShipUncloak(ShipObj *ship)
 {
     if (ShipIsCloaked(ship)) {
         if (ship->index == 0 && ship->cloakDir >= 0)
             PlaySound(cloakSnd[0], 8, gSoundVolume, gSoundVolume);
-        if (!(ship->cloak > 0.0f)) {
+        if (ship->cloak > 0.0f) {
+            ship->cloakDir = -1;
+        } else {
             if (ship->cloakDir > 0)
                 ship->cloakDir = 0;
-        } else {
-            ship->cloakDir = -1;
         }
     }
 }
 
-#define kSpobService4    0x00000004UL  /* name TBC */
-#define kSpobService8    0x00000008UL  /* name TBC */
-
 /* SystemTradesGoods. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00468210
-char SystemTradesGoods(short sysID, short commodity)
+// MAC: _SystemTradesGoods i386 0x0000d2c4 ppc 0x0001069c
+Boolean SystemTradesGoods(short sysID, short commodity)
 {
     short i;
 
     for (i = 0; i < kNavSlots; i++) {
-        if (gSystems[sysID].navDefault[i] != -1
-                && stellarData[gSystems[sysID].navDefault[i]].loaded != 0
-                && (stellarData[gSystems[sysID].navDefault[i]].flags
+        if (systemData[sysID].navDefault[i] != -1
+                && stellarData[systemData[sysID].navDefault[i]].loaded != 0
+                && (stellarData[systemData[sysID].navDefault[i]].flags
                     & kSpobUninhabited) == 0
                 && StellarIsNormalLandable(
-                       &stellarData[gSystems[sysID].navDefault[i]])
-                && (stellarData[gSystems[sysID].navDefault[i]].flags
+                       &stellarData[systemData[sysID].navDefault[i]])
+                && (stellarData[systemData[sysID].navDefault[i]].flags
                     & kSpobTradeCenter) != 0
                 && CalcPortDemand(commodity,
-                       stellarData[gSystems[sysID].navDefault[i]].flags) != 0)
+                       stellarData[systemData[sysID].navDefault[i]].flags) != 0)
             return 1;
     }
     return 0;
@@ -2868,30 +3245,39 @@ char SystemTradesGoods(short sysID, short commodity)
    0..2 leaves the mask unset, which the original does not guard */
 /* SystemHasService. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004682d0
-char SystemHasService(short sysID, short kind)
+// MAC: _SystemHasService i386 0x0000d373 ppc 0x0001077c
+Boolean SystemHasService(short sysID, short kind)
 {
     short i;
-    unsigned long mask;
+    long mask;
 
     for (i = 0; i < kNavSlots; i++) {
-        if (gSystems[sysID].navDefault[i] != -1
-                && stellarData[gSystems[sysID].navDefault[i]].loaded != 0
-                && (stellarData[gSystems[sysID].navDefault[i]].flags
+        if (systemData[sysID].navDefault[i] != -1
+                && stellarData[systemData[sysID].navDefault[i]].loaded != 0
+                && (stellarData[systemData[sysID].navDefault[i]].flags
                     & kSpobUninhabited) == 0
                 && StellarIsNormalLandable(
-                       &stellarData[gSystems[sysID].navDefault[i]])) {
+                       &stellarData[systemData[sysID].navDefault[i]])) {
             if (kind == 0)
                 mask = kSpobTradeCenter;
             if (kind == 1)
-                mask = kSpobService4;
+                mask = kSpobHasOutfitter;
             if (kind == 2)
-                mask = kSpobService8;
-            if ((stellarData[gSystems[sysID].navDefault[i]].flags & mask) != 0)
+                mask = kSpobHasShipyard;
+            if ((stellarData[systemData[sysID].navDefault[i]].flags & mask) != 0)
                 return 1;
         }
     }
     return 0;
 }
+
+#endif /* MAC_FASTRANDOM_ONLY */
+#ifndef MAC_NO_FASTRANDOM
+#ifdef MAC1010
+static unsigned long randomSeed;
+#elif defined(MACBUILD)
+unsigned long randomSeed;
+#endif
 
 #define kRandMultiplier 16807
 
@@ -2900,24 +3286,33 @@ char SystemHasService(short sysID, short kind)
    literally and mac 1.1.1 emits a `ror`, so it is in the source. */
 #define SwapHalves(x) (((x) << 16) + ((x) >> 16))
 
-/* Rand (mac _Rand). STATE: MATCH 100.0%, 45/45, byte-identical pending the next regate.
+/* Rand (mac _Rand). STATE: MATCH 100.0%, 45/45, byte-identical; mac MATCH on both slices.
    OPEN: none. Park-Miller 16807 in 16-bit halves, transliterated register by register
    from the 68k Random(). */
 // FUNCTION: EVNOVA 0x004683b0
+// MAC: _Rand i386 0x000a4c76 ppc 0x000b08b4
 short Rand(short range)
 {
-    unsigned long temp;
     unsigned long lo;
+    unsigned long temp;
     unsigned long hi;
     unsigned long seed;
-    unsigned long result;
+    short result;
+#ifdef V111
+    unsigned long secs;
+#endif
 
     if (range == 0) {
+#ifdef V111
+        GetDateTime(&secs);
+        result = randomSeed = secs + ReadTick();
+#else
         /* BUG: this path never sets result, so Rand(0) returns garbage */
-        GetDateTime(&gRandSeed);
-        gRandSeed += ReadTick();
+        GetDateTime(&randomSeed);
+        randomSeed += ReadTick();
+#endif
     } else {
-        seed = gRandSeed;
+        seed = randomSeed;
         lo = kRandMultiplier;
         hi = lo;
         lo *= seed & 0xffff;
@@ -2934,9 +3329,14 @@ short Rand(short range)
         hi = SwapHalves(hi);
         hi += temp;
         lo += hi;
+#ifdef MACBUILD
+        if (lo < 0) /* BUG: lo is unsigned, so the carry fold never runs */
+            lo += 0x7fffffff;
+#else
         if ((lo & 0x80000000) != 0)
             lo += 0x7fffffff;
-        gRandSeed = lo;
+#endif
+        randomSeed = lo;
         if ((lo & 0xffff) == 0x8000)
             lo &= 0xffff0000;
         temp = range;
@@ -2947,6 +3347,22 @@ short Rand(short range)
     return result;
 }
 
+/* SetRandSeed (mac _SetRandSeed; dead on win, stripped). STATE: mac MATCH on both slices. OPEN: none */
+// MAC: _SetRandSeed i386 0x000a4d08 ppc 0x000b0968
+void SetRandSeed(unsigned long seed)
+{
+    randomSeed = seed;
+}
+
+/* GetRandSeed (mac _GetRandSeed; dead on win, stripped). STATE: mac MATCH on both slices. OPEN: none */
+// MAC: _GetRandSeed i386 0x000a4d17 ppc 0x000b0978
+unsigned long GetRandSeed(void)
+{
+    return randomSeed;
+}
+#endif /* MAC_NO_FASTRANDOM */
+#ifndef MAC_FASTRANDOM_ONLY
+
 #define kDateStrings   137  /* STR# holding the month names and ordinals */
 #define kFirstMonthStr  12  /* month 1 is index 13 */
 #define kOrdinalSt      25
@@ -2956,10 +3372,9 @@ short Rand(short range)
 
 /* DateToMedString (mac _DateToMedString). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00468450
+// MAC: _DateToMedString i386 0x00008cb6 ppc 0x0000adcc
 void DateToMedString(DateTimeRec date, char *out)
 {
-    int day;
-    int digit;
     Str255 str;
 
     strcpy(out, datePrefix);
@@ -2967,19 +3382,17 @@ void DateToMedString(DateTimeRec date, char *out)
     PtoCstr(str);
     strcat(out, (char *)str);
     strcat(out, " ");
-    day = *(int *)&date.day;
-    NumToString((short)day, str);
+    NumToString(date.day, str);
     PtoCstr(str);
     strcat(out, (char *)str);
     GetIndString(str, kDateStrings, kOrdinalTh);
-    digit = (short)day % 10;
-    if (digit == 1)
+    if (date.day % 10 == 1)
         GetIndString(str, kDateStrings, kOrdinalSt);
-    if (digit == 2)
+    if (date.day % 10 == 2)
         GetIndString(str, kDateStrings, kOrdinalNd);
-    if (digit == 3)
+    if (date.day % 10 == 3)
         GetIndString(str, kDateStrings, kOrdinalRd);
-    if ((short)day >= 11 && (short)day <= 13)
+    if (date.day >= 11 && date.day <= 13)
         GetIndString(str, kDateStrings, kOrdinalTh);
     PtoCstr(str);
     strcat(out, (char *)str);
@@ -2992,10 +3405,9 @@ void DateToMedString(DateTimeRec date, char *out)
 
 /* DateToLongString (mac _DateToLongString). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00468600
+// MAC: _DateToLongString i386 0x00008ef8 ppc 0x0000b014
 void DateToLongString(DateTimeRec date, char *out)
 {
-    int day;
-    int digit;
     Str255 str;
 
     strcpy(out, datePrefix);
@@ -3003,19 +3415,17 @@ void DateToLongString(DateTimeRec date, char *out)
     PtoCstr(str);
     strcat(out, (char *)str);
     strcat(out, " ");
-    day = *(int *)&date.day;
-    NumToString((short)day, str);
+    NumToString(date.day, str);
     PtoCstr(str);
     strcat(out, (char *)str);
     GetIndString(str, kDateStrings, kOrdinalTh);
-    digit = (short)day % 10;
-    if (digit == 1)
+    if (date.day % 10 == 1)
         GetIndString(str, kDateStrings, kOrdinalSt);
-    if (digit == 2)
+    if (date.day % 10 == 2)
         GetIndString(str, kDateStrings, kOrdinalNd);
-    if (digit == 3)
+    if (date.day % 10 == 3)
         GetIndString(str, kDateStrings, kOrdinalRd);
-    if ((short)day >= 11 && (short)day <= 13)
+    if (date.day >= 11 && date.day <= 13)
         GetIndString(str, kDateStrings, kOrdinalTh);
     PtoCstr(str);
     strcat(out, (char *)str);
@@ -3035,7 +3445,8 @@ void DateToLongString(DateTimeRec date, char *out)
 
 /* IsDisabled (mac _IsDisabled). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004687b0
-char IsDisabled(ShipObj *ship)
+// MAC: _IsDisabled i386 0x00002ce6 ppc 0x0000397c
+Boolean IsDisabled(ShipObj *ship)
 {
     short govt;
     short mission;
@@ -3053,7 +3464,7 @@ char IsDisabled(ShipObj *ship)
     }
     if (ship->index > 0 && ship->defenseStellar != -1)
         return 0;
-    if ((gShipTypes[ship->type].flags & kShipArmorDisableTenth) != 0) {
+    if ((shipClass[ship->type].flags & kShipArmorDisableTenth) != 0) {
         if (ship->armor * 100.0f < ShipArmorCapacity(ship) * 10.0)
             return 1;
     } else {
@@ -3065,6 +3476,7 @@ char IsDisabled(ShipObj *ship)
 
 /* IsDying (mac _IsDying). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004688e0
+// MAC: _IsDying i386 0x0000253d ppc 0x00002ef0
 unsigned char IsDying(ShipObj *ship)
 {
     if (ship->deathTimer > 0.0f)
@@ -3078,7 +3490,8 @@ unsigned char IsDying(ShipObj *ship)
 
 /* CanHireEscorts (mac _CanHireEscorts). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00468920
-char CanHireEscorts(void)
+// MAC: _CanHireEscorts i386 0x00005795 ppc 0x00006df0
+Boolean CanHireEscorts(void)
 {
     short i;
     short escorts;
@@ -3096,38 +3509,33 @@ char CanHireEscorts(void)
 
 /* WeaponHasAmmo. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00468990
-char WeaponHasAmmo(ShipObj *ship, short weaponIndex)
+// MAC: _WeaponHasAmmo i386 0x0000b95a ppc 0x0000e53c
+Boolean WeaponHasAmmo(ShipObj *ship, short weaponIndex)
 {
     short ammoType;
 
     if (ship->index != 0
-            && (gWeapons[weaponIndex].flags2 & kWeapFlagAIRestricted) != 0)
+            && (weaponStats[weaponIndex].flags2 & kWeapFlagAIRestricted) != 0)
         return 0;
-    if (ShipIsCloaked(ship) && (gWeapons[weaponIndex].flags2 & kWeapFireWhileCloaked) == 0)
+    if (ShipIsCloaked(ship) && (weaponStats[weaponIndex].flags2 & kWeapFireWhileCloaked) == 0)
         return 0;
-    if ((gWeapons[weaponIndex].flags2 & 0x80) != 0 && !KeyCarriedShipTypeOnboard(ship))
+    if ((weaponStats[weaponIndex].flags2 & kWeapNeedsKeyCarried) != 0 && !KeyCarriedShipTypeOnboard(ship))
         return 0;
-    if (gWeapons[weaponIndex].guidance == kGuidanceBay) {
-        if (ship->weap[weaponIndex].ammo > 0)
-            goto success;
-        return 0;
-    }
-    ammoType = gWeapons[weaponIndex].ammoType;
-    if (ammoType >= 0 && ammoType < 256) {
-        if (ship->index == 0) {
-            if (ship->weap[ammoType].ammo > 0)
-                goto success;
+    if (weaponStats[weaponIndex].guidance == kGuidanceBay) {
+        if (ship->weap[weaponIndex].ammo <= 0)
             return 0;
-        }
-        if (ship->weap[weaponIndex].ammo > 0)
-            goto success;
-        return 0;
+    } else {
+        ammoType = weaponStats[weaponIndex].ammoType;
+        if (ammoType >= 0 && ammoType < 256) {
+            if (ship->index == 0) {
+                if (ship->weap[ammoType].ammo <= 0)
+                    return 0;
+            } else if (ship->weap[weaponIndex].ammo <= 0)
+                return 0;
+        } else if (ammoType <= -kWeapAmmoFuelBase
+                   && ship->fuel < (abs(ammoType) - kWeapAmmoFuelBase) * 0.1)
+            return 0;
     }
-    if (ammoType > -kWeapAmmoFuelBase)
-        goto success;
-    if (ship->fuel < (abs(ammoType) - kWeapAmmoFuelBase) * 0.1)
-        return 0;
-success:
     return 1;
 }
 
@@ -3135,13 +3543,14 @@ success:
 
 /* SystemIsInhabited (mac _SystemIsInhabited). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00468af0
-char SystemIsInhabited(short sys)
+// MAC: _SystemIsInhabited i386 0x00004c4a ppc 0x00006124
+Boolean SystemIsInhabited(short sys)
 {
     short i;
     short spob;
 
     for (i = 0; i <= 3; i++) {
-        spob = gSystems[sys].navDefault[i];
+        spob = systemData[sys].navDefault[i];
         if (spob != -1) {
             if ((stellarData[spob].flags & kSpobUninhabited) == 0) {
                 if (!SpobIsHyperOrWorm(&stellarData[spob]))
@@ -3156,16 +3565,16 @@ char SystemIsInhabited(short sys)
    byte identity awaits the next regate (bytediff reads the baseline).
    OPEN: none. The nav scan counts on the link loop's `i', and `link' was invented. */
 // FUNCTION: EVNOVA 0x00468b50
-char StellarsAreDistant(short a, short b)
+// MAC: _StellarsAreDistant i386 0x00009cb9 ppc 0x0000c23c
+Boolean StellarsAreDistant(short a, short b)
 {
     short i;
-    SpobRecord *pa;
-    short sysA;
-    short sysB;
-    SpobRecord *pb;
-    short curSys;
     short found;
     short count;
+    SpobRecord *pb;
+    short sysA;
+    short sysB;
+    SpobRecord *pa;
 
     if (a < 0 || a >= kMaxStellars)
         return 1;
@@ -3187,11 +3596,11 @@ char StellarsAreDistant(short a, short b)
             return 0;
 
         for (i = 0; i < kNavSlots; i++) {
-            if (gSystems[pa->system].links[i] != -1 &&
-                    FindFirstCoLocatedSystem(gSystems[pa->system].links[i]) == sysB)
+            if (systemData[pa->system].links[i] != -1 &&
+                    FindFirstCoLocatedSystem(systemData[pa->system].links[i]) == sysB)
                 return 0;
-            if (gSystems[pb->system].links[i] != -1 &&
-                    FindFirstCoLocatedSystem(gSystems[pb->system].links[i]) == sysA)
+            if (systemData[pb->system].links[i] != -1 &&
+                    FindFirstCoLocatedSystem(systemData[pb->system].links[i]) == sysA)
                 return 0;
         }
     } else {
@@ -3202,17 +3611,17 @@ char StellarsAreDistant(short a, short b)
 
     count = 0;
     found = 0;
-    curSys = FindFirstCoLocatedSystem(sysA);
+    sysA = FindFirstCoLocatedSystem(sysA);
     do {
         count++;
         for (i = 0; i < kNavSlots; i++) {
-            if (gSystems[curSys].navDefault[i] == pa->index) {
+            if (systemData[sysA].navDefault[i] == pa->index) {
                 found++;
                 break;
             }
         }
-        curSys = gSystems[curSys].colocNext;
-    } while (curSys != -1);
+        sysA = systemData[sysA].colocNext;
+    } while (sysA != -1);
 
     if (found != count)
         return 0;
@@ -3221,19 +3630,20 @@ char StellarsAreDistant(short a, short b)
 
 /* DrawLegalStatusString. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00468d90
+// MAC: _DrawLegalStatusString i386 0x0000d43f ppc 0x00010888
 void DrawLegalStatusString(short sys)
 {
     long base;
-    long status;
     short haven;
     short clean;
+    long status;
     short j;
     short rating;
 
+    status = playerRecord[sys];
     rating = 0;
-    status = playerLegalStatus[sys];
-    if (gSystems[sys].govt >= 0 && gSystems[sys].govt < kMaxGovts)
-        base = govtData[gSystems[sys].govt].crimeTol;
+    if (systemData[sys].govt >= 0 && systemData[sys].govt < kMaxGovts)
+        base = govtData[systemData[sys].govt].crimeTol;
     else
         base = govtData[0].crimeTol;
 
@@ -3270,33 +3680,34 @@ void DrawLegalStatusString(short sys)
 
     haven = clean = 0;
     for (j = 0; j < 3; j++) {
-        if (gSystems[sys].navDefault[j] != -1 && stellarData[gSystems[sys].navDefault[j]].loaded &&
-                !SpobUninhabited(&stellarData[gSystems[sys].navDefault[j]]) &&
-                StellarIsNormalLandable(&stellarData[gSystems[sys].navDefault[j]])) {
-            if (stellarData[gSystems[sys].navDefault[j]].dominated != 0)
+        if (systemData[sys].navDefault[j] != -1 && stellarData[systemData[sys].navDefault[j]].loaded &&
+                !SpobUninhabited(&stellarData[systemData[sys].navDefault[j]]) &&
+                StellarIsNormalLandable(&stellarData[systemData[sys].navDefault[j]])) {
+            if (stellarData[systemData[sys].navDefault[j]].dominated != 0)
                 haven++;
             else
                 clean++;
         }
     }
     if (haven > 0) {
-        if (clean <= 0)
-            rating = 0x11;
-        else
+        if (clean > 0)
             rating = 0x10;
+        else
+            rating = 0x11;
     }
 
-    if (gSystems[sys].govt >= 0 && (govtData[gSystems[sys].govt].flags & kGovtXenophobic) != 0)
+    if (systemData[sys].govt >= 0 && (govtData[systemData[sys].govt].flags & kGovtXenophobic) != 0)
         rating = 0;
 
     if (rating == 0)
         DrawIndString(kGameStrList, 0x18c);
     else
-        DrawString(legalStrings[rating]);
+        DrawString(legalStatusStrings[rating]);
 }
 
 /* DrawCombatRatingString. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00469030
+// MAC: _DrawCombatRatingString i386 0x000057e5 ppc 0x00006e68
 void DrawCombatRatingString(void)
 {
     short rating;
@@ -3327,16 +3738,17 @@ void DrawCombatRatingString(void)
 
 /* PlayerShipTradeInPrice. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00469100
+// MAC: _PlayerShipTradeInPrice i386 0x0000b079 ppc 0x0000d9cc
 long PlayerShipTradeInPrice(void)
 {
     short i;
     long value;
     long cost;
 
-    value = (gShipTypes[shipData->type].cost * 0.25);
+    value = (shipClass[shipData->type].cost * 0.25);
     for (i = 0; i < 512; i++) {
-        if (shipSystems[i] > 0 && gOutfits[i].persistent == 0) {
-            cost = AdjustedItemCost(&gOutfits[i], &gShipTypes[shipData->type]);
+        if (shipSystems[i] > 0 && outfitSystem[i].persistent == 0) {
+            cost = AdjustedItemCost(&outfitSystem[i], &shipClass[shipData->type]);
             value = value + cost * shipSystems[i] * 0.5;
         }
     }
@@ -3347,21 +3759,43 @@ long PlayerShipTradeInPrice(void)
 
 /* PlayerCanUseAmmoType. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00469230
-char PlayerCanUseAmmoType(short weapIndex)
+// MAC: _PlayerCanUseAmmoType i386 0x00005896 ppc 0x00006f40
+#ifdef MAC1010 /* returns long here; its one caller, commdlg.c, reads a Boolean */
+long PlayerCanUseAmmoType(short weapIndex)
+#else
+Boolean PlayerCanUseAmmoType(short weapIndex)
+#endif
 {
     short i;
 
     for (i = 0; i < 256; i++) {
         if (shipData->weap[i].count > 0) {
+#ifdef MAC1010
+            long w;
+
+            if (weaponStats[i].guidance == kGuidanceBay) {
+                w = weaponStats[i].ammoType != weaponStats[weapIndex].ammoType;
+                return w == 0;
+            }
+            if (weapIndex == weaponStats[i].ammoType)
+                return 1;
+            w = weaponStats[weapIndex].ammoType;
+#else
+#ifdef V111 /* V111 spelling */
+            if (weaponStats[i].guidance == kGuidanceBay) {
+                if (weaponStats[i].ammoType == weaponStats[weapIndex].ammoType)
+#else
             long w = weapIndex;
 
-            if (gWeapons[i].guidance == kGuidanceBay) {
-                if (gWeapons[i].ammoType == gWeapons[w].ammoType)
+            if (weaponStats[i].guidance == kGuidanceBay) {
+                if (weaponStats[i].ammoType == weaponStats[w].ammoType)
+#endif
                     return 1;
                 return 0;
             }
-            if (weapIndex == gWeapons[i].ammoType)
+            if (weapIndex == weaponStats[i].ammoType)
                 return 1;
+#endif
         }
     }
     return 0;
@@ -3373,12 +3807,13 @@ char PlayerCanUseAmmoType(short weapIndex)
 
 /* PlaySoundDistance. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004692e0
-char PlaySoundDistance(long unused, void *sound, short flags, FloatPoint *pos,
+// MAC: _PlaySoundDistance i386 0x0000e007 ppc 0x000116f4
+Boolean PlaySoundDistance(long unused, void *sound, short flags, FloatPoint *pos,
                      FloatPoint *listener)
 {
     int dy;
-    int dist;
     int dx;
+    int dist;
     short floorVol;
     short leftVol;
     short rightVol;
@@ -3388,88 +3823,192 @@ char PlaySoundDistance(long unused, void *sound, short flags, FloatPoint *pos,
         dx = (pos->x - listener->x);
         dy = (pos->y - listener->y);
         dist = dx * dx + dy * dy;
-        if (dist > 0 && dist > kPanCutoffSq) {
-            if (dx > kPanHalfWidth) {
-                leftVol = (gSoundVolume * kPanNear / dist);
-                rightVol = (gSoundVolume * kPanCutoffSq / dist);
-            } else if (dx < -kPanHalfWidth) {
-                leftVol = (gSoundVolume * kPanCutoffSq / dist);
-                rightVol = (gSoundVolume * kPanNear / dist);
-            } else {
-                rightVol = (gSoundVolume * kPanNear / dist);
-                leftVol = rightVol;
+        if (dist > 0) {
+            if (dist > kPanCutoffSq) {
+                if (dx > kPanHalfWidth) {
+                    leftVol = (gSoundVolume * kPanNear / dist);
+                    rightVol = (gSoundVolume * kPanCutoffSq / dist);
+                } else if (dx < -kPanHalfWidth) {
+                    leftVol = (gSoundVolume * kPanCutoffSq / dist);
+                    rightVol = (gSoundVolume * kPanNear / dist);
+                } else {
+                    rightVol = (gSoundVolume * kPanNear / dist);
+                    leftVol = rightVol;
+                }
+                floorVol = (gSoundVolume / 8);
+                if (floorVol < 1)
+                    floorVol = 1;
+                if (leftVol < floorVol)
+                    leftVol = floorVol;
+                if (rightVol < floorVol)
+                    rightVol = floorVol;
+                if (leftVol > gSoundVolume)
+                    leftVol = gSoundVolume;
+                if (rightVol > gSoundVolume)
+                    rightVol = gSoundVolume;
             }
-            floorVol = (gSoundVolume / 8);
-            if (floorVol < 1)
-                floorVol = 1;
-            if (leftVol < floorVol)
-                leftVol = floorVol;
-            if (rightVol < floorVol)
-                rightVol = floorVol;
-            if (leftVol > gSoundVolume)
-                leftVol = gSoundVolume;
-            if (rightVol > gSoundVolume)
-                rightVol = gSoundVolume;
         }
     }
     PlaySound(sound, flags, leftVol, rightVol);
     return 1;
 }
 
+#ifdef MACBUILD
+/* PlaySoundWait (mac _PlaySoundWait, mac-only). STATE: see the mac gate. */
+// MAC: _PlaySoundWait i386 0x0000e131 ppc 0x0001185c
+void PlaySoundWait(void *snd)
+{
+    PlaySound(snd, 9999, gSoundVolume, gSoundVolume);
+    while (ST_IsSoundPlaying(snd))
+        ;
+}
+#endif
+
 /* CheckSpeechMgr (mac _CheckSpeechMgr). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00469480
+// MAC: _CheckSpeechMgr i386 0x00005906 ppc 0x00006fd0
+#ifdef MACBUILD
+void CheckSpeechMgr(void)
+{
+    long response;
+    short voices;
+    Boolean hasSpeech;
+    Boolean ok;
+    OSErr err;
+
+    speechMgrPresent = false;
+#ifdef MAC1010
+    ok = Gestalt('vers', &response) == noErr;
+    if (ok) {
+        err = Gestalt(gestaltSpeechAttr, &response);
+        hasSpeech = err == noErr && BitTst(&response, 31 - gestaltSpeechMgrPresent);
+        if (hasSpeech ? BitTst(&response, 31 - gestaltSpeechHasPPCGlue) : hasSpeech) {
+#else
+    if (Gestalt('vers', &response) == noErr) {
+        hasSpeech = Gestalt(gestaltSpeechAttr, &response) == noErr
+                    && BitTst(&response, 31 - gestaltSpeechMgrPresent);
+        if (hasSpeech) {
+#endif
+            CountVoices(&voices);
+            if (voices > 0)
+                speechMgrPresent = true;
+        }
+    }
+}
+#else
 void CheckSpeechMgr(void)
 {
 }
+#endif
 
 /* SpeakIt (mac _SpeakIt). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00469490
+// MAC: _SpeakIt i386 0x0000b029 ppc 0x0000d948
+#ifdef MACBUILD
+void SpeakIt(char *msg, short flag)
+{
+    static SpeechChannel speechChannel;
+
+    if (speechMgrPresent) {
+        if (speechChannel != NULL) {
+            DisposeSpeechChannel(speechChannel);
+            speechChannel = NULL;
+        }
+#ifdef MAC1010
+        CtoPstr(msg);
+#endif
+        SpeakString((StringPtr)msg);
+        if (flag)
+            while (SpeechBusy())
+                BusyIdle();
+    }
+}
+#else
 void SpeakIt(char *msg, short flag)
 {
 }
+#endif
+
+#ifdef MACBUILD
+/* HasMaxFightersOnBoard (mac _HasMaxFightersOnBoard, mac-only). STATE: MATCH both slices. OPEN: none */
+// MAC: _HasMaxFightersOnBoard i386 0x00005986 ppc 0x00007080
+Boolean HasMaxFightersOnBoard(short shipType)
+{
+    short j;
+    short i;
+    short k;
+    short bay;
+    short outf;
+
+    bay = -1;
+    outf = -1;
+    for (j = 0; j < kMaxWeapTypes; j++) {
+        if (weaponStats[j].guidance == kGuidanceBay
+                && weaponStats[j].ammoType == shipType + kFirstResourceID
+                && shipData[0].weap[j].count > 0) {
+            bay = j;
+            break;
+        }
+    }
+    if (bay != -1) {
+        for (i = 0; i < 512; i++) {
+            for (k = 0; k < kOutfMods; k++) {
+                if (outfitSystem[i].techLevel != kOutfTechAbsent && outfitSystem[i].modType[k] == 3
+                        && outfitSystem[i].modVal[k] == bay) {
+                    outf = i;
+                    break;
+                }
+            }
+        }
+    }
+    if (outf == -1)
+        return true;
+    if (shipData[0].weap[bay].ammo >= outfitSystem[outf].maxCount)
+        return true;
+    return false;
+}
+#endif
 
 #define kEscortFighter   5
 
 /* CanBuyFighter (mac _CanBuyFighter). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004694a0
-char CanBuyFighter(short shipType, short outfitIndex, short weapIndex)
+// MAC: _CanBuyFighter i386 0x00005a82 ppc 0x00007190
+Boolean CanBuyFighter(short shipType, short outfitIndex, short weapIndex)
 {
-    short i;
-    short j;
-    short k;
-    short m;
-    short cap;
     short limit;
     short count;
+    short i;
+    short m;
 
     if (outfitIndex == -1 && weapIndex == -1) {
         for (i = 0; i < 256; i++) {
             if (shipData->weap[i].count > 0 &&
-                gWeapons[i].guidance == kGuidanceBay &&
-                shipType == gWeapons[i].ammoType - 128) {
+                weaponStats[i].guidance == kGuidanceBay &&
+                weaponStats[i].ammoType - 128 == shipType) {
                 weapIndex = i;
                 break;
             }
         }
         if (weapIndex == -1) {
-            for (j = 0; j < 256; j++) {
-                if (shipData->weap[j].count > 0 &&
-                    gWeapons[j].guidance == kGuidanceBay &&
-                    gShipTypes[shipType].spriteIndex ==
-                        gShipTypes[gWeapons[j].ammoType - 128].spriteIndex) {
-                    weapIndex = j;
+            for (i = 0; i < 256; i++) {
+                if (shipData->weap[i].count > 0 &&
+                    weaponStats[i].guidance == kGuidanceBay &&
+                    shipClass[weaponStats[i].ammoType - 128].spriteIndex ==
+                        shipClass[shipType].spriteIndex) {
+                    weapIndex = i;
                     break;
                 }
             }
         }
         if (weapIndex == -1)
             return 0;
-        for (k = 0; k < 512; k++) {
+        for (i = 0; i < 512; i++) {
             for (m = 0; m < kOutfMods; m++) {
-                if (gOutfits[k].techLevel < kOutfTechAbsent &&
-                    gOutfits[k].modType[m] == kOutfModAmmo &&
-                    weapIndex == gOutfits[k].modVal[m]) {
-                    outfitIndex = k;
+                if (outfitSystem[i].techLevel < kOutfTechAbsent &&
+                    outfitSystem[i].modType[m] == kOutfModAmmo &&
+                    weapIndex == outfitSystem[i].modVal[m]) {
+                    outfitIndex = i;
                     break;
                 }
             }
@@ -3483,18 +4022,17 @@ char CanBuyFighter(short shipType, short outfitIndex, short weapIndex)
         count = shipSystems[outfitIndex];
     }
 
-    cap = gWeapons[weapIndex].maxAmmo;
-    if (cap > 0)
-        limit = cap * shipData->weap[weapIndex].count;
+    if (weaponStats[weapIndex].maxAmmo > 0)
+        limit = weaponStats[weapIndex].maxAmmo * shipData->weap[weapIndex].count;
     else
-        limit = gOutfits[outfitIndex].maxCount;
+        limit = outfitSystem[outfitIndex].maxCount;
 
-    for (i = 1; i < 64; i++) {
-        if (shipData[i].active != 0 &&
-            shipType == shipData[i].type &&
-            shipData[i].parentShip == 0 &&
-            shipData[i].aiType == kEscortFighter &&
-            shipData[i].specialMission == -1)
+    for (m = 1; m < 64; m++) {
+        if (shipData[m].active != 0 &&
+            shipType == shipData[m].type &&
+            shipData[m].parentShip == 0 &&
+            shipData[m].aiType == kEscortFighter &&
+            shipData[m].specialMission == -1)
             count++;
     }
     if (count < limit)
@@ -3506,6 +4044,7 @@ char CanBuyFighter(short shipType, short outfitIndex, short weapIndex)
 
 /* TotalFleetHolds (mac _TotalFleetHolds). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00469760
+// MAC: _TotalFleetHolds i386 0x0000c24d ppc 0x0000ef88
 short TotalFleetHolds(void)
 {
     short i;
@@ -3516,8 +4055,8 @@ short TotalFleetHolds(void)
         if (shipData[i].active != 0 && !IsDying(&shipData[i])
                 && shipData[i].parentShip == 0 && shipData[i].aiType == 6
                 && shipData[i].specialMission == -1
-                && gShipTypes[shipData[i].type].inherentAI <= 2)
-            total += gShipTypes[shipData[i].type].cargo;
+                && shipClass[shipData[i].type].inherentAI <= 2)
+            total += shipClass[shipData[i].type].cargo;
     }
     if (total > kMaxHolds)
         total = kMaxHolds;
@@ -3528,6 +4067,7 @@ short TotalFleetHolds(void)
    obj 287, byte-identical yes (bytediff after the 2026-09-15 regate). OPEN: none.
    The dead cargo sum survives DSE because its one reader is itself a dead assignment; notes. */
 // FUNCTION: EVNOVA 0x00469810
+// MAC: _DestroyPartialFleetCargo i386 0x0000cd32 ppc 0x0000feb0
 void DestroyPartialFleetCargo(short shipIndex)
 {
     double newShipHolds;
@@ -3540,19 +4080,19 @@ void DestroyPartialFleetCargo(short shipIndex)
     if (shipIndex == 0) {
         newShipHolds = ShipTotalHolds();
     } else {
-        newShipHolds = gShipTypes[shipData[shipIndex].type].cargo;
+        newShipHolds = shipClass[shipData[shipIndex].type].cargo;
     }
     fleetHolds = ShipTotalHolds();
     for (i = 1; i < 64; i++) {
         if (shipData[i].active != 0 && (!IsDying(&shipData[i]) || i == shipIndex)
-                && shipData->curSystem == shipData[i].curSystem
+                && shipData[i].curSystem == shipData->curSystem
                 && shipData[i].parentShip == 0 && shipData[i].aiType == 6
                 && shipData[i].specialMission == -1
-                && gShipTypes[shipData[i].type].inherentAI <= 2)
-            fleetHolds = gShipTypes[shipData[i].type].cargo + fleetHolds;
+                && shipClass[shipData[i].type].inherentAI <= 2)
+            fleetHolds = shipClass[shipData[i].type].cargo + fleetHolds;
     }
     totalCargo = 0.0;
-    for (i = 0; i < 6; i++)
+    for (i = 0; i <= 5; i++)
         totalCargo += shipData->cargo[i];
     for (i = 0; i < kMaxJunks; i++)
         totalCargo += junkData[i].held;
@@ -3563,10 +4103,10 @@ void DestroyPartialFleetCargo(short shipIndex)
 
     for (i = 0; i <= 5; i++) {
         rounded = (shipData->cargo[i] * ratio);
-        if (shipData->cargo[i] > rounded) {
-            shipData->cargo[i] -= rounded;
-        } else {
+        if (shipData->cargo[i] <= rounded) {
             shipData->cargo[i] = 0;
+        } else {
+            shipData->cargo[i] -= rounded;
         }
         shipData[shipIndex].cargo[i] = rounded;
         if (shipData->cargo[i] < 0)
@@ -3586,18 +4126,94 @@ void DestroyPartialFleetCargo(short shipIndex)
     ResetPlayerPrecalcedValues();
 }
 
+#ifdef MACBUILD
+/* FlushKeys (mac _FlushKeys, mac-only). STATE: see the mac gate. */
+// MAC: _FlushKeys i386 0x00005d35 ppc 0x00007498
+void FlushKeys(void)
+{
+    long *keys = (long *)keyMap;
+
+    keys[0] = 0;
+    keys[1] = 0;
+    keys[2] = 0;
+    keys[3] = 0;
+}
+#endif
+
 /* The flag is tested (with its companion at 0x007354b2) right before the
    shift/control/alt scancodes are scanned, so clearing it re-arms those. */
 
 /* QuickKeyCheckHandler. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00469c90
+// MAC: _QuickKeyCheckHandler i386 0x00005d5a ppc 0x000074b8
+#ifdef MACBUILD
 void QuickKeyCheckHandler(void)
 {
-    keyComboBlocked = 0;
+    GetKeys((void *)keyMap);
+    quickKeyCheckResult = 0;
 }
+#else
+void QuickKeyCheckHandler(void)
+{
+    quickKeyCheckResult = 0;
+}
+#endif
+
+#if defined(MACBUILD) && !defined(MAC1010)
+/* ScanForKeys (mac _ScanForKeys, mac-only). STATE: see the mac gate. */
+// MAC: _ScanForKeys i386 0x0000a0af ppc 0x0000c684
+short ScanForKeys(void)
+{
+    KeyMap keys;
+    short i;
+
+    GetKeys(keys);
+    for (i = 0; i < 128; i++)
+        if (isPressed((unsigned char *)keys, i))
+            return i;
+    return -1;
+}
+#endif
 
 /* QuickKeyCheck (mac _QuickKeyCheck). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00469ca0
+// MAC: _QuickKeyCheck i386 0x0000a0f5 ppc 0x0000c6e4
+#ifdef MACBUILD
+unsigned char QuickKeyCheck(short scanCode)
+{
+#ifdef MAC1010 /* 1.0.10 real: 0x100af67c word and bit split from the scan code, no isPressed */
+    short i;
+    short word;
+    short bit;
+#else
+    int i;
+    unsigned char result;
+#endif
+
+    if (ignoreKeys)
+        return 0;
+    if (escortMenuOnscreen > 0) {
+        for (i = 0; i < 5; i++) {
+            if (scanCode == keyPrefs.quickKey[i])
+                return 0;
+        }
+    }
+#ifdef MAC1010
+    word = (scanCode >> 4) & 0xf;
+    bit = scanCode & 0xf;
+    if (keyMap[word] & (1 << bit)) {
+        quickKeyCheckResult = true;
+        return 1;
+    }
+    return 0;
+#else
+    result = isPressed(keyMap, scanCode);
+    if (result)
+        quickKeyCheckResult = true;
+    return result;
+#endif
+}
+#else
 unsigned char QuickKeyCheck(short scanCode)
 {
     short i;
@@ -3612,11 +4228,46 @@ unsigned char QuickKeyCheck(short scanCode)
     }
     return KeyIsDown(scanCode);
 }
+#endif
+
+#ifdef MACBUILD
+/* QuickKeyCheckPlusEscorts (mac _QuickKeyCheckPlusEscorts, mac-only). STATE: see the mac gate. */
+// MAC: _QuickKeyCheckPlusEscorts i386 0x0000a158 ppc 0x0000c774
+Boolean QuickKeyCheckPlusEscorts(short code)
+#ifdef MAC1010
+{
+    short word;
+    short bit;
+
+    if (ignoreKeys)
+        return 0;
+    word = (code >> 4) & 0xf;
+    bit = code & 0xf;
+    if (keyMap[word] & (1 << bit)) {
+        quickKeyCheckResult = true;
+        return 1;
+    }
+    return 0;
+}
+#else
+{
+    Boolean result;
+
+    if (ignoreKeys)
+        return false;
+    result = isPressed(keyMap, code);
+    if (result)
+        quickKeyCheckResult = true;
+    return result;
+}
+#endif
+#endif
 
 /*
  * The 1.0.10 body carries no escort logic, so the name stays descriptive rather
  * than adopting the mac's _QuickKeyCheckPlusEscorts.
  */
+#ifndef MACBUILD
 /* RawKeyCheck. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00469cf0
 unsigned char RawKeyCheck(short scanCode)
@@ -3625,26 +4276,43 @@ unsigned char RawKeyCheck(short scanCode)
         return 0;
     return KeyIsDown(scanCode);
 }
+#endif
 
 /* KeyCheck (mac _KeyCheck). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00469d10
+// MAC: _KeyCheck i386 0x0000a19b ppc 0x0000c7c8
+#ifdef MACBUILD
+unsigned char KeyCheck(short scanCode)
+{
+    KeyMap keys;
+
+    if (ignoreKeys)
+        return 0;
+    GetKeys(keys);
+#ifdef MAC1010
+    {
+        short word = (scanCode >> 4) & 0xf;
+        short bit = scanCode & 0xf;
+
+        return (((unsigned short *)keys)[word] & (1 << bit)) != 0;
+    }
+#else
+    return isPressed((unsigned char *)keys, scanCode);
+#endif
+}
+#else
 unsigned char KeyCheck(short scanCode)
 {
     KeyboardKbhit();
     return KeyIsDown(scanCode);
 }
+#endif
 
 #define kDemandMedium 2
 
-#define kSpobDemandMedium0 0x20000000UL
-#define kSpobDemandMedium1 0x02000000UL
-#define kSpobDemandMedium2 0x00200000UL
-#define kSpobDemandMedium3 0x00020000UL
-#define kSpobDemandMedium4 0x00002000UL
-#define kSpobDemandMedium5 0x00000200UL
-
 /* CalcPortDemand. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00469d30
+// MAC: _CalcPortDemand i386 0x000056b1 ppc 0x00006d04
 short CalcPortDemand(short commodity, unsigned long flags)
 {
     switch (commodity) {
@@ -3702,15 +4370,12 @@ short CalcPortDemand(short commodity, unsigned long flags)
 
 #define kPortSpecialTech    8
 
-#define kShipFlags3Requirements 0x0200
-#define kShipFlags3BitTest      0x0100
-#define kShipFlags3Unique       0x4000
-
-
 /* SetupPortAvailableShipTypes (mac _SetupPortAvailableShipTypes). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00469e90
+// MAC: _SetupPortAvailableShipTypes i386 0x0000bbe3 ppc 0x0000e880
 void SetupPortAvailableShipTypes(SpobRecord *port)
 {
+#if V111 /* V111 spelling */
     short count;
     short threshold;
     short i;
@@ -3718,25 +4383,38 @@ void SetupPortAvailableShipTypes(SpobRecord *port)
     short k;
     short n;
     short best;
-    short value;
     short a;
-    char avail[kMaxShipTypes];
+#else
+    short i;
+    short j;
+    short k;
+    short threshold;
+    short best;
+#endif
+    Boolean avail[kMaxShipTypes];
 
     if (port == 0)
         return;
 
+#if V111 /* V111 spelling */
     for (k = 0; k < kMaxShipTypes; k++)
         dockedPortShipTypes[k] = -1;
 
     count = 0;
+#else
+    for (i = 0; i < kMaxShipTypes; i++)
+        dockedPortShipTypes[i] = -1;
+
+    k = 0;
+#endif
     for (i = 0; i < kMaxShipTypes; i++) {
         avail[i] = 0;
-        if (gShipTypes[i].techLevel >= 0) {
-            if (gShipTypes[i].techLevel <= port->techLevel)
+        if (shipClass[i].techLevel >= 0) {
+            if (shipClass[i].techLevel <= port->techLevel)
                 avail[i] = 1;
             else {
                 for (j = 0; j < kPortSpecialTech; j++) {
-                    if (port->specialTech[j] == gShipTypes[i].techLevel) {
+                    if (port->specialTech[j] == shipClass[i].techLevel) {
                         avail[i] = 1;
                         break;
                     }
@@ -3746,45 +4424,51 @@ void SetupPortAvailableShipTypes(SpobRecord *port)
 
         if (avail[i]) {
             if (shipBuyMode == 0) {
-                if (gShipTypes[i].buyRandom == 0
-                        || gShipTypes[i].dailySaleRoll > gShipTypes[i].buyRandom)
+                if (shipClass[i].buyRandom == 0
+                        || shipClass[i].dailySaleRoll > shipClass[i].buyRandom)
                     avail[i] = 0;
             } else {
-                if (gShipTypes[i].hireRandom == 0
-                        || gShipTypes[i].dailyHireRoll
-                                * (gShipTypes[gameIsRegisteredIndex].registered != 0 ? 1 : 0)
-                                > gShipTypes[i].hireRandom)
+                if (shipClass[i].hireRandom == 0
+                        || shipClass[i].dailyHireRoll
+                                * (shipClass[gameIsRegisteredIndex].registered != 0 ? 1 : 0)
+                                > shipClass[i].hireRandom)
                     avail[i] = 0;
             }
         }
 
         if (avail[i]) {
-            if (gShipTypes[i].flags3 & kShipFlags3Requirements) {
-                if (!PlayerMeetsRequirements(gShipTypes[i].requires[0],
-                        gShipTypes[i].requires[1]))
+            if (shipClass[i].flags3 & kShipHideIfRequireUnmet) {
+                if (!PlayerMeetsRequirements(shipClass[i].requires[0],
+                        shipClass[i].requires[1]))
                     avail[i] = 0;
             }
         }
 
         if (avail[i]) {
-            if (gShipTypes[i].flags3 & kShipFlags3BitTest) {
-                if (!EvalMissionBitTestString(gShipTypes[i].availability))
+            if (shipClass[i].flags3 & kShipHideIfUnavailable) {
+                if (!EvalMissionBitTestString(shipClass[i].availability))
                     avail[i] = 0;
             }
         }
 
         if (avail[i]) {
-            value = gShipTypes[i].dispWeight;
-            if (value > threshold || count == 0)
-                threshold = value;
+#if V111 /* V111 spelling */
+            if (shipClass[i].dispWeight > threshold || count == 0)
+                threshold = shipClass[i].dispWeight;
             count++;
+#else
+            if (shipClass[i].dispWeight > threshold || k == 0)
+                threshold = shipClass[i].dispWeight;
+            k++;
+#endif
         }
     }
 
+#if V111 /* V111 spelling */
     for (a = 0; a < kMaxShipTypes; a++) {
-        if (avail[a] && (gShipTypes[a].flags3 & kShipFlags3Unique)) {
+        if (avail[a] && (shipClass[a].flags3 & kShipSupersedes)) {
             for (k = a + 1; k < kMaxShipTypes; k++) {
-                if (gShipTypes[k].dispWeight == gShipTypes[a].dispWeight)
+                if (shipClass[k].dispWeight == shipClass[a].dispWeight)
                     avail[k] = 0;
             }
         }
@@ -3796,37 +4480,63 @@ void SetupPortAvailableShipTypes(SpobRecord *port)
         best = 0;
         for (n = 0; n < kMaxShipTypes; n++) {
             if (avail[n]) {
-                value = gShipTypes[n].dispWeight;
-                if (value >= threshold) {
+                if (shipClass[n].dispWeight >= threshold) {
                     dockedPortShipTypes[k++] = n;
                     avail[n] = 0;
-                } else if (value > best || count == 0) {
-                    best = value;
+                } else if (shipClass[n].dispWeight > best || count == 0) {
+                    best = shipClass[n].dispWeight;
                 }
                 count++;
             }
         }
         threshold = best;
     } while (count > 0);
+#else
+    for (i = 0; i < kMaxShipTypes; i++) {
+        if (avail[i] && (shipClass[i].flags3 & kShipSupersedes)) {
+            for (k = i + 1; k < kMaxShipTypes; k++) {
+                if (shipClass[k].dispWeight == shipClass[i].dispWeight)
+                    avail[k] = 0;
+            }
+        }
+    }
+
+    k = 0;
+    do {
+        j = 0;
+        best = 0;
+        for (i = 0; i < kMaxShipTypes; i++) {
+            if (avail[i]) {
+                if (shipClass[i].dispWeight >= threshold) {
+                    dockedPortShipTypes[k] = i;
+                    avail[i] = 0;
+                    k++;
+                } else if (shipClass[i].dispWeight > best || j == 0) {
+                    best = shipClass[i].dispWeight;
+                }
+                j++;
+            }
+        }
+        threshold = best;
+    } while (j > 0);
+#endif
 }
-
-
-#define kSpobFlags2OwnedItems   0x0400
 
 
 /* SetupPortAvailableItems (mac _SetupPortAvailableItems). STATE: MATCH, 208/208,
    byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046a220
-char SetupPortAvailableItems(SpobRecord *port)
+// MAC: _SetupPortAvailableItems i386 0x0000bedb ppc 0x0000ebd0
+Boolean SetupPortAvailableItems(SpobRecord *port)
 {
-    short count;
     short i;
-    short threshold;
     short j;
+    short count;
+    short threshold;
     short best;
-    short value;
     short saved[kMaxOutfits];
-    char avail[kMaxOutfits];
+    Boolean avail[kMaxOutfits];
+    short n;
 
     if (port == 0)
         return 1;
@@ -3836,16 +4546,16 @@ char SetupPortAvailableItems(SpobRecord *port)
         saved[i] = dockedPortItems[i];
         dockedPortItems[i] = -1;
         avail[i] = 0;
-        if ((port->flags2 & kSpobFlags2OwnedItems) && shipSystems[i] > 0
-                && !(gOutfits[i].flags & kOutfCantSell))
+        if ((port->flags2 & kSpobBuysAnyOutfit) && shipSystems[i] > 0
+                && !(outfitSystem[i].flags & kOutfCantSell))
             avail[i] = 1;
-        if (gOutfits[i].techLevel >= 0
-                && gOutfits[i].techLevel < kOutfTechAbsent) {
-            if (gOutfits[i].techLevel <= port->techLevel)
+        if (outfitSystem[i].techLevel >= 0
+                && outfitSystem[i].techLevel < kOutfTechAbsent) {
+            if (outfitSystem[i].techLevel <= port->techLevel)
                 avail[i] = 1;
             else {
                 for (j = 0; j < kPortSpecialTech; j++) {
-                    if (port->specialTech[j] == gOutfits[i].techLevel) {
+                    if (port->specialTech[j] == outfitSystem[i].techLevel) {
                         avail[i] = 1;
                         break;
                     }
@@ -3854,46 +4564,53 @@ char SetupPortAvailableItems(SpobRecord *port)
         }
 
         if (avail[i]) {
-            if ((gOutfits[i].flags & kOutfTestAvailability)
+            if ((outfitSystem[i].flags & kOutfTestAvailability)
                     && shipSystems[i] <= 0)
-                avail[i] = EvalMissionBitTestString(gOutfits[i].availability);
+                avail[i] = EvalMissionBitTestString(outfitSystem[i].availability);
         }
 
         if (avail[i]) {
-            if ((gOutfits[i].flags & kOutfCheckRequire)
+            if ((outfitSystem[i].flags & kOutfCheckRequire)
                     && shipSystems[i] <= 0)
-                avail[i] = PlayerMeetsRequirements(gOutfits[i].requires[0],
-                        gOutfits[i].requires[1]);
+                avail[i] = PlayerMeetsRequirements(outfitSystem[i].requires[0],
+                        outfitSystem[i].requires[1]);
         }
 
         if (avail[i]) {
-            if (shipSystems[i] > 0)
-                gOutfits[i].dailyRoll = 0;
-            else if (gOutfits[i].buyRandom <= 0
-                    || gOutfits[i].dailyRoll
-                            > gOutfits[i].buyRandom)
-                avail[i] = 0;
+            if (shipSystems[i] <= 0) {
+                if (outfitSystem[i].buyRandom <= 0
+                        || outfitSystem[i].dailyRoll
+                                > outfitSystem[i].buyRandom)
+                    avail[i] = 0;
+            } else
+                outfitSystem[i].dailyRoll = 0;
         }
 
-        if (gOutfits[i].flags & kOutfSellAnywhere) {
+        if (outfitSystem[i].flags & kOutfSellAnywhere) {
             if (shipSystems[i] > 0)
                 avail[i] = 1;
         }
 
         if (avail[i]) {
-            value = gOutfits[i].dispWeight;
-            if (value > threshold || count == 0)
-                threshold = value;
+            if (outfitSystem[i].dispWeight > threshold || count == 0)
+                threshold = outfitSystem[i].dispWeight;
             count++;
         }
     }
 
     for (i = 0; i < kMaxOutfits; i++) {
-        if (avail[i] && (gOutfits[i].flags & kOutfSupersedes)) {
+        if (avail[i] && (outfitSystem[i].flags & kOutfSupersedes)) {
+#if V111 /* V111 spelling */
             for (j = i + 1; j < kMaxOutfits; j++) {
-                if (gOutfits[j].dispWeight == gOutfits[i].dispWeight)
+                if (outfitSystem[j].dispWeight == outfitSystem[i].dispWeight)
                     avail[j] = 0;
             }
+#else
+            for (count = i + 1; count < kMaxOutfits; count++) {
+                if (outfitSystem[count].dispWeight == outfitSystem[i].dispWeight)
+                    avail[count] = 0;
+            }
+#endif
         }
     }
 
@@ -3903,12 +4620,19 @@ char SetupPortAvailableItems(SpobRecord *port)
         best = 0;
         for (i = 0; i < kMaxOutfits; i++) {
             if (avail[i]) {
-                value = gOutfits[i].dispWeight;
-                if (value >= threshold) {
+                if (outfitSystem[i].dispWeight >= threshold) {
+#if V111 /* V111 spelling */
                     dockedPortItems[count++] = i;
                     avail[i] = 0;
-                } else if (value > best || j == 0) {
-                    best = value;
+#else
+                    dockedPortItems[count] = i;
+                    avail[i] = 0;
+                    count++;
+#endif
+                } else {
+                    n = outfitSystem[i].dispWeight;
+                    if (n > best || j == 0)
+                        best = n;
                 }
                 j++;
             }
@@ -3925,13 +4649,14 @@ char SetupPortAvailableItems(SpobRecord *port)
 
 /* TotalCargo (mac _TotalCargo). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046a5d0
+// MAC: _TotalCargo i386 0x00004a0b ppc 0x00005e3c
 short TotalCargo(ShipObj *ship)
 {
-    short total;
     short i;
+    short total;
 
     total = 0;
-    for (i = 0; i < 6; i++)
+    for (i = 0; i <= 5; i++)
         total += ship->cargo[i];
     if (ship->index == 0) {
         for (i = 0; i < kMaxActiveMissions; i++) {
@@ -3949,41 +4674,66 @@ short TotalCargo(ShipObj *ship)
 
 /* PlayerHasAnyCargo (mac _PlayerHasAnyCargo). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046a680
-char PlayerHasAnyCargo(void)
+// MAC: _PlayerHasAnyCargo i386 0x00005d77 ppc 0x000074f0
+Boolean PlayerHasAnyCargo(void)
 {
-    int i;
+    short i;
 
-    for (i = 0; (short)i <= 5; i++) {
-        if (shipData[0].cargo[(short)i] > 0)
+    for (i = 0; i <= 5; i++) {
+        if (shipData[0].cargo[i] > 0)
             return 1;
     }
-    for (i = 0; (short)i < kMaxActiveMissions; i++) {
+    for (i = 0; i < kMaxActiveMissions; i++) {
         if (currentMissionObjectives[i].active != 0 && currentMissions[i].hasCargo != 0
                 && currentMissions[i].cargoType != -1 && currentMissions[i].cargoQty >= 0)
             return 1;
     }
-    for (i = 0; (short)i < kMaxJunks; i++) {
+    for (i = 0; i < kMaxJunks; i++) {
         if (junkData[i].held > 0)
             return 1;
     }
     return 0;
 }
 
+#ifdef MACBUILD
+/* InstantFighterRecall (mac _InstantFighterRecall, mac-only). STATE: see the mac gate. */
+// MAC: _InstantFighterRecall i386 0x00005df3 ppc 0x000075ac
+void InstantFighterRecall(void)
+{
+    short i;
+    short j;
+
+    for (i = 1; i < kMaxShips; i++) {
+        if (shipData[i].active && shipData[i].parentShip == 0 && shipData[i].aiType == 5
+                && shipData[i].specialMission == -1) {
+            for (j = 0; j < kMaxWeapTypes; j++) {
+                if (weaponStats[j].ammoType == shipData[i].type + kFirstResourceID && weaponStats[j].guidance == kGuidanceBay) {
+                    shipData[0].weap[j].ammo++;
+                    statusRedraw[3] = 1;
+                    break;
+                }
+            }
+        }
+    }
+}
+#endif
+
 /* the player's own hold capacity, outfit modifiers included */
 /* ShipTotalHolds. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046a730
+// MAC: _ShipTotalHolds i386 0x00005cb3 ppc 0x0000740c
 short ShipTotalHolds(void)
 {
     short holds;
     short i;
     short j;
 
-    holds = gShipTypes[shipData->type].cargo;
+    holds = shipClass[shipData->type].cargo;
     for (i = 0; i < 512; i++) {
         if (shipSystems[i] > 0) {
             for (j = 0; j < kOutfMods; j++) {
-                if (gOutfits[i].modType[j] == kOutfModCargo)
-                    holds += shipSystems[i] * gOutfits[i].modVal[j];
+                if (outfitSystem[i].modType[j] == kOutfModCargo)
+                    holds += outfitSystem[i].modVal[j] * shipSystems[i];
             }
         }
     }
@@ -3992,13 +4742,14 @@ short ShipTotalHolds(void)
 
 /* TotalMissionCargoSpace. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046a7c0
+// MAC: _TotalMissionCargoSpace i386 0x0000cffb ppc 0x00010310
 short TotalMissionCargoSpace(void)
 {
     short holds;
     short fleetHolds;
     short cargo;
     short missionUnits;
-    int i;
+    short i;
     short spare;
     short result;
 
@@ -4006,7 +4757,7 @@ short TotalMissionCargoSpace(void)
     fleetHolds = TotalFleetHolds();
     cargo = TotalCargo(shipData);
     missionUnits = 0;
-    for (i = 0; (short)i < kMaxActiveMissions; i++) {
+    for (i = 0; i < kMaxActiveMissions; i++) {
         if (currentMissionObjectives[i].active != 0 && currentMissions[i].hasCargo != 0
                 && currentMissions[i].cargoQty >= 0)
             missionUnits += currentMissions[i].cargoQty;
@@ -4027,6 +4778,7 @@ short TotalMissionCargoSpace(void)
 
 /* RefreshSAT (mac _RefreshSAT). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046a870
+// MAC: _RefreshSAT i386 0x00006b59 ppc 0x000085e0
 void RefreshSAT(void)
 {
     Rect *r;
@@ -4041,11 +4793,11 @@ void RefreshSAT(void)
     SWSetPortToBackground(gSpriteWorld);
     SetSystemBackgroundColor();
     PaintRect(&gSpriteWorld->windRect);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     SWSetPortToWorkArea(gSpriteWorld);
     SetSystemBackgroundColor();
     PaintRect(&gSpriteWorld->windRect);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     SWSetPortToWindow(gSpriteWorld);
 
     if (playerIsLanded == 0)
@@ -4054,53 +4806,83 @@ void RefreshSAT(void)
     if (commCount >= 0) {
         RedrawComm(1);
         SWSetPortToWindow(gSpriteWorld);
-        BlitPixieFloatingRectDrawProc(gSpriteWorld->backFrameP, gSpriteWorld->workFrameP,
-                     &commRect, &commRect, 0, gSpriteWorld->backgroundValue);
+#ifdef V111
+        if (useLegacyRenderingPipeline)
+#endif
+            BlitPixieFloatingRectDrawProc(gSpriteWorld->backFrameP, gSpriteWorld->workFrameP,
+                         &commRect, &commRect, 0, gSpriteWorld->backgroundValue);
     }
 
+#ifdef MACBUILD
+    CopyBits((PixMapPtr)GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
+             GetPortPixMapBits(GetWindowPort(gWind)),
+             &gSpriteWorld->workFrameP->frameRect,
+             &gSpriteWorld->windowFrameP->frameRect,
+             0, 0);
+#else
     CopyBits((PixMapPtr)GetPortBitMapForCopyBits(*(CGrafPtr *)gSpriteWorld->workFrameP),
              GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
              &gSpriteWorld->workFrameP->frameRect,
              &gSpriteWorld->windowFrameP->frameRect,
              0, 0);
+#endif
 
     r = GetCWindowPortRect(gWind);
-    box.top = r->top;
-    box.left = r->left;
-    box.bottom = r->bottom;
-    box.right = r->right;
+    box = *r;
+#ifdef CEFIX /* F14.14 */
+    box.left = box.right - ceStatusBarWidth;
+#else
     box.left = box.right - kStatusStripWidth;
-    strip.top = box.top;
-    strip.left = box.left;
-    strip.bottom = box.bottom;
-    strip.right = box.right;
+#endif
+    strip = box;
     OffsetRect(&strip, -strip.left, -strip.top);
 
     RedrawStatus(0);
     DrawStatusRadar(0);
     SWSetPortToWindow(gSpriteWorld);
+#ifdef MACBUILD
+    CopyBits(GWorldContainerBits(&loadPort),
+             GetPortPixMapBits(GetWindowPort(gWind)),
+             &box, &box, 0, 0);
+#else
     CopyBits(GetGWCPixMap(&loadPort),
              GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
              &box, &box, 0, 0);
+#endif
 
     if (playerIsLanded == 0) {
         RedrawComm(0);
         FloaterDrawCallback(gSpriteWorld);
     }
     SWSetPortToWindow(gSpriteWorld);
+#ifdef MACBUILD
+    QDFlushPortBuffer(GetWindowPort(gWind), NULL);
+#else
     ScreenEndScene();
+#endif
 }
 
 /* PlaySound (mac _PlaySound). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046aad0
+// MAC: _PlaySound i386 0x00005e9a ppc 0x0000768c
 void PlaySound(void *a, short b, short lo, short hi)
 {
     ST_PlaySound(a, b, (lo + hi) / 2);
 }
 
-/* SetSoundRate. STATE: MATCH, byte-identical. OPEN: none */
+#ifdef MACBUILD
+/* ShowFreeMem (mac _ShowFreeMem, mac-only). STATE: see the mac gate. */
+// MAC: _ShowFreeMem i386 0x00005ec3 ppc 0x000076a4
+void ShowFreeMem(void)
+{
+    FreeMem();
+}
+#endif
+
+/* AdjustWarpSoundSpeed. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046ab00
-void SetSoundRate(double rate)
+// MAC: _AdjustWarpSoundSpeed i386 0x00005ecc ppc 0x000076a8
+void AdjustWarpSoundSpeed(double rate)
 {
     unsigned short vol;
 
@@ -4113,9 +4895,10 @@ void SetSoundRate(double rate)
 /* eight steps per unit, clamped to a byte's worth */
 /* AdjustSoundVolume. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046ab60
+// MAC: _AdjustSoundVolume i386 0x00005efb ppc 0x000076e4
 void AdjustSoundVolume(void)
 {
-    gSoundVolume = volumePref * 8;
+    gSoundVolume = settings.volume * 8;
     if (gSoundVolume > 0x100)
         gSoundVolume = 0x100;
     if (gSoundVolume < 0)
@@ -4130,19 +4913,20 @@ void AdjustSoundVolume(void)
 
 /* ShipAntiInterference. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046abb0
+// MAC: _ShipAntiInterference i386 0x00005f2c ppc 0x0000772c
 short ShipAntiInterference(void)
 {
-    int i;
+    short i;
     short j;
     short total;
 
-    if (gCachedMod24 < -100) {
+    if (playerAntiInterference < -100) {
         total = 0;
-        for (i = 0; (short)i < 512; i++) {
-            if (shipSystems[(short)i] > 0) {
+        for (i = 0; i < 512; i++) {
+            if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType24)
-                        total += shipSystems[(short)i] * gOutfits[i].modVal[j];
+                    if (outfitSystem[i].modType[j] == kOutfModType24)
+                        total += outfitSystem[i].modVal[j] * shipSystems[i];
                 }
             }
         }
@@ -4150,23 +4934,23 @@ short ShipAntiInterference(void)
             total = 100;
         if (total < -100)
             total = -100;
-        gCachedMod24 = total;
+        playerAntiInterference = total;
         return total;
     }
-    return gCachedMod24;
+    return playerAntiInterference;
 }
 
 /* SpawnNagShip. STATE: MATCH, 327/327; byte check pending the next regate. OPEN: the
    `(short)' on the Hector scan's bound is an unexplained device -- the exe compares that
    counter at 16 bits and indexes the weapon loop with the same long `w'. see notes */
 // FUNCTION: EVNOVA 0x0046ac50
+// MAC: _SpawnNagShip i386 0x00005fdb ppc 0x000077d8
 void SpawnNagShip(void)
 {
     long chance;
     short slot;
     long w;
     short heading;
-    float mag;
     float step;
     float total;
     FloatPoint origin;
@@ -4175,34 +4959,41 @@ void SpawnNagShip(void)
     if (personData[kPersCaptainHector].shipType < 0)
         return;
 
-    if (gSharewareDays <= 14)
+    if (totalDaysPlayed <= 14)
         chance = 25000;
-    else if (gSharewareDays < 30)
+    else if (totalDaysPlayed < 30)
         chance = 10000;
-    else if (gSharewareDays < 60)
+    else if (totalDaysPlayed < 60)
         chance = 4000;
     else
         chance = 500;
 
-    chance = chance * (1 - ((gShipTypes[gameIsRegisteredIndex].registered != 0) ? 1 : 0));
+    chance = chance * (1 - ((shipClass[gameIsRegisteredIndex].registered != 0) ? 1 : 0));
 
     if (chance == 0) {
-        if (((gShipTypes[gameIsHackedIndex].hacked != 0) ? 1 : 0) == 0)
+        if (((shipClass[gameIsHackedIndex].hacked != 0) ? 1 : 0) == 0)
             return;
     }
 
+#ifdef MACBUILD
+    for (slot = 1; slot < kMaxShips; slot++) {
+        if (shipData[slot].active != 0 && shipData[slot].persType == kPersCaptainHector)
+            return;
+    }
+#else
     for (w = 1; (short)w < kMaxShips; w++) {
         if (shipData[w].active != 0 && shipData[w].persType == kPersCaptainHector)
             return;
     }
+#endif
 
     if ((chance > 0 && Rand(chance) == 0) ||
-        ((gShipTypes[gameIsHackedIndex].hacked != 0) ? 1 : 0)) {
+        ((shipClass[gameIsHackedIndex].hacked != 0) ? 1 : 0)) {
         slot = GenericRandomShipSpawn(shipData->curSystem, 2);
         if (slot != -1) {
-            if (gSharewareDays > 30) {
+            if (totalDaysPlayed > 30) {
             ST_PlaySound(beepSnd[4], 1, gSoundVolume);
-            GetIndString(msg, 30000, Rand(3) + 5);
+            GetIndString(msg, kHackedStrList, Rand(3) + 5);
             DisplayComm(msg, 0x168, 0, 12, &rgbWhite, 0, 0);
             }
 
@@ -4211,7 +5002,7 @@ void SpawnNagShip(void)
             shipData[slot].aiType = 4;
 
             total = 0.0f;
-            if (gSharewareDays >= 60)
+            if (totalDaysPlayed >= 60)
                 step = 31.0f;
             else
                 step = 50.0f;
@@ -4223,29 +5014,28 @@ void SpawnNagShip(void)
             shipData[slot].pos.x = shipData->pos.x;
             shipData[slot].pos.y = shipData->pos.y;
 
-            if (gSharewareDays >= 60) {
+            if (totalDaysPlayed >= 60) {
             heading = shipData->heading;
             } else {
             origin.x = origin.y = 0.0f;
             heading = CalcInterceptAngle(&shipData->pos, &origin);
             }
-            mag = -(total + 500.0);
-            Accel(heading, mag, &shipData[slot].pos);
+            Accel(heading, -(total + 500.0), &shipData[slot].pos);
 
             shipData[slot].heading = heading;
             shipData[slot].dude = -1;
             shipData[slot].aggression = 4;
             shipData[slot].govt = -1;
 
-            for (w = 0; w < 256; w++) {
-                shipData[slot].weap[w].count = gShipTypes[shipData[slot].type].weapCount[w];
-                shipData[slot].weap[w].ammo = gShipTypes[shipData[slot].type].weapAmmo[w];
-                shipData[slot].weap[w].count += personData[kPersCaptainHector].weapCount[w];
-                shipData[slot].weap[w].ammo += personData[kPersCaptainHector].weapAmmo[w];
+            for (chance = 0; chance < 256; chance++) {
+                shipData[slot].weap[chance].count = shipClass[shipData[slot].type].weapCount[chance];
+                shipData[slot].weap[chance].ammo = shipClass[shipData[slot].type].weapAmmo[chance];
+                shipData[slot].weap[chance].count += personData[kPersCaptainHector].weapCount[chance];
+                shipData[slot].weap[chance].ammo += personData[kPersCaptainHector].weapAmmo[chance];
             }
 
-            shipData[slot].shield = gShipTypes[shipData[slot].type].shield;
-            shipData[slot].armor = gShipTypes[shipData[slot].type].armor;
+            shipData[slot].shield = shipClass[shipData[slot].type].shield;
+            shipData[slot].armor = shipClass[shipData[slot].type].armor;
             if (personData[kPersCaptainHector].shieldMod > 0.0f) {
             shipData[slot].shield *= personData[kPersCaptainHector].shieldMod;
             shipData[slot].armor *= personData[kPersCaptainHector].shieldMod;
@@ -4259,32 +5049,39 @@ void SpawnNagShip(void)
     }
 }
 
+#ifdef MACBUILD
+/* LoadFrameFromCICN (mac _LoadFrameFromCICN, mac-only). STATE: see the mac gate. */
+// MAC: _LoadFrameFromCICN i386 0x00006497 ppc 0x00007d38
+void *LoadFrameFromCICN(short id)
+{
+    return 0;
+}
+#endif
+
 /* the shorter way round a 360-unit circle */
 
 /* AngularDifference. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046b210
+// MAC: _AngularDifference i386 0x0000649e ppc 0x00007d40
 short AngularDifference(short a, short b)
 {
-    int diff;
+    short diff;
 
     diff = abs(a - b);
     if ((a >= 0xb4) != (b >= 0xb4))
         diff = 0x168 - diff;
-    if ((short)diff > 0xb4)
+    if (diff > 0xb4)
         diff = 0x168 - diff;
     return diff;
 }
 
-#define kShipFlagBit10 0x400
-#define kShipFlagBit6  0x40
-#define kShipFlagBit5  0x20
-
 /* AIHasAfterburner. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046b260
-char AIHasAfterburner(ShipObj *ship)
+// MAC: _AIHasAfterburner i386 0x000064f5 ppc 0x00007d80
+Boolean AIHasAfterburner(ShipObj *ship)
 {
     short i;
-    int flags;
+    short flags;
 
     if (ship->index != 0) {
         for (i = 1; i < 64; i++) {
@@ -4293,13 +5090,13 @@ char AIHasAfterburner(ShipObj *ship)
                 return 0;
         }
     }
-    flags = gShipTypes[ship->type].flags;
-    if ((flags & kShipFlagBit10) != 0)
+    flags = shipClass[ship->type].flags;
+    if ((flags & kShipPlanetType) != 0)
         return 0;
-    if ((flags & kShipFlagBit6) != 0)
+    if ((flags & kShipAlwaysAfterburner) != 0)
         return 1;
-    if ((flags & kShipFlagBit5) != 0
-            && playerKills / gShipTypes[0].strength
+    if ((flags & kShipAfterburnerIfRated) != 0
+            && playerKills / shipClass[0].strength
                >= Rand(0x540) + 0x100)
         return 1;
     return 0;
@@ -4308,42 +5105,40 @@ char AIHasAfterburner(ShipObj *ship)
 /* true for all but the top few hundred of the 0x540 range */
 /* AIPerformsComplexManeuvers (mac _AIPerformsComplexManeuvers). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046b330
-char AIPerformsComplexManeuvers(ShipObj *ship)
+// MAC: _AIPerformsComplexManeuvers i386 0x0000659a ppc 0x00007e78
+Boolean AIPerformsComplexManeuvers(ShipObj *ship)
 {
     if (playerKills >= Rand(0x540) + 0x100)
         return 1;
     return 0;
 }
 
-#define kWeapArcFront 0x1000
-#define kWeapArcSide  0x2000
-#define kWeapArcRear  0x4000
-
 /* TurretBlindSpot. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046b360
-char TurretBlindSpot(ShipObj *ship, short heading, short weap)
+// MAC: _TurretBlindSpot i386 0x0000b325 ppc 0x0000ddb8
+unsigned char TurretBlindSpot(ShipObj *ship, short heading, short weap)
 {
     short facing;
     short diff;
-    char blocked;
+    unsigned char blocked;
 
     blocked = 0;
     facing = ship->heading;
     diff = AngularDifference(facing, heading);
     if (diff <= 0x2d) {
-        if (gWeapons[weap].flags & kWeapArcFront)
+        if (weaponStats[weap].flags & kWeapTurretBlindFront)
             blocked = 1;
-        if (gShipTypes[ship->type].flags & kWeapArcFront)
+        if (shipClass[ship->type].flags & kShipTurretBlindFront)
             blocked = 1;
     } else if (diff <= 0x87) {
-        if (gWeapons[weap].flags & kWeapArcSide)
+        if (weaponStats[weap].flags & kWeapTurretBlindSide)
             blocked = 1;
-        if (gShipTypes[ship->type].flags & kWeapArcSide)
+        if (shipClass[ship->type].flags & kShipTurretBlindSide)
             blocked = 1;
     } else {
-        if (gWeapons[weap].flags & kWeapArcRear)
+        if (weaponStats[weap].flags & kWeapTurretBlindRear)
             blocked = 1;
-        if (gShipTypes[ship->type].flags & kWeapArcRear)
+        if (shipClass[ship->type].flags & kShipTurretBlindRear)
             blocked = 1;
     }
     return blocked;
@@ -4353,27 +5148,28 @@ char TurretBlindSpot(ShipObj *ship, short heading, short weap)
 
 /* SelectShipFieldFromDude. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046b4b0
+// MAC: _SelectShipFieldFromDude i386 0x000065c2 ppc 0x00007ebc
 short SelectShipFieldFromDude(DudeRecord *dude, unsigned char allowAll)
 {
     short cum[kDudeSlots];
-    short total;
-    short count;
-    short i;
     short pick;
-    short j;
+    short i;
+    short count;
+    short total;
     short roll;
+    short j;
 
-    pick = -1;
     total = 0;
+    pick = -1;
     count = 0;
     for (i = 0; i < kDudeSlots; i++) {
         cum[i] = 0;
         if (dude->shipTypes[i] != -1
-            && (gShipTypes[dude->shipTypes[i]].canAppear != 0 || allowAll != 0)) {
+            && (shipClass[dude->shipTypes[i]].canAppear != 0 || allowAll != 0)) {
             total += dude->shipProbs[i];
             for (j = 0; j <= i; j++) {
                 if (dude->shipTypes[j] != -1
-                    && (gShipTypes[dude->shipTypes[j]].canAppear != 0
+                    && (shipClass[dude->shipTypes[j]].canAppear != 0
                         || allowAll != 0)) {
                     cum[i] += dude->shipProbs[j];
                     count++;
@@ -4383,15 +5179,15 @@ short SelectShipFieldFromDude(DudeRecord *dude, unsigned char allowAll)
     }
     if (total <= 0 || count == 0)
         return -1;
-    do {
+    while (pick == -1) {
         roll = Rand(total) + 1;
         for (i = kDudeSlots - 1; i >= 0; i--) {
             if (roll <= cum[i] && dude->shipTypes[i] != -1
-                && (gShipTypes[dude->shipTypes[i]].canAppear != 0
+                && (shipClass[dude->shipTypes[i]].canAppear != 0
                     || allowAll != 0))
                 pick = i;
         }
-    } while (pick == -1);
+    }
     return pick;
 }
 
@@ -4399,17 +5195,18 @@ short SelectShipFieldFromDude(DudeRecord *dude, unsigned char allowAll)
 
 /* SelectDudeFieldFromSystem. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046b600
+// MAC: _SelectDudeFieldFromSystem i386 0x0000674d ppc 0x00008070
 short SelectDudeFieldFromSystem(SystRecord *sys)
 {
     short cum[kSystDudeSlots];
-    short total;
     short pick;
     short i;
     short roll;
     short j;
+    short total;
 
-    pick = -1;
     total = 0;
+    pick = -1;
     for (i = 0; i < kSystDudeSlots; i++) {
         cum[i] = 0;
         if (sys->dudeTypes[i] >= 0 && sys->dudeTypes[i] < kMaxDudes) {
@@ -4422,29 +5219,28 @@ short SelectDudeFieldFromSystem(SystRecord *sys)
     }
     if (total <= 0)
         return -1;
-    do {
+    while (pick == -1) {
         roll = Rand(total) + 1;
         for (i = kSystDudeSlots - 1; i >= 0; i--) {
             if (roll <= cum[i] && sys->dudeTypes[i] >= 0
                 && sys->dudeTypes[i] < kMaxDudes)
                 pick = i;
         }
-    } while (pick == -1);
+    }
     return pick;
 }
 
 /* SelectFleetFromSystem. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046b6d0
+// MAC: _SelectFleetFromSystem i386 0x0000682c ppc 0x00008198
 short SelectFleetFromSystem(SystRecord *syst)
 {
-    short total;
     short i;
-    short probs[8];
     short picks[8];
+    short probs[8];
     short g;
+    short total;
     short k;
-    short prob;
-    short pick;
 
     if (syst->fleetCount <= 0)
         return -1;
@@ -4454,9 +5250,8 @@ short SelectFleetFromSystem(SystRecord *syst)
     for (i = 0; i < syst->fleetCount; i++) {
         if (fleetData[syst->fleets[i]].leadShipType != -1 && fleetData[syst->fleets[i]].usable != 0) {
             picks[g] = syst->fleets[i];
-            prob = syst->fleetProbs[i];
-            probs[g] = prob;
-            total += prob;
+            probs[g] = syst->fleetProbs[i];
+            total += syst->fleetProbs[i];
             for (k = 0; k < g; k++)
                 probs[g] += probs[k];
             g++;
@@ -4466,28 +5261,39 @@ short SelectFleetFromSystem(SystRecord *syst)
     if (g == 0 || total == 0)
         return -1;
 
-    pick = Rand(total) + 1;
-    for (k = 0; k < g; k++) {
-        if (pick <= probs[k])
-            return picks[k];
+    k = Rand(total) + 1;
+    for (i = 0; i < g; i++) {
+        if (k <= probs[i])
+            return picks[i];
     }
     return -1;
 }
+
+#ifdef MACBUILD
+/* FindDecayedShotPower (mac _FindDecayedShotPower, mac-only). STATE: see the mac gate. */
+// MAC: _FindDecayedShotPower i386 0x0000691b ppc 0x000082d4
+float FindDecayedShotPower(ShotObj *shot)
+{
+    return 1.0f;
+}
+#endif
 
 /* the shipyard's asking-price jitter, as a fraction around 1.00 */
 
 /* RandomSkillLevel. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046b870
+// MAC: _RandomSkillLevel i386 0x00006922 ppc 0x000082e0
 float RandomSkillLevel(short type)
 {
-    return (Rand(gShipTypes[type].skillVar * 2 + 1)
-            + (100 - gShipTypes[type].skillVar)) * 0.01;
+    return (Rand(shipClass[type].skillVar * 2 + 1)
+            + (100 - shipClass[type].skillVar)) * 0.01;
 }
 
 /* the player, or something escorting the player directly or one level down */
 /* AlliedWithPlayer. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046b8d0
-char AlliedWithPlayer(ShipObj *ship)
+// MAC: _AlliedWithPlayer i386 0x00006985 ppc 0x00008378
+Boolean AlliedWithPlayer(ShipObj *ship)
 {
     short parent;
 
@@ -4501,69 +5307,107 @@ char AlliedWithPlayer(ShipObj *ship)
     return 0;
 }
 
+#ifdef MACBUILD
+/* DebugInt (mac _DebugInt, mac-only). STATE: see the mac gate. */
+// MAC: _DebugInt i386 0x000069d1 ppc 0x000083d8
+void DebugInt(long n)
+{
+    Str255 s;
+
+    NumToString(n, s);
+    DebugStr(s);
+}
+#endif
+
 /* the first system of the group that has actually been loaded */
 /* FindActiveCoLocatedSystem (mac _FindActiveCoLocatedSystem). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046b920
+// MAC: _FindActiveCoLocatedSystem i386 0x00004be0 ppc 0x000060b8
 short FindActiveCoLocatedSystem(short sys)
 {
     short next;
 
     if (sys < 0 || sys >= 2048)
         return -1;
-    next = gSystems[sys].colocGroup;
-    if (next == -1) {
-        if (gSystems[sys].loaded != 0)
+    if (systemData[sys].colocGroup == -1) {
+        if (systemData[sys].loaded != 0)
             return sys;
         return -1;
     }
+    next = systemData[sys].colocGroup;
     do {
-        if (gSystems[next].loaded != 0)
+        if (systemData[next].loaded != 0)
             return next;
-        next = gSystems[next].colocNext;
+        next = systemData[next].colocNext;
     } while (next != -1);
     return -1;
 }
 
 /* FindFirstCoLocatedSystem (mac _FindFirstCoLocatedSystem). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046b9b0
+// MAC: _FindFirstCoLocatedSystem i386 0x00004baa ppc 0x0000607c
 short FindFirstCoLocatedSystem(short sys)
 {
-    short first;
-
     if (sys == -1)
         return -1;
-    first = gSystems[sys].colocGroup;
-    if (first != -1)
-        return first;
-    return sys;
+    if (systemData[sys].colocGroup == -1)
+        return sys;
+    return systemData[sys].colocGroup;
 }
 
 /* HideTheCursor (mac _HideTheCursor). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046b9f0
+// MAC: _HideTheCursor i386 0x00006a01 ppc 0x00008404
+#ifdef MACBUILD
+void HideTheCursor(void)
+{
+#if !TARGET_API_MAC_CARBON
+    if (CrsrVis)
+        cursorHidden = 0;
+#endif
+    if (cursorHidden < 10) {
+        cursorHidden++;
+        HideCursor();
+    }
+}
+#else
 void HideTheCursor(void)
 {
     OSCursorHide();
-    cursorVisible = (OSCursorIsVisible() == 0);
+    cursorHidden = (OSCursorIsVisible() == 0);
 }
+#endif
 
 /* ShowTheCursor (mac _ShowTheCursor). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046ba10
+// MAC: _ShowTheCursor i386 0x00006a1f ppc 0x00008424
+#ifdef MACBUILD
+void ShowTheCursor(void)
+{
+    if (cursorHidden > 0) {
+        cursorHidden = 0;
+        InitCursor();
+    }
+}
+#else
 void ShowTheCursor(void)
 {
     OSCursorShow();
-    cursorVisible = (OSCursorIsVisible() == 0);
+    cursorHidden = (OSCursorIsVisible() == 0);
 }
+#endif
 
 /* FindNearestValidShotTarget. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046ba30
+// MAC: _FindNearestValidShotTarget i386 0x00006a3a ppc 0x00008444
 short FindNearestValidShotTarget(ShotObj *shot)
 {
+    short i;
     short best;
     short bestDist;
     short dx;
     short dy;
     short dist;
-    short i;
 
     best = -1;
     for (i = 0; i < 64; i++) {
@@ -4586,38 +5430,46 @@ short FindNearestValidShotTarget(ShotObj *shot)
 
 /* SetSystemBackgroundColor. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046bbf0
+// MAC: _SetSystemBackgroundColor i386 0x00006af4 ppc 0x00008568
 void SetSystemBackgroundColor(void)
 {
+#ifdef MAC1010 /* 1.0.10 spelling */
+    short sys, x;
+
+    sys = x = shipData[0].curSystem;
+    sys &= ~(x >> 31);
+#else
     short sys;
 
     sys = shipData[0].curSystem;
     if (sys < 0)
         sys = 0;
-    RGBForeColor(&gSystems[sys].rgb);
-    SWSetBackgroundColor(gSpriteWorld, &gSystems[sys].rgb);
+#endif
+    RGBForeColor(&systemData[sys].rgb);
+    SWSetBackgroundColor(gSpriteWorld, &systemData[sys].rgb);
 }
 
 /* SetSystemBackgroundBackColor. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046bc50
+// MAC: _SetSystemBackgroundBackColor i386 0x00006e06 ppc 0x00008850
 void SetSystemBackgroundBackColor(void)
 {
-    if (shipData[0].curSystem >= 0) {
-        BackColor(&gSystems[shipData[0].curSystem].rgb);
+    if (shipData[0].curSystem < 0) {
+        BackColor(blackColor);
         return;
     }
-    BackColor(blackColor);
+    RGBBackColor(&systemData[shipData[0].curSystem].rgb);
 }
 
 /* GovtAllies (mac _GovtAllies). STATE: MATCH, exe 113 / obj 113, byte-identical yes
    (relocs masked). OPEN: none. Guard order `a,a,b,b' is the exe's -- do not normalise it
    to the twin's. see notes */
 // FUNCTION: EVNOVA 0x0046bc90
-char GovtAllies(short a, short b)
+// MAC: _GovtAllies i386 0x00004e3d ppc 0x00006390
+Boolean GovtAllies(short a, short b)
 {
-    short other;
     short i;
     short j;
-    short other2;
 
     if (a == b)
         return 1;
@@ -4629,15 +5481,15 @@ char GovtAllies(short a, short b)
         for (i = 0; i < kGovtClasses; i++) {
             if (govtData[a].classes[i] >= 0) {
                 for (j = 0; j < kGovtClasses; j++) {
-                    other = govtData[b].allies[j];
-                    if (other >= 0 && other == govtData[a].classes[i])
+                    if (govtData[b].allies[j] >= 0
+                            && govtData[b].allies[j] == govtData[a].classes[i])
                         return 1;
                 }
             }
             if (govtData[b].classes[i] >= 0) {
                 for (j = 0; j < kGovtClasses; j++) {
-                    other2 = govtData[a].allies[j];
-                    if (other2 >= 0 && other2 == govtData[b].classes[i])
+                    if (govtData[a].allies[j] >= 0
+                            && govtData[a].allies[j] == govtData[b].classes[i])
                         return 1;
                 }
             }
@@ -4650,12 +5502,11 @@ char GovtAllies(short a, short b)
    (relocs masked). OPEN: none. Guard order `a,b,a,b' is the exe's -- do not normalise it
    to the twin's. see notes */
 // FUNCTION: EVNOVA 0x0046bdf0
-char GovtEnemies(short a, short b)
+// MAC: _GovtEnemies i386 0x00004f22 ppc 0x0000647c
+Boolean GovtEnemies(short a, short b)
 {
-    short other;
     short i;
     short j;
-    short other2;
 
     if (a == b)
         return 0;
@@ -4667,15 +5518,15 @@ char GovtEnemies(short a, short b)
         for (i = 0; i < kGovtClasses; i++) {
             if (govtData[a].classes[i] >= 0) {
                 for (j = 0; j < kGovtClasses; j++) {
-                    other = govtData[b].enemies[j];
-                    if (other >= 0 && other == govtData[a].classes[i])
+                    if (govtData[b].enemies[j] >= 0
+                            && govtData[b].enemies[j] == govtData[a].classes[i])
                         return 1;
                 }
             }
             if (govtData[b].classes[i] >= 0) {
                 for (j = 0; j < kGovtClasses; j++) {
-                    other2 = govtData[a].enemies[j];
-                    if (other2 >= 0 && other2 == govtData[b].classes[i])
+                    if (govtData[a].enemies[j] >= 0
+                            && govtData[a].enemies[j] == govtData[b].classes[i])
                         return 1;
                 }
             }
@@ -4693,7 +5544,8 @@ char GovtEnemies(short a, short b)
 
 /* GovtSharedClass. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046bff0
-char GovtSharedClass(short a, short b)
+// MAC: _GovtSharedClass i386 0x00006e48 ppc 0x0000888c
+Boolean GovtSharedClass(short a, short b)
 {
     short i;
 
@@ -4713,27 +5565,28 @@ char GovtSharedClass(short a, short b)
 
 /* ShipDeionizationRate (mac _ShipDeionizationRate). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046c080
+// MAC: _ShipDeionizationRate i386 0x00006ec3 ppc 0x00008908
 float ShipDeionizationRate(ShipObj *ship)
 {
     short i;
     short j;
     float value;
 
-    value = gShipTypes[ship->type].deionize;
+    value = shipClass[ship->type].deionize;
     if (ship->index == 0) {
-        if (gCachedMod39 >= 0.0f) {
-            value = gCachedMod39;
+        if (playerDeionizeRate >= 0.0f) {
+            value = playerDeionizeRate;
         } else {
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModType39)
-                            value = value + gOutfits[i].modVal[j] * 0.01 *
+                        if (outfitSystem[i].modType[j] == kOutfModType39)
+                            value = value + outfitSystem[i].modVal[j] * 0.01 *
                                     shipSystems[i];
                     }
                 }
             }
-            gCachedMod39 = value;
+            playerDeionizeRate = value;
         }
     }
     return value;
@@ -4743,27 +5596,28 @@ float ShipDeionizationRate(ShipObj *ship)
 
 /* ShipIonizationFactor. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046c160
+// MAC: _ShipIonizationFactor i386 0x00003225 ppc 0x00004094
 float ShipIonizationFactor(ShipObj *ship)
 {
     short i;
     short j;
     float total;
 
-    total = gShipTypes[ship->type].ionizeMax;
+    total = shipClass[ship->type].ionizeMax;
     if (ship->index == 0) {
-        if (gCachedMod40 >= 0.0f) {
-            total = gCachedMod40;
+        if (playerIonizeMax >= 0.0f) {
+            total = playerIonizeMax;
         } else {
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModType40)
-                            total = total + gOutfits[i].modVal[j] *
+                        if (outfitSystem[i].modType[j] == kOutfModType40)
+                            total = total + outfitSystem[i].modVal[j] *
                                     shipSystems[i];
                     }
                 }
             }
-            gCachedMod40 = total;
+            playerIonizeMax = total;
         }
     }
     if (total > 0.0f)
@@ -4775,20 +5629,21 @@ float ShipIonizationFactor(ShipObj *ship)
 
 /* PlayerEffectiveMurk (mac _PlayerEffectiveMurk). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046c250
+// MAC: _PlayerEffectiveMurk i386 0x00006f8f ppc 0x00008a18
 short PlayerEffectiveMurk(void)
 {
-    int i;
+    short i;
     short j;
     short level;
 
-    level = gSystems[shipData[0].curSystem].murk;
+    level = systemData[shipData[0].curSystem].murk;
     if (level < 0)
         level = 0;
-    for (i = 0; (short)i < 512; i++) {
-        if (shipSystems[(short)i] > 0) {
+    for (i = 0; i < 512; i++) {
+        if (shipSystems[i] > 0) {
             for (j = 0; j < kOutfMods; j++) {
-                if (gOutfits[i].modType[j] == kOutfModType28)
-                    level += shipSystems[(short)i] * gOutfits[i].modVal[j];
+                if (outfitSystem[i].modType[j] == kOutfModType28)
+                    level += outfitSystem[i].modVal[j] * shipSystems[i];
             }
         }
     }
@@ -4799,13 +5654,12 @@ short PlayerEffectiveMurk(void)
     return level;
 }
 
-#define kWeapFlag1000 0x1000
-
 /* WeaponDisableOnly. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046c2f0
-char WeaponDisableOnly(short weap)
+// MAC: _WeaponDisableOnly i386 0x0000704c ppc 0x00008ad0
+Boolean WeaponDisableOnly(short weap)
 {
-    if ((gWeapons[weap].flags2 & kWeapFlag1000) != 0)
+    if ((weaponStats[weap].flags2 & kWeapNotDestroying) != 0)
         return 1;
     return 0;
 }
@@ -4813,6 +5667,7 @@ char WeaponDisableOnly(short weap)
 /* ModifyShotStartPosition (mac _ModifyShotStartPosition). STATE: MATCH 100%, exe 130 / obj 130,
    byte-identical yes (relocs masked). OPEN: none. */
 // FUNCTION: EVNOVA 0x0046c320
+// MAC: _ModifyShotStartPosition i386 0x00007348 ppc 0x00008df0
 short ModifyShotStartPosition(ShipObj *ship, FloatPoint *base, short weapType, FloatPoint *target)
 {
     short group;
@@ -4825,13 +5680,12 @@ short ModifyShotStartPosition(ShipObj *ship, FloatPoint *base, short weapType, F
         return -1;
 
     result = -1;
-    group = gWeapons[weapType].exitType;
+    group = weaponStats[weapType].exitType;
     if (group >= 0 && group <= 3) {
-        divisor = gShipTypes[ship->type].framesPer;
-        angle = *(long *)(ship->sprite + 0x68) % divisor;
-        angle *= 360.0 / divisor;
+        angle = ship->sprite->curFrameIndex % shipClass[ship->type].framesPer;
+        angle *= 360.0 / (float)shipClass[ship->type].framesPer;
 
-        if ((gWeapons[weapType].flags3 & kWeapClosestExit) && target != 0) {
+        if ((weaponStats[weapType].flags3 & kWeapClosestExit) && target != 0) {
             ship->weapGroupLane[group] = SelectClosestShotStartPosition(
                 ship, base, weapType, angle, group, target);
         }
@@ -4841,9 +5695,14 @@ short ModifyShotStartPosition(ShipObj *ship, FloatPoint *base, short weapType, F
 
         ModifyShotStartPosition2(ship, base, angle, group, ship->weapGroupLane[group]);
 
+#ifdef V111 /* V111 spelling */
+        result = ship->weapGroupLane[group];
+        ship->weapGroupLane[group] = ((result + 1) % 4);
+#else
         lane = ship->weapGroupLane[group];
         result = lane;
         ship->weapGroupLane[group] = ((lane + 1) % 4);
+#endif
 
         if (ship->weapGroupLane[group] < 0 || ship->weapGroupLane[group] > 3)
             ship->weapGroupLane[group] = Rand(4);
@@ -4854,12 +5713,13 @@ short ModifyShotStartPosition(ShipObj *ship, FloatPoint *base, short weapType, F
 
 /* SelectClosestShotStartPosition (mac _SelectClosestShotStartPosition). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046c4e0
-short SelectClosestShotStartPosition(ShipObj *ship, FloatPoint *base, long unused,
+// MAC: _SelectClosestShotStartPosition i386 0x00007254 ppc 0x00008d10
+short SelectClosestShotStartPosition(ShipObj *ship, FloatPoint *base, short unused,
                                     short weapType, short mount,
-                                    register FloatPoint *target)
+                                    FloatPoint *target)
 {
-    int best;
-    int i;
+    short best;
+    short i;
     FloatPoint pos;
     FloatPoint start;
     float d;
@@ -4870,12 +5730,12 @@ short SelectClosestShotStartPosition(ShipObj *ship, FloatPoint *base, long unuse
     start.x = base->x;
     start.y = base->y;
     best = -1;
-    for (i = 0; (short)i <= 3; i++) {
+    for (i = 0; i <= 3; i++) {
         pos.x = start.x;
         pos.y = start.y;
         ModifyShotStartPosition2(ship, &pos, weapType, mount, i);
         d = XYFloatSquaredDist(&pos, target);
-        if (d < bestDist || (short)best == -1) {
+        if (d < bestDist || best == -1) {
             best = i;
             bestDist = d;
         }
@@ -4889,6 +5749,7 @@ short SelectClosestShotStartPosition(ShipObj *ship, FloatPoint *base, long unuse
  */
 /* ModifyShotStartPosition2 (mac _ModifyShotStartPosition2). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046c5c0
+// MAC: _ModifyShotStartPosition2 i386 0x0000706e ppc 0x00008af0
 void ModifyShotStartPosition2(ShipObj *ship, FloatPoint *pos, short angle,
                               short mount, short lane)
 {
@@ -4898,18 +5759,18 @@ void ModifyShotStartPosition2(ShipObj *ship, FloatPoint *pos, short angle,
         return;
 
     d.x = d.y = 0;
-    Accel(angle, gShipTypes[ship->type].weapPos[mount][lane][1], &d);
+    Accel(angle, shipClass[ship->type].weapPos[mount][lane].v, &d);
     Accel(((angle + 90) % 360),
-          gShipTypes[ship->type].weapPos[mount][lane][0], &d);
+          shipClass[ship->type].weapPos[mount][lane].h, &d);
 
     if (d.y < 0.0) {
-        d.x = d.x * gShipTypes[ship->type].compress[0][0];
-        d.y = d.y * gShipTypes[ship->type].compress[0][1];
+        d.x = d.x * shipClass[ship->type].compress[0].x;
+        d.y = d.y * shipClass[ship->type].compress[0].y;
     } else {
-        d.x = d.x * gShipTypes[ship->type].compress[1][0];
-        d.y = d.y * gShipTypes[ship->type].compress[1][1];
+        d.x = d.x * shipClass[ship->type].compress[1].x;
+        d.y = d.y * shipClass[ship->type].compress[1].y;
     }
-    d.y = d.y - gShipTypes[ship->type].weapPosZ[mount][lane];
+    d.y = d.y - shipClass[ship->type].weapPosZ[mount][lane];
 
     pos->x = pos->x + d.x;
     pos->y = pos->y + d.y;
@@ -4917,7 +5778,8 @@ void ModifyShotStartPosition2(ShipObj *ship, FloatPoint *pos, short angle,
 
 /* ShipIsCloaked (mac _ShipIsCloaked). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046c7a0
-char ShipIsCloaked(ShipObj *ship)
+// MAC: _ShipIsCloaked i386 0x0000255f ppc 0x00002f20
+Boolean ShipIsCloaked(ShipObj *ship)
 {
     float cloak;
 
@@ -4935,60 +5797,47 @@ char ShipIsCloaked(ShipObj *ship)
 
 /* (invented name — no mac symbol; likely static in the mac build) */
 
-/* CronDateIsValid. STATE: MATCH, byte-identical. OPEN: none */
+/* CronDateInRange. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046c800
-char CronDateIsValid(CronRecord *cron)
+// MAC: _CronDateInRange i386 0x000074d3 ppc 0x00008fa0
+Boolean CronDateInRange(CronRecord *cron)
 {
-    unsigned short m;
-    unsigned short d;
-    unsigned short d2;
-
     if (cron->firstYear > 0 && gameTime.year < cron->firstYear)
         return 0;
-    m = cron->firstMonth;
-    if (m == 0) {
-        d = cron->firstDay;
-        if ((short)d <= 0)
+    if (cron->firstMonth == 0) {
+        if (cron->firstDay <= 0)
             goto firstShared;
-        if (gameTime.day < (short)d)
+        if (gameTime.day < cron->firstDay)
             return 0;
     } else {
 firstShared:
-        if ((short)m <= 0 || cron->firstDay != 0) {
-            if ((short)m > 0) {
-                d2 = cron->firstDay;
-                if ((short)d2 > 0) {
-                    if (gameTime.month * 0x20 + gameTime.day <
-                            ((short)m * 0x20 + (short)d2))
-                        return 0;
-                }
+        if (cron->firstMonth > 0 && cron->firstDay == 0) {
+            if (gameTime.month < cron->firstMonth)
+                return 0;
+        } else if (cron->firstMonth > 0) {
+            if (cron->firstDay > 0) {
+                if (gameTime.month * 32 + gameTime.day < cron->firstMonth * 32 + cron->firstDay)
+                    return 0;
             }
-        } else if (gameTime.month < (short)m) {
-            return 0;
         }
     }
     if (cron->lastYear > 0 && gameTime.year > cron->lastYear)
         return 0;
-    m = cron->lastMonth;
-    if (m == 0) {
-        d = cron->lastDay;
-        if ((short)d <= 0)
+    if (cron->lastMonth == 0) {
+        if (cron->lastDay <= 0)
             goto lastShared;
-        if (gameTime.day > (short)d)
+        if (gameTime.day > cron->lastDay)
             return 0;
     } else {
 lastShared:
-        if ((short)m <= 0 || cron->lastDay != 0) {
-            if ((short)m > 0) {
-                d2 = cron->lastDay;
-                if ((short)d2 > 0) {
-                    if (gameTime.month * 0x20 + gameTime.day >
-                            ((short)m * 0x20 + (short)d2))
-                        return 0;
-                }
+        if (cron->lastMonth > 0 && cron->lastDay == 0) {
+            if (gameTime.month > cron->lastMonth)
+                return 0;
+        } else if (cron->lastMonth > 0) {
+            if (cron->lastDay > 0) {
+                if (gameTime.month * 32 + gameTime.day > cron->lastMonth * 32 + cron->lastDay)
+                    return 0;
             }
-        } else if (gameTime.month > (short)m) {
-            return 0;
         }
     }
     return 1;
@@ -4996,23 +5845,24 @@ lastShared:
 
 /* ShipCanTargetUntargetableShips. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046c930
-char ShipCanTargetUntargetableShips(ShipObj *ship)
+// MAC: _ShipCanTargetUntargetableShips i386 0x0000238f ppc 0x00002c90
+Boolean ShipCanTargetUntargetableShips(ShipObj *ship)
 {
     short i;
     short j;
 
     if (ship->index == 0) {
-        if (gCachedMod30 >= 0) {
-            if (gCachedMod30 != 0)
+        if (playerCanTargetUntargetableShips >= 0) {
+            if (playerCanTargetUntargetableShips != 0)
                 return 1;
         } else {
-            gCachedMod30 = 0;
+            playerCanTargetUntargetableShips = 0;
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModType30 &&
-                            (gOutfits[i].modVal[j] & kOutfModVal30Bit2) != 0) {
-                            gCachedMod30 = 1;
+                        if (outfitSystem[i].modType[j] == kOutfModType30 &&
+                            (outfitSystem[i].modVal[j] & kOutfModVal30Bit2) != 0) {
+                            playerCanTargetUntargetableShips = 1;
                             return 1;
                         }
                     }
@@ -5021,11 +5871,11 @@ char ShipCanTargetUntargetableShips(ShipObj *ship)
         }
     } else {
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] ==
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
                             kOutfModType30 &&
-                        (gOutfits[gShipTypes[ship->type].defOutfID[i]].modVal[j] &
+                        (outfitSystem[shipClass[ship->type].defOutfID[i]].modVal[j] &
                             kOutfModVal30Bit2) != 0)
                         return 1;
                 }
@@ -5039,23 +5889,24 @@ char ShipCanTargetUntargetableShips(ShipObj *ship)
 
 /* ShipCanTargetCloakedShips. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046ca60
-char ShipCanTargetCloakedShips(ShipObj *ship)
+// MAC: _ShipCanTargetCloakedShips i386 0x00002466 ppc 0x00002dc0
+Boolean ShipCanTargetCloakedShips(ShipObj *ship)
 {
     short i;
     short j;
 
     if (ship->index == 0) {
-        if (gCachedMod30b >= 0) {
-            if (gCachedMod30b != 0)
+        if (playerCanTargetCloakedShips >= 0) {
+            if (playerCanTargetCloakedShips != 0)
                 return 1;
         } else {
-            gCachedMod30b = 0;
+            playerCanTargetCloakedShips = 0;
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModType30 &&
-                            (gOutfits[i].modVal[j] & kOutfModVal30Bit3) != 0) {
-                            gCachedMod30b = 1;
+                        if (outfitSystem[i].modType[j] == kOutfModType30 &&
+                            (outfitSystem[i].modVal[j] & kOutfModVal30Bit3) != 0) {
+                            playerCanTargetCloakedShips = 1;
                             return 1;
                         }
                     }
@@ -5064,11 +5915,11 @@ char ShipCanTargetCloakedShips(ShipObj *ship)
         }
     } else {
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] ==
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
                             kOutfModType30 &&
-                        (gOutfits[gShipTypes[ship->type].defOutfID[i]].modVal[j] &
+                        (outfitSystem[shipClass[ship->type].defOutfID[i]].modVal[j] &
                             kOutfModVal30Bit3) != 0)
                         return 1;
                 }
@@ -5082,7 +5933,8 @@ char ShipCanTargetCloakedShips(ShipObj *ship)
 
 /* ShipCanScoop. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046cb90
-char ShipCanScoop(ShipObj *ship)
+// MAC: _ShipCanScoop i386 0x000075c7 ppc 0x000090dc
+Boolean ShipCanScoop(ShipObj *ship)
 {
     short i;
     short j;
@@ -5091,16 +5943,16 @@ char ShipCanScoop(ShipObj *ship)
         for (i = 0; i < 512; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType31)
+                    if (outfitSystem[i].modType[j] == kOutfModType31)
                         return 1;
                 }
             }
         }
     } else {
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] ==
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
                         kOutfModType31)
                         return 1;
                 }
@@ -5112,6 +5964,7 @@ char ShipCanScoop(ShipObj *ship)
 
 /* PutSpriteInLayer. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046cc60
+// MAC: _PutSpriteInLayer i386 0x0000766c ppc 0x000091c0
 void PutSpriteInLayer(SpriteRec *sprite, SpriteLayerRec *layer)
 {
     if (sprite == NULL || layer == NULL)
@@ -5124,57 +5977,52 @@ void PutSpriteInLayer(SpriteRec *sprite, SpriteLayerRec *layer)
 
 /* GetPlayerContributeBits (mac _GetPlayerContributeBits). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046cca0
+// MAC: _GetPlayerContributeBits i386 0x000076b2 ppc 0x00009224
 void GetPlayerContributeBits(unsigned long *lo, unsigned long *hi)
 {
-    unsigned long bitsLo;
-    unsigned long bitsHi;
-    int i;
+    unsigned long bits[2];
+    short i;
 
-    bitsLo = gShipTypes[shipData->type].contributes[0];
-    bitsHi = gShipTypes[shipData->type].contributes[1];
-    i = 0;
-    do {
+    bits[0] = shipClass[shipData->type].contributes[0];
+    bits[1] = shipClass[shipData->type].contributes[1];
+    for (i = 0; i < kMaxRanks; i++) {
         if (rankData[i].active != '\0' && rankData[i].loaded != '\0') {
-            bitsLo |= rankData[i].contributes[0];
-            bitsHi |= rankData[i].contributes[1];
+            bits[0] |= rankData[i].contributes[0];
+            bits[1] |= rankData[i].contributes[1];
         }
-        i = i + 1;
-    } while ((short)i < kMaxRanks);
-    i = 0;
-    do {
-        if (gCrons[i].active != '\0' && gCrons[i].loaded != '\0'
-                && gCrons[i].holdoffLeft <= 0) {
-            bitsLo |= gCrons[i].contributes[0];
-            bitsHi |= gCrons[i].contributes[1];
+    }
+    for (i = 0; i < kMaxCrons; i++) {
+        if (cronEvent[i].active != '\0' && cronEvent[i].loaded != '\0'
+                && cronEvent[i].holdoffLeft <= 0) {
+            bits[0] |= cronEvent[i].contributes[0];
+            bits[1] |= cronEvent[i].contributes[1];
         }
-        i = i + 1;
-    } while ((short)i < kMaxCrons);
-    i = 0;
-    do {
-        if (shipSystems[(short)i] > 0) {
-            bitsLo |= gOutfits[i].contributes[0];
-            bitsHi |= gOutfits[i].contributes[1];
+    }
+    for (i = 0; i < kMaxOutfits; i++) {
+        if (shipSystems[i] > 0) {
+            bits[0] |= outfitSystem[i].contributes[0];
+            bits[1] |= outfitSystem[i].contributes[1];
         }
-        i = i + 1;
-    } while ((short)i < kMaxOutfits);
-    *lo = bitsLo;
-    *hi = bitsHi;
+    }
+    *lo = bits[0];
+    *hi = bits[1];
 }
 
 /* PlayerMeetsRequirements (mac _PlayerMeetsRequirements). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046cd80
-char PlayerMeetsRequirements(unsigned long reqLo, unsigned long reqHi)
+// MAC: _PlayerMeetsRequirements i386 0x0000776f ppc 0x00009334
+Boolean PlayerMeetsRequirements(unsigned long reqLo, unsigned long reqHi)
 {
-    unsigned long hi;
-    unsigned long lo;
+    unsigned long bits[2];
     unsigned long gotLo;
     unsigned long gotHi;
 
-    GetPlayerContributeBits(&lo, &hi);
-    gotLo = reqLo & lo;
-    gotHi = hi & reqHi;
-    if (reqLo == gotLo && gotHi == reqHi)
-        return 1;
+    GetPlayerContributeBits(&bits[0], &bits[1]);
+    gotLo = bits[0] & reqLo;
+    gotHi = bits[1] & reqHi;
+    if (gotLo == reqLo)
+        if (gotHi == reqHi)
+            return 1;
     return 0;
 }
 
@@ -5182,6 +6030,7 @@ char PlayerMeetsRequirements(unsigned long reqLo, unsigned long reqHi)
 
 /* ShipJumpsPerJump (mac _ShipJumpsPerJump). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046cdd0
+// MAC: _ShipJumpsPerJump i386 0x000077b4 ppc 0x00009394
 short ShipJumpsPerJump(ShipObj *ship)
 {
     short i;
@@ -5193,18 +6042,18 @@ short ShipJumpsPerJump(ShipObj *ship)
         for (i = 0; i < 512; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType32)
-                        total += gOutfits[i].modVal[j];
+                    if (outfitSystem[i].modType[j] == kOutfModType32)
+                        total += outfitSystem[i].modVal[j];
                 }
             }
         }
     } else {
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] ==
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
                         kOutfModType32)
-                        total += gOutfits[gShipTypes[ship->type].defOutfID[i]].modVal[j];
+                        total += outfitSystem[shipClass[ship->type].defOutfID[i]].modVal[j];
                 }
             }
         }
@@ -5216,26 +6065,28 @@ short ShipJumpsPerJump(ShipObj *ship)
 
 /* ShipMaxWeaponRange. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046cec0
+// MAC: _ShipMaxWeaponRange i386 0x0000bafd ppc 0x0000e734
 short ShipMaxWeaponRange(ShipObj *ship)
 {
-    short i;
     long best;
     long range;
-    short guidance;
+    short i;
 
     best = 0;
     for (i = 0; i < kMaxWeapTypes; i++) {
         if (ship->weap[i].count > 0 && WeaponHasAmmo(ship, i) != 0) {
-            guidance = gWeapons[i].guidance;
-            if (guidance == kGuidanceBeam || guidance == kGuidanceTurretBeam) {
-                range = gWeapons[i].beamLength;
-            } else if (guidance == kGuidanceUnguided || guidance == kGuidanceTurret
-                       || guidance == kGuidanceFrontQuad || guidance == kGuidanceFrontQuad) {
-                range = gWeapons[i].totalRange;
-            } else if (guidance == kGuidanceHoming) {
-                range = (gWeapons[i].totalRange * 0.85);
-            } else if (guidance == kGuidanceRocket) {
-                range = (gWeapons[i].totalRange * 0.5);
+            if (weaponStats[i].guidance == kGuidanceBeam
+                    || weaponStats[i].guidance == kGuidanceTurretBeam) {
+                range = weaponStats[i].beamLength;
+            } else if (weaponStats[i].guidance == kGuidanceUnguided
+                       || weaponStats[i].guidance == kGuidanceTurret
+                       || weaponStats[i].guidance == kGuidanceFrontQuad
+                       || weaponStats[i].guidance == kGuidanceFrontQuad) {
+                range = weaponStats[i].totalRange;
+            } else if (weaponStats[i].guidance == kGuidanceHoming) {
+                range = (weaponStats[i].totalRange * 0.85);
+            } else if (weaponStats[i].guidance == kGuidanceRocket) {
+                range = (weaponStats[i].totalRange * 0.5);
             } else {
                 range = 0;
             }
@@ -5247,31 +6098,31 @@ short ShipMaxWeaponRange(ShipObj *ship)
 }
 
 #define kOutfModType37 0x25
-#define kShipFlags2Bit5 0x20
 
 /* ShipCanExpiditeJumps (mac _ShipCanExpiditeJumps). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046d080
-char ShipCanExpiditeJumps(ShipObj *ship)
+// MAC: _ShipCanExpiditeJumps i386 0x00007872 ppc 0x00009498
+Boolean ShipCanExpiditeJumps(ShipObj *ship)
 {
     short i;
     short j;
 
-    if ((gShipTypes[ship->type].flags2 & kShipFlags2Bit5) != 0)
+    if ((shipClass[ship->type].flags2 & kShipJumpsAtSpeed) != 0)
         return 1;
     if (ship->index == 0) {
         for (i = 0; i < 512; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType37)
+                    if (outfitSystem[i].modType[j] == kOutfModType37)
                         return 1;
                 }
             }
         }
     } else {
         for (i = 0; i < 8; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j] ==
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
                         kOutfModType37)
                         return 1;
                 }
@@ -5283,7 +6134,8 @@ char ShipCanExpiditeJumps(ShipObj *ship)
 
 /* ShipsShareParent (mac _ShipsShareParent). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046d190
-char ShipsShareParent(ShipObj *a, ShipObj *b)
+// MAC: _ShipsShareParent i386 0x00007926 ppc 0x00009588
+Boolean ShipsShareParent(ShipObj *a, ShipObj *b)
 {
     short rootA;
     short rootB;
@@ -5291,6 +6143,17 @@ char ShipsShareParent(ShipObj *a, ShipObj *b)
 
     if (a == 0 || b == 0)
         return 0;
+#ifdef MAC1010
+    rootA = a->index;
+    while (shipData[rootA].active != 0 && (next = shipData[rootA].parentShip) >= 0
+           && next < 64 && rootA != next)
+        rootA = next;
+    rootB = b->index;
+    while (shipData[rootB].active != 0 && (next = shipData[rootB].parentShip) >= 0
+           && next < 64 && rootB != next)
+        rootB = next;
+    return rootA == rootB;
+#else
     rootA = a->index;
     while (1) {
         if (shipData[rootA].active == '\0')
@@ -5320,10 +6183,24 @@ char ShipsShareParent(ShipObj *a, ShipObj *b)
     if (rootA == rootB)
         return 1;
     return 0;
+#endif
 }
 
 /* PtoCstr (mac _PtoCstr). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046d250
+// MAC: _PtoCstr i386 0x000049e2 ppc 0x00005e04
+#ifdef V111 /* V111: 1.1.1 defines it void */
+void PtoCstr(unsigned char *str)
+{
+    short len = *str;
+    short i;
+
+    for (i = 0; i < len; i++)
+        str[i] = str[i + 1];
+    str[len] = 0;
+}
+#else
+#if !defined(MAC1010) || TARGET_API_MAC_CARBON /* 1.0.10 Classic imports InterfaceLib's */
 char *PtoCstr(unsigned char *str)
 {
     short len = *str;
@@ -5334,9 +6211,24 @@ char *PtoCstr(unsigned char *str)
     str[len] = 0;
     return (char *)str;
 }
+#endif
+#endif
 
 /* CtoPstr (mac _CtoPstr). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046d380
+// MAC: _CtoPstr i386 0x00004d13 ppc 0x00006210
+#ifdef V111 /* V111: 1.1.1 defines it void */
+void CtoPstr(char *str)
+{
+    short len = strlen(str);
+    short i;
+
+    for (i = len; i >= 1; i--)
+        str[i] = str[i - 1];
+    *str = len;
+}
+#else
+#ifndef MAC1010
 unsigned char *CtoPstr(char *str)
 {
     short len = strlen(str);
@@ -5347,16 +6239,22 @@ unsigned char *CtoPstr(char *str)
     *str = len;
     return (unsigned char *)str;
 }
+#elif TARGET_API_MAC_CARBON /* 1.0.10 Classic imports InterfaceLib's; Carbon's tail returns nothing */
+void CtoPstr(char *str)
+{
+    short len = strlen(str);
+    short i;
+
+    for (i = len; i >= 1; i--)
+        str[i] = str[i - 1];
+    *str = len;
+}
+#endif
+#endif
 
 /* junkData's record, padded to its true 0x526 stride */
 
 /* the rank record, padded to its true 0x120 stride */
-
-#define kRankBlesses  0x100
-#define kRankCondemns 0x200
-
-#define kJunkFlagA 1
-#define kJunkFlagB 2
 
 /* the modType values this routine reacts to */
 #define kModCloak  0x1f
@@ -5367,41 +6265,41 @@ unsigned char *CtoPstr(char *str)
 
 
 /* ResetPlayerPrecalcedValues. STATE: MATCH 100%, exe 587 / obj 587; relocregcheck 0 of 114
-   differ; byte identity awaits the next regate. OPEN: none. The licence code is read at each
+   differ; mac MATCH on both slices. OPEN: none. The licence code is read at each
    of the three checks; a `key' copy local was invented (2026-09-24). */
 // FUNCTION: EVNOVA 0x0046d4b0
+// MAC: _ResetPlayerPrecalcedValues i386 0x0000c357 ppc 0x0000f0c8
 void ResetPlayerPrecalcedValues(void)
 {
-    float ratio;
     short holds;
     short cargo;
     short i;
     short j;
-    short k;
     short m;
-    char keyed[3];
+    short k;
+    KeyCheckFlag keyed[3];
 
     playerShieldCapacity = -1.0f;
-    gCachedShieldRech = -1.0f;
-    gCachedArmorCap = -1.0f;
-    gCachedArmorRech = -1.0f;
-    gCachedTurnRate = -1.0f;
-    gCachedAccelRate = -1.0f;
-    gCachedMaxSpeed = -1.0f;
-    gCachedFuelCap = -1.0f;
-    gCachedMod40 = -1.0f;
-    gCachedMod39 = -1.0f;
+    playerShieldRechargeRate = -1.0f;
+    playerArmorCapacity = -1.0f;
+    playerArmorRechargeRate = -1.0f;
+    playerTurnRate = -1.0f;
+    playerAccelRate = -1.0f;
+    playerMaxSpeed = -1.0f;
+    playerFuelCapacity = -1.0f;
+    playerIonizeMax = -1.0f;
+    playerDeionizeRate = -1.0f;
     playerHasAfterburner = -1;
-    gHasModType13 = -1;
-    gHasModType14 = -1;
-    gCachedMod38 = -1;
-    gCachedMod24 = 0x8300;
-    gMaxSoundRange = -1;
-    gCachedMod30 = -1;
-    gCachedMod30b = -1;
-    gCachedMod15 = -1.0f;
-    gCachedMod41 = -1;
-    gCachedMod42 = -1;
+    playerHasDensityScanner = -1;
+    playerHasIFF = -1;
+    playerHasInertialDamper = -1;
+    playerAntiInterference = 0x8300;
+    playerEffectiveMurk = -1;
+    playerCanTargetUntargetableShips = -1;
+    playerCanTargetCloakedShips = -1;
+    playerABFuelUsage = -1.0f;
+    playerResistsGravity = -1;
+    playerResistsDeadlyStellars = -1;
     playerHasAreaCloak = -1;
     playerHasIllegalJunk = 0;
     playerHasIllegalOutfits = 0;
@@ -5411,13 +6309,13 @@ void ResetPlayerPrecalcedValues(void)
     shipData->fuelRegenState = -1;
     shipData->canScoop = 0;
 
-    keyed[0] = ((*(unsigned long long *)((char *)shipData + 0x4b7a0) ^ 0x6e1bbb2b46dfcc17LL) & kKeyMask) != 0x0c9f3b380ff9e811LL;
-    keyed[1] = ((*(unsigned long long *)((char *)shipData + 0x4b7a0) ^ 0x1f1e62f77679a8c9LL) & kKeyMask) != 0x0e1f82a0c71946cbLL;
-    keyed[2] = ((*(unsigned long long *)((char *)shipData + 0x4b7a0) ^ 0xa63b2518c45f7e5bLL) & kKeyMask) != 0x010d795bcf7c9f6aLL;
+    KeyMismatch(keyed[0], shipData[5].licenseCode, shipData[5].licenseCode, 0x6e1bbb2b46dfcc17ULL, 0x0c9f3b380ff9e811LL);
+    KeyMismatch(keyed[1], shipData[5].licenseCode, shipData[5].licenseCode, 0x1f1e62f77679a8c9ULL, 0x0e1f82a0c71946cbLL);
+    KeyMismatch(keyed[2], shipData[5].licenseCode, shipData[5].licenseCode, 0xa63b2518c45f7e5bULL, 0x010d795bcf7c9f6aLL);
     for (i = 0; i < 3; i++) {
         if (keyed[i] == 0) {
             playerShieldCapacity = 1.0f;
-            gCachedArmorCap = 1.0f;
+            playerArmorCapacity = 1.0f;
         }
     }
 
@@ -5425,15 +6323,15 @@ void ResetPlayerPrecalcedValues(void)
         if (junkData[i].held > 0) {
             if (junkData[i].scanMask != 0)
                 playerHasIllegalJunk = 1;
-            if ((junkData[i].flags & kJunkFlagA) != 0)
+            if ((junkData[i].flags & kJunkTribbles) != 0)
                 playerHasTribbles = 1;
-            else if ((junkData[i].flags & kJunkFlagB) != 0)
+            else if ((junkData[i].flags & kJunkPerishable) != 0)
                 playerHasPerishableJunk = 1;
         }
     }
 
     for (i = 0; i < 0x200; i++) {
-        if (shipSystems[i] > 0 && gOutfits[i].scanMask != 0) {
+        if (shipSystems[i] > 0 && outfitSystem[i].scanMask != 0) {
             playerHasIllegalOutfits = 1;
             break;
         }
@@ -5442,23 +6340,23 @@ void ResetPlayerPrecalcedValues(void)
     for (i = 0; i < 0x200; i++) {
         if (shipSystems[i] > 0) {
             for (j = 0; j < kOutfMods; j++) {
-                if (gOutfits[i].modType[j] == kModScan2F) {
+                if (outfitSystem[i].modType[j] == kModScan2F) {
                     playerSabotaged = 1;
                     sabotageCounter = 0.0f;
                 }
-                if (gOutfits[i].modType[j] == kModScan32) {
+                if (outfitSystem[i].modType[j] == kModScan32) {
                     if (playerSabotaged < 1)
                         playerSabotaged = 2;
                     sabotageCounter = 0.0f;
                 }
-                if (gOutfits[i].modType[j] == kModJam2C) {
-                    if (gOutfits[i].modVal[j] == -1) {
+                if (outfitSystem[i].modType[j] == kModJam2C) {
+                    if (outfitSystem[i].modVal[j] == -1) {
                         allReinforcementsInhibited = 1;
                     } else {
                         for (k = 0; k < 0x100; k++) {
                             for (m = 0; m < 4; m++) {
                                 if (govtData[k].classes[m] ==
-                                        gOutfits[i].modVal[j] &&
+                                        outfitSystem[i].modVal[j] &&
                                     govtData[k].classes[m] != -1) {
                                     govtData[k].reinfInhibited = 1;
                                     break;
@@ -5467,11 +6365,11 @@ void ResetPlayerPrecalcedValues(void)
                         }
                     }
                 }
-                if (gOutfits[i].modType[j] == kModJam30) {
+                if (outfitSystem[i].modType[j] == kModJam30) {
                     for (k = 0; k < 0x100; k++) {
                         for (m = 0; m < 4; m++) {
                             if (govtData[k].classes[m] ==
-                                    gOutfits[i].modVal[j] &&
+                                    outfitSystem[i].modVal[j] &&
                                 govtData[k].classes[m] != -1) {
                                 govtData[k].iffScrambled = 1;
                                 break;
@@ -5479,7 +6377,7 @@ void ResetPlayerPrecalcedValues(void)
                         }
                     }
                 }
-                if (gOutfits[i].modType[j] == kModCloak)
+                if (outfitSystem[i].modType[j] == kModCloak)
                     shipData->canScoop = 1;
             }
         }
@@ -5491,20 +6389,13 @@ void ResetPlayerPrecalcedValues(void)
         if (TotalFleetHolds() - TotalCargo(shipData) <= 0)
             shipData->canScoop = 0;
     }
-    shipData->jamming[0] = -1;
-    shipData->jamming[1] = -1;
-    shipData->jamming[2] = -1;
-    shipData->jamming[3] = -1;
+    for (i = 0; i < 4; i++)
+        shipData->jamming[i] = -1;
     holds = TotalFleetHolds();
     cargo = TotalCargo(shipData);
     if (cargo > holds) {
-        ratio = holds / (float)cargo;
-        shipData->cargo[0] *= ratio;
-        shipData->cargo[1] *= ratio;
-        shipData->cargo[2] *= ratio;
-        shipData->cargo[3] *= ratio;
-        shipData->cargo[4] *= ratio;
-        shipData->cargo[5] *= ratio;
+        for (i = 0; i <= 5; i++)
+            shipData->cargo[i] *= holds / (float)cargo;
         statusRedraw[2] = 1;
     }
     for (i = 0; i <= 5; i++) {
@@ -5519,59 +6410,57 @@ void ResetPlayerPrecalcedValues(void)
             statusRedraw[2] = 1;
         }
     }
-    shipData->seesCloaked = -1;
-    shipData->seesCloakedRadar = -1;
+    shipData->seesCloaked[0] = -1;
+    shipData->seesCloaked[1] = -1;
     shipData->decloaksWhenHit = -1;
 
-    for (i = 0; i < 0x100; i++) {
-        govtData[i].blessesPlayer[0] = 0;
-        govtData[i].blessesPlayer[1] = 0;
+    for (j = 0; j < 0x100; j++) {
+        govtData[j].blessesPlayer[0] = 0;
+        govtData[j].blessesPlayer[1] = 0;
     }
     for (i = 0; i < 0x80; i++) {
         if (rankData[i].active != 0 && rankData[i].loaded != 0 &&
-            (rankData[i].flags & (kRankBlesses | kRankCondemns)) != 0 &&
+            (rankData[i].flags & (kRankNotAttacked | kRankCanAlwaysLand)) != 0 &&
             rankData[i].govt != -1) {
             for (j = 0; j < 0x100; j++) {
                 if (GovtAllies(j, rankData[i].govt) != 0) {
-                    if ((rankData[i].flags & kRankBlesses) != 0)
+                    if ((rankData[i].flags & kRankNotAttacked) != 0)
                         govtData[j].blessesPlayer[0] = 1;
-                    if ((rankData[i].flags & kRankCondemns) != 0)
+                    if ((rankData[i].flags & kRankCanAlwaysLand) != 0)
                         govtData[j].blessesPlayer[1] = 1;
                 }
             }
         }
     }
     playerRepairInhibit = -1.0f;
-    gMaxSoundRange = PlayerEffectiveMurk();
+    playerEffectiveMurk = PlayerEffectiveMurk();
 }
 
-#define kShipFlags3Bit5 0x20
-
 #define kOutfModType38 0x26
-#define kShipFlags2Bit6 0x40
 
 /* ShipIsInertialess. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046df70
-char ShipIsInertialess(ShipObj *ship)
+// MAC: _ShipIsInertialess i386 0x000079c2 ppc 0x00009640
+Boolean ShipIsInertialess(ShipObj *ship)
 {
     short i;
     short j;
 
     if (ship->index != 0 && ship->parentShip != -1 && IsShipInCloseForm(ship))
         return 0;
-    if ((gShipTypes[ship->type].flags2 & kShipFlags2Bit6) != 0)
+    if ((shipClass[ship->type].flags2 & kShipInertialess) != 0)
         return 1;
     if (ship->index == 0) {
-        if (gCachedMod38 >= 0) {
-            if (gCachedMod38 != 0)
+        if (playerHasInertialDamper >= 0) {
+            if (playerHasInertialDamper != 0)
                 return 1;
         } else {
-            gCachedMod38 = 0;
+            playerHasInertialDamper = 0;
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModType38) {
-                            gCachedMod38 = 1;
+                        if (outfitSystem[i].modType[j] == kOutfModType38) {
+                            playerHasInertialDamper = 1;
                             return 1;
                         }
                     }
@@ -5589,59 +6478,63 @@ char ShipIsInertialess(ShipObj *ship)
 
 /* ShipAfterburnerFuelUsage (mac _ShipAfterburnerFuelUsage). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e060
+// MAC: _ShipAfterburnerFuelUsage i386 0x00007a82 ppc 0x00009758
 float ShipAfterburnerFuelUsage(ShipObj *ship)
 {
     short i;
     short j;
 
-    if (ship->index != 0)
-        return 0.0f;
-    if (gCachedMod15 < 0.0) {
-        gCachedMod15 = 0.0f;
-        for (i = 0; i < 512; i++) {
-            if (shipSystems[i] > 0) {
-                for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType15) {
-                        gCachedMod15 = gOutfits[i].modVal[j] * 0.0333;
-                        break;
+    if (ship->index == 0) {
+        if (playerABFuelUsage < 0.0) {
+            playerABFuelUsage = 0.0f;
+            for (i = 0; i < 512; i++) {
+                if (shipSystems[i] > 0) {
+                    for (j = 0; j < kOutfMods; j++) {
+                        if (outfitSystem[i].modType[j] == kOutfModType15) {
+                            playerABFuelUsage = outfitSystem[i].modVal[j] * 0.0333;
+                            break;
+                        }
                     }
                 }
             }
         }
+        return playerABFuelUsage;
     }
-    return gCachedMod15;
+    return 0.0f;
 }
 
 #define kOutfModType41 0x29
 
 /* ShipResistsGravity. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e120
+// MAC: _ShipResistsGravity i386 0x00007b10 ppc 0x00009850
 short ShipResistsGravity(ShipObj *ship)
 {
     short i;
     short j;
 
-    if ((gShipTypes[ship->type].flags3 & kShipFlags3Bit5) != 0)
+    if ((shipClass[ship->type].flags3 & kShipIgnoresDeadly) != 0)
         return 1;
     if (ShipIsInertialess(ship))
         return 1;
     if (ship->index == 0) {
-        if (gCachedMod41 == -1) {
-            gCachedMod41 = 0;
+        if (playerResistsGravity != -1) {
+            if (playerResistsGravity != 0)
+                return 1;
+        } else {
+            playerResistsGravity = 0;
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModType41) {
-                            gCachedMod41 = 1;
+                        if (outfitSystem[i].modType[j] == kOutfModType41) {
+                            playerResistsGravity = 1;
                             break;
                         }
                     }
                 }
             }
-        } else if (gCachedMod41 != 0) {
-            return 1;
         }
-        return gCachedMod41;
+        return playerResistsGravity;
     }
     return 0;
 }
@@ -5650,30 +6543,32 @@ short ShipResistsGravity(ShipObj *ship)
 
 /* ShipResistsDeadlyStellars. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e210
+// MAC: _ShipResistsDeadlyStellars i386 0x00007bbe ppc 0x00009950
 short ShipResistsDeadlyStellars(ShipObj *ship)
 {
     short i;
     short j;
 
-    if ((gShipTypes[ship->type].flags3 & kShipFlags3Bit5) != 0)
+    if ((shipClass[ship->type].flags3 & kShipIgnoresDeadly) != 0)
         return 1;
     if (ship->index == 0) {
-        if (gCachedMod42 == -1) {
-            gCachedMod42 = 0;
+        if (playerResistsDeadlyStellars != -1) {
+            if (playerResistsDeadlyStellars != 0)
+                return 1;
+        } else {
+            playerResistsDeadlyStellars = 0;
             for (i = 0; i < 512; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (gOutfits[i].modType[j] == kOutfModType42) {
-                            gCachedMod42 = 1;
+                        if (outfitSystem[i].modType[j] == kOutfModType42) {
+                            playerResistsDeadlyStellars = 1;
                             break;
                         }
                     }
                 }
             }
-        } else if (gCachedMod42 != 0) {
-            return 1;
         }
-        return gCachedMod42;
+        return playerResistsDeadlyStellars;
     }
     return 0;
 }
@@ -5686,25 +6581,28 @@ short ShipResistsDeadlyStellars(ShipObj *ship)
 
 /* ApplyGravity. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e2f0
+// MAC: _ApplyGravity i386 0x00007c5a ppc 0x00009a24
 void ApplyGravity(FloatPoint *a, FloatPoint *b, float force, FloatPoint *out)
 {
     float dx;
     float dy;
+    float dist;
     dx = (a->x - b->x) * 0.01;
     dy = (a->y - b->y) * 0.01;
     if (dx < 0)
-        dx = dx * -1.0;
+        dx *= -1.0;
     if (dy < 0)
-        dy = dy * -1.0;
-    dy = dx * dx + dy * dy;
-    if (dy < 30)
-        dy = 30;
-    Accel(CalcInterceptAngle(a, b), force / dy, out);
+        dy *= -1.0;
+    dist = dx * dx + dy * dy;
+    if (dist < 30)
+        dist = 30;
+    Accel(CalcInterceptAngle(a, b), force / dist, out);
 }
 
 /* StellarIsDestroyed (mac _StellarIsDestroyed). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e3c0
-char StellarIsDestroyed(SpobRecord *spob)
+// MAC: _StellarIsDestroyed i386 0x00004e14 ppc 0x0000635c
+Boolean StellarIsDestroyed(SpobRecord *spob)
 {
     if (spob->strength > 0 && (spob->deadCounter < 0 || spob->deadDaysLeft > 0))
         return 1;
@@ -5713,7 +6611,8 @@ char StellarIsDestroyed(SpobRecord *spob)
 
 /* StellarIsLandable (mac _StellarIsLandable). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e3f0
-char StellarIsLandable(SpobRecord *spob)
+// MAC: _StellarIsLandable i386 0x0000a989 ppc 0x0000d0d0
+Boolean StellarIsLandable(SpobRecord *spob)
 {
     if (SpobCanLand(spob) &&
         ((StellarIsDestroyed(spob) && SpobLandOnlyWhenDestroyed(spob)) ||
@@ -5725,7 +6624,8 @@ char StellarIsLandable(SpobRecord *spob)
 /* landable and an actual place, i.e. not a hypergate or a wormhole */
 /* StellarIsNormalLandable (mac _StellarIsNormalLandable). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e440
-char StellarIsNormalLandable(SpobRecord *spob)
+// MAC: _StellarIsNormalLandable i386 0x0000a9f8 ppc 0x0000d164
+Boolean StellarIsNormalLandable(SpobRecord *spob)
 {
     if (StellarIsLandable(spob) && !SpobIsHyperOrWorm(spob))
         return 1;
@@ -5734,21 +6634,59 @@ char StellarIsNormalLandable(SpobRecord *spob)
 
 #define kNeutralComponent 0x20
 
-/* GetShipPaintColor (mac _GetShipPaintColor). STATE: MATCH, byte-identical. OPEN: none */
+/* GetShipPaintColor (mac _GetShipPaintColor). STATE: win MATCH, byte-identical; mac MATCH on both slices
+   (V111 spelling). OPEN: none */
 // FUNCTION: EVNOVA 0x0046e470
+// MAC: _GetShipPaintColor i386 0x00007d0c ppc 0x00009adc
 void GetShipPaintColor(ShipObj *ship, unsigned short *red, unsigned short *green,
                   unsigned short *blue)
+#ifdef MAC1010
+{
+    RGBColor c;
+
+    c.red = c.green = c.blue = kNeutralComponent;
+    if (ship->index == 0) {
+        c = playerPaint;
+    } else if (ship->persType != -1) {
+        c = personData[ship->persType].shipColor;
+    } else if (ship->govt != -1) {
+        c = govtData[ship->govt].rgb2;
+    }
+    if (c.red == 0 && c.green == 0 && c.blue == 0)
+        c.red = c.green = c.blue = kNeutralComponent;
+    *red = c.red;
+    *green = c.green;
+    *blue = c.blue;
+}
+#else
 {
     unsigned short b;
     unsigned short g;
     unsigned short r;
+#if V111 /* V111 spelling */
+#else
     unsigned short *rgb;
 
     r = g = b = kNeutralComponent;
+#endif
+
     if (ship->index == 0) {
         r = playerPaint.red;
         g = playerPaint.green;
         b = playerPaint.blue;
+#if V111 /* V111 spelling */
+    } else if (ship->persType != -1) {
+        r = personData[ship->persType].rgb5[0];
+        g = personData[ship->persType].rgb5[1];
+        b = personData[ship->persType].rgb5[2];
+    } else if (ship->govt != -1) {
+        r = govtData[ship->govt].rgb2.red;
+        g = govtData[ship->govt].rgb2.green;
+        b = govtData[ship->govt].rgb2.blue;
+    } else {
+        r = g = b = kNeutralComponent;
+    }
+#else
     } else if (ship->persType != -1) {
         rgb = personData[ship->persType].rgb5;
         r = rgb[0];
@@ -5760,12 +6698,18 @@ void GetShipPaintColor(ShipObj *ship, unsigned short *red, unsigned short *green
         g = rgb[1];
         b = rgb[2];
     }
-    if (r == 0 && g == 0 && b == 0)
-        r = g = b = kNeutralComponent;
+#endif
+    if (r == 0) {
+        if (g == 0) {
+            if (b == 0)
+                r = g = b = kNeutralComponent;
+        }
+    }
     *red = r;
     *green = g;
     *blue = b;
 }
+#endif
 
 #define kOutfModType49 0x31
 
@@ -5773,13 +6717,14 @@ void GetShipPaintColor(ShipObj *ship, unsigned short *red, unsigned short *green
 
 /* ShipCanSelfRepair (mac _ShipCanSelfRepair). STATE: MATCH 100.0%, exe 132 / obj 132, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e540
-char ShipCanSelfRepair(ShipObj *ship)
+// MAC: _ShipCanSelfRepair i386 0x00009134 ppc 0x0000b258
+Boolean ShipCanSelfRepair(ShipObj *ship)
 {
     short i;
     short j;
 
-    if (gTimeScale > 0.0) {
-        if (Rand((500.0 / gTimeScale)) != 0)
+    if (gSpeedMult > 0.0) {
+        if (Rand((500.0 / gSpeedMult)) != 0)
             return 0;
     } else {
         if (Rand(500) != 0)
@@ -5792,16 +6737,16 @@ char ShipCanSelfRepair(ShipObj *ship)
         for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[i].modType[j] == kOutfModType49)
+                    if (outfitSystem[i].modType[j] == kOutfModType49)
                         return 1;
                 }
             }
         }
     } else {
         for (i = 0; i < kShipDefOutfits; i++) {
-            if (gShipTypes[ship->type].defOutfCount[i] > 0) {
+            if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
-                    if (gOutfits[gShipTypes[ship->type].defOutfID[i]].modType[j]
+                    if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j]
                             == kOutfModType49)
                         return 1;
                 }
@@ -5813,31 +6758,31 @@ char ShipCanSelfRepair(ShipObj *ship)
 
 /* SplitTwoLineString. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e6d0
-char SplitTwoLineString(const unsigned char *src, unsigned char *first,
+// MAC: _SplitTwoLineString i386 0x00007dc1 ppc 0x00009b98
+unsigned char SplitTwoLineString(const unsigned char *src, unsigned char *first,
                   unsigned char *second)
 {
-    int len;
-    int out;
+    Boolean afterBreak;
+    Boolean skipped;
     short i;
-    char skipped;
-    char afterBreak;
+    short out;
+    short len;
 
     afterBreak = 0;
     len = src[0];
     out = 1;
     first[0] = 0;
     *second = 0;
-    for (i = 1; i <= (short)len; i++) {
+    for (i = 1; i <= len; i++) {
         skipped = 0;
-        if (i < (short)len && src[i] == '\\'
-                && ((int)src[i + 1] == 'n' || (int)src[i + 1] == 'N')) {
+        if (i < len && src[i] == '\\' && (src[i + 1] == 'n' || src[i + 1] == 'N')) {
             i++;
             skipped = 1;
             afterBreak = 1;
         }
         if (!skipped) {
             if (afterBreak) {
-                second[(short)out] = src[i];
+                second[out] = src[i];
                 second[0]++;
                 out++;
             } else {
@@ -5849,26 +6794,53 @@ char SplitTwoLineString(const unsigned char *src, unsigned char *first,
     return afterBreak;
 }
 
+#ifdef MACBUILD
+/* UnsplitTwoLineString (mac _UnsplitTwoLineString, mac-only). STATE: see the mac gate. */
+// MAC: _UnsplitTwoLineString i386 0x00007e4f ppc 0x00009c50
+void UnsplitTwoLineString(const unsigned char *src, unsigned char *dst)
+{
+    short i;
+    short out;
+    short len;
+
+    out = 1;
+    len = src[0];
+    dst[0] = 0;
+    for (i = 1; i <= len; i++) {
+        if (i < len && src[i] == '\\' && (src[i + 1] == 'n' || src[i + 1] == 'N')) {
+            i++;
+            dst[out] = ' ';
+            dst[0]++;
+        } else {
+            dst[out] = src[i];
+            dst[0]++;
+        }
+        out++;
+    }
+}
+#endif
+
 /* FindSystemFromStellar (mac _FindSystemFromStellar). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e790
+// MAC: _FindSystemFromStellar i386 0x00007ec1 ppc 0x00009cd4
 short FindSystemFromStellar(short stellarID)
 {
     short i;
     short j;
 
     for (i = 0; i < kMaxSystems; i++) {
-        if (gSystems[i].loaded != 0) {
+        if (systemData[i].loaded != 0) {
             for (j = 0; j < kNavSlots; j++) {
-                if (gSystems[i].navDefault[j] != -1
-                        && stellarID == gSystems[i].navDefault[j])
+                if (systemData[i].navDefault[j] != -1
+                        && stellarID == systemData[i].navDefault[j])
                     return i;
             }
         }
     }
     for (i = 0; i < kMaxSystems; i++) {
         for (j = 0; j < kNavSlots; j++) {
-            if (gSystems[i].navDefault[j] != -1
-                    && stellarID == gSystems[i].navDefault[j])
+            if (systemData[i].navDefault[j] != -1
+                    && stellarID == systemData[i].navDefault[j])
                 return i;
         }
     }
@@ -5877,19 +6849,47 @@ short FindSystemFromStellar(short stellarID)
 
 /* BusyIdle. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e840
+// MAC: _BusyIdle i386 0x00005981 ppc 0x0000707c
 void BusyIdle(void)
 {
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
+    EventRecord ev;
+
+    WaitNextEvent(0, &ev, (gameLoaded && inBackground) ? 30 : 0, NULL);
+#endif
 }
 
 /* CheckLoMem. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e850
+// MAC: _CheckLoMem i386 0x00007f65 ppc 0x00009d7c
 void CheckLoMem(void)
 {
+#if TARGET_API_MAC_OS8
+    Size grow;
+    Str255 text;
+
+    grow = 0x7fffffff;
+    if (MaxMem(&grow) < 3000UL * 1024
+        && (lastLoMemWarningTime == 0 || TickCount() > lastLoMemWarningTime + 3 * 60 * 60)) {
+        if (cursorHidden > 0) {
+            cursorHidden = 0;
+            InitCursor();
+        }
+        GetIndString(text, kAlertStrList, 49);
+        EVNoteAlert(text);
+        if (gameInProgress && !gPause) {
+            RefreshSAT();
+            RedrawStatus(1);
+        }
+        lastLoMemWarningTime = TickCount();
+    }
+#endif
 }
 
 /* PlayerBlessedByGovt (mac _PlayerBlessedByGovt). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e860
-char PlayerBlessedByGovt(short govt, short which)
+// MAC: _PlayerBlessedByGovt i386 0x00002732 ppc 0x00003188
+unsigned char PlayerBlessedByGovt(short govt, short which)
 {
     if (govt < 0 || govt >= 256)
         return 0;
@@ -5900,6 +6900,23 @@ char PlayerBlessedByGovt(short govt, short which)
 
 /* ShowWindowNoFlash (mac _ShowWindowNoFlash). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e8b0
+// MAC: _ShowWindowNoFlash i386 0x00007f6a ppc 0x00009d80
+#ifdef MACBUILD
+void ShowWindowNoFlash(void *arg)
+{
+#if TARGET_API_MAC_OS8
+    long saved;
+
+    saved = LMGetPaintWhite();
+    LMSetPaintWhite(0);
+    ShowWindow(arg);
+    LMSetPaintWhite(saved);
+#else
+    SendBehind(arg, NULL);
+    ShowWindow(arg);
+#endif
+}
+#else
 void ShowWindowNoFlash(void *arg)
 {
     int saved;
@@ -5909,9 +6926,26 @@ void ShowWindowNoFlash(void *arg)
     ShowMacWindow(arg);
     gDisableUpdatesMode = saved;
 }
+#endif
 
 /* DisposeDialogNoFlash (mac _DisposeDialogNoFlash). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e8e0
+// MAC: _DisposeDialogNoFlash i386 0x00007f91 ppc 0x00009db4
+#ifdef MACBUILD
+void DisposeDialogNoFlash(void *dlg)
+{
+#if TARGET_API_MAC_OS8
+    long saved;
+
+    saved = LMGetPaintWhite();
+    LMSetPaintWhite(0);
+    DisposeDialog(dlg);
+    LMSetPaintWhite(saved);
+#else
+    DisposeDialog(dlg);
+#endif
+}
+#else
 void DisposeDialogNoFlash(void *dlg)
 {
     int saved;
@@ -5921,29 +6955,46 @@ void DisposeDialogNoFlash(void *dlg)
     DisposeDialog((DialogRecord *)dlg);
     gDisableUpdatesMode = saved;
 }
+#endif
 
 /* AdjustedItemCost (mac _AdjustedItemCost). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e910
+// MAC: _AdjustedItemCost i386 0x00005869 ppc 0x00006f04
 long AdjustedItemCost(OutfRecord *outf, ShipRec *ship)
 {
     long cost;
     long adjusted;
+#ifdef V111 /* V111 spelling */
+    long scaled;
+
+    cost = outf->cost;
+    if (cost <= 0)
+        return 0;
+    scaled = OutfCostScaled(outf);
+    if (!scaled)
+        return cost;
+    adjusted = cost * ship->mass;
+    if (adjusted < cost)
+        return cost;
+    return adjusted;
+#else
 
     cost = outf->cost;
     adjusted = cost;
-    if (cost > 0) {
-        if (OutfCostScaled(outf)) {
-            adjusted = adjusted * ship->mass;
-            if (adjusted < cost)
-                adjusted = cost;
-        }
-        return adjusted;
+    if (cost <= 0)
+        return 0;
+    if (OutfCostScaled(outf)) {
+        adjusted = adjusted * ship->mass;
+        if (adjusted < cost)
+            adjusted = cost;
     }
-    return 0;
+    return adjusted;
+#endif
 }
 
 /* AdjustedItemMass (mac _AdjustedItemMass). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e950
+// MAC: _AdjustedItemMass i386 0x00002889 ppc 0x00003330
 long AdjustedItemMass(OutfRecord *outf, ShipRec *ship)
 {
     short mass;
@@ -5951,14 +7002,13 @@ long AdjustedItemMass(OutfRecord *outf, ShipRec *ship)
 
     mass = outf->mass;
     adjusted = mass;
-    if (adjusted > 0) {
-        if (OutfMassScaled(outf)) {
-            adjusted = adjusted * ship->mass;
-            adjusted = adjusted * 0.01;
-            if (adjusted < mass)
-                adjusted = mass;
-        }
+    if (adjusted <= 0)
         return adjusted;
+    if (OutfMassScaled(outf)) {
+        adjusted = adjusted * ship->mass;
+        adjusted *= 0.01;
+        if (adjusted < mass)
+            adjusted = mass;
     }
     return adjusted;
 }
@@ -5967,16 +7017,20 @@ long AdjustedItemMass(OutfRecord *outf, ShipRec *ship)
 
 /* PickEmergeStellar. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e9e0
+// MAC: _PickEmergeStellar i386 0x00007f9a ppc 0x00009db8
 short PickEmergeStellar(ShipObj *ship)
 {
+#ifdef MAC1010 /* 1.0.10 spelling */
+    short spob;
+
+    spob = SelectRandomStellarDest(ship, Rand(3) == 0 ? true : false, 0);
+#else
     int pick;
     short spob;
 
-    if (Rand(3) == 0)
-        pick = 1;
-    else
-        pick = 0;
+    pick = Rand(3) == 0 ? 1 : 0;
     spob = SelectRandomStellarDest(ship, pick, 0);
+#endif
     if (spob >= 0 && spob < 2048 && SpobIsHyperOrWorm(&stellarData[spob]))
         return spob;
     return -1;
@@ -5984,20 +7038,21 @@ short PickEmergeStellar(ShipObj *ship)
 
 /* PlayerHasFightersOfOutfitType. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046ea40
+// MAC: _PlayerHasFightersOfOutfitType i386 0x00007ff7 ppc 0x00009e2c
 short PlayerHasFightersOfOutfitType(short outfitIndex)
 {
-    short bayType = -1;
     short i;
     short k;
+    short bayType = -1;
     short weapon;
     short count;
 
     for (i = 0; i < kOutfMods; i++) {
-        if (gOutfits[outfitIndex].modType[i] == kOutfModAmmo) {
-            weapon = gOutfits[outfitIndex].modVal[i];
+        if (outfitSystem[outfitIndex].modType[i] == kOutfModAmmo) {
+            weapon = outfitSystem[outfitIndex].modVal[i];
             if (weapon >= 0 && weapon < 256) {
-                if (gWeapons[weapon].guidance == kGuidanceBay)
-                    bayType = gWeapons[weapon].ammoType - 128;
+                if (weaponStats[weapon].guidance == kGuidanceBay)
+                    bayType = weaponStats[weapon].ammoType - 128;
             }
         }
         if (bayType != -1)
@@ -6024,11 +7079,11 @@ short PlayerHasFightersOfOutfitType(short outfitIndex)
         return count;
 
     for (k = 0; k < 256; k++) {
-        if (gWeapons[k].guidance != kGuidanceBay)
+        if (weaponStats[k].guidance != kGuidanceBay)
             continue;
         if (shipData[0].weap[k].count <= 0)
             continue;
-        if (gWeapons[k].ammoType - 128 != bayType)
+        if (weaponStats[k].ammoType - 128 != bayType)
             continue;
         if (shipData[0].weap[k].ammo > 0)
             return shipData[0].weap[k].ammo;
@@ -6038,46 +7093,39 @@ short PlayerHasFightersOfOutfitType(short outfitIndex)
 
 /* StellarNumHyperLinks. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046ebb0
+// MAC: _StellarNumHyperLinks i386 0x0000812a ppc 0x00009fc8
 short StellarNumHyperLinks(SpobRecord *spob)
 {
     short i;
-    int count;
+    short count;
 
-    if (spob != NULL) {
-        count = 0;
-        for (i = 0; i < kSpobHyperLinks; i++) {
-            if (spob->hyperLinks[i] >= 0 && spob->hyperLinks[i] < 2048)
-                count = count + 1;
-        }
-        return count;
+    if (spob == NULL)
+        return 0;
+    count = 0;
+    for (i = 0; i < kSpobHyperLinks; i++) {
+        if (spob->hyperLinks[i] >= 0 && spob->hyperLinks[i] < 2048)
+            count = count + 1;
     }
-    return 0;
+    return count;
 }
 
-#define kStarLayers 20
+#define kStarLayers kMaxStars
 
-
-/*
- * The mac twin reaches this byte as settings->[+0xb] through a POINTER; the
- * win build has it as an absolute, so the win's own base is unresolved and a
- * raw name is the honest one. Note 0x005914cc, which would be that base, is
- * already named missionBit (a char *) in setup.c -- one of the two readings
- * is wrong, or missionBit is the settings record's first member.
- */
 
 /* RandomizeStars. STATE: MATCH 100.0%, exe 134 / obj 134, relocregcheck 23 of 23; byte-identical
    pending (bytediff reads the adopted baseline; re-run after regate --update).
    OPEN: none. The unfolded short twenty is `count = kStarLayers; count *= height / 600.0;' --
    the compound assignment reads its own lvalue, which the front end does not substitute. */
 // FUNCTION: EVNOVA 0x0046ebf0
+// MAC: _RandomizeStars i386 0x0000b145 ppc 0x0000db10
 void RandomizeStars(void)
 {
     short i;
     short count;
-    short height;
     short width;
+    short height;
 
-    if (gSystems[shipData->curSystem].murk < 0) {
+    if (systemData[shipData->curSystem].murk < 0) {
         ClearStarfield();
     } else if (gSpriteWorld != NULL) {
         width = gSpriteWorld->windRect.right - gSpriteWorld->windRect.left;
@@ -6088,9 +7136,9 @@ void RandomizeStars(void)
             if (i < count) {
                 starData[i].live = 1;
                 starData[i].frame = Rand(masterStarSprite->numFrames);
-                starData[i].pos.x = Rand(width) + shipData->pos.x - width / 2;
-                starData[i].pos.y = Rand(height) + shipData->pos.y - height / 2;
-                if (parallaxStarsPref)
+                starData[i].pos.x = shipData->pos.x + Rand(width) - width / 2;
+                starData[i].pos.y = shipData->pos.y + Rand(height) - height / 2;
+                if (settings.parallaxStars)
                     starData[i].depth = Rand(0x23) * 0.01;
                 else
                     starData[i].depth = 0;
@@ -6105,6 +7153,7 @@ void RandomizeStars(void)
    a static in the mac build; keep the address name) */
 /* ClearStarfield (mac _ClearStarfield). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046ede0
+// MAC: _ClearStarfield i386 0x00008152 ppc 0x0000a008
 void ClearStarfield(void)
 {
     short i;
@@ -6115,17 +7164,16 @@ void ClearStarfield(void)
 
 /* ScrollStarfield. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046ee50
+// MAC: _ScrollStarfield i386 0x00008171 ppc 0x0000a038
 void ScrollStarfield(float dx, float dy)
 {
-    int i;
-    float depth;
+    short i;
 
-    for (i = 0; (short)i < kStarLayers; i++) {
+    for (i = 0; i < kStarLayers; i++) {
         if (starData[i].live != 0) {
-            depth = starData[i].depth;
-            if (depth > 0.0) {
-                starData[i].pos.x = starData[i].pos.x - dx * depth;
-                starData[i].pos.y = starData[i].pos.y - dy * starData[i].depth;
+            if (starData[i].depth > 0.0) {
+                starData[i].pos.x -= dx * starData[i].depth;
+                starData[i].pos.y -= dy * starData[i].depth;
             }
         }
     }
@@ -6133,6 +7181,7 @@ void ScrollStarfield(float dx, float dy)
 
 /* pstrcpy (mac _pstrcpy). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046eeb0
+// MAC: _pstrcpy i386 0x00004ce2 ppc 0x000061d8
 void pstrcpy(unsigned char *dst, unsigned char *src)
 {
     short i;
@@ -6151,23 +7200,15 @@ void pstrcpy(unsigned char *dst, unsigned char *src)
  */
 /* pstrcmp. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046ef00
+// MAC: _pstrcmp i386 0x000084d2 ppc 0x0000a554
+#if !defined(MACBUILD) || !V111
 short pstrcmp(const unsigned char *a, const unsigned char *b)
-{
-    short i;
-    char empty;
-
-    if (a[0] != b[0])
-        return -1;
-    empty = (a[0] == 0);
-    for (i = 0; i < (!empty && b[0] != 0); i++) {
-        if (a[i] != b[i])
-            return -1;
-    }
-    return 0;
-}
+#include "../engine/pstrcmp.inc"
+#endif
 
 /* HideCursorSprite. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046ef80
+// MAC: _HideCursorSprite i386 0x000081d6 ppc 0x0000a0a4
 void HideCursorSprite(void)
 {
     if (cursorSprite != NULL) {
@@ -6178,6 +7219,7 @@ void HideCursorSprite(void)
 
 /* WarpSoundDuration. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046efb0
+// MAC: _WarpSoundDuration i386 0x00008203 ppc 0x0000a0f4
 short WarpSoundDuration(void)
 {
     if (doubleTime != 0)
@@ -6187,7 +7229,8 @@ short WarpSoundDuration(void)
 
 /* StellarsAreIdentical (mac _StellarsAreIdentical). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046efd0
-char StellarsAreIdentical(short a, short b)
+// MAC: _StellarsAreIdentical i386 0x0000ab35 ppc 0x0000d334
+Boolean StellarsAreIdentical(short a, short b)
 {
     Str255 nameA;
     Str255 nameB;
@@ -6197,7 +7240,13 @@ char StellarsAreIdentical(short a, short b)
             return 1;
         if (stellarData[a].pos.h == stellarData[b].pos.h &&
             stellarData[a].pos.v == stellarData[b].pos.v &&
+#ifdef MAC1010 /* 1.0.10 spelling */
+            (char)stellarData[a].name[0] == (char)stellarData[b].name[0]) {
+#elif defined(V111) /* V111 spelling */
+            *(char *)stellarData[a].name == *(char *)stellarData[b].name) {
+#else
             stellarData[a].name[0] == stellarData[b].name[0]) {
+#endif
             pstrcpy(nameA, stellarData[a].name);
             pstrcpy(nameB, stellarData[b].name);
             PtoCstr(nameA);
@@ -6213,7 +7262,8 @@ char StellarsAreIdentical(short a, short b)
 
 /* ShipIsDerelict. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046f100
-char ShipIsDerelict(ShipObj *ship)
+// MAC: _ShipIsDerelict i386 0x00008225 ppc 0x0000a128
+Boolean ShipIsDerelict(ShipObj *ship)
 {
     short govt;
 
@@ -6223,23 +7273,22 @@ char ShipIsDerelict(ShipObj *ship)
     return 0;
 }
 
-#define kWeapFlag40 0x40
-
 /* PlayerHasJettisonableCargo. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046f140
-char PlayerHasJettisonableCargo(void)
+// MAC: _PlayerHasJettisonableCargo i386 0x0000825a ppc 0x0000a164
+Boolean PlayerHasJettisonableCargo(void)
 {
-    int i;
+    short i;
 
-    for (i = 0; (short)i < 6; i++) {
-        if (shipData[0].cargo[(short)i] > 0)
+    for (i = 0; i < 6; i++) {
+        if (shipData[0].cargo[i] > 0)
             return 1;
     }
-    for (i = 0; (short)i < kMaxJunks; i++) {
+    for (i = 0; i < kMaxJunks; i++) {
         if (junkData[i].held > 0)
             return 1;
     }
-    for (i = 0; (short)i < kMaxActiveMissions; i++) {
+    for (i = 0; i < kMaxActiveMissions; i++) {
         if (currentMissionObjectives[i].active != 0 && currentMissions[i].hasCargo != 0
                 && currentMissions[i].cargoType != -1 && currentMissions[i].cargoQty >= 0
                 && currentMissions[i].canAbort != 0)
@@ -6250,13 +7299,14 @@ char PlayerHasJettisonableCargo(void)
 
 /* AddToPlayerKills (mac _AddToPlayerKills). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046f1e0
+// MAC: _AddToPlayerKills i386 0x000082dc ppc 0x0000a22c
 void AddToPlayerKills(int amount)
 {
     if (playerKills < 10000000) {
-        if (amount >= 5)
-            playerKills += amount * 0.2;
-        else
+        if (amount < 5)
             playerKills += 1;
+        else
+            playerKills += amount * 0.2;
     } else {
         playerKills = 10000000;
     }
@@ -6264,17 +7314,17 @@ void AddToPlayerKills(int amount)
 
 /* WeaponBurstInterval. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046f270
+// MAC: _WeaponBurstInterval i386 0x0000831c ppc 0x0000a2bc
 short WeaponBurstInterval(short weap, short count)
 {
-    if ((gWeapons[weap].flags & kWeapFlag40) != 0)
-        return gWeapons[weap].burstCount;
-    return count * gWeapons[weap].burstCount;
+    if ((weaponStats[weap].flags & kWeapFireSimultaneously) != 0)
+        return weaponStats[weap].burstCount;
+    return count * weaponStats[weap].burstCount;
 }
-
-#define kWeapFlagUsesAmmo   0x40
 
 /* WeaponMaxSimultShots. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046f2c0
+// MAC: _WeaponMaxSimultShots i386 0x00008350 ppc 0x0000a2f4
 short WeaponMaxSimultShots(ShipObj *ship, short w)
 {
     short count;
@@ -6282,16 +7332,16 @@ short WeaponMaxSimultShots(ShipObj *ship, short w)
     short type;
     float fuel;
 
-    if ((gWeapons[w].flags & kWeapFlagUsesAmmo) != 0) {
+    if ((weaponStats[w].flags & kWeapFireSimultaneously) != 0) {
         count = ship->weap[w].count;
-        if ((gWeapons[w].flags & kWeapFlagUsesAmmo) != 0
-            && (gWeapons[w].flags3 & kWeapAmmoFlag) != 0) {
-            if (gWeapons[w].guidance == kGuidanceBay) {
+        if ((weaponStats[w].flags & kWeapFireSimultaneously) != 0
+            && (weaponStats[w].flags3 & kWeapAmmoAtBurstEnd) != 0) {
+            if (weaponStats[w].guidance == kGuidanceBay) {
                 ammo = ship->weap[w].ammo;
                 if (ammo < count)
                     count = ammo;
             } else {
-                type = gWeapons[w].ammoType;
+                type = weaponStats[w].ammoType;
                 if (type >= 0 && type < 256) {
                     ammo = ship->weap[type].ammo;
                     if (ammo < count)
@@ -6317,6 +7367,7 @@ short WeaponMaxSimultShots(ShipObj *ship, short w)
 
 /* IonizeShip. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046f3f0
+// MAC: _IonizeShip i386 0x00008409 ppc 0x0000a408
 void IonizeShip(ShipObj *ship, WeapRecord *weap, FloatPoint *pos)
 {
     short falloff;
@@ -6344,4 +7395,95 @@ void IonizeShip(ShipObj *ship, WeapRecord *weap, FloatPoint *pos)
     }
 }
 
+#ifdef MACBUILD
+#if V111
+short pstrcmp(const unsigned char *a, const unsigned char *b)
+#include "../engine/pstrcmp.inc"
+#endif
+
+/* DrawPicHandle (mac _DrawPicHandle, mac-only). STATE: see the mac gate. */
+// MAC: _DrawPicHandle i386 0x0000850d ppc 0x0000a5a8
+short DrawPicHandle(PicHandle pic, Rect *dstRect)
+{
+    short err = noErr;
+    struct ITImage *image = NULL;
+    struct ITImage *mask = NULL;
+    GrafPtr port;
+    struct ITImage *ctx;
+    ITTransparent trans;
+    struct ITRect dstR;
+
+    if (pic != NULL && dstRect != NULL) {
+        GetPort(&port);
+        ctx = DT_ContextCreateRaw(port, 0);
+        if (ctx != NULL) {
+            err = DT_ImageFileLoad((void **)pic, &image, &mask, &trans, 0);
+            if (err == noErr) {
+                dstR = Sys2DT_Rect(dstRect);
+                err = DT_DrawImage(ctx, CopySys2DT_Rect(&dstR, (struct ITRect *)dstRect), image,
+                                   mask, &trans, 0);
+                DT_ImageDispose(image);
+                if (mask != NULL)
+                    DT_ImageDispose(mask);
+            } else
+                DrawPicture(pic, dstRect);
+            DT_ContextDispose(ctx);
+        } else
+            err = memFullErr;
+    }
+    return err;
 }
+
+#if V111
+void CenterPict(void *pict, Rect *bounds)
+#include "../engine/centerpict.inc"
+#endif
+
+#if V111
+/* isPowerPC (mac _isPowerPC, mac-only). STATE: see the mac gate. */
+// MAC: _isPowerPC i386 0x00008710 ppc 0x0000a788
+Boolean isPowerPC(void)
+{
+    host_basic_info_data_t info;
+    mach_msg_type_number_t count = HOST_BASIC_INFO_COUNT;
+
+    return host_info(mach_host_self(), HOST_BASIC_INFO, (host_info_t)&info, &count) == KERN_SUCCESS
+           && info.cpu_type == CPU_TYPE_POWERPC;
+}
+
+/* isG3 (mac _isG3, mac-only). STATE: see the mac gate. */
+// MAC: _isG3 i386 0x00008758 ppc 0x0000a7dc
+Boolean isG3(void)
+{
+    host_basic_info_data_t info;
+    mach_msg_type_number_t count = HOST_BASIC_INFO_COUNT;
+
+    return host_info(mach_host_self(), HOST_BASIC_INFO, (host_info_t)&info, &count) == KERN_SUCCESS
+           && info.cpu_type == CPU_TYPE_POWERPC
+           && info.cpu_subtype == CPU_SUBTYPE_POWERPC_750;
+}
+
+/* isG4 (mac _isG4, mac-only). STATE: see the mac gate. */
+// MAC: _isG4 i386 0x000087a6 ppc 0x0000a83c
+Boolean isG4(void)
+{
+    host_basic_info_data_t info;
+    mach_msg_type_number_t count = HOST_BASIC_INFO_COUNT;
+
+    return host_info(mach_host_self(), HOST_BASIC_INFO, (host_info_t)&info, &count) == KERN_SUCCESS
+           && info.cpu_type == CPU_TYPE_POWERPC
+           && (info.cpu_subtype == CPU_SUBTYPE_POWERPC_7400
+               || info.cpu_subtype == CPU_SUBTYPE_POWERPC_7450);
+}
+
+/* meetsMinimumRequirements (mac _meetsMinimumRequirements, mac-only). STATE: see the mac gate. */
+// MAC: _meetsMinimumRequirements i386 0x000087fc ppc 0x0000a8a0
+Boolean meetsMinimumRequirements(void)
+{
+    return !(isG3() || isG4());
+}
+#endif
+#endif
+
+EXTERN_C_END
+#endif /* MAC_FASTRANDOM_ONLY */

@@ -214,11 +214,11 @@ long ThreadDispose(ULong id)
     gThreadList[rec->index].generation++;
     rec->id = 0;
     node = 0;
-    node = QueueExtract(&DAT_00867d74, (MutexNode *)rec);
+    node = QueueExtract(&DAT_00867d74, rec);
     if (node == 0)
-        node = QueueExtract(&DAT_00867d64, (MutexNode *)rec);
+        node = QueueExtract(&DAT_00867d64, rec);
     if (node == 0)
-        node = QueueExtract(&DAT_00867d54, (MutexNode *)rec);
+        node = QueueExtract(&DAT_00867d54, rec);
     if (node != 0)
         QueueInsert(&gThreadFreeQ, node);
 done:
@@ -232,7 +232,7 @@ long _ThreadRecordClose(void *thread)
     ThreadRec *rec;
     long err;
 
-    rec = (ThreadRec *)thread;
+    rec = thread;
     _ThreadRecordCurrent();
     err = 0;
     if (AtomicMaskTest(&gThreadFlags, kOpenBit) == 0)
@@ -263,7 +263,7 @@ unsigned char _ThreadIsAlive(void *thread)
     long err;
     unsigned char alive;
 
-    rec = (ThreadRec *)thread;
+    rec = thread;
     _ThreadRecordCurrent();
     err = 0;
     alive = 0;
@@ -292,7 +292,7 @@ void _ThreadListMove(void *thread, ThreadRec **head, ThreadRec **pushTo)
     ThreadRec **link;
     ThreadRec *p;
 
-    rec = (ThreadRec *)thread;
+    rec = thread;
     err = 0;
     link = 0;
     if (head != 0) {
@@ -456,7 +456,7 @@ fail:
         if (old != 0)
             MemoryDeallocate(old);
         rec->id = _ThreadRecordGetId(rec);
-        QueueInsert(&gThreadFreeQ, (MutexNode *)rec);
+        QueueInsert(&gThreadFreeQ, rec);
     }
     AtomicLeaveCritical(token);
     if (err != 0) {

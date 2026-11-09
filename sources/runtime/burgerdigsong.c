@@ -344,7 +344,7 @@ Word32 DigitalMusicBShort(DigitalMusicReadState_t *State, Word Command, Word8 *B
             Result = State->ReadProc(State->CallBackParm, Buffer, Length);
             if (Result != -1) {
                 State->BytesPlayed += Result;
-                Count = (Word32)Result >> 1;
+                Count = Result >> 1;
                 if (Count) {
                     do {
                         ((Word16 *)Buffer)[0] = SwapShort(((Word16 *)Buffer)[0]);

@@ -369,7 +369,7 @@ long IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong
     case kMsgWhat:
         CopyDT_2SysPoint(&pt, &((ITInputEvent *)a)->where);
         if (!tb->editable) {
-            e = _IT_TextCheck(hwnd, dc, tb, &pt, 1, (ITClick *)b);
+            e = _IT_TextCheck(hwnd, dc, tb, &pt, 1, b);
             if (e != 0) {
                 err = e;
                 goto done;
@@ -674,8 +674,8 @@ long IT_TextBoxPaint(ITTextBox *tb, void *dc)
     range.hdcTarget = windowDC;
     range.rc.left = 0;
     range.rc.top = 0;
-    range.rc.right = width * kTwipsPerInch / (ULong)GetDeviceCaps(tb->textDC, LOGPIXELSX);
-    range.rc.bottom = (ULong)(height * kTwipsPerInch) /
+    range.rc.right = width * kTwipsPerInch / GetDeviceCaps(tb->textDC, LOGPIXELSX);
+    range.rc.bottom = (height * kTwipsPerInch) /
                       (ULong)GetDeviceCaps(tb->textDC, LOGPIXELSY);
     range.rcPage = range.rc;
     range.cpMin = 0;
@@ -1220,7 +1220,7 @@ failed:
         goto done;
     }
     GetClientRect(tb->edit, &client);
-    SendMessageA(tb->edit, EM_SETTARGETDEVICE, (unsigned int)windowDC,
+    SendMessageA(tb->edit, EM_SETTARGETDEVICE, windowDC,
                  (client.right - client.left) * kTwipsPerInch /
                  GetDeviceCaps(tb->textDC, LOGPIXELSX));
     pos.x = pt->h;

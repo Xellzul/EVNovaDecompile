@@ -63,9 +63,9 @@ long _FT_PathModify(FolderSpec **base, void *where, FolderSpec ***result, unsign
         (**result)->dir = 0;
         goto done;
     }
-    if (_FT_PathLookup((FolderSpec **)where)) {
+    if (_FT_PathLookup(where)) {
         if (result != 0) {
-            if ((*result = (FolderSpec **)IndirectDuplicate((void **)where)) == 0)
+            if ((*result = (FolderSpec **)IndirectDuplicate(where)) == 0)
                 goto nomem;
             (**result)->next = 0;
             if ((**result)->file != 0)
@@ -74,7 +74,7 @@ long _FT_PathModify(FolderSpec **base, void *where, FolderSpec ***result, unsign
             goto done;
         }
         copy = (*base)->next;
-        size = IndirectGetSize((void **)where);
+        size = IndirectGetSize(where);
         e = IndirectSetSize((void **)base, size);
         if (e != 0) {
             err = e;
@@ -123,7 +123,7 @@ nomem:
     } else if ((ULong)where <= kVolumeIndexMax) {
         err = _FT_PathGoToVolume(copy, (ULong)where);
     } else {
-        err = _FT_PathString(copy, (const char *)where, create);
+        err = _FT_PathString(copy, where, create);
         if (err != 0) {
             if (!create || err != kFTErrFileNotFound)
                 err = err;              /* the release build's empty error report */
@@ -215,7 +215,7 @@ long _FT_PathDispose(void *ref)
     FolderSpec **spec;
     FolderSpec ***link;
 
-    spec = (FolderSpec **)ref;
+    spec = ref;
     err = 0;
     if (IsSpecID(ref))
         return 0;
@@ -427,7 +427,7 @@ long _FT_PathNameInput(unsigned char *out, const char *in, ULong length)
                 out[++n] = c;
                 i++;
             } else {
-                out[++n] = (unsigned char)v;
+                out[++n] = v;
                 i += 3;
             }
             break;
@@ -440,7 +440,7 @@ long _FT_PathNameInput(unsigned char *out, const char *in, ULong length)
 done:
     if (err != 0)
         n = 0;
-    out[0] = (unsigned char)n;
+    out[0] = n;
     return err;
 }
 

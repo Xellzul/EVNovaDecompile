@@ -135,10 +135,8 @@ ITRect *DT_RectCenter(ITRect *r, const ITRect *size, const ITRect *bounds)
     err = 0;
     width = size->right - size->left;
     height = size->bottom - size->top;
-    r->left = (bounds->right - bounds->left) / 2 - width / 2;
-    r->right = width + r->left;
-    r->top = (bounds->bottom - bounds->top) / 2 - height / 2;
-    r->bottom = height + r->top;
+    r->right = width + (r->left = (bounds->right - bounds->left) / 2 - width / 2);
+    r->bottom = height + (r->top = (bounds->bottom - bounds->top) / 2 - height / 2);
     return r;
 }
 
@@ -186,3 +184,173 @@ void DT_ColorDarken(ITColor *color)
     color->green = DARKER(color->green);
     color->blue = DARKER(color->blue);
 }
+
+#ifdef MAC1010
+#include "burger.h"
+
+#define kRegionLimit 0x7d00
+
+RgnHandle DT_RegionCreate(void)
+{
+    return NewRgn();
+}
+
+void DT_RegionDispose(void *region)
+{
+    DisposeRgn(region);
+}
+
+ITRect *DT_GetRegionRect(ITRect *box, void *region)
+{
+#if TARGET_API_MAC_CARBON
+    Rect bounds;
+
+    CopySys2DT_Rect(box, GetRegionBounds(region, &bounds));
+#else
+    CopySys2DT_Rect(box, &(*(RgnHandle)region)->rgnBBox);
+#endif
+    return box;
+}
+
+long DT_SetRegionRect(void *region, const ITRect *r)
+{
+    long bottom;
+    long right;
+    long err;
+    long left;
+    long top;
+
+    err = 0;
+    bottom = r->bottom;
+    if (bottom < -kRegionLimit)
+        bottom = -kRegionLimit;
+    else if (bottom > kRegionLimit)
+        bottom = kRegionLimit;
+    right = r->right;
+    if (right < -kRegionLimit)
+        right = -kRegionLimit;
+    else if (right > kRegionLimit)
+        right = kRegionLimit;
+    top = r->top;
+    if (top < -kRegionLimit)
+        top = -kRegionLimit;
+    else if (top > kRegionLimit)
+        top = kRegionLimit;
+    left = r->left;
+    if (left < -kRegionLimit)
+        left = -kRegionLimit;
+    else if (left > kRegionLimit)
+        left = kRegionLimit;
+    SetRectRgn(region, left, top, right, bottom);
+    if (QDError() != 0)
+        err = kOutOfMemory;
+    return err;
+}
+
+ITPoint Sys2DT_Point(const Point *pt)
+{
+    ITPoint copy;
+
+    copy.h = pt->h;
+    copy.v = pt->v;
+    return copy;
+}
+
+ITRect Sys2DT_Rect(const Rect *r)
+{
+    ITRect copy;
+
+    copy.left = r->left;
+    copy.top = r->top;
+    copy.right = r->right;
+    copy.bottom = r->bottom;
+    return copy;
+}
+
+#if TARGET_API_MAC_CARBON
+Rect DT_2SysRect(const ITRect *r)
+{
+    Rect copy;
+    long n;
+
+    n = r->left;
+    copy.left = n > -32768 ? n : -32768;
+    n = r->top;
+    copy.top = n > -32768 ? n : -32768;
+    n = r->right;
+    copy.right = n < 32767 ? n : 32767;
+    n = r->bottom;
+    copy.bottom = n < 32767 ? n : 32767;
+    return copy;
+}
+#endif
+
+RGBColor DT_2SysColor(const ITColor *color)
+{
+    RGBColor c;
+
+    c.red = (color->red << 8) | color->red;
+    c.green = (color->green << 8) | color->green;
+    c.blue = (color->blue << 8) | color->blue;
+    return c;
+}
+
+ITPoint *CopySys2DT_Point(ITPoint *dst, const Point *src)
+{
+    dst->h = src->h;
+    dst->v = src->v;
+    return dst;
+}
+
+Point *CopyDT_2SysPoint(Point *dst, const ITPoint *src)
+{
+    long n;
+
+    n = src->h;
+    dst->h = n < -32768 ? -32768 : n > 32767 ? 32767 : n;
+    n = src->v;
+    dst->v = n < -32768 ? -32768 : n > 32767 ? 32767 : n;
+    return dst;
+}
+
+ITRect *CopySys2DT_Rect(ITRect *dst, const Rect *src)
+{
+    dst->left = src->left;
+    dst->top = src->top;
+    dst->right = src->right;
+    dst->bottom = src->bottom;
+    return dst;
+}
+
+Rect *CopyDT_2SysRect(Rect *dst, const ITRect *src)
+{
+    long n;
+
+    n = src->left;
+    dst->left = n > -32768 ? n : -32768;
+    n = src->top;
+    dst->top = n > -32768 ? n : -32768;
+    n = src->right;
+    dst->right = n < 32767 ? n : 32767;
+    n = src->bottom;
+    dst->bottom = n < 32767 ? n : 32767;
+    return dst;
+}
+
+ITColor *CopySys2DT_Color(ITColor *color, const RGBColor *ref)
+{
+    color->alpha = 0xff;
+    color->red = (ref->red >> 8) & 0xff;
+    color->green = (ref->green >> 8) & 0xff;
+    color->blue = (ref->blue >> 8) & 0xff;
+    return color;
+}
+
+RGBColor *CopyDT_2SysColor(RGBColor *ref, const ITColor *color)
+{
+    ref->red = (color->red << 8) | color->red;
+    ref->green = (color->green << 8) | color->green;
+    ref->blue = (color->blue << 8) | color->blue;
+    return ref;
+}
+#endif

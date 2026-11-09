@@ -23,18 +23,23 @@
 
 /* DoKeyDialog. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048b280
+#if V111
+#else
 void DoKeyDialog(void)
 {
-    char done;
+    Boolean done;
     short itemHit;
-    char matched;
+    short itemType;
+    Handle item;
+    Rect box;
     short i;
     short j;
+    Boolean matched;
     short localBuf[kBindingCount];
     short defaultBuf[kBindingCount];
 
     keyDialog = NULL;
-    keyDialog = GetNewDialog(0xfa2, UpdateKeyDialog, KeyDialogEvent);
+    keyDialog = GetNewDialog(0xfa2, KeyDialogUpdate, KeyFilter);
     if (keyDialog == NULL)
         return;
 
@@ -42,23 +47,38 @@ void DoKeyDialog(void)
     if (gWind != NULL)
         CenterWindow(FrontWindow(keyDialog), gWind);
     ShowMacWindow(FrontWindow(keyDialog));
+#ifdef MAC1010
+    SelectWindow(FrontWindow(keyDialog));
+    SetDialogGWorld(keyDialog);
+    RedrawDialog(keyDialog);
+    keyPic = GetPicture(0x85);
+#else
     FrontWindow(keyDialog);
     SetDialogGWorld(keyDialog);
     RedrawDialog(keyDialog);
-    keyDialogPict = GetPicture(0x8b);
+    keyPic = GetPicture(0x8b);
+#endif
 
     done = 0;
-    UpdateKeyDialog();
+    KeyDialogUpdate();
     do {
         if (gQuit)
             done = 1;
-        RunModalDialog(keyDialog, KeyDialogEvent, &itemHit, 0);
+        MyModalDialog(keyDialog, KeyFilter, &itemHit, 0);
         if (itemHit == 1) {
             matched = 0;
             for (j = 0; j < kBindingCount; j++) {
-                if (IsKeySlotInUse(gSlotTable[j], j)) {
-                    gSelectedBinding = j;
+                if (DupKeyCheck(newKeyPrefs[j], j)) {
+#ifdef MAC1010
+                    GetDialogItem(keyDialog, keyDialogSel + 5, &itemType, &item, &box);
+                    InvalWindowRect(GetDialogWindow(keyDialog), &box);
+                    keyDialogSel = j;
+                    GetDialogItem(keyDialog, j + 5, &itemType, &item, &box);
+                    InvalWindowRect(GetDialogWindow(keyDialog), &box);
+#else
+                    keyDialogSel = j;
                     RedrawDialog(keyDialog);
+#endif
                     SysBeep(0);
                     matched = 1;
                     break;
@@ -75,37 +95,47 @@ void DoKeyDialog(void)
         if (itemHit == 3) {
             KeyPrefsToSlotTable();
             for (i = 0; i < kBindingCount; i++)
-                localBuf[i] = gSlotTable[i];
+                localBuf[i] = newKeyPrefs[i];
             SetDefaultKeys();
             KeyPrefsToSlotTable();
-            for (j = 0; j < kBindingCount; j++) {
-                defaultBuf[j] = gSlotTable[j];
-                gSlotTable[j] = localBuf[j];
+            for (i = 0; i < kBindingCount; i++) {
+                defaultBuf[i] = newKeyPrefs[i];
+                newKeyPrefs[i] = localBuf[i];
             }
             SlotTableToKeyPrefs();
-            for (j = 0; j < kBindingCount; j++)
-                gSlotTable[j] = defaultBuf[j];
-            gSelectedBinding = 0;
+            for (i = 0; i < kBindingCount; i++)
+                newKeyPrefs[i] = defaultBuf[i];
+            keyDialogSel = 0;
             RedrawDialog(keyDialog);
         }
         if (itemHit >= 5 && itemHit <= 0x27) {
-            gSelectedBinding = itemHit - 5;
+#ifdef MAC1010
+            GetDialogItem(keyDialog, keyDialogSel + 5, &itemType, &item, &box);
+            InvalWindowRect(GetDialogWindow(keyDialog), &box);
+            keyDialogSel = itemHit - 5;
+            GetDialogItem(keyDialog, keyDialogSel + 5, &itemType, &item, &box);
+            InvalWindowRect(GetDialogWindow(keyDialog), &box);
+#else
+            keyDialogSel = itemHit - 5;
             RedrawDialog(keyDialog);
+#endif
         }
     } while (!done);
 
     if (gWind != NULL)
         SWSetPortToWindow(gSpriteWorld);
-    if (keyDialogPict != NULL)
-        QDReleaseResource(keyDialogPict);
+    if (keyPic != NULL)
+        QDReleaseResource(keyPic);
     DisposeDialog(keyDialog);
     keyDialog = NULL;
 }
+#endif
 
 #define kFirstBindingItem   5
 #define kNoNameStrIndex  0x119
 #define kRowTextInset       5
 #define kRowBaseline      0xf
+#define kKeyNameStrList     129
 
 /*
  * v and h must be signed `short`, and v must be declared first. PtInRect widens
@@ -113,9 +143,65 @@ void DoKeyDialog(void)
  * read stays a movzx and the widening is a separate movsx hoisted out of the
  * loop.
  */
-/* KeyDialogEvent. STATE: MATCH, byte-identical. OPEN: none */
+/* KeyFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048b6d0
-char KeyDialogEvent(long unused, EventRecord *ev, short *itemHit)
+// MAC: _KeyFilter i386 0x00017482 ppc 0x0001b030
+#ifdef MACBUILD
+Boolean KeyFilter(DialogPtr dialog, EventRecord *ev, short *itemHit)
+{
+    short itemType;
+    Point where;
+    Handle item;
+    Rect box;
+    long n;
+    short i;
+    short code;
+    short sel;
+
+    SetPort(GetDialogPort(keyDialog));
+    if (ev->what == mouseDown) {
+        if (DialogSelect(ev, &keyDialog, itemHit))
+            return true;
+        SetPort(GetDialogPort(keyDialog));
+        where = ev->where;
+        GlobalToLocal(&where);
+        *itemHit = -1;
+        for (i = 0; i < kBindingCount; i++) {
+            GetDialogItem(keyDialog, n = i + kFirstBindingItem, &itemType, &item, &box);
+            if (PtInRectPoint(where, &box)) {
+                *itemHit = n;
+                return true;
+            }
+        }
+    }
+#ifndef MAC1010
+    if (ev->what == keyDown || ev->what == nullEvent)
+#endif
+    {
+        code = ScanForKeys();
+        if (code != -1 && keyDialogSel != -1) {
+            newKeyPrefs[keyDialogSel] = code;
+            sel = keyDialogSel;
+            keyDialogSel = (keyDialogSel + 1) % kBindingCount;
+            GetDialogItem(keyDialog, sel + kFirstBindingItem, &itemType, &item, &box);
+            InvalWindowRect(GetDialogWindow(keyDialog), &box);
+            GetDialogItem(keyDialog, keyDialogSel + kFirstBindingItem, &itemType, &item, &box);
+            InvalWindowRect(GetDialogWindow(keyDialog), &box);
+            while (KeyCheck(code))
+                BusyIdle();
+            return true;
+        }
+    }
+    if (ev->what == updateEvt) {
+        BeginUpdate(GetDialogWindow(keyDialog));
+        KeyDialogUpdate();
+        EndUpdate(GetDialogWindow(keyDialog));
+        return false;
+    }
+    return false;
+}
+#else
+Boolean KeyFilter(long unused, EventRecord *ev, short *itemHit)
 {
     Rect box;
     short itemType;
@@ -145,25 +231,96 @@ char KeyDialogEvent(long unused, EventRecord *ev, short *itemHit)
         return 0;
     }
     code = FirstKeyDown();
-    if ((short)code != -1 && gSelectedBinding != -1) {
-        gSlotTable[gSelectedBinding] = code;
-        sel = gSelectedBinding;
-        gSelectedBinding = (gSelectedBinding + 1) % kBindingCount;
+    if ((short)code != -1 && keyDialogSel != -1) {
+        newKeyPrefs[keyDialogSel] = code;
+        sel = keyDialogSel;
+        keyDialogSel = (keyDialogSel + 1) % kBindingCount;
         InvalDialogItem(keyDialog, sel + kFirstBindingItem);
-        InvalDialogItem(keyDialog, gSelectedBinding + kFirstBindingItem);
+        InvalDialogItem(keyDialog, keyDialogSel + kFirstBindingItem);
         while (KeyCheck(code))
             BusyIdle();
         return 1;
     }
     if ((int)ev->what != kUpdateEvt)
         return 0;
-    UpdateKeyDialog();
+    KeyDialogUpdate();
     return 0;
 }
+#endif
 
-/* UpdateKeyDialog. STATE: MATCH, byte-identical. OPEN: none */
+/* KeyDialogUpdate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048b860
-void UpdateKeyDialog(void)
+// MAC: _KeyDialogUpdate i386 0x00017199 ppc 0x0001adf8
+#ifdef MACBUILD
+void KeyDialogUpdate(void)
+{
+    short itemType;
+    Handle item;
+    Rect itemBox;
+    Rect fill;
+    Rect picBox;
+    Str255 name;
+    short i;
+
+    SetPort(GetDialogPort(keyDialog));
+    GetDialogItem(keyDialog, 4, &itemType, &item, &picBox);
+#ifdef MAC1010
+    if (gWind != NULL)
+        SWSetPortToWorkArea(gSpriteWorld);
+#endif
+    ForeColor(blackColor);
+    TextFont(0);
+    TextSize(12);
+    DrawPicture(keyPic, &picBox);
+    for (i = 0; i < kBindingCount; i++) {
+        GetDialogItem(keyDialog, i + kFirstBindingItem, &itemType, &item, &itemBox);
+        if (RectInRgn(&itemBox, GetWindowVisRgn(GetDialogWindow(keyDialog)))) {
+            if (keyDialogSel == i) {
+                fill = itemBox;
+                InsetRect(&fill, 1, 1);
+                ForeColor(whiteColor);
+                FrameRect(&itemBox);
+                InsetRect(&fill, 1, 1);
+                ForeColor(blackColor);
+                PaintRect(&fill);
+                ForeColor(blackColor);
+                FrameRect(&itemBox);
+                ForeColor(whiteColor);
+                MoveTo(itemBox.left + kRowTextInset, itemBox.top + kRowBaseline);
+            } else {
+                fill = itemBox;
+                InsetRect(&fill, 1, 1);
+                ForeColor(whiteColor);
+                PaintRect(&fill);
+                ForeColor(blackColor);
+                FrameRect(&itemBox);
+                ForeColor(blackColor);
+                MoveTo(itemBox.left + kRowTextInset, itemBox.top + kRowBaseline);
+            }
+            GetIndString(name, kKeyNameStrList, newKeyPrefs[i] + 1);
+            if (name[0] == 0)
+                DrawIndString(kGameStrList, kNoNameStrIndex);
+            else
+                DrawString(name);
+        }
+    }
+    ForeColor(blackColor);
+#ifdef MAC1010
+    if (gWind != NULL)
+        SWSetPortToWindow(gSpriteWorld);
+#endif
+    SetPort(GetDialogPort(keyDialog));
+    ForeColor(blackColor);
+#ifdef MAC1010
+    if (gWind != NULL)
+        CopyBits(GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
+                 GetPortBitMapForCopyBits(GetDialogPort(keyDialog)),
+                 &picBox, &picBox, 0, NULL);
+#endif
+    DrawDialog(keyDialog);
+}
+#else
+void KeyDialogUpdate(void)
 {
     short itemType;
     void *item;
@@ -171,36 +328,36 @@ void UpdateKeyDialog(void)
     char name[256];
     Rect fill;
     Rect itemBox;
-    char inside;
+    Boolean inside;
     int i;
 
     SetDialogGWorld(keyDialog);
     GetDialogItem(keyDialog, 4, &itemType, &item, &picBox);
     SWSetPortToWorkArea(gSpriteWorld);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     TextFont(0);
     TextSize(12);
-    DrawPicHandle(keyDialogPict, &picBox);
+    DrawPicHandle(keyPic, &picBox);
     i = 0;
     do {
         GetDialogItem(keyDialog, (short)i + kFirstBindingItem, &itemType, &item,
                       &itemBox);
         inside = RectInRgn(&itemBox, GetCWindowVisRgn(FrontWindow(keyDialog)));
         if (inside) {
-            if (gSelectedBinding == (short)i) {
+            if (keyDialogSel == (short)i) {
                 fill.top = itemBox.top;
                 fill.left = itemBox.left;
                 fill.bottom = itemBox.bottom;
                 fill.right = itemBox.right;
                 InsetRect(&fill, 1, 1);
-                RGBForeColor(whiteColor);
+                ForeColor(whiteColor);
                 FrameRect(&itemBox);
                 InsetRect(&fill, 1, 1);
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
                 PaintRect(&fill);
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
                 FrameRect(&itemBox);
-                RGBForeColor(whiteColor);
+                ForeColor(whiteColor);
                 MoveTo(itemBox.left + kRowTextInset,
                        itemBox.top + kRowBaseline);
             } else {
@@ -209,15 +366,15 @@ void UpdateKeyDialog(void)
                 fill.bottom = itemBox.bottom;
                 fill.right = itemBox.right;
                 InsetRect(&fill, 1, 1);
-                RGBForeColor(whiteColor);
+                ForeColor(whiteColor);
                 PaintRect(&fill);
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
                 FrameRect(&itemBox);
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
                 MoveTo(itemBox.left + kRowTextInset,
                        itemBox.top + kRowBaseline);
             }
-            KeyboardScanCodeToString(name, 0x100, gSlotTable[(short)i]);
+            KeyboardScanCodeToString(name, 0x100, newKeyPrefs[(short)i]);
             CtoPstr(name);
             if (name[0] == 0)
                 DrawIndString(kGameStrList, kNoNameStrIndex);
@@ -226,12 +383,50 @@ void UpdateKeyDialog(void)
         }
         i = i + 1;
     } while ((short)i < kBindingCount);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     if (gWind != NULL)
         SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(keyDialog);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
              GetPortBitMapForCopyBits(GetDialogPort(keyDialog)),
              &picBox, &picBox, 0, NULL);
 }
+#endif
+
+#ifdef MACBUILD
+/* AdjustMenus (mac _AdjustMenus): mac only. */
+// MAC: _AdjustMenus i386 0x000176b4 ppc 0x0001b254
+void AdjustMenus(void)
+{
+    long response;
+    MenuHandle fileMenu;
+    MenuHandle menu;
+
+    Gestalt(gestaltMenuMgrAttr, &response);
+#if TARGET_API_MAC_CARBON
+    if (response & gestaltMenuMgrAquaLayoutMask) {
+        if (!gameLoaded || creatingPilotFile)
+            DisableMenuCommand(NULL, kHICommandPreferences);
+        else
+            EnableMenuCommand(NULL, kHICommandPreferences);
+    } else
+#endif
+    {
+        fileMenu = GetMenuHandle(kFileMenu);
+        if (fileMenu != NULL) {
+            if (!gameLoaded || creatingPilotFile)
+                DisableMenuItem(fileMenu, 1);
+            else
+                EnableMenuItem(fileMenu, 1);
+        }
+    }
+    menu = GetMenuHandle(kAppleMenu);
+    if (menu != NULL) {
+        if (!gameLoaded || !gPause || creatingPilotFile)
+            DisableMenuItem(menu, kAboutItem);
+        else
+            EnableMenuItem(menu, kAboutItem);
+    }
+}
+#endif

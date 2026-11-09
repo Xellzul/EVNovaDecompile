@@ -20,6 +20,9 @@ extern unsigned short *UnicodeCopySafe(unsigned short *dst, const unsigned short
 extern ULong UnicodeGetByteCountFromChars(const unsigned short *s, ULong index);        /* atcharset.c */
 
 /* the parser's state (0x24 bytes, a local of 0x00524bc7) */
+#ifdef MAC1010 /* 1.0.10 layout: 0x22 bytes */
+#pragma options align=mac68k
+#endif
 typedef struct ITParser {
     ITElement *root;
     ITElement *open;                /* the elements still open, innermost first */
@@ -31,6 +34,9 @@ typedef struct ITParser {
     struct HashTable *empty;        /* tag names that take no end tag */
     unsigned char wide;
 } ITParser;
+#ifdef MAC1010
+#pragma options align=reset
+#endif
 
 /* one parse error as appended to the error handle */
 typedef struct ITParseError {
@@ -68,7 +74,7 @@ typedef struct ITString {
 #define kEscapeSize     0x100
 
 /* 0x0057bef0 */
-const unsigned char kCharClass[256] = {
+AT_STATIC unsigned char kCharClass[256] = {
     0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0x46, 0x46, 0xd0, 0xd0, 0x46, 0xd0, 0xd0,
     0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0,
     0x16, 0x10, 0x30, 0x18, 0x18, 0x40, 0x90, 0x70, 0x18, 0x10, 0x18, 0x18, 0x10, 0x10, 0x10, 0x10,
@@ -91,28 +97,29 @@ extern long IndirectRemoveUnicodeTag(void **handle);                            
 extern unsigned short *UnicodeDuplicate(const unsigned short *s);            /* atcharset.c */
 extern long UnicodeCompareSafe(const unsigned short *a, const unsigned short *b, ULong max);
 extern const unsigned short *UnicodeAdvanceCount(const unsigned short *s, ULong count);
-long _PT_ParseTreeLoadTag(ITParser *parser, void **errors, const char *start, const char *end,
+AT_STATIC long _PT_ParseTreeLoadTag(ITParser *parser, void **errors, const char *start, const char *end,
                   char opener, unsigned char *raw);
-const char *_PT_ParseFindDelim(ITParser *parser, const char *start, const char *end, char close);
-unsigned char IT_SkipSlash(ITParser *parser, const char **cursor, const char *end);
-long _PT_ParseTreeLoadText(ITParser *parser, void **errors, const char *start, const char *end);
-long IT_ParseCommentNode(ITParser *parser, void **errors, const char *start, const char *end);
-long IT_ParseSpecialNode(ITParser *parser, void **errors, const char *start, const char *end);
-long _PT_ParseHashAppend(struct HashTable *table, const void *key, ULong keyLength, const void *value,
+AT_STATIC const char *_PT_ParseFindDelim(ITParser *parser, const char *start, const char *end, char close);
+AT_STATIC unsigned char IT_SkipSlash(ITParser *parser, const char **cursor, const char *end);
+AT_STATIC long _PT_ParseTreeLoadText(ITParser *parser, void **errors, const char *start, const char *end);
+AT_STATIC long IT_ParseCommentNode(ITParser *parser, void **errors, const char *start, const char *end);
+AT_STATIC long IT_ParseSpecialNode(ITParser *parser, void **errors, const char *start, const char *end);
+AT_STATIC ULong _PT_ParseAdvance(const unsigned char *s, ULong *ch, ULong *code);
+AT_STATIC long _PT_ParseHashAppend(struct HashTable *table, const void *key, ULong keyLength, const void *value,
                   ULong valueLength);
 
 extern ULong UnicodeGetCharCount(const unsigned short *s);                      /* atcharset.c */
 extern unsigned char UnicodeAdvancePtr(const unsigned short **cursor, ULong *code);  /* atcharset.c */
-long _PT_ParseTreeLoad(ITParser *parser, ITElement *node, void **errors, unsigned char open,
+AT_STATIC void _PT_ParseTreeLoad(ITParser *parser, ITElement *node, void **errors, unsigned char open,
                   unsigned char close);
 long PT_ParseDecode(void **text, unsigned char wide, unsigned char escapes);
-long _PT_ParseError(void **text, void **errors, long unk00, long unk04, long unk08, ULong offset,
+AT_STATIC long _PT_ParseError(void **text, void **errors, long unk00, long unk04, long unk08, ULong offset,
                   ULong length, const char *file, const char *format, const void *argument,
                   unsigned char wide);
 ITElement *PT_ParseTreeCreate(long tag, const char *text, ULong length);
 ITElement *PT_ParseTreeCreateUnicode(long tag, const unsigned short *text, ULong count);
 
-ULong _PT_ParseTreeRenumber(ITElement *e, ULong n);
+AT_STATIC ULong _PT_ParseTreeRenumber(ITElement *e, ULong n);
 
 /* _PT_ParseTreeInsert (a new element or text node linked into a tree: text tags -3..-1 copy the
    text, element tags 1..2 copy the name and get an attribute table; UTF-16 when `wide';
@@ -138,8 +145,7 @@ ITElement *_PT_ParseTreeInsert(ITElement *root, ITElement *where, unsigned char 
         goto done;
     }
     node->wide = wide;
-    node->tag = tag;
-    switch (node->tag) {
+    switch (node->tag = tag) {
     case kTagText1:
         if (wide) {
             size = length + 2;
@@ -262,9 +268,9 @@ ITElement *PT_ParseTreeInsertNode(ITElement *root, ITElement *where, ITElement *
 // FUNCTION: EVNOVA 0x00524ad5
 ITElement *PT_ParseTreeGetParent(ITElement *root, ITElement *node)
 {
-    ITElement *parent;
     ITElement *e;
     ITElement *next;
+    ITElement *parent;
     long err;
 
     err = 0;
@@ -272,16 +278,19 @@ ITElement *PT_ParseTreeGetParent(ITElement *root, ITElement *node)
     parent = 0;
     for (e = root; e != 0 && e != node; ) {
         next = e->next;
-        if (next == 0 || next->order > node->order) {
+        if (next == 0) {
+            parent = e;
+            e = e->child;
+        } else if (next->order > node->order) {
             parent = e;
             e = e->child;
         } else {
             e = next;
         }
     }
-    if (e == 0)
-        parent = 0;
-    return parent;
+    if (e != 0)
+        return parent;
+    return 0;
 }
 
 /* PT_ParseTreeGetNext (the element after `node' in document order). STATE: MATCH 100%, exe 24 / obj 24,
@@ -290,15 +299,28 @@ ITElement *PT_ParseTreeGetParent(ITElement *root, ITElement *node)
 ITElement *PT_ParseTreeGetNext(ITElement *root, ITElement *node)
 {
     ITElement *e;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    ITElement *next;
+#endif
     long err;
 
     err = 0;
     e = 0;
     for (e = root; e != 0 && e->order != node->order + 1;) {
+#ifdef MAC1010 /* 1.0.10 spelling */
+        next = e->next;
+        if (next == 0)
+            e = e->child;
+        else if (next->order > node->order + 1)
+            e = e->child;
+        else
+            e = next;
+#else
         if (e->next == 0 || e->next->order > node->order + 1)
             e = e->child;
         else
             e = e->next;
+#endif
     }
     return e;
 }
@@ -359,6 +381,9 @@ long PT_ParseTreeLoad(void **text, const char *rawTags, const char *emptyTags, v
     const char *mark;
     const char *pos;
     const char *end;
+#ifdef MAC1010 /* 1.0.10 spelling */
+    const unsigned short *next;
+#endif
     const unsigned short *u;
     ITElement *node;
     unsigned char isTag;
@@ -369,7 +394,9 @@ long PT_ParseTreeLoad(void **text, const char *rawTags, const char *emptyTags, v
     ULong n;
     ULong last;
     ULong limit;
+#ifndef MAC1010
     const unsigned short *next;
+#endif
     ITElement *e;
     ITElement *tree;
     char c;
@@ -395,8 +422,13 @@ long PT_ParseTreeLoad(void **text, const char *rawTags, const char *emptyTags, v
         err = kUnknownEncoding;
         goto done;
     }
+#ifdef MAC1010 /* 1.0.10 spelling */
+    wide = IndirectIsUnicode(text, 0);
+    parser.wide = wide;
+#else
     parser.wide = IndirectIsUnicode(text, 0);
     wide = parser.wide;
+#endif
     if (wide) {
         converted = 1;
         text = IndirectDuplicate(text);
@@ -547,7 +579,7 @@ long PT_ParseTreeLoad(void **text, const char *rawTags, const char *emptyTags, v
                 if (wide)
                     c = UnicodePoint2Char8(UnicodeGetCharByIndex((const unsigned short *)pos, 1));
                 else
-                    c = pos[1];
+                    c = ((char *)pos)[1];
             }
             if (kCharClass[(unsigned char)c] & kClassOpener) {
                 r = _PT_ParseTreeLoadTag(&parser, errors, pos, q, c, &raw);
@@ -591,6 +623,30 @@ advanced:
                     continue;
                 if (q == end)
                     break;
+#ifdef MAC1010 /* 1.0.10 spelling */
+                if (wide) {
+                    limit = end - q + 1;
+                    n = limit > sizeof(wideName) ? sizeof(wideName) : limit;
+                    Unicode2UpperCopySafe(wideName, q, n,
+                                 UnicodeGetCharCount(parser.open->name));
+                    r = UnicodeCompare(parser.open->name, wideName);
+                    if (r != 0)
+                        continue;
+                    q += n;
+                } else {
+                    limit = end - q + 1;
+                    n = limit > sizeof(name) ? sizeof(name) : limit;
+                    if (n > StringGetLength(parser.open->name) + 1)
+                        n = StringGetLength(parser.open->name) + 1;
+                    String2UpperCopySafe(name, q, n);
+                    r = StringCompare(parser.open->name, name);
+                    if (r != 0)
+                        continue;
+                    q += n;
+                }
+                q = mark;
+                raw = 0;
+#else
                 if (wide) {
                     n = end - q + 1;
                     if (n > sizeof(wideName))
@@ -614,6 +670,7 @@ advanced:
                     q = mark;
                     raw = 0;
                 }
+#endif
             }
             raw = 0;
             r = IT_ParseCommentNode(&parser, errors, pos, q);
@@ -623,7 +680,12 @@ advanced:
             }
         }
     }
+#ifdef MAC1010 /* 1.0.10 spelling */
+    while (parser.open != 0) {
+        e = parser.open;
+#else
     while ((e = parser.open) != 0) {
+#endif
         if (e->tag > 0)
             isTag = 1;
         else
@@ -699,9 +761,19 @@ void PT_ParseTreeDispose(ITElement *e)
     link = &e;
     while (*link != 0) {
         cur = *link;
+#ifdef MAC1010 /* 1.0.10 spelling */
+        {
+            ITElement *kid = cur->child;
+
+            *link = cur->next;
+            if (kid != 0)
+                PT_ParseTreeDispose(kid);
+        }
+#else
         *link = cur->next;
         if (cur->child != 0)
             PT_ParseTreeDispose(cur->child);
+#endif
         if (cur->name != 0)
             MemoryDeallocate(cur->name);
         switch (cur->tag) {
@@ -726,7 +798,7 @@ void PT_ParseTreeDispose(ITElement *e)
 /* _PT_ParseTreeRenumber (number a list of elements and their descendants in document order from
    `n'; the next number). STATE: MATCH 100%, exe 21 / obj 21, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005255cd
-ULong _PT_ParseTreeRenumber(ITElement *e, ULong n)
+AT_STATIC ULong _PT_ParseTreeRenumber(ITElement *e, ULong n)
 {
     long err;
 
@@ -744,28 +816,28 @@ ULong _PT_ParseTreeRenumber(ITElement *e, ULong n)
    character, which becomes its tag; `raw' set for a tag whose content is not markup).
    STATE: MATCH 100%, exe 779 / obj 779, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005255f8
-long _PT_ParseTreeLoadTag(ITParser *parser, void **errors, const char *start, const char *end,
+AT_STATIC long _PT_ParseTreeLoadTag(ITParser *parser, void **errors, const char *start, const char *end,
                   char opener, unsigned char *raw)
 {
     long err;
     long e;
     unsigned char wide;
+    const char *here;
     const char *p;
     void **value;
-    unsigned char endTag;
+    ITElement *node;
     unsigned char empty;
+    unsigned char endTag;
     unsigned char pending;
     unsigned char unexpected;
     char closer;
-    ITElement *node;
-    const char *here;
     const char *last;
     const char *name;
     const char *valueStart;
     ULong nameLength;
     ULong valueLength;
     ULong n;
-    long state;
+    ULong state;
     ULong quote;
     ULong ch;
     ULong code;
@@ -806,18 +878,25 @@ long _PT_ParseTreeLoadTag(ITParser *parser, void **errors, const char *start, co
             if (n != 0) {
                 last = (const char *)UnicodeAdvanceCount((const unsigned short *)start, n - 1);
                 UnicodeAdvance((const unsigned short *)last, &code);
-                if (closer == (char)UnicodePoint2Char8(code))
+                if (closer == UnicodePoint2Char8(code))
                     end = last;
             }
             if (start >= end)
                 goto done;
         }
     } else {
-        start++;
+#ifdef MAC1010 /* 1.0.10 spelling */
+        const char *s;
+
+        s = start + 1;
+        start = s;
         if (start >= end)
             goto done;
         if (opener != 0) {
-            start++;
+            const char *t;
+
+            t = s + 1;
+            start = t;
             if (start >= end)
                 goto done;
             if (end[-1] == closer)
@@ -825,6 +904,18 @@ long _PT_ParseTreeLoadTag(ITParser *parser, void **errors, const char *start, co
             if (start >= end)
                 goto done;
         }
+#else
+        if (++start >= end)
+            goto done;
+        if (opener != 0) {
+            if (++start >= end)
+                goto done;
+            if (end[-1] == closer)
+                end--;
+            if (start >= end)
+                goto done;
+        }
+#endif
     }
     here = p = start;
     state = 0;
@@ -854,12 +945,19 @@ long _PT_ParseTreeLoadTag(ITParser *parser, void **errors, const char *start, co
                 nameLength++;
                 break;
             }
-            if (wide)
+            if (wide) {
                 node = PT_ParseTreeCreateUnicode(kTagEnd, (const unsigned short *)name, nameLength);
-            else
+                if (node == 0) {
+                    err = kOutOfMemory;
+                    goto done;
+                }
+            } else {
                 node = PT_ParseTreeCreate(kTagEnd, name, nameLength);
-            if (node == 0)
-                goto nomem;
+                if (node == 0) {
+                    err = kOutOfMemory;
+                    goto done;
+                }
+            }
             node->sourceOffset = start - parser->base;
             name = 0;
             if (EITHER(wide, ch == '/'))
@@ -950,7 +1048,6 @@ long _PT_ParseTreeLoadTag(ITParser *parser, void **errors, const char *start, co
             if (value == 0) {
                 value = IndirectAllocate(0);
                 if (value == 0) {
-nomem:
                     err = kOutOfMemory;
                     goto done;
                 }
@@ -1056,12 +1153,12 @@ done:
    first (0x00526abd), its source offset kept, inserted by 0x0052624b). STATE: MATCH 100%, exe 95
    / obj 95, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00526076
-long _PT_ParseTreeLoadText(ITParser *parser, void **errors, const char *start, const char *end)
+AT_STATIC long _PT_ParseTreeLoadText(ITParser *parser, void **errors, const char *start, const char *end)
 {
     long err;
+    ITElement *node;
     long e;
     void **text;
-    ITElement *node;
 
     err = 0;
     node = 0;
@@ -1105,25 +1202,31 @@ done:
    offset kept, inserted by 0x0052624b). STATE: MATCH 100%, exe 56 / obj 56, byte-identical
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052614f
-long IT_ParseCommentNode(ITParser *parser, void **errors, const char *start, const char *end)
+AT_STATIC long IT_ParseCommentNode(ITParser *parser, void **errors, const char *start, const char *end)
 {
     long err;
     ITElement *node;
 
     err = 0;
     node = 0;
-    if (parser->wide)
+    if (parser->wide) {
         node = PT_ParseTreeCreateUnicode(kTagText2, (const unsigned short *)start,
                             UnicodeGetCharCountFromBytes((const unsigned short *)start, end - start));
-    else
-        node = PT_ParseTreeCreate(kTagText2, start, end - start);
-    if (node == 0) {
-        err = kOutOfMemory;
+        if (node == 0) {
+            err = kOutOfMemory;
+            goto done;
+        }
     } else {
-        node->sourceOffset = start - parser->base;
-        _PT_ParseTreeLoad(parser, node, errors, 0, 0);
-        node = 0;
+        node = PT_ParseTreeCreate(kTagText2, start, end - start);
+        if (node == 0) {
+            err = kOutOfMemory;
+            goto done;
+        }
     }
+    node->sourceOffset = start - parser->base;
+    _PT_ParseTreeLoad(parser, node, errors, 0, 0);
+    node = 0;
+done:
     if (node != 0)
         PT_ParseTreeDispose(node);
     return err;
@@ -1132,25 +1235,31 @@ long IT_ParseCommentNode(ITParser *parser, void **errors, const char *start, con
 /* IT_ParseSpecialNode (the same for a tag -3 node). STATE: MATCH 100%, exe 56 / obj 56,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005261cd
-long IT_ParseSpecialNode(ITParser *parser, void **errors, const char *start, const char *end)
+AT_STATIC long IT_ParseSpecialNode(ITParser *parser, void **errors, const char *start, const char *end)
 {
     long err;
     ITElement *node;
 
     err = 0;
     node = 0;
-    if (parser->wide)
+    if (parser->wide) {
         node = PT_ParseTreeCreateUnicode(kTagText1, (const unsigned short *)start,
                             UnicodeGetCharCountFromBytes((const unsigned short *)start, end - start));
-    else
-        node = PT_ParseTreeCreate(kTagText1, start, end - start);
-    if (node == 0) {
-        err = kOutOfMemory;
+        if (node == 0) {
+            err = kOutOfMemory;
+            goto done;
+        }
     } else {
-        node->sourceOffset = start - parser->base;
-        _PT_ParseTreeLoad(parser, node, errors, 0, 0);
-        node = 0;
+        node = PT_ParseTreeCreate(kTagText1, start, end - start);
+        if (node == 0) {
+            err = kOutOfMemory;
+            goto done;
+        }
     }
+    node->sourceOffset = start - parser->base;
+    _PT_ParseTreeLoad(parser, node, errors, 0, 0);
+    node = 0;
+done:
     if (node != 0)
         PT_ParseTreeDispose(node);
     return err;
@@ -1163,7 +1272,7 @@ long IT_ParseSpecialNode(ITParser *parser, void **errors, const char *start, con
    100%, exe 213 / obj 213, byte-identical yes. OPEN: none (one walker `e` for both list
    walks, two labels for the shared tail: 335 cross-jumps the two identical stores otherwise) */
 // FUNCTION: EVNOVA 0x0052624b
-long _PT_ParseTreeLoad(ITParser *parser, ITElement *node, void **errors, unsigned char open,
+AT_STATIC void _PT_ParseTreeLoad(ITParser *parser, ITElement *node, void **errors, unsigned char open,
                   unsigned char close)
 {
     long err;
@@ -1207,7 +1316,7 @@ long _PT_ParseTreeLoad(ITParser *parser, ITElement *node, void **errors, unsigne
                                       0, "Unbalanced or badly nested tag <%s>", e->name, e->wide);
                 if (result != 0) {
                     err = result;
-                    return err;
+                    return;
                 }
                 _PT_ParseTreeLoad(parser, e, errors, 0, 0);
                 e = 0;
@@ -1219,7 +1328,7 @@ long _PT_ParseTreeLoad(ITParser *parser, ITElement *node, void **errors, unsigne
             e->next = 0;
             _PT_ParseTreeLoad(parser, e, errors, 0, 0);
             e = 0;
-            return 0;
+            return;
         }
         result = _PT_ParseError(parser->text, errors, 0, 1, 1, node->sourceOffset,
                               node->wide ? UnicodeGetByteCount((unsigned short *)node->name)
@@ -1227,7 +1336,7 @@ long _PT_ParseTreeLoad(ITParser *parser, ITElement *node, void **errors, unsigne
                               0, "Unbalanced or badly nested tag </%s>", node->name, node->wide);
         if (result != 0) {
             err = result;
-            return err;
+            return;
         }
         _PT_ParseTreeLoad(parser, node, errors, 0, 0);
         goto closed;
@@ -1250,25 +1359,24 @@ long _PT_ParseTreeLoad(ITParser *parser, ITElement *node, void **errors, unsigne
 closed:
 done:
         node = 0;
-        return 0;
+        return;
     }
     parser->root = node;
     node = 0;
-    return 0;
 }
 
 /* _PT_ParseFindDelim (the end of a tag: the first `close' outside quotes, or inside quotes that saw
    nothing odd). STATE: MATCH 100%, exe 157 / obj 157, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00526458
-const char *_PT_ParseFindDelim(ITParser *parser, const char *start, const char *end, char close)
+AT_STATIC const char *_PT_ParseFindDelim(ITParser *parser, const char *start, const char *end, char close)
 {
-    long err;
+    const char *here;
     unsigned char wide;
+    long err;
     unsigned char odd;
-    char quote;
     char c;
     const char *p;
-    const char *here;
+    char quote;
     const char *last;
     const char *q;
     ULong count;
@@ -1309,7 +1417,7 @@ const char *_PT_ParseFindDelim(ITParser *parser, const char *start, const char *
                     UnicodeAdvancePtr((const unsigned short **)&q, &code);
                     if (code == '\r' || code == '\n')
                         break;
-                    if (c == (char)UnicodePoint2Char8(code))
+                    if (c == UnicodePoint2Char8(code))
                         count++;
                 }
             } else {
@@ -1349,7 +1457,7 @@ retest:
 /* IT_SkipSlash (skip white space, an optional `/', white space again; whether there was a
    `/'). STATE: MATCH 100%, exe 85 / obj 85, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00526646
-unsigned char IT_SkipSlash(ITParser *parser, const char **cursor, const char *end)
+AT_STATIC unsigned char IT_SkipSlash(ITParser *parser, const char **cursor, const char *end)
 {
     unsigned char slash;
     unsigned char wide;
@@ -1386,7 +1494,7 @@ unsigned char IT_SkipSlash(ITParser *parser, const char **cursor, const char *en
 /* _PT_ParseHashAppend (set an attribute from a counted name: copied NUL-terminated, as UTF-16 for a
    wide table). STATE: MATCH 100%, exe 81 / obj 81, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00526725
-long _PT_ParseHashAppend(struct HashTable *table, const void *key, ULong keyLength, const void *value,
+AT_STATIC long _PT_ParseHashAppend(struct HashTable *table, const void *key, ULong keyLength, const void *value,
                   ULong valueLength)
 {
     long err;
@@ -1401,8 +1509,10 @@ long _PT_ParseHashAppend(struct HashTable *table, const void *key, ULong keyLeng
     if (HashGetFlags(table) & kTableWide) {
         size = UnicodeGetByteCountFromChars(key, keyLength) + 2;
         wideName = MemoryAllocate(size);
-        if (wideName == 0)
-            goto nomem;
+        if (wideName == 0) {
+            err = kOutOfMemory;
+            goto done;
+        }
         UnicodeCopySafe(wideName, key, size, keyLength);
         e = HashAppendUnicodeData(table, wideName, value, valueLength);
         if (e != 0)
@@ -1411,7 +1521,6 @@ long _PT_ParseHashAppend(struct HashTable *table, const void *key, ULong keyLeng
         size = keyLength + 1;
         name = MemoryAllocate(size);
         if (name == 0) {
-nomem:
             err = kOutOfMemory;
             goto done;
         }
@@ -1440,13 +1549,13 @@ static const char kTagSlash[] = "/";
 /* _PT_ParseAdvance. STATE: MATCH 100%, exe 32 / obj 32, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x005267ef
-ULong _PT_ParseAdvance(const unsigned char *s, ULong *ch, ULong *code)
+AT_STATIC ULong _PT_ParseAdvance(const unsigned char *s, ULong *ch, ULong *code)
 {
     ULong len;
 
     if (code != 0) {
         len = (ULong)UnicodeAdvance((const unsigned short *)s, code);
-        *ch = UnicodePoint2Char8(*code);
+        *ch = (unsigned char)UnicodePoint2Char8(*code);
         len -= (ULong)s;
         return len;
     }
@@ -1454,7 +1563,7 @@ ULong _PT_ParseAdvance(const unsigned char *s, ULong *ch, ULong *code)
     return 1;
 }
 
-static const char kHexDigits[] = "0123456789ABCDEF";
+static char kHexDigits[] = "0123456789ABCDEF";
 
 /* Escapes a handle's text in place, for a URL or for HTML. */
 /* PT_ParseEncode. STATE: MATCH 100%, exe 178 / obj 178, byte-identical yes. OPEN: none */
@@ -1463,8 +1572,8 @@ long PT_ParseEncode(void **h, unsigned char wide, unsigned char url,
                   unsigned char spaces, unsigned char quotes)
 {
     long err = 0;
-    ULong mask;
     unsigned char digits;
+    ULong mask;
     ULong size;
     ULong pos;
     ULong used;
@@ -1473,10 +1582,10 @@ long PT_ParseEncode(void **h, unsigned char wide, unsigned char url,
     unsigned short wideText[kEscapeSize];
     ULong code;
     long e;
+    const void *out;
     ULong length;
     const unsigned char *start;
     const unsigned char *p;
-    const void *out;
 
     digits = 1;
     size = IndirectGetSize(h);
@@ -1490,7 +1599,7 @@ long PT_ParseEncode(void **h, unsigned char wide, unsigned char url,
         mask |= kClassQuote;
 
     for (pos = 0; pos < size; pos += used) {
-        start = (const unsigned char *)*h;
+        start = *h;
         p = start + pos;
         used = _PT_ParseAdvance(p, &ch, wide ? &code : 0);
         if (ch < kAsciiLimit && (kCharClass[ch] & mask) == 0)
@@ -1506,7 +1615,7 @@ long PT_ParseEncode(void **h, unsigned char wide, unsigned char url,
             } else {
                 text[0] = '%';
                 text[1] = kHexDigits[(ch >> 4) & 0xf];
-                text[2] = kHexDigits[ch & 0xf];
+                text[2] = kHexDigits[* &ch & 0xf];
                 text[3] = 0;
             }
         } else if (wide && code >= kFirstWide) {
@@ -1578,8 +1687,8 @@ long PT_ParseDecode(void **text, unsigned char wide, unsigned char escapes)
     ULong pos;
     ULong n;
     ULong len;
-    ULong count;
     ULong digits;
+    ULong count;
     ULong value;
     const void *data;
     ULong dataLength;
@@ -1588,7 +1697,7 @@ long PT_ParseDecode(void **text, unsigned char wide, unsigned char escapes)
     ULong ch;
     ULong code;
     unsigned short utf16[256];
-    char name[259];
+    char name[256];
     unsigned char byte;
 
     err = 0;
@@ -1652,15 +1761,17 @@ long PT_ParseDecode(void **text, unsigned char wide, unsigned char escapes)
                 if (wide) {
                     count++;
                     entity = p;
-                    U2CStringCopySafe((unsigned char *)name, (const unsigned short *)entity, 0x100, count);
+                    U2CStringCopySafe((unsigned char *)name, entity, 0x100, count);
                     value = UnicodeLookupTag(name);
+                    if (value == 0)
+                        continue;
                 } else {
                     entity = p;
                     StringCopySafe(name, entity, count + 2);
                     value = EncodingLookupTag(name);
+                    if (value == 0)
+                        continue;
                 }
-                if (value == 0)
-                    continue;
                 len += n;
             }
         } else {
@@ -1690,7 +1801,7 @@ long PT_ParseDecode(void **text, unsigned char wide, unsigned char escapes)
    the file name and the message FORMAT). STATE: MATCH 100%, exe 213 / obj 213, byte-identical
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00526eac
-long _PT_ParseError(void **text, void **errors, long unk00, long unk04, long unk08, ULong offset,
+AT_STATIC long _PT_ParseError(void **text, void **errors, long unk00, long unk04, long unk08, ULong offset,
                   ULong length, const char *file, const char *format, const void *argument,
                   unsigned char wide)
 {
@@ -1699,10 +1810,9 @@ long _PT_ParseError(void **text, void **errors, long unk00, long unk04, long unk
     long err;
     long e;
     long result;
-    ULong line;
     ULong lineStart;
     ULong lineLength;
-    ULong pos;
+    ULong line;
     const char *s;
     const unsigned short *u;
     unsigned char cr;
@@ -1715,6 +1825,7 @@ long _PT_ParseError(void **text, void **errors, long unk00, long unk04, long unk
     ITString message;
     ITString narrow;
     ULong ch;
+    ULong pos;
 
     err = 0;
     message = noMessage;
@@ -1733,7 +1844,7 @@ long _PT_ParseError(void **text, void **errors, long unk00, long unk04, long unk
             pos = 0;
             while (pos < offset + length) {
                 u = UnicodeAdvance(u, &ch);
-                pos = (const char *)u - (const char *)*text;
+                pos = (const char *)u - *text;
                 if (ch == '\r')
                     isCR = 1;
                 else

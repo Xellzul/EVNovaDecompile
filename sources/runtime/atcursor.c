@@ -697,7 +697,7 @@ long IT_OpenBrowser(const char *command)
         goto done;
     }
     IndirectSetLock(copy, 1);
-    url = (char *)*copy;
+    url = *copy;
     IT_SetCursor(kWaitCursor);
     result = ShellExecuteA(_PlatformGetWindow(), "open", url, 0, 0, kShowNormal);
     if ((ULong)result <= kShellOk)

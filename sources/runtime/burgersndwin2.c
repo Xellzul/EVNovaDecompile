@@ -46,7 +46,7 @@ static long StopIt(PrivSound *sound, void *data)
         if (sound->SampleResource != -1)
             ResourceRelease(sound->SampleRezHeader, sound->SampleResource);
         if (sound->CookiePtr != 0)
-            *sound->CookiePtr = (ULong)-1;
+            *sound->CookiePtr = -1;
     }
     return 0;
 }

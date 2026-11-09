@@ -21,6 +21,7 @@
 /* the larger of the frame rect's two dimensions */
 /* GetFrameBiggestSize. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00462340
+// MAC: _GetFrameBiggestSize i386 0x000026a3 ppc 0x000030b8
 short GetFrameBiggestSize(SWFrameRec *frame)
 {
     short width;
@@ -29,7 +30,7 @@ short GetFrameBiggestSize(SWFrameRec *frame)
     if (frame == NULL)
         return kDefaultSpriteSize;
     if (frame == NULL)
-        SWAssertFail("Util.c", 0x143);
+        SWAssertFail("Util.c", SW_LINE(0x143));
     width = frame->frameRect.right - frame->frameRect.left;
     height = frame->frameRect.bottom - frame->frameRect.top;
     if (width > height)
@@ -40,6 +41,7 @@ short GetFrameBiggestSize(SWFrameRec *frame)
 /* the current cel's width, but only while the frame index is in range */
 /* GetSpriteXSize. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00462390
+// MAC: _GetSpriteXSize i386 0x000026d4 ppc 0x000030f8
 short GetSpriteXSize(SpriteRec *spr)
 {
     if (spr == NULL)
@@ -51,6 +53,7 @@ short GetSpriteXSize(SpriteRec *spr)
 
 /* GetSpriteYSize. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004623d0
+// MAC: _GetSpriteYSize i386 0x00002703 ppc 0x00003140
 short GetSpriteYSize(SpriteRec *spr)
 {
     if (spr == NULL)
@@ -62,19 +65,21 @@ short GetSpriteYSize(SpriteRec *spr)
 
 /* GetStellarSpriteXSize (mac _GetStellarSpriteXSize). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00462410
+// MAC: _GetStellarSpriteXSize i386 0x0000ac91 ppc 0x0000d4c0
 short GetStellarSpriteXSize(short id)
 {
     short type;
     SpriteRec *spr;
 
     if (id >= 0 && id < kMaxStellars
-            && shipData[0].curSystem == stellarData[id].system) {
+            && stellarData[id].system == shipData[0].curSystem) {
         type = stellarData[id].type;
-        if (type >= 0 && type < kMaxStellarTypes) {
-            spr = masterStellarSprite[type];
-            if (spr != 0 && spr->curFrameP != 0)
-                return GetSpriteXSize(spr);
-        }
+        if (type >= 0)
+            if (type < kMaxStellarTypes) {
+                spr = masterStellarSprite[type];
+                if (spr != 0 && spr->curFrameP != 0)
+                    return GetSpriteXSize(spr);
+            }
     }
     /* BUG: no call parens, so this tests the function's address and is always true */
     if (crashlog_isactive) {
@@ -87,12 +92,13 @@ short GetStellarSpriteXSize(short id)
 
 /* GetMasterShipSpriteXSize (mac _GetMasterShipSpriteXSize). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004624c0
+// MAC: _GetMasterShipSpriteXSize i386 0x0000ad38 ppc 0x0000d5b8
 short GetMasterShipSpriteXSize(short id)
 {
     short sprite;
 
     if (id >= 0 && id < kMaxShipTypes) {
-        sprite = gShipTypes[id].spriteIndex;
+        sprite = shipClass[id].spriteIndex;
         if (sprite >= 0 && sprite < kMaxShipTypes
                 && masterShipSprite[sprite]->curFrameP != 0)
             return GetSpriteXSize(masterShipSprite[sprite]);

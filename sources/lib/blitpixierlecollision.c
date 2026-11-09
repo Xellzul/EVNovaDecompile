@@ -7,7 +7,8 @@
 
 /* BlitPixieRLECollision (mac _BlitPixieRLECollision). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00472190
-char BlitPixieRLECollision(
+// MAC: _BlitPixieRLECollision i386 0x000c0c8d ppc 0x000cca58
+Boolean BlitPixieRLECollision(
 	unsigned char *srcTokens,
 	unsigned char *dstTokens,
 	Rect *srcRect,
@@ -98,7 +99,11 @@ char BlitPixieRLECollision(
 						solid1 = 1;
 						x1 += count1;
 						srcTokens += count1;
+#if defined(MACBUILD) && V111
+						(long)srcTokens += ALIGN_PTR(srcTokens);
+#else
 						srcTokens += ALIGN_PTR(srcTokens);
+#endif
 						break;
 					case kSkipPixelsToken:
 						solid1 = 0;
@@ -126,7 +131,11 @@ char BlitPixieRLECollision(
 						solid2 = 1;
 						x2 += count2;
 						dstTokens += count2;
+#if defined(MACBUILD) && V111
+						(long)dstTokens += ALIGN_PTR(dstTokens);
+#else
 						dstTokens += ALIGN_PTR(dstTokens);
+#endif
 						break;
 					case kSkipPixelsToken:
 						solid2 = 0;

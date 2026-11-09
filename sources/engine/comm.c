@@ -21,17 +21,18 @@
 
 /* DisplayComm (mac _DisplayComm). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047e2d0
-void DisplayComm(unsigned char *msg, short count, short font, short size,
-                 RGBColor *color, char bold, unsigned char noBlit)
+// MAC: _DisplayComm i386 0x00090201 ppc 0x0009be7c
+void DisplayComm(PStrChar *msg, short count, short font, short size,
+                 RGBColor *color, Boolean bold, unsigned char noBlit)
 {
-    char text[256];
+    unsigned char text[256];
 
     if (playerKilledByHector != 0)
         return;
     commCount = count;
     strncpy(commMsg, (char *)msg, kCommMsgMax);
-    strncpy(text, (char *)msg, kCommTextMax);
-    PtoCstr((unsigned char *)text);
+    strncpy((char *)text, (char *)msg, kCommTextMax);
+    PtoCstr(text);
     SWSetPortToBackground(gSpriteWorld);
     RGBForeColor(color);
     TextFont(font);
@@ -39,16 +40,16 @@ void DisplayComm(unsigned char *msg, short count, short font, short size,
     if (bold != 0)
         TextFace(kTextFaceBold);
     SetSystemBackgroundBackColor();
-    TETextBox(text, strlen(text), &commRect, 0);
-    RGBForeColor(blackColor);
+    TETextBox(text, strlen((char *)text), &commRect, 0);
+    ForeColor(blackColor);
     BackColor(whiteColor);
     SWSetPortToWindow(gSpriteWorld);
     if (noBlit == 0) {
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         BackColor(whiteColor);
-        CopyBits((PixMapPtr)GetPortBitMapForCopyBits(
+        CopyBits((PixMapPtr)GetPortPixMapBits(
                      gSpriteWorld->backFrameP->framePort),
-                 GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
+                 GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
                  &commRect, &commRect, 0, NULL);
     }
 }
@@ -56,6 +57,7 @@ void DisplayComm(unsigned char *msg, short count, short font, short size,
 /* the stored count doubles as a "there is a message" flag */
 /* RedrawComm (mac _RedrawComm). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047e430
+// MAC: _RedrawComm i386 0x000903a0 ppc 0x0009bfdc
 void RedrawComm(unsigned char noBlit)
 {
     if (commCount > 0)

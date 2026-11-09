@@ -10,7 +10,7 @@
 #include "atfiletool.h"
 
 #define kExt(a, b, c, d) (((ULong)(a) << 24) | ((ULong)(b) << 16) | \
-                          ((ULong)(c) << 8) | (ULong)(d))
+                          ((c) << 8) | (d))
 
 #define kTypeMapCount 19
 

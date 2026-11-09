@@ -12,7 +12,7 @@
 typedef struct FoldRange {
     unsigned short first;                        /* +0 */
     unsigned short info;                         /* +2 count << 8 | stride */
-    short delta;                                 /* +4 */
+    unsigned short delta;                        /* +4 */
 } FoldRange;
 
 static const FoldRange kUpperRanges[kUpperRangeCount] = {

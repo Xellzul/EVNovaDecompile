@@ -7,111 +7,138 @@
 
 #define kProfileSlots 64
 
-static char profilePrinted[kProfileSlots];          /* dump bookkeeping */
-static short profileCurrent;
-static short profileParent[kProfileSlots];          /* -1 = none */
-static char profileName[kProfileSlots][32];
-static unsigned long profileTime[kProfileSlots];    /* milliseconds */
-static unsigned long profileCalls[kProfileSlots];
-static unsigned long long profileEnterTick[kProfileSlots];
+#if V111 || defined(MACBUILD) /* V111 spelling */
+#ifdef MACBUILD
+UnsignedWide lastMicroseconds[kProfileSlots];
+#else
+static unsigned long long lastMicroseconds[kProfileSlots];
+#endif
+unsigned long iterations[kProfileSlots];
+unsigned long totalMilliseconds[kProfileSlots];
+char name[kProfileSlots][32];
+short dependency[kProfileSlots];
+short lastEntered;
+Boolean done[kProfileSlots];
+#else
+static Boolean done[kProfileSlots];          /* dump bookkeeping */
+static short lastEntered;
+static short dependency[kProfileSlots];          /* -1 = none */
+static char name[kProfileSlots][32];
+static unsigned long totalMilliseconds[kProfileSlots];    /* milliseconds */
+static unsigned long iterations[kProfileSlots];
+static unsigned long long lastMicroseconds[kProfileSlots];
+#endif
 
 /* print_dependents (mac _print_dependents). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046fa30
+// MAC: _print_dependents i386 0x000a4e86 ppc 0x000b0b80
+#ifndef MACBUILD
 void print_dependents(FILE *f, short slot, short depth)
-{
-    short i;
-    short col;
-
-    for (i = 0; i < depth * 2; i++)
-        fprintf(f, " ");
-    fprintf(f, "%s:", profileName[slot]);
-    for (col = strlen(profileName[slot]) + depth * 2; col < 32; col++)
-        fprintf(f, " ");
-    fprintf(f, " %8i iterations  %8i ms  %8.1f ms average",
-            profileCalls[slot], profileTime[slot],
-            (double)profileTime[slot] / profileCalls[slot]);
-    if (profileParent[slot] != -1) {
-        for (i = 0; i < (depth + 1) * 2; i++)
-            fprintf(f, " ");
-        fprintf(f, "(%.1f%%)",
-                profileTime[slot] * 100.0 / profileTime[profileParent[slot]]);
-    }
-    fprintf(f, "\n");
-    profilePrinted[slot] = 1;
-    for (i = 0; i < kProfileSlots; i++) {
-        if (profilePrinted[i] == 0 && profileParent[i] == slot)
-            print_dependents(f, i, depth + 1);
-    }
-}
+#include "../engine/printdependents.inc"
+#endif
 
 /* MyProfileInit (mac _MyProfileInit). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046fbf0
+// MAC: _MyProfileInit i386 0x000a514f ppc 0x000b0eb8
 void MyProfileInit(void)
 {
     short i;
 
     for (i = 0; i < kProfileSlots; i++)
-        strcpy(profileName[i], "");
+        strcpy(name[i], "");
     MyProfileReset();
 }
 
 /* MyProfileReset. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046fc10
+// MAC: _MyProfileReset i386 0x000a4d23 ppc 0x000b0988
 void MyProfileReset(void)
 {
     short i;
 
     for (i = 0; i < kProfileSlots; i++) {
-        profileEnterTick[i] = 0;
-        profileTime[i] = 0;
-        profileParent[i] = -1;
-        profileCalls[i] = 0;
+#ifdef MACBUILD
+        lastMicroseconds[i].hi = 0;
+        lastMicroseconds[i].lo = 0;
+#else
+        lastMicroseconds[i] = 0;
+#endif
+        totalMilliseconds[i] = 0;
+        dependency[i] = -1;
+        iterations[i] = 0;
     }
-    profileCurrent = -1;
+    lastEntered = -1;
 }
 
 /* MyProfileSetName (mac _MyProfileSetName). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046fde0
-void MyProfileSetName(short slot, const char *name)
+// MAC: _MyProfileSetName i386 0x000a4d8a ppc 0x000b09f0
+void MyProfileSetName(short slot, const char *slotName)
 {
     if (slot < 0 || slot >= kProfileSlots)
         return;
-    strncpy(profileName[slot], name, 31);
+    strncpy(name[slot], slotName, 31);
 }
 
 /* MyProfileEnter (mac _MyProfileEnter). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046fe20
+// MAC: _MyProfileEnter i386 0x000a4dbd ppc 0x000b0a14
 void MyProfileEnter(short slot)
 {
     if (slot < 0 || slot >= kProfileSlots)
         return;
-    profileEnterTick[slot] = TimerGetMicroseconds();
-    if (profileCurrent != -1 && profileParent[slot] == -1)
-        profileParent[slot] = profileCurrent;
-    profileCurrent = slot;
+#ifdef MACBUILD
+    Microseconds(&lastMicroseconds[slot]);
+#else
+    lastMicroseconds[slot] = TimerGetMicroseconds();
+#endif
+    if (lastEntered != -1 && dependency[slot] == -1)
+        dependency[slot] = lastEntered;
+    lastEntered = slot;
 }
 
 /* MyProfileExit (mac _MyProfileExit). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046fe80
+// MAC: _MyProfileExit i386 0x000a4e11 ppc 0x000b0a94
 void MyProfileExit(short slot)
 {
+#ifdef MACBUILD
+    UnsignedWide now;
+    unsigned long elapsed;
+#else
     unsigned long long now;
+#endif
 
     if (slot < 0 || slot >= kProfileSlots)
         return;
+#ifdef MACBUILD
+    Microseconds(&now);
+    if (now.hi > lastMicroseconds[slot].hi)
+        elapsed = (0xffffffff - (lastMicroseconds[slot].lo - now.lo)) / 1000;
+    else
+        elapsed = (now.lo - lastMicroseconds[slot].lo) / 1000;
+    totalMilliseconds[slot] += elapsed;
+#else
     now = TimerGetMicroseconds();
-    profileTime[slot] += ((now - profileEnterTick[slot]) / 1000);
-    profileCalls[slot]++;
-    if (profileCurrent == slot) {
-        if (profileParent[slot] != -1)
-            profileCurrent = profileParent[slot];
+    totalMilliseconds[slot] += ((now - lastMicroseconds[slot]) / 1000);
+#endif
+    iterations[slot]++;
+    if (lastEntered == slot) {
+        if (dependency[slot] != -1)
+            lastEntered = dependency[slot];
         else
-            profileCurrent = -1;
+            lastEntered = -1;
     }
 }
 
+#ifdef MACBUILD
+void print_dependents(FILE *f, short slot, short depth)
+#include "../engine/printdependents.inc"
+#endif
+
 /* MyProfileDump (mac _MyProfileDump). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046ff00
+// MAC: _MyProfileDump i386 0x000a5088 ppc 0x000b0dc0
 void MyProfileDump(const char *path)
 {
     FILE *f;
@@ -125,9 +152,9 @@ void MyProfileDump(const char *path)
     if (f != 0) {
         fprintf(f, "Profile report:\n\n");
         for (i = 0; i < kProfileSlots; i++)
-            profilePrinted[i] = 0;
+            done[i] = 0;
         for (i = 0; i < kProfileSlots; i++) {
-            if (profileCalls[i] != 0 && profilePrinted[i] == 0)
+            if (iterations[i] != 0 && done[i] == 0)
                 print_dependents(f, i, 0);
         }
         fclose(f);

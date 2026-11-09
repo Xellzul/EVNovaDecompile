@@ -1,6 +1,7 @@
 // evnova.rc -- EV Nova for Windows 1.0.10: the exe's resource script. The icon, its group and the
 // CHNK registration UI are the publisher's assets: tools/genrsrc.py reads them out of the user's
-// exe into build/rsrc/ and defines EVNOVA_ASSETS. Notes: Research/the-link-step.md
+// exe into build/rsrc/ and defines EVNOVA_ASSETS (the CE trial, link.ps1 -Cefix -CeRsrcExe: the eleven
+// assets of the user's CE exe, EVNOVA_CE_ASSETS). Notes: Research/the-link-step.md
 
 1 VERSIONINFO
  FILEVERSION 1,0,10,0
@@ -33,10 +34,24 @@ BEGIN
     END
 END
 
+#ifdef EVNOVA_CE_ASSETS
+950 CHNK "rsrc/CHNK_950.bin"
+1 3 "rsrc/ICON_1.bin"
+2 3 "rsrc/ICON_2.bin"
+3 3 "rsrc/ICON_3.bin"
+4 3 "rsrc/ICON_4.bin"
+5 3 "rsrc/ICON_5.bin"
+6 3 "rsrc/ICON_6.bin"
+7 3 "rsrc/ICON_7.bin"
+8 3 "rsrc/ICON_8.bin"
+202 14 "rsrc/GROUP_ICON_202.bin"
+203 14 "rsrc/GROUP_ICON_203.bin"
+#else
 #ifdef EVNOVA_ASSETS
 1 3 "rsrc/ICON_1.bin"
 202 14 "rsrc/GROUP_ICON_202.bin"
 950 CHNK "rsrc/CHNK_950.bin"
+#endif
 #endif
 
 STRINGTABLE

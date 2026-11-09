@@ -525,7 +525,7 @@ Word ResourceAddName(RezFile *rez, const char *name)
     const char *colon;
 
     rezNum = ResourceGetRezNum(rez, name);
-    if (rezNum == (Word)-1) {
+    if (rezNum == -1) {
         if ((Word8)name[0] >= '0' && (Word8)name[0] < (Word8)':') {
             colon = strchr(name, ':');
             if (colon != 0)
@@ -559,7 +559,7 @@ Word ResourceAddName(RezFile *rez, const char *name)
                 rez->groupCount = 0;
                 rez->nameCount = 0;
             }
-            return (Word)-1;
+            return -1;
         }
         /* the number: 1 when the first group starts above it, else one past the first group */
         count = rez->groupCount;
@@ -582,7 +582,7 @@ Word ResourceAddName(RezFile *rez, const char *name)
         tableSize = oldSize + growth;
         newHandle = (RezGroup **)AllocAHandle2(tableSize + nameLength, 0);
         if (newHandle == 0)
-            return (Word)-1;
+            return -1;
 
         /* the first group, grown by one entry (and joined to the next when they now touch) */
         i = rez->groupCount;
@@ -732,7 +732,7 @@ Handle ResourceLoadHandle(RezFile *Input, long RezNum)
         DeallocAHandle(BufferHand);
         BufferHand = 0;
     }
-    memFlags = (ULong)RezNum << kMemIdShift;
+    memFlags = RezNum << kMemIdShift;
     if (flags & kRezFixed)
         memFlags |= kHandleFixed;
     FileNameOffset = flags & kNameMask;
@@ -880,7 +880,7 @@ Word ResourceGetRezNum(RezFile *Input, const char *name)
 
     if (ResourceFindName(Input, name, &NamePtr) != 0)
         return NamePtr->RezNum;
-    return (Word)-1;
+    return -1;
 }
 
 /* ResourceGetIDFromHandle (BurgerLib RzResourceManager): which resource a loaded handle is,
@@ -907,7 +907,7 @@ Word ResourceGetIDFromHandle(RezFile *rez, Handle h, long *idFound, char *nameBu
                 entries = group->count;
                 entry = kFirstEntry(group);
                 do {
-                    if (entry->MemHand == (void **)h) {
+                    if (entry->MemHand == h) {
                         if (idFound != 0)
                             *idFound = group->RezNum + group->count - entries;
                         if (nameBuf != 0 && nameBufSize != 0) {

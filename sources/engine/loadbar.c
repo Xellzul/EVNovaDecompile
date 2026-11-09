@@ -10,18 +10,24 @@
 #include "sound.h"
 #include "missions.h"
 #include "player.h"
+#ifdef MACBUILD
+extern GWorldContainer progressLoadPort;
+#endif
 
 /* the bar's rect comes out of the colr resource */
 
-/* InitLoadBar. STATE: MATCH, byte-identical. OPEN: none */
+/* InitIntroProgressBar. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ab1b0
-void InitLoadBar(void)
+// MAC: _InitIntroProgressBar i386 0x00061263 ppc 0x0006904c
+void InitIntroProgressBar(void)
 {
     Rect line;
     Rect fill;
     short midH;
     short midV;
+#ifndef MACBUILD
     RGBColor *barColor;
+#endif
 
     progressMax = CountResources(kShipType);
     progressCount = 0;
@@ -31,6 +37,27 @@ void InitLoadBar(void)
     midV = ((GetCWindowPortRect(gWind)->top
                     + GetCWindowPortRect(gWind)->bottom) / 2);
 
+#ifdef MACBUILD
+    progressRect = progressDefRect;
+    OffsetRect(&progressRect, midH, midV);
+
+    line = progressRect;
+    InsetRect(&line, 0, (line.bottom - line.top) / 2);
+
+    while (line.bottom <= progressRect.bottom) {
+        RGBForeColor(&progressColor[2]);
+        FrameRect(&line);
+        ForeColor(blackColor);
+        fill = line;
+        InsetRect(&fill, 1, 1);
+        PaintRect(&fill);
+        InsetRect(&line, 0, -1);
+#ifdef MAC1010
+        HandleIntroMusic(0);
+#endif
+        Delay(2, &tix);
+    }
+#else
     progressRect.top = progressDefRect.top;
     progressRect.left = progressDefRect.left;
     progressRect.bottom = progressDefRect.bottom;
@@ -48,7 +75,7 @@ void InitLoadBar(void)
         do {
         RGBForeColor(barColor);
         FrameRect(&line);
-        RGBForeColor(blackColor);
+        ForeColor(blackColor);
         fill.top = line.top;
         fill.left = line.left;
         fill.bottom = line.bottom;
@@ -60,40 +87,63 @@ void InitLoadBar(void)
         Delay(2, &tix);
         } while (line.bottom <= progressRect.bottom);
     }
-    DrawLoadBar();
+#endif
+    DrawIntroProgressBar();
 }
 
 /* DisposeIntroProgressBar (mac _DisposeIntroProgressBar). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ab3a0
+// MAC: _DisposeIntroProgressBar i386 0x000613ef ppc 0x00069200
 void DisposeIntroProgressBar(void)
 {
 }
 
-/* AdvanceLoadBar. STATE: MATCH, byte-identical. OPEN: none */
+/* DeltaIntroProgressBar. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ab3b0
-void AdvanceLoadBar(double amount)
+// MAC: _DeltaIntroProgressBar i386 0x000613f4 ppc 0x00069204
+void DeltaIntroProgressBar(double amount)
 {
     progressCount = progressCount + amount;
-    DrawLoadBar();
+    DrawIntroProgressBar();
 }
 
-/* DrawLoadBar. STATE: MATCH, byte-identical. OPEN: none */
+/* DrawIntroProgressBar. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ab3d0
-void DrawLoadBar(void)
+// MAC: _DrawIntroProgressBar i386 0x000610ba ppc 0x00068e7c
+void DrawIntroProgressBar(void)
 {
     Rect box;
+#ifdef MAC1010
+    Rect bar;
+    Rect start;
 
+    start = progressLoadPort.bounds;
+    bar = start;
+    bar.right = (progressCount / progressMax * 198.0 + bar.left);
+    if (bar.right > progressLoadPort.bounds.right)
+        bar.right = progressLoadPort.bounds.right;
+    box = start;
+#elif defined(MACBUILD)
+    box = progressLoadPort.bounds;
+#else
     box.left = gLoadBarBase.left;
     box.top = gLoadBarBase.top;
     box.bottom = gLoadBarBase.bottom;
     box.right = gLoadBarBase.right;
+#endif
     box.right = box.left + 30;
 
     SetGWorldContainer(&loadPort);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     RGBForeColor(&progressColor[2]);
     FrameRect(&progressRect);
 
+#ifdef MACBUILD
+    box = progressRect;
+    InsetRect(&box, 1, 1);
+
+    box.right = (box.left + progressCount / progressMax * 198.0);
+#else
     box.top = progressRect.top;
     box.left = progressRect.left;
     box.bottom = progressRect.bottom;
@@ -101,6 +151,7 @@ void DrawLoadBar(void)
     InsetRect(&box, 1, 1);
 
     box.right = (progressCount / progressMax * 198.0 + box.left);
+#endif
     if (box.right >= progressRect.right)
         box.right = progressRect.right - 1;
 
@@ -110,17 +161,19 @@ void DrawLoadBar(void)
     RGBForeColor(&progressColor[1]);
     InsetRect(&box, -1, -1);
     FrameRect(&box);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     box.left = box.right;
     box.right = progressRect.right - 1;
     PaintRect(&box);
 
     SWSetPortToWindow(gSpriteWorld);
-    RGBForeColor(blackColor);
-    CopyBits(GetGWCPixMap(&loadPort),
+    ForeColor(blackColor);
+    CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
              &progressRect, &progressRect, 0, 0);
+#ifndef MACBUILD
     ScreenEndScene();
+#endif
 }
 
 /* not linked, not verified against the exe (mac _ShowScrollingText) */
@@ -130,29 +183,31 @@ void DrawLoadBar(void)
 #define kMaxScrollLines     128
 #define kScrollLineHeight   30
 #define kScrollFadeRange    32
-#define kScanReturn         0x24
-#define kScanSpace          0x31
-#define kScanDown           0x7d
-#define kScanUp             0x7e
+#define kScanReturn         MacKey(0x24)
+#define kScanSpace          MacKey(0x31)
+#define kScanDown           MacKey(0x7d)
+#define kScanUp             MacKey(0x7e)
 
+/* ShowScrollingText (mac _ShowScrollingText): mac only. */
+// MAC: _ShowScrollingText i386 0x0006140f ppc 0x0006921c
 unsigned char ShowScrollingText(short strListID)
 {
     Handle strs;
     short count;
-    Rect screen;
-    Rect box;
     Rect view;
+    Rect box;
+    Rect screen;
     RGBColor shade;
     unsigned char text[256];
     char *line[kMaxScrollLines];
-    short maxWidth;
+    short offset;
     short width;
     short i;
     short y;
-    short offset;
+    short maxWidth;
     short fade;
     unsigned long startTicks;
-    unsigned long delay;
+    short delay;
     unsigned char shown;
     unsigned char finished;
 
@@ -168,7 +223,7 @@ unsigned char ShowScrollingText(short strListID)
         return 0;
 
     SWSetPortToWindow(gSpriteWorld);
-    ForeColor(kQDBlackColor);
+    (ForeColor)(kQDBlackColor);
     screen = *GetCWindowPortRect(gWind);
     screen.top -= 20;
     PaintRect(&screen);
@@ -199,10 +254,10 @@ unsigned char ShowScrollingText(short strListID)
     if (maxWidth < 32)
         maxWidth = 32;
 
-    box.top = box.bottom = (GetCWindowPortRect(gWind)->top
-                            + GetCWindowPortRect(gWind)->bottom) / 2;
     box.left = box.right = (GetCWindowPortRect(gWind)->left
                             + GetCWindowPortRect(gWind)->right) / 2;
+    box.top = box.bottom = (GetCWindowPortRect(gWind)->top
+                            + GetCWindowPortRect(gWind)->bottom) / 2;
     InsetRect(&box, -8 - maxWidth / 2, -160);
     OffsetRect(&box, -10, 0);
     view = box;
@@ -210,7 +265,7 @@ unsigned char ShowScrollingText(short strListID)
     SetGWorldContainer(&loadPort);
     TextFont(20);
     TextSize(24);
-    ForeColor(kQDBlackColor);
+    (ForeColor)(kQDBlackColor);
     PaintRect(&loadPort.bounds);
 
     finished = 1;
@@ -220,13 +275,13 @@ unsigned char ShowScrollingText(short strListID)
             y = view.bottom - offset + i * kScrollLineHeight;
             if (y < box.top || y > box.bottom + 24)
                 continue;
-            ForeColor(kQDWhiteColor);
+            (ForeColor)(kQDWhiteColor);
             shown = 1;
             if (y - box.bottom >= -kScrollFadeRange && y - box.bottom <= kScrollFadeRange) {
                 shown = 0;
                 if (y < box.bottom) {
                     fade = abs(y - box.bottom) / 32.0 * 65535.0;
-                    shade.red = shade.green = shade.blue = fade;
+                    shade.green = shade.blue = shade.red = fade;
                     RGBForeColor(&shade);
                     shown = 1;
                 }
@@ -235,7 +290,7 @@ unsigned char ShowScrollingText(short strListID)
                 if (y <= box.top + 24)
                     continue;
                 fade = abs(y - box.top - 24) / 32.0 * 65535.0;
-                shade.red = shade.green = shade.blue = fade;
+                shade.green = shade.blue = shade.red = fade;
                 RGBForeColor(&shade);
             }
             if (!shown)
@@ -244,11 +299,11 @@ unsigned char ShowScrollingText(short strListID)
             DrawString((unsigned char *)line[i]);
         }
         SWSetPortToWindow(gSpriteWorld);
-        ForeColor(kQDBlackColor);
-        CopyBits(GetGWCPixMap(&loadPort),
+        (ForeColor)(kQDBlackColor);
+        CopyBits(GWorldContainerBits(&loadPort),
                  GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)), &view, &box, 0, 0);
         SetGWorldContainer(&loadPort);
-        ForeColor(kQDBlackColor);
+        (ForeColor)(kQDBlackColor);
         PaintRect(&view);
         QDFlushPortBuffer(GetWindowPort(gWind), 0);
         QuickKeyCheckHandler();
@@ -257,7 +312,12 @@ unsigned char ShowScrollingText(short strListID)
             finished = 0;
             break;
         }
-        delay = QuickKeyCheck(kScanDown) ? 4 : (QuickKeyCheck(kScanUp) ? 0 : 2);
+        if (QuickKeyCheck(kScanDown))
+            delay = 4;
+        else if (QuickKeyCheck(kScanUp))
+            delay = 0;
+        else
+            delay = 2;
         while (TickCount() - startTicks < delay)
             ;
     }

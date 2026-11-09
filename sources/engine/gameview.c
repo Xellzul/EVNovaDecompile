@@ -17,7 +17,19 @@
 
 #define kKeyShift      0x2a
 #define kKeyRightShift 0x36
+#define kMacKeyShift   MacKey(0x38)
 #define kIntroDescID   0x7fff
+
+#ifdef MAC1010
+/* a plain function: -inline auto expands each call and the linker strips the copy; the first reference to `table` in the unit */
+#define RT3_HELPERS3_IN_UNIT
+void RegScramB3(unsigned char x)
+{
+    static unsigned char table[256];
+
+    table[x]++;
+}
+#endif
 
 /*
  * Not gameview.c code: the only caller is EnterGameFromMainScreen, the
@@ -26,9 +38,10 @@
  * No mac symbol exists for it.
  */
 
+#ifndef MACBUILD
 /* RegScramD3. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00486100
-char RegScramD3(char *p)
+Boolean RegScramD3(char *p)
 {
     TimerGetSeconds();
     return *p;
@@ -36,10 +49,11 @@ char RegScramD3(char *p)
 
 /* RegScramE3. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00486110
-char RegScramE3(void)
+Boolean RegScramE3(void)
 {
     return 0;
 }
+#endif
 
 /*
  * Both log calls are stubs in the shipped build, so holding shift only
@@ -47,20 +61,46 @@ char RegScramE3(void)
  */
 /* DoAboutBox (mac _DoAboutBox). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00486120
+// MAC: _DoAboutBox i386 0x00015fb7 ppc 0x00019cc8
 void DoAboutBox(void)
 {
+#ifdef MAC1010 /* 1.0.10 spelling */
+    assert(didSpeak == 0 || didSpeak == 1);
+#endif
+#if V111
+#ifdef MACBUILD
+    CancelMusicThread();
+#endif
+#else
     StopIntroMusic(1);
+#endif
+#ifdef MACBUILD
+    if (KeyCheck(kMacKeyShift) && didSpeak == 0 && gPause == 0) {
+        CheckSpeechMgr();
+#ifdef MAC1010
+        SpeakIt("Greetings professor Follkinn. Would you like to play a game?", 1);
+#else
+        SpeakIt("\pGreetings professor Follkinn. Would you like to play a game?", 1);
+#endif
+#else
     if ((KeyCheck(kKeyShift) != 0 || KeyCheck(kKeyRightShift) != 0)
         && didSpeak == 0 && gPause == 0) {
         CheckSpeechMgr();
         SpeakIt("Greetings professor Follkinn. Would you like to play a game?", 1);
+#endif
         didSpeak = 1;
         return;
     }
+#ifdef MACBUILD
+    mainScreenBackgroundDirty = 1;
+#endif
     LoadDescription(briefingTextPtr, kIntroDescID);
     MungeBriefing(0, -1);
-    strcpy(gTextShowString, briefingTextPtr);
+    strcpy(textShowString, briefingTextPtr);
     ShowTextDialog(0, 0, 1);
+#ifdef MACBUILD
+    mainScreenBackgroundDirty = 1;
+#endif
 }
 
 /* --- TrackMainScreenButtons (0x004861b0) --- */
@@ -79,6 +119,120 @@ void DoAboutBox(void)
  */
 /* TrackMainScreenButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004861b0
+// MAC: _TrackMainScreenButtons i386 0x000195b9 ppc 0x0001d30c
+#ifdef MACBUILD
+short TrackMainScreenButtons(Point where)
+{
+    Rect box;
+    Point pt;
+    short i;
+    short over;
+    short hit;
+
+    SWSetPortToWindow(gSpriteWorld);
+    for (i = 0; i < kMainButtons; i++)
+        SWSetSpriteLocation(menuButtonSprite[i],
+                            (menuTopCorner.h + menuButtonPos[i].h),
+                            (menuTopCorner.v + menuButtonPos[i].v));
+    hit = -1;
+    for (i = 0; i < kMainButtons; i++) {
+        if (menuButtonSprite[i] != NULL
+            && SWRLECollisionWithPoint(menuButtonSprite[i], &where)) {
+            hit = i;
+            break;
+        }
+    }
+    if (hit != -1) {
+        PlaySound(mainScreenSnd[kButtonDownSnd], kSoundChannel,
+                  gSoundVolume, gSoundVolume);
+        for (i = 0; i < kMainButtons; i++) {
+            if (menuButtonSprite[i] != NULL) {
+                box = menuButtonSprite[i]->frameArray[0]->frameRect;
+                OffsetRect(&box, menuTopCorner.h + menuButtonPos[i].h,
+                           menuTopCorner.v + menuButtonPos[i].v);
+                SWSetSpriteLocation(menuButtonSprite[i],
+                                    (menuTopCorner.h + menuButtonPos[i].h),
+                                    (menuTopCorner.v + menuButtonPos[i].v));
+                if (hit == i)
+                    BlitPixieRLEDrawProc(menuButtonSprite[i]->frameArray[1],
+                                         gSpriteWorld->workFrameP, &box, &box);
+                else
+                    BlitPixieRLEDrawProc(menuButtonSprite[i]->frameArray[0],
+                                         gSpriteWorld->workFrameP, &box, &box);
+                ForeColor(blackColor);
+                CopyBits((PixMapPtr)GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
+                         GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                         &box, &box, 0, NULL);
+                QDFlushPortBuffer(GetCWindowGrafPort(gWind), NULL);
+            }
+        }
+        SWSetPortToWindow(gSpriteWorld);
+        while (Button()) {
+            BusyIdle();
+            GetMouse(&pt);
+            CopyBits(GWorldContainerBits(&loadPort),
+                     GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
+                     &rolloverDestRect, &rolloverDestRect, 0, NULL);
+            MainScreenRolloverIdle();
+            MainScreenRolloverDraw();
+            CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
+                     GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                     &rolloverDestRect, &rolloverDestRect, 0, NULL);
+            over = -1;
+            for (i = 0; i < kMainButtons; i++) {
+                if (menuButtonSprite[i] != NULL
+                    && SWRLECollisionWithPoint(menuButtonSprite[i], &pt)) {
+                    over = i;
+                    break;
+                }
+            }
+            if (over != hit) {
+                if (over <= kMainButtons - 1 && over >= 0) {
+                    PlaySound(mainScreenSnd[kButtonDownSnd], kSoundChannel,
+                              gSoundVolume, gSoundVolume);
+                    box = menuButtonSprite[over]->frameArray[0]->frameRect;
+                    OffsetRect(&box, menuTopCorner.h + menuButtonPos[over].h,
+                               menuTopCorner.v + menuButtonPos[over].v);
+                    SWSetSpriteLocation(menuButtonSprite[over],
+                                        (menuTopCorner.h + menuButtonPos[over].h),
+                                        (menuTopCorner.v + menuButtonPos[over].v));
+                    BlitPixieRLEDrawProc(menuButtonSprite[over]->frameArray[1],
+                                         gSpriteWorld->workFrameP, &box, &box);
+                    ForeColor(blackColor);
+                    CopyBits((PixMapPtr)GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
+                             GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                             &box, &box, 0, NULL);
+                    QDFlushPortBuffer(GetCWindowGrafPort(gWind), NULL);
+                } else {
+                    PlaySound(mainScreenSnd[kButtonUpSnd], kSoundChannel,
+                              gSoundVolume, gSoundVolume);
+                }
+                if (hit <= kMainButtons - 1 && hit >= 0) {
+                    box = menuButtonSprite[hit]->frameArray[0]->frameRect;
+                    OffsetRect(&box, menuTopCorner.h + menuButtonPos[hit].h,
+                               menuTopCorner.v + menuButtonPos[hit].v);
+                    SWSetSpriteLocation(menuButtonSprite[hit],
+                                        (menuTopCorner.h + menuButtonPos[hit].h),
+                                        (menuTopCorner.v + menuButtonPos[hit].v));
+                    BlitPixieRLEDrawProc(menuButtonSprite[hit]->frameArray[0],
+                                         gSpriteWorld->workFrameP, &box, &box);
+                    ForeColor(blackColor);
+                    CopyBits((PixMapPtr)GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
+                             GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                             &box, &box, 0, NULL);
+                    QDFlushPortBuffer(GetCWindowGrafPort(gWind), NULL);
+                }
+            }
+            hit = over;
+        }
+    }
+    if (hit != -1)
+        PlaySound(mainScreenSnd[kButtonUpSnd], kSoundChannel,
+                  gSoundVolume, gSoundVolume);
+    return hit;
+}
+
+#else
 short TrackMainScreenButtons(Point where)
 {
     Rect box;
@@ -91,13 +245,13 @@ short TrackMainScreenButtons(Point where)
 
     SWSetPortToWindow(gSpriteWorld);
     for (i = 0; i < kMainButtons; i++)
-        SWSetSpriteLocation(gMainButtonSprites[i],
+        SWSetSpriteLocation(menuButtonSprite[i],
                             (menuButtonPos[i].h + menuTopCorner.h),
                             (menuButtonPos[i].v + menuTopCorner.v));
     hit = -1;
     for (i = 0; i < kMainButtons; i++) {
-        if (gMainButtonSprites[i] != NULL
-            && SWRLECollisionWithPoint(gMainButtonSprites[i], &where)) {
+        if (menuButtonSprite[i] != NULL
+            && SWRLECollisionWithPoint(menuButtonSprite[i], &where)) {
             hit = i;
             break;
         }
@@ -106,24 +260,24 @@ short TrackMainScreenButtons(Point where)
         PlaySound(mainScreenSnd[kButtonDownSnd], kSoundChannel,
                   gSoundVolume, gSoundVolume);
         for (over = 0; over < kMainButtons; over++) {
-            if (gMainButtonSprites[over] != NULL) {
-                fr = &gMainButtonSprites[over]->frameArray[0]->frameRect;
+            if (menuButtonSprite[over] != NULL) {
+                fr = &menuButtonSprite[over]->frameArray[0]->frameRect;
                 box.top = fr->top;
                 box.left = fr->left;
                 box.bottom = fr->bottom;
                 box.right = fr->right;
                 OffsetRect(&box, menuButtonPos[over].h + menuTopCorner.h,
                            menuButtonPos[over].v + menuTopCorner.v);
-                SWSetSpriteLocation(gMainButtonSprites[over],
+                SWSetSpriteLocation(menuButtonSprite[over],
                                     (menuButtonPos[over].h + menuTopCorner.h),
                                     (menuButtonPos[over].v + menuTopCorner.v));
                 if (hit == over)
-                    BlitPixieRLEDrawProc(gMainButtonSprites[over]->frameArray[1],
+                    BlitPixieRLEDrawProc(menuButtonSprite[over]->frameArray[1],
                                          gSpriteWorld->workFrameP, &box, &box);
                 else
-                    BlitPixieRLEDrawProc(gMainButtonSprites[over]->frameArray[0],
+                    BlitPixieRLEDrawProc(menuButtonSprite[over]->frameArray[0],
                                          gSpriteWorld->workFrameP, &box, &box);
-                RGBForeColor(blackColor);
+                ForeColor(blackColor);
                 CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
                          GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                          &box, &box, 0, NULL);
@@ -138,15 +292,15 @@ short TrackMainScreenButtons(Point where)
             CopyBits(GetGWCPixMap(&loadPort),
                      GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
                      &rolloverDestRect, &rolloverDestRect, 0, NULL);
-            TrackMainScreenHilite();
+            MainScreenRolloverIdle();
             MainScreenRolloverDraw();
             CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
                      GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                      &rolloverDestRect, &rolloverDestRect, 0, NULL);
             over = -1;
             for (i = 0; i < kMainButtons; i++) {
-                if (gMainButtonSprites[i] != NULL
-                    && SWRLECollisionWithPoint(gMainButtonSprites[i], &pt)) {
+                if (menuButtonSprite[i] != NULL
+                    && SWRLECollisionWithPoint(menuButtonSprite[i], &pt)) {
                     over = i;
                     break;
                 }
@@ -155,19 +309,19 @@ short TrackMainScreenButtons(Point where)
                 if (over <= kMainButtons - 1 && over >= 0) {
                     PlaySound(mainScreenSnd[kButtonDownSnd], kSoundChannel,
                               gSoundVolume, gSoundVolume);
-                    fr2 = &gMainButtonSprites[over]->frameArray[0]->frameRect;
+                    fr2 = &menuButtonSprite[over]->frameArray[0]->frameRect;
                     box.top = fr2->top;
                     box.left = fr2->left;
                     box.bottom = fr2->bottom;
                     box.right = fr2->right;
                     OffsetRect(&box, menuButtonPos[over].h + menuTopCorner.h,
                                menuButtonPos[over].v + menuTopCorner.v);
-                    SWSetSpriteLocation(gMainButtonSprites[over],
+                    SWSetSpriteLocation(menuButtonSprite[over],
                                         (menuButtonPos[over].h + menuTopCorner.h),
                                         (menuButtonPos[over].v + menuTopCorner.v));
-                    BlitPixieRLEDrawProc(gMainButtonSprites[over]->frameArray[1],
+                    BlitPixieRLEDrawProc(menuButtonSprite[over]->frameArray[1],
                                          gSpriteWorld->workFrameP, &box, &box);
-                    RGBForeColor(blackColor);
+                    ForeColor(blackColor);
                     CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
                              GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                              &box, &box, 0, NULL);
@@ -177,19 +331,19 @@ short TrackMainScreenButtons(Point where)
                               gSoundVolume, gSoundVolume);
                 }
                 if (hit <= kMainButtons - 1 && hit >= 0) {
-                    fr = &gMainButtonSprites[hit]->frameArray[0]->frameRect;
+                    fr = &menuButtonSprite[hit]->frameArray[0]->frameRect;
                     box.top = fr->top;
                     box.left = fr->left;
                     box.bottom = fr->bottom;
                     box.right = fr->right;
                     OffsetRect(&box, menuButtonPos[hit].h + menuTopCorner.h,
                                menuButtonPos[hit].v + menuTopCorner.v);
-                    SWSetSpriteLocation(gMainButtonSprites[hit],
+                    SWSetSpriteLocation(menuButtonSprite[hit],
                                         (menuButtonPos[hit].h + menuTopCorner.h),
                                         (menuButtonPos[hit].v + menuTopCorner.v));
-                    BlitPixieRLEDrawProc(gMainButtonSprites[hit]->frameArray[0],
+                    BlitPixieRLEDrawProc(menuButtonSprite[hit]->frameArray[0],
                                          gSpriteWorld->workFrameP, &box, &box);
-                    RGBForeColor(blackColor);
+                    ForeColor(blackColor);
                     CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
                              GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                              &box, &box, 0, NULL);
@@ -204,11 +358,17 @@ short TrackMainScreenButtons(Point where)
                   gSoundVolume, gSoundVolume);
     return hit;
 }
+#endif
 
 /* InitMainScreen (mac _InitMainScreen). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00486790
+// MAC: _InitMainScreen i386 0x00016071 ppc 0x00019d9c
 void InitMainScreen(void)
 {
+#ifdef MACBUILD
+    short i;
+
+#endif
     didSpeak = 0;
     onPlanet = 0;
     doMainScreenAnim = 1;
@@ -220,11 +380,17 @@ void InitMainScreen(void)
     standardPicRect.right = standardPicRect.left + kViewWidth;
     standardPicRect.bottom = standardPicRect.top + kViewHeight;
 
+#ifdef MACBUILD
+    introTextID = -1;
+    for (i = 0; i < 4; i++)
+        introPictID[i] = -1;
+#else
     gViewSlot[0] = -1;
     gViewSlot[1] = -1;
     gViewSlot[2] = -1;
     gViewSlot[3] = -1;
     gViewSlot[4] = -1;
+#endif
 
     creatingPilotFile = 0;
     majorPrefsChange = 0;

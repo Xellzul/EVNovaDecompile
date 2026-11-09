@@ -13,6 +13,7 @@
 
 /* InitStatus. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0045cfc0
+// MAC: _InitStatus i386 0x00049470 ppc 0x00051e08
 void InitStatus(void)
 {
     statusBrightColor = &statusColor[0];
@@ -29,11 +30,12 @@ void InitStatus(void)
 
 /* HandleStatus. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0045d030
+// MAC: _HandleStatus i386 0x000494d7 ppc 0x00051eb0
 void HandleStatus(void)
 {
     short chance;
 
-    chance = gSystems[shipData->curSystem].interference - ShipAntiInterference();
+    chance = systemData[shipData->curSystem].interference - ShipAntiInterference();
     if (chance > 100)
         chance = 100;
     if (chance < 0)
@@ -43,3 +45,57 @@ void HandleStatus(void)
     else
         interferenceThisFrame = 0;
 }
+
+#if defined(MACBUILD) && V111
+#define kStatusPanelWidth 194
+
+/* BlitStatusArea (mac-only, new in 1.1.1). STATE: MATCH both slices. OPEN: none */
+// MAC: _BlitStatusArea i386 0x00049550 ppc 0x00051f4c
+void BlitStatusArea(void)
+{
+    Rect box;
+    PixMapHandle srcPix;
+    PixMapHandle dstPix;
+    long srcRowBytes;
+    long dstRowBytes;
+    char *src;
+    char *srcBase;
+    long width;
+    long height;
+    long top;
+    short left;
+    FramePtr frame;
+
+    if (useLegacyRenderingPipeline) {
+        SWSetPortToWindow(gSpriteWorld);
+        box = *GetCWindowPortRect(gWind);
+        box.left = box.right - kStatusPanelWidth;
+        ForeColor(blackColor);
+        if (gSpriteWorld->fastBlit) {
+            srcPix = GetPortPixMap(loadPort.world);
+            dstPix = GetCWindowPixMap(gWind);
+            srcRowBytes = GetPixRowBytes(srcPix);
+            dstRowBytes = GetPixRowBytes(dstPix);
+            srcBase = (*srcPix)->baseAddr;
+            top = box.top;
+            left = box.left;
+            height = box.bottom - top;
+            frame = gSpriteWorld->windowFrameP;
+            if (frame->frameDepth == 16) {
+                src = srcBase + left * 2;
+                width = (box.right - left) * 2;
+            } else {
+                src = srcBase + left;
+                width = box.right - left;
+            }
+            BlitPixieRect((unsigned char *)src,
+                          (unsigned char *)SW_PIXELPTR(frame, left, top),
+                          srcRowBytes, dstRowBytes, width, height);
+        } else {
+            CopyBits(GetPortBitMapForCopyBits(loadPort.world),
+                     GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                     &box, &box, srcCopy, NULL);
+        }
+    }
+}
+#endif

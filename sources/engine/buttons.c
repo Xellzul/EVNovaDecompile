@@ -12,6 +12,7 @@
 #include "render.h"
 #include "burger.h"
 #include "prototypes.h"
+#include "cefix.h"
 
 /* Toolbox shims (win port implementations) */
 
@@ -19,22 +20,33 @@
 
 /* rest of this TU */
 
-/* set when the branch below hides the planet-comm dialog's third button; the
-   name is read off that effect, not from the Nova Bible */
-#define kSpobTributeDisabled 0x0020
-
-/* set when the comm dialog swaps its third item for item 4; likewise named
-   from that effect rather than from the Nova Bible */
-#define kGovtAltCommItem 0x0001
-
 #define kButtonPictID         7500
 #define kButtonMaskPictID     7600
+#define kOkButtonLabel        26
+
+/* the mac builds the offscreens on the main screen's device; the port's take none */
+#ifdef MACBUILD
+#define kButtonDevice GetMainDevice()
+#else
+#define kButtonDevice 0
+#endif
 
 /* button slots: the index into a Track/Draw pair's Rect array */
 enum { kTradeDoneButton, kTradeBuyButton, kTradeSellButton };
 enum { kMissionAcceptButton, kMissionOkButton };
 enum { kMissionInfoDoneButton, kMissionInfoAbortButton };
 enum { kHaggleYesButton, kHaggleNoButton };
+#ifdef MAC1010 /* 1.0.10 spelling: plain numbers at the sites */
+#define kTradeDoneButton 0
+#define kTradeBuyButton 1
+#define kTradeSellButton 2
+#define kMissionAcceptButton 0
+#define kMissionOkButton 1
+#define kMissionInfoDoneButton 0
+#define kMissionInfoAbortButton 1
+#define kHaggleYesButton 0
+#define kHaggleNoButton 1
+#endif
 
 /* the button object's globals; this file ends that object (the .CRT hook).
    mapButtonTable's sixth slot is shipyardButtonTable[0], as in the exe */
@@ -44,7 +56,7 @@ GWorldContainer buttonMaskPort;
 short mapButtonTable[5];
 short shipyardButtonTable[5];
 short outfitButtonTable[5];
-short portButtonID[kPortButtons];
+short planetButtonTable[kPortButtons];
 short tradeButtonTable[3];
 short commButtonTable[3];
 short planetCommButtonTable[3];
@@ -63,35 +75,35 @@ RGBColor buttonColor[3];
 Rect buttonPieceRect[kButtonPieceCount];
 unsigned char buttonLabel[kButtonLabelCount][256];
 unsigned char missionButtonLabel[kMissionButtonLabelCount][256];
+#ifndef MACBUILD
 unsigned char DAT_007dc2aa[261];
+#endif
 
 /* TrackTradeButtons. STATE: MATCH 100%, exe 158 / obj 158, byte-identical.
    The slot enum (-enum min) at the GetDialogItem sites keeps their addresses out of the CSE
    class the PtInRect sites share. OPEN: none. see notes */
 // FUNCTION: EVNOVA 0x004a04d0
+// MAC: _TrackTradeButtons i386 0x000294cd ppc 0x0002dae4
 short TrackTradeButtons(Point where)
 {
     short drawnButton;
+    short downButton;
     short overButton;
-    short downH;
     Rect box[3];
     short itemType;
-    void *item;
-    short downButton;
+    Handle item;
     Point mouse;
 
-    RGBForeColor(blackColor);
-    GetDialogItem(tradeDialog, 1, &itemType, &item, &box[kTradeDoneButton]);
-    GetDialogItem(tradeDialog, 0xd, &itemType, &item, &box[kTradeBuyButton]);
-    GetDialogItem(tradeDialog, 0xe, &itemType, &item, &box[kTradeSellButton]);
+    ForeColor(blackColor);
+    GetDialogItem(tradeDialog, 1, &itemType, (void **)&item, &box[kTradeDoneButton]);
+    GetDialogItem(tradeDialog, 0xd, &itemType, (void **)&item, &box[kTradeBuyButton]);
+    GetDialogItem(tradeDialog, 0xe, &itemType, (void **)&item, &box[kTradeSellButton]);
     drawnButton = -1;
-    downButton = *(short *)&where;
-    downH = ((short *)&where)[1];
-    if (PtInRect(downH, downButton, &box[0]) != 0)
+    if (PtInRectPoint(where, &box[0]) != 0)
         drawnButton = 0;
-    if (PtInRect(downH, downButton, &box[1]) != 0)
+    if (PtInRectPoint(where, &box[1]) != 0)
         drawnButton = 1;
-    if (PtInRect(downH, downButton, &box[2]) != 0)
+    if (PtInRectPoint(where, &box[2]) != 0)
         drawnButton = 2;
     downButton = drawnButton;
     if (drawnButton != -1) {
@@ -101,12 +113,12 @@ short TrackTradeButtons(Point where)
             BusyIdle();
             GetMouse(&mouse);
             overButton = -1;
-            if (PtInRect(mouse.h, mouse.v, &box[0]) != 0)
+            if (PtInRectPoint(mouse, &box[0]) != 0)
                 overButton = 0;
-            if (PtInRect(mouse.h, mouse.v, &box[1]) != 0
+            if (PtInRectPoint(mouse, &box[1]) != 0
                     && CanBuyGoods(selTradeItem) != 0)
                 overButton = 1;
-            if (PtInRect(mouse.h, mouse.v, &box[2]) != 0
+            if (PtInRectPoint(mouse, &box[2]) != 0
                     && CanSellGoods(selTradeItem) != 0)
                 overButton = 2;
             if (overButton != drawnButton && overButton != downButton)
@@ -123,111 +135,83 @@ short TrackTradeButtons(Point where)
 
 /* DrawTradeButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a06a0
+// MAC: _DrawTradeButtons i386 0x000292e2 ppc 0x0002d960
 void DrawTradeButtons(short hilited)
 {
-    int i;
-    Rect *walk;
     Rect box[3];
-    char enabled[3];
-    void *item;
     short itemType;
+    Handle item;
+    Boolean enabled[3];
+    short i;
 
-    RGBForeColor(blackColor);
-    GetDialogItem(tradeDialog, 1, &itemType, &item, &box[0]);
-    GetDialogItem(tradeDialog, 0xd, &itemType, &item, &box[1]);
-    GetDialogItem(tradeDialog, 0xe, &itemType, &item, &box[2]);
+    ForeColor(blackColor);
+    GetDialogItem(tradeDialog, 1, &itemType, (void **)&item, &box[0]);
+    GetDialogItem(tradeDialog, 0xd, &itemType, (void **)&item, &box[1]);
+    GetDialogItem(tradeDialog, 0xe, &itemType, (void **)&item, &box[2]);
     enabled[0] = 1;
     enabled[1] = CanBuyGoods(selTradeItem);
     enabled[2] = CanSellGoods(selTradeItem);
-    i = 0;
     tradeButtonTable[0] = 4;
     tradeButtonTable[1] = 1;
     tradeButtonTable[2] = 2;
-    walk = box;
-    do {
-        if (enabled[(short)i] == 0)
-            DrawButton(GetDialogPort(tradeDialog), walk,
-                       buttonLabel[tradeButtonTable[(short)i]], -1, 0, 0);
-        else if ((short)i == hilited)
-            DrawButton(GetDialogPort(tradeDialog), walk,
-                       buttonLabel[tradeButtonTable[(short)i]], 0, 1, 0);
-        else
-            DrawButton(GetDialogPort(tradeDialog), walk,
-                       buttonLabel[tradeButtonTable[(short)i]], 0, 0, 0);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i < 3);
+    for (i = 0; i < 3; i++) {
+        if (enabled[i] != 0) {
+            if (i == hilited)
+                DrawButton(GetDialogPort(tradeDialog), &box[i],
+                           buttonLabel[tradeButtonTable[i]], 0, 1, 0);
+            else
+                DrawButton(GetDialogPort(tradeDialog), &box[i],
+                           buttonLabel[tradeButtonTable[i]], 0, 0, 0);
+        } else
+            DrawButton(GetDialogPort(tradeDialog), &box[i],
+                       buttonLabel[tradeButtonTable[i]], -1, 0, 0);
+    }
 }
 
 /* TrackCapAssignButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a0810
+// MAC: _TrackCapAssignButtons i386 0x000291c7 ppc 0x0002d824
 short TrackCapAssignButtons(Point where)
 {
-    Rect *walk;
-    Rect *r;
-    int downH;
-    int overButton;
-    int i;
-    char down;
-    int drawnButton;
-    int over;
+    short drawnButton;
+    short downButton;
+    short i;
+    short overButton;
     Rect box[2];
     short itemType;
-    void *item;
-    Rect *first;
+    Handle item;
     Point mouse;
-    int downButton;
 
-    i = 0;
-    walk = box;
-    do {
-        GetDialogItem(captureDialog, (short)i + 1, &itemType, &item, walk);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i <= 1);
+    for (i = 0; i <= 1; i++)
+        GetDialogItem(captureDialog, i + 1, &itemType, (void **)&item, (Rect *)&box + i);
     drawnButton = -1;
-    overButton = 0;
-    first = box;
-    r = box;
-    downButton = *(short *)&where;
-    downH = ((short *)&where)[1];
-    do {
-        if (PtInRect(downH, downButton, r) != 0) {
-            drawnButton = overButton;
+    for (i = 0; i <= 1; i++) {
+        if (PtInRectPoint(where, &box[i]) != 0) {
+            drawnButton = i;
             break;
         }
-        overButton = overButton + 1;
-        r = r + 1;
-    } while ((short)overButton <= 1);
+    }
     downButton = drawnButton;
-    if ((short)drawnButton != -1) {
+    if (drawnButton != -1) {
         DrawCapAssignButtons(drawnButton);
         nv_UpdateDialogWindow(0);
-        down = StillDown();
-        if (down != '\0') {
-            do {
-                BusyIdle();
-                over = -1;
-                GetMouse(&mouse);
-                overButton = 0;
-                walk = first;
-                do {
-                    if (PtInRect(mouse.h, mouse.v, walk) != 0) {
-                        over = overButton;
-                        break;
-                    }
-                    overButton = overButton + 1;
-                    walk = walk + 1;
-                } while ((short)overButton <= 1);
-                if ((short)over != (short)drawnButton && (short)over != (short)downButton)
-                    over = -1;
-                if ((short)over != (short)drawnButton) {
-                    DrawCapAssignButtons(over);
-                    nv_UpdateDialogWindow(0);
+        while (StillDown() != 0) {
+            BusyIdle();
+            overButton = -1;
+            GetMouse(&mouse);
+            for (i = 0; i <= 1; i++) {
+                if (PtInRectPoint(mouse, &box[i]) != 0) {
+                    overButton = i;
+                    break;
                 }
-                drawnButton = over;
-                down = StillDown();
-            } while (down != '\0');
+            }
+            if (overButton != drawnButton && overButton != downButton)
+                overButton = -1;
+            if (overButton != drawnButton) {
+                DrawCapAssignButtons(overButton);
+                nv_UpdateDialogWindow(0);
+            }
+            drawnButton = overButton;
         }
     }
     return drawnButton;
@@ -235,108 +219,82 @@ short TrackCapAssignButtons(Point where)
 
 /* DrawCapAssignButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a0950
+// MAC: _DrawCapAssignButtons i386 0x000290c7 ppc 0x0002d738
 void DrawCapAssignButtons(short hilited)
 {
-    int i;
+    short i;
     Rect box;
     short itemType;
-    void *item;
+    Handle item;
 
     capAssignButtonTable[0] = 0x2e;
     capAssignButtonTable[1] = 0x2d;
-    i = 0;
-    do {
-        GetDialogItem(captureDialog, (short)i + 1, &itemType, &item, &box);
-        if ((short)i == hilited)
+    for (i = 0; i <= 1; i++) {
+        GetDialogItem(captureDialog, i + 1, &itemType, (void **)&item, &box);
+        if (i == hilited)
             DrawButton(GetDialogPort(captureDialog), &box,
-                       buttonLabel[capAssignButtonTable[(short)i]], 0, 1, 0);
+                       buttonLabel[capAssignButtonTable[i]], 0, 1, 0);
         else
             DrawButton(GetDialogPort(captureDialog), &box,
-                       buttonLabel[capAssignButtonTable[(short)i]], 0, 0, 0);
-        i = i + 1;
-    } while ((short)i <= 1);
+                       buttonLabel[capAssignButtonTable[i]], 0, 0, 0);
+    }
 }
 
 /* TrackCommDialogButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a09e0
+// MAC: _TrackCommDialogButtons i386 0x00028eff ppc 0x0002d55c
 short TrackCommDialogButtons(Point where)
 {
-    char altItem;
-    Rect *walk;
-    Rect *r;
-    int downH;
-    int overButton;
-    int i;
-    char down;
-    int drawnButton;
-    int over;
+    Boolean altItem;
+    short drawnButton;
+    short downButton;
+    short i;
+    short overButton;
     Rect box[3];
     short itemType;
-    void *item;
-    Rect *first;
+    Handle item;
     Point mouse;
-    int downButton;
 
     altItem = 0;
     if (commShip != 0 && commShip->govt != -1
-            && (govtData[commShip->govt].flags2 & kGovtAltCommItem) != 0)
+            && (govtData[commShip->govt].flags2 & kGovtNotTalkative) != 0)
         altItem = 1;
     if (altItem != 0) {
-        GetDialogItem(commDialog, 1, &itemType, &item, &box[0]);
-        GetDialogItem(commDialog, 4, &itemType, &item, &box[1]);
-        GetDialogItem(commDialog, 2, &itemType, &item, &box[2]);
+        GetDialogItem(commDialog, 1, &itemType, (void **)&item, &box[0]);
+        GetDialogItem(commDialog, 4, &itemType, (void **)&item, &box[1]);
+        GetDialogItem(commDialog, 2, &itemType, (void **)&item, &box[2]);
     } else {
-        i = 0;
-        walk = box;
-        do {
-            GetDialogItem(commDialog, (short)i + 1, &itemType, &item, walk);
-            i = i + 1;
-            walk = walk + 1;
-        } while ((short)i <= 2);
+        for (i = 0; i <= 2; i++)
+            GetDialogItem(commDialog, i + 1, &itemType, (void **)&item, &box[i]);
     }
     drawnButton = -1;
-    overButton = 0;
-    first = box;
-    r = box;
-    downButton = *(short *)&where;
-    downH = ((short *)&where)[1];
-    do {
-        if (PtInRect(downH, downButton, r) != 0) {
-            drawnButton = overButton;
+    for (i = 0; i <= 2; i++) {
+        if (PtInRectPoint(where, &box[i]) != 0) {
+            drawnButton = i;
             break;
         }
-        overButton = overButton + 1;
-        r = r + 1;
-    } while ((short)overButton <= 2);
+    }
     downButton = drawnButton;
-    if ((short)drawnButton != -1) {
+    if (drawnButton != -1) {
         DrawCommDialogButtons(drawnButton);
         nv_UpdateDialogWindow(0);
-        down = StillDown();
-        if (down != '\0') {
-            do {
-                BusyIdle();
-                over = -1;
-                GetMouse(&mouse);
-                overButton = 0;
-                walk = first;
-                do {
-                    if (PtInRect(mouse.h, mouse.v, walk) != 0) {
-                        over = overButton;
-                        break;
-                    }
-                    overButton = overButton + 1;
-                    walk = walk + 1;
-                } while ((short)overButton <= 2);
-                if ((short)over != (short)drawnButton && (short)over != (short)downButton)
-                    over = -1;
-                if ((short)over != (short)drawnButton) {
-                    DrawCommDialogButtons((short)over);
-                    nv_UpdateDialogWindow(0);
+        while (StillDown() != 0) {
+            BusyIdle();
+            overButton = -1;
+            GetMouse(&mouse);
+            for (i = 0; i <= 2; i++) {
+                if (PtInRectPoint(mouse, &box[i]) != 0) {
+                    overButton = i;
+                    break;
                 }
-                drawnButton = over;
-                down = StillDown();
-            } while (down != '\0');
+            }
+            if (overButton != drawnButton && overButton != downButton)
+                overButton = -1;
+            if (overButton != drawnButton) {
+                DrawCommDialogButtons(overButton);
+                nv_UpdateDialogWindow(0);
+            }
+            drawnButton = overButton;
         }
     }
     return drawnButton;
@@ -344,45 +302,38 @@ short TrackCommDialogButtons(Point where)
 
 /* DrawCommDialogButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a0bc0
+// MAC: _DrawCommDialogButtons i386 0x00028c43 ppc 0x0002d2a8
 void DrawCommDialogButtons(short hilited)
 {
     Rect box[3];
-    char altItem;
-    char hasMission;
+    Boolean hasMission;
+    Boolean altItem;
     short itemType;
-    void *item;
-    int i;
-    Rect *walk;
-    Rect *fill;
-    char enabled[4];
+    Handle item;
+    short i;
+    Boolean enabled[4];
 
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     altItem = 0;
     if (commShip != 0 && commShip->govt != -1
-            && (govtData[commShip->govt].flags2 & kGovtAltCommItem) != 0)
+            && (govtData[commShip->govt].flags2 & kGovtNotTalkative) != 0)
         altItem = 1;
-    if (altItem == 0) {
-        i = 0;
-        walk = box;
-        fill = walk;
-        do {
-            GetDialogItem(commDialog, (short)i + 1, &itemType, &item, fill);
-            i = i + 1;
-            fill = fill + 1;
-        } while ((short)i <= 2);
+    if (altItem != 0) {
+        GetDialogItem(commDialog, 1, &itemType, (void **)&item, &box[0]);
+        GetDialogItem(commDialog, 4, &itemType, (void **)&item, &box[1]);
+        GetDialogItem(commDialog, 2, &itemType, (void **)&item, &box[2]);
     } else {
-        GetDialogItem(commDialog, 1, &itemType, &item, &box[0]);
-        GetDialogItem(commDialog, 4, &itemType, &item, &box[1]);
-        GetDialogItem(commDialog, 2, &itemType, &item, &box[2]);
+        for (i = 0; i <= 2; i++)
+            GetDialogItem(commDialog, i + 1, &itemType, (void **)&item, &box[i]);
     }
     hasMission = 0;
     if (commShip != 0 && commShip->specialMission != -1
             && currentMissionObjectives[commShip->specialMission].active != 0
             && currentMissions[commShip->specialMission].shipBehav == 1)
         hasMission = 1;
-    commButtonTable[0] = 0x14;
     enabled[0] = 1;
     enabled[2] = 1;
+    commButtonTable[0] = 0x14;
     commButtonTable[2] = 0x15;
     if (altItem != 0) {
         enabled[1] = 0;
@@ -400,91 +351,62 @@ void DrawCommDialogButtons(short hilited)
             commButtonTable[1] = 0x16;
         }
     }
-    i = 0;
-    walk = box;
-    do {
-        if (enabled[(short)i] != 0) {
-            if ((short)i == hilited)
-                DrawButton(GetDialogPort(commDialog), walk,
-                           buttonLabel[commButtonTable[(short)i]], 0, 1, 0);
+    for (i = 0; i <= 2; i++) {
+        if (enabled[i] != 0) {
+            if (i == hilited)
+                DrawButton(GetDialogPort(commDialog), &box[i],
+                           buttonLabel[commButtonTable[i]], 0, 1, 0);
             else
-                DrawButton(GetDialogPort(commDialog), walk,
-                           buttonLabel[commButtonTable[(short)i]], 0, 0, 0);
+                DrawButton(GetDialogPort(commDialog), &box[i],
+                           buttonLabel[commButtonTable[i]], 0, 0, 0);
         }
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i <= 2);
+    }
 }
 
 /* TrackPlanetCommDialogButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a0e50
+// MAC: _TrackPlanetCommDialogButtons i386 0x00028b28 ppc 0x0002d16c
 short TrackPlanetCommDialogButtons(Point where)
 {
-    Rect *walk;
-    Rect *r;
-    int downH;
-    int overButton;
-    int i;
-    char down;
-    int drawnButton;
-    int over;
+    short drawnButton;
+    short downButton;
+    short i;
+    short overButton;
     Rect box[4];    /* four slots reserved; only the three items are tracked */
     short itemType;
-    void *item;
-    Rect *first;
+    Handle item;
     Point mouse;
-    int downButton;
 
-    i = 0;
-    walk = box;
-    do {
-        GetDialogItem(commDialog, (short)i + 1, &itemType, &item, walk);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i <= 2);
+    for (i = 0; i <= 2; i++)
+        GetDialogItem(commDialog, i + 1, &itemType, (void **)&item, (Rect *)&box + i);
     drawnButton = -1;
-    overButton = 0;
-    first = box;
-    r = box;
-    downButton = *(short *)&where;
-    downH = ((short *)&where)[1];
-    do {
-        if (PtInRect(downH, downButton, r) != 0) {
-            drawnButton = overButton;
+    for (i = 0; i <= 2; i++) {
+        if (PtInRectPoint(where, &box[i]) != 0) {
+            drawnButton = i;
             break;
         }
-        overButton = overButton + 1;
-        r = r + 1;
-    } while ((short)overButton <= 2);
+    }
     downButton = drawnButton;
-    if ((short)drawnButton != -1) {
+    if (drawnButton != -1) {
         DrawPlanetCommDialogButtons(drawnButton);
         nv_UpdateDialogWindow(0);
-        down = StillDown();
-        if (down != '\0') {
-            do {
-                BusyIdle();
-                over = -1;
-                GetMouse(&mouse);
-                overButton = 0;
-                walk = first;
-                do {
-                    if (PtInRect(mouse.h, mouse.v, walk) != 0) {
-                        over = overButton;
-                        break;
-                    }
-                    overButton = overButton + 1;
-                    walk = walk + 1;
-                } while ((short)overButton <= 2);
-                if ((short)over != (short)drawnButton && (short)over != (short)downButton)
-                    over = -1;
-                if ((short)over != (short)drawnButton) {
-                    DrawPlanetCommDialogButtons(over);
-                    nv_UpdateDialogWindow(0);
+        while (StillDown() != 0) {
+            BusyIdle();
+            overButton = -1;
+            GetMouse(&mouse);
+            for (i = 0; i <= 2; i++) {
+                if (PtInRectPoint(mouse, &box[i]) != 0) {
+                    overButton = i;
+                    break;
                 }
-                drawnButton = over;
-                down = StillDown();
-            } while (down != '\0');
+            }
+            if (overButton != drawnButton && overButton != downButton)
+                overButton = -1;
+            if (overButton != drawnButton) {
+                DrawPlanetCommDialogButtons(overButton);
+                nv_UpdateDialogWindow(0);
+            }
+            drawnButton = overButton;
         }
     }
     return drawnButton;
@@ -492,36 +414,27 @@ short TrackPlanetCommDialogButtons(Point where)
 
 /* DrawPlanetCommDialogButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a0f90
+// MAC: _DrawPlanetCommDialogButtons i386 0x0002893c ppc 0x0002cf8c
 void DrawPlanetCommDialogButtons(short hilited)
 {
-    int i;
-    Rect *walk;
-    Rect *fill;
-    short stellar;
-    char enabled[3];
-    short itemType;
+    short i;
     Rect box[3];
-    void *item;
+    short itemType;
+    Handle item;
+    Boolean enabled[3];
 
-    RGBForeColor(blackColor);
-    i = 0;
-    walk = box;
-    fill = walk;
-    do {
-        GetDialogItem(commDialog, (short)i + 1, &itemType, &item, fill);
-        i = i + 1;
-        fill = fill + 1;
-    } while ((short)i < 3);
-    planetCommButtonTable[0] = 0x14;
+    ForeColor(blackColor);
+    for (i = 0; i < 3; i++)
+        GetDialogItem(commDialog, i + 1, &itemType, (void **)&item, &box[i]);
     enabled[0] = 1;
     enabled[1] = 1;
+    planetCommButtonTable[0] = 0x14;
     if (hatesPlayer != 0)
         planetCommButtonTable[1] = 0x17;
     else
         planetCommButtonTable[1] = 0x15;
-    stellar = shipData[0].targetStellar;
-    if (stellarData[stellar].dominated != 0) {
-        if ((stellarData[stellar].flags2 & kSpobTributeDisabled) != 0) {
+    if (stellarData[shipData[0].targetStellar].dominated != 0) {
+        if ((stellarData[shipData[0].targetStellar].flags2 & kSpobAlwaysDominated) != 0) {
             enabled[2] = 0;
         } else {
             enabled[2] = 1;
@@ -531,69 +444,62 @@ void DrawPlanetCommDialogButtons(short hilited)
         enabled[2] = 1;
         planetCommButtonTable[2] = 0x2c;
     }
-    i = 0;
-    do {
-        if (enabled[(short)i] == 0)
-            DrawButton(GetDialogPort(commDialog), walk,
-                       buttonLabel[planetCommButtonTable[(short)i]], -1, 0, 0);
-        else if ((short)i == hilited)
-            DrawButton(GetDialogPort(commDialog), walk,
-                       buttonLabel[planetCommButtonTable[(short)i]], 0, 1, 0);
-        else
-            DrawButton(GetDialogPort(commDialog), walk,
-                       buttonLabel[planetCommButtonTable[(short)i]], 0, 0, 0);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i < 3);
-    RGBForeColor(blackColor);
+    for (i = 0; i < 3; i++) {
+        if (enabled[i] != 0) {
+            if (i == hilited)
+                DrawButton(GetDialogPort(commDialog), &box[i],
+                           buttonLabel[planetCommButtonTable[i]], 0, 1, 0);
+            else
+                DrawButton(GetDialogPort(commDialog), &box[i],
+                           buttonLabel[planetCommButtonTable[i]], 0, 0, 0);
+        } else
+            DrawButton(GetDialogPort(commDialog), &box[i],
+                       buttonLabel[planetCommButtonTable[i]], -1, 0, 0);
+    }
+    ForeColor(blackColor);
 }
 
 /* TrackMissionButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a1130
+// MAC: _TrackMissionButtons i386 0x000287f5 ppc 0x0002ce34
 short TrackMissionButtons(Point where)
 {
     short drawnButton;
     short downButton;
     short overButton;
-    short downV;
-    short downH;
     Rect box[2];
     short itemType;
-    void *item;
+    Handle item;
     Point mouse;
 
-    RGBForeColor(blackColor);
-    GetDialogItem(missionDialog, 1, &itemType, &item, &box[kMissionAcceptButton]);
-    GetDialogItem(missionDialog, 7, &itemType, &item, &box[kMissionOkButton]);
+    ForeColor(blackColor);
+    GetDialogItem(missionDialog, 1, &itemType, (void **)&item, &box[kMissionAcceptButton]);
+    GetDialogItem(missionDialog, 7, &itemType, (void **)&item, &box[kMissionOkButton]);
     drawnButton = -1;
-    downV = *(short *)&where;
-    downH = ((short *)&where)[1];
-    if (PtInRect(downH, downV, &box[0]) != 0 && selMissionListItem != -1)
+    if (PtInRectPoint(where, &box[0]) != 0 && selMissionListItem != -1)
         drawnButton = 0;
-    else if (PtInRect(downH, downV, &box[1]) != 0)
+    else if (PtInRectPoint(where, &box[1]) != 0)
         drawnButton = 1;
     downButton = drawnButton;
     if (drawnButton != -1) {
         DrawMissionButtons(drawnButton);
         nv_UpdateDialogWindow(0);
-        if (StillDown() != 0) {
-            do {
-                BusyIdle();
-                GetMouse(&mouse);
+        while (StillDown() != 0) {
+            BusyIdle();
+            GetMouse(&mouse);
+            overButton = -1;
+            if (PtInRectPoint(mouse, &box[0]) != 0
+                    && selMissionListItem != -1)
+                overButton = 0;
+            else if (PtInRectPoint(mouse, &box[1]) != 0)
+                overButton = 1;
+            if (overButton != drawnButton && overButton != downButton)
                 overButton = -1;
-                if (PtInRect(mouse.h, mouse.v, &box[0]) != 0
-                        && selMissionListItem != -1)
-                    overButton = 0;
-                else if (PtInRect(mouse.h, mouse.v, &box[1]) != 0)
-                    overButton = 1;
-                if (overButton != drawnButton && overButton != downButton)
-                    overButton = -1;
-                if (overButton != drawnButton) {
-                    DrawMissionButtons(overButton);
-                    nv_UpdateDialogWindow(0);
-                }
-                drawnButton = overButton;
-            } while (StillDown() != 0);
+            if (overButton != drawnButton) {
+                DrawMissionButtons(overButton);
+                nv_UpdateDialogWindow(0);
+            }
+            drawnButton = overButton;
         }
     }
     return drawnButton;
@@ -601,67 +507,59 @@ short TrackMissionButtons(Point where)
 
 /* DrawMissionButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a1290
+// MAC: _DrawMissionButtons i386 0x00028657 ppc 0x0002ccc8
 void DrawMissionButtons(short hilited)
 {
-    unsigned char *label;
-    Rect *walk;
     short i;
     Rect box[2];
-    char enabled[2];
-    void *item;
     short itemType;
+    Handle item;
+    Boolean enabled[2];
 
-    RGBForeColor(blackColor);
-    GetDialogItem(missionDialog, 1, &itemType, &item, &box[0]);
-    GetDialogItem(missionDialog, 7, &itemType, &item, &box[1]);
+    ForeColor(blackColor);
+    GetDialogItem(missionDialog, 1, &itemType, (void **)&item, &box[0]);
+    GetDialogItem(missionDialog, 7, &itemType, (void **)&item, &box[1]);
     missionButtonTable[0] = 0x19;
     missionButtonTable[1] = 0;
     if (selMissionListItem == -1)
-        enabled[0] = '\0';
+        enabled[0] = 0;
     else
-        enabled[0] = '\x01';
-    i = 0;
+        enabled[0] = 1;
     enabled[1] = 1;
-    walk = box;
-    do {
-        if (enabled[i] == '\0') {
-            label = buttonLabel[missionButtonTable[i]];
-            DrawButton(GetDialogPort(missionDialog), walk, label, -1, 0, 0);
-        } else if (i == hilited) {
-            label = buttonLabel[missionButtonTable[i]];
-            DrawButton(GetDialogPort(missionDialog), walk, label, 0, 1, 0);
-        } else {
-            label = buttonLabel[missionButtonTable[i]];
-            DrawButton(GetDialogPort(missionDialog), walk, label, 0, 0, 0);
-        }
-        i = i + 1;
-        walk = walk + 1;
-    } while (i <= 1);
+    for (i = 0; i <= 1; i++) {
+        if (enabled[i] != 0) {
+            if (i == hilited)
+                DrawButton(GetDialogPort(missionDialog), &box[i],
+                           buttonLabel[missionButtonTable[i]], 0, 1, 0);
+            else
+                DrawButton(GetDialogPort(missionDialog), &box[i],
+                           buttonLabel[missionButtonTable[i]], 0, 0, 0);
+        } else
+            DrawButton(GetDialogPort(missionDialog), &box[i],
+                       buttonLabel[missionButtonTable[i]], -1, 0, 0);
+    }
 }
 
 /* TrackMissionInfoButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a13c0
+// MAC: _TrackMissionInfoButtons i386 0x0002850e ppc 0x0002cb74
 short TrackMissionInfoButtons(Point where)
 {
     short drawnButton;
     short downButton;
     short overButton;
-    short downV;
-    short downH;
     Rect box[2];
     short itemType;
-    void *item;
+    Handle item;
     Point mouse;
 
-    RGBForeColor(blackColor);
-    GetDialogItem(missionInfoDialog, 1, &itemType, &item, &box[kMissionInfoDoneButton]);
-    GetDialogItem(missionInfoDialog, 5, &itemType, &item, &box[kMissionInfoAbortButton]);
+    ForeColor(blackColor);
+    GetDialogItem(missionInfoDialog, 1, &itemType, (void **)&item, &box[kMissionInfoDoneButton]);
+    GetDialogItem(missionInfoDialog, 5, &itemType, (void **)&item, &box[kMissionInfoAbortButton]);
     drawnButton = -1;
-    downV = *(short *)&where;
-    downH = ((short *)&where)[1];
-    if (PtInRect(downH, downV, &box[0]) != 0)
+    if (PtInRectPoint(where, &box[0]) != 0)
         drawnButton = 0;
-    if (PtInRect(downH, downV, &box[1]) != 0 && selMissionListItem != -1)
+    if (PtInRectPoint(where, &box[1]) != 0 && selMissionListItem != -1)
         drawnButton = 1;
     downButton = drawnButton;
     if (drawnButton != -1) {
@@ -671,9 +569,9 @@ short TrackMissionInfoButtons(Point where)
             BusyIdle();
             GetMouse(&mouse);
             overButton = -1;
-            if (PtInRect(mouse.h, mouse.v, &box[0]) != 0)
+            if (PtInRectPoint(mouse, &box[0]) != 0)
                 overButton = 0;
-            if (PtInRect(mouse.h, mouse.v, &box[1]) != 0 && selMissionListItem != -1)
+            if (PtInRectPoint(mouse, &box[1]) != 0 && selMissionListItem != -1)
                 overButton = 1;
             if (overButton != drawnButton && overButton != downButton)
                 overButton = -1;
@@ -689,93 +587,89 @@ short TrackMissionInfoButtons(Point where)
 
 /* DrawMissionInfoButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a1520
+// MAC: _DrawMissionInfoButtons i386 0x00028359 ppc 0x0002c9f4
 void DrawMissionInfoButtons(short hilited)
 {
-    int i;
-    Rect *walk;
+    short i;
     Rect box[2];
-    char enabled[2];
-    void *item;
     short itemType;
+    Handle item;
+    Boolean enabled[2];
 
-    RGBForeColor(blackColor);
-    GetDialogItem(missionInfoDialog, 1, &itemType, &item, &box[0]);
-    GetDialogItem(missionInfoDialog, 5, &itemType, &item, &box[1]);
+    ForeColor(blackColor);
+    GetDialogItem(missionInfoDialog, 1, &itemType, (void **)&item, &box[0]);
+    GetDialogItem(missionInfoDialog, 5, &itemType, (void **)&item, &box[1]);
     enabled[0] = 1;
     if (selMissionListItem == -1 || showAbortMissionButton == 0)
         enabled[1] = 0;
     else
         enabled[1] = 1;
-    i = 0;
     missionInfoButtonTable[0] = 4;
     missionInfoButtonTable[1] = 0x22;
-    walk = box;
-    do {
-        if (enabled[(short)i] == 0)
-            DrawButton(GetDialogPort(missionInfoDialog), walk,
-                       buttonLabel[missionInfoButtonTable[(short)i]], -1, 0, 0);
-        else if ((short)i == hilited)
-            DrawButton(GetDialogPort(missionInfoDialog), walk,
-                       buttonLabel[missionInfoButtonTable[(short)i]], 0, 1, 0);
-        else
-            DrawButton(GetDialogPort(missionInfoDialog), walk,
-                       buttonLabel[missionInfoButtonTable[(short)i]], 0, 0, 0);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i < 2);
+    for (i = 0; i < 2; i++) {
+        if (enabled[i] != 0) {
+            if (i == hilited)
+                DrawButton(GetDialogPort(missionInfoDialog), &box[i],
+                           buttonLabel[missionInfoButtonTable[i]], 0, 1, 0);
+            else
+                DrawButton(GetDialogPort(missionInfoDialog), &box[i],
+                           buttonLabel[missionInfoButtonTable[i]], 0, 0, 0);
+        } else
+            DrawButton(GetDialogPort(missionInfoDialog), &box[i],
+                       buttonLabel[missionInfoButtonTable[i]], -1, 0, 0);
+    }
 }
 
 /* TrackSingleMissionButtons. STATE: MATCH 100%, 146/146, byte-identical. Every loop indexes
    box[], `where' is read in place and the tracking loop tests StillDown() directly.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004a1670
+// MAC: _TrackSingleMissionButtons i386 0x00028188 ppc 0x0002c820
 short TrackSingleMissionButtons(Point where)
 {
-    int drawnButton;
-    int over;
-    int overButton;
-    int i;
+    short drawnButton;
+    short downButton;
+    short overButton;
+    short i;
     Rect box[4];
     short itemType;
-    void *item;
+    Handle item;
     Point mouse;
-    int downButton;
 
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     if (canRefuseMission != 0) {
-        for (i = 0; (short)i <= 1; i++)
-            GetDialogItem(missionDialog, (short)i + 1, &itemType, &item, &box[i]);
+        for (i = 0; i <= 1; i++)
+            GetDialogItem(missionDialog, i + 1, &itemType, (void **)&item, &box[i]);
     } else {
-        GetDialogItem(missionDialog, 6, &itemType, &item, &box[0]);
+        GetDialogItem(missionDialog, 6, &itemType, (void **)&item, &box[0]);
         SetRect(&box[1], -1, -1, 0, 0);
     }
-    for (overButton = 0; (short)overButton <= 1; overButton++)
-        GetDialogItem(missionDialog, (short)overButton + 9, &itemType, &item,
-                      &box[(short)overButton + 2]);
+    for (i = 0; i <= 1; i++)
+        GetDialogItem(missionDialog, i + 9, &itemType, (void **)&item, &box[i + 2]);
     drawnButton = -1;
-    for (overButton = 0; (short)overButton <= 3; overButton++) {
-        if (PtInRect(where.h, where.v, &box[overButton]) != 0)
-            drawnButton = overButton;
+    for (i = 0; i <= 3; i++) {
+        if (PtInRectPoint(where, &box[i]) != 0)
+            drawnButton = i;
     }
     downButton = drawnButton;
-    if ((short)drawnButton != -1) {
+    if (drawnButton != -1) {
         DrawSingleMissionButtons(drawnButton);
         nv_UpdateDialogWindow(0);
         while (StillDown()) {
             BusyIdle();
             GetMouse(&mouse);
-            over = -1;
-            for (overButton = 0; (short)overButton <= 3; overButton++) {
-                if (PtInRect(mouse.h, mouse.v, &box[overButton]) != 0)
-                    over = overButton;
+            overButton = -1;
+            for (i = 0; i <= 3; i++) {
+                if (PtInRectPoint(mouse, &box[i]) != 0)
+                    overButton = i;
             }
-            if ((short)over != (short)drawnButton && (short)over != (short)downButton)
-                over = -1;
-            if ((short)over != (short)drawnButton) {
-                DrawSingleMissionButtons(over);
+            if (overButton != drawnButton && overButton != downButton)
+                overButton = -1;
+            if (overButton != drawnButton) {
+                DrawSingleMissionButtons(overButton);
                 nv_UpdateDialogWindow(0);
             }
-            drawnButton = over;
+            drawnButton = overButton;
         }
     }
     return drawnButton;
@@ -784,26 +678,19 @@ short TrackSingleMissionButtons(Point where)
 /* DrawSingleMissionButtons (mac _DrawSingleMissionButtons). STATE: MATCH 100.0%, exe 191 /
    obj 191, relocregcheck 0 of 41; `int j' is declared last. OPEN: none */
 // FUNCTION: EVNOVA 0x004a1820
+// MAC: _DrawSingleMissionButtons i386 0x00027db8 ppc 0x0002c4d8
 void DrawSingleMissionButtons(short hilited)
 {
-    unsigned char *label;
     short itemType;
-    int i;
-    void *item;
+    short i;
+    Handle item;
     Rect box[4];
     short dimmed[4];
-    Rect *walk;
-    Rect *fill;
-    Rect *walk2;
-    int j;
 
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     singleMissionButtonTable[2] = 0x12;
     singleMissionButtonTable[3] = 0x13;
-    if (canScrollTextUp == 0 && canScrollTextDown == 0) {
-        dimmed[2] = -2;
-        dimmed[3] = -2;
-    } else {
+    if (canScrollTextUp != 0 || canScrollTextDown != 0) {
         if (canScrollTextUp != 0)
             dimmed[2] = 0;
         else
@@ -812,131 +699,92 @@ void DrawSingleMissionButtons(short hilited)
             dimmed[3] = 0;
         else
             dimmed[3] = -1;
+    } else {
+        dimmed[2] = -2;
+        dimmed[3] = -2;
     }
-    GetDialogItem(missionDialog, 9, &itemType, &item, &box[2]);
-    GetDialogItem(missionDialog, 10, &itemType, &item, &box[3]);
+    GetDialogItem(missionDialog, 9, &itemType, (void **)&item, &box[2]);
+    GetDialogItem(missionDialog, 10, &itemType, (void **)&item, &box[3]);
     if (canRefuseMission) {
-        i = 0;
-        walk2 = box;
-        fill = walk2;
-        do {
-            GetDialogItem(missionDialog, (short)i + 1, &itemType, &item, fill);
-            i = i + 1;
-            fill = fill + 1;
-        } while ((short)i <= 1);
-        j = 0;
+        for (i = 0; i <= 1; i++)
+            GetDialogItem(missionDialog, i + 1, &itemType, (void **)&item, &box[i]);
         singleMissionButtonTable[0] = 0x31;
         singleMissionButtonTable[1] = 0x32;
         dimmed[0] = 0;
         dimmed[1] = 0;
-        label = missionButtonLabel[0];
-        do {
-            if (hilited == (short)j)
-                DrawButton(GetDialogPort(missionDialog), walk2, label, dimmed[(short)j], 1, 0);
+        for (i = 0; i <= 1; i++) {
+            if (hilited == i)
+                DrawButton(GetDialogPort(missionDialog), &box[i], missionButtonLabel[i], dimmed[i], 1, 0);
             else
-                DrawButton(GetDialogPort(missionDialog), walk2, label, dimmed[(short)j], 0, 0);
-            j = j + 1;
-            label = label + 256;
-            walk2 = walk2 + 1;
-        } while ((short)j <= 1);
+                DrawButton(GetDialogPort(missionDialog), &box[i], missionButtonLabel[i], dimmed[i], 0, 0);
+        }
     } else {
-        GetDialogItem(missionDialog, 6, &itemType, &item, &box[0]);
-        GetDialogItem(missionDialog, 6, &itemType, &item, &box[1]);
+        GetDialogItem(missionDialog, 6, &itemType, (void **)&item, &box[0]);
+        GetDialogItem(missionDialog, 6, &itemType, (void **)&item, &box[1]);
         singleMissionButtonTable[0] = 0x1a;
         dimmed[0] = 0;
         dimmed[1] = -2;
-        if (hilited == 0) {
-            label = missionButtonLabel[0];
-            DrawButton(GetDialogPort(missionDialog), &box[0], label, dimmed[0], 1, 0);
-        } else {
-            label = missionButtonLabel[0];
-            DrawButton(GetDialogPort(missionDialog), &box[0], label, dimmed[0], 0, 0);
-        }
+        if (hilited == 0)
+            DrawButton(GetDialogPort(missionDialog), &box[0], missionButtonLabel[0], dimmed[0], 1, 0);
+        else
+            DrawButton(GetDialogPort(missionDialog), &box[0], missionButtonLabel[0], dimmed[0], 0, 0);
     }
-    i = 2;
-    walk = &box[2];
-    do {
-        if (hilited == (short)i) {
-            label = buttonLabel[singleMissionButtonTable[(short)i]];
-            DrawButton(GetDialogPort(missionDialog), walk, label, dimmed[(short)i], 1, 0);
-        } else {
-            label = buttonLabel[singleMissionButtonTable[(short)i]];
-            DrawButton(GetDialogPort(missionDialog), walk, label, dimmed[(short)i], 0, 0);
-        }
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i <= 3);
+    for (i = 2; i <= 3; i++) {
+        if (hilited == i)
+            DrawButton(GetDialogPort(missionDialog), &box[i],
+                       buttonLabel[singleMissionButtonTable[i]], dimmed[i], 1, 0);
+        else
+            DrawButton(GetDialogPort(missionDialog), &box[i],
+                       buttonLabel[singleMissionButtonTable[i]], dimmed[i], 0, 0);
+    }
 }
 
 /* TrackPlayerInfoButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a1ae0
+// MAC: _TrackPlayerInfoButtons i386 0x00027c4d ppc 0x0002c370
 short TrackPlayerInfoButtons(short page, Point where)
 {
-    Rect *walk;
-    Rect *r;
-    int downH;
-    int overButton;
-    int i;
-    char down;
-    int drawnButton;
-    int over;
+    short drawnButton;
+    short downButton;
+    short i;
+    short overButton;
     Rect box[6];
     short itemType;
-    void *item;
-    Rect *first;
+    Handle item;
     Point mouse;
-    int downButton;
 
-    RGBForeColor(blackColor);
-    i = 0;
-    walk = box;
-    do {
-        GetDialogItem(infoDialog, (short)i + 1, &itemType, &item, walk);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i <= 4);
-    GetDialogItem(infoDialog, 7, &itemType, &item, &box[5]);
+    ForeColor(blackColor);
+    for (i = 0; i <= 4; i++)
+        GetDialogItem(infoDialog, i + 1, &itemType, (void **)&item, (Rect *)&box + i);
+    GetDialogItem(infoDialog, 7, &itemType, (void **)&item, &box[5]);
     drawnButton = -1;
-    overButton = 0;
-    first = box;
-    r = box;
-    downButton = *(short *)&where;
-    downH = ((short *)&where)[1];
-    do {
-        if (PtInRect(downH, downButton, r) != 0) {
-            drawnButton = overButton;
+    for (i = 0; i <= 5; i++) {
+        if (PtInRectPoint(where, &box[i]) != 0) {
+            drawnButton = i;
             break;
         }
-        overButton = overButton + 1;
-        r = r + 1;
-    } while ((short)overButton <= 5);
+    }
     downButton = drawnButton;
-    if ((short)drawnButton != -1) {
+    if (drawnButton != -1) {
         DrawPlayerInfoButtons(page, drawnButton);
         nv_UpdateDialogWindow(0);
-        down = StillDown();
-        while (down != 0) {
+        while (StillDown() != 0) {
             BusyIdle();
             GetMouse(&mouse);
-            over = -1;
-            overButton = 0;
-            walk = first;
-            do {
-                if (PtInRect(mouse.h, mouse.v, walk) != 0) {
-                    over = overButton;
+            overButton = -1;
+            for (i = 0; i <= 5; i++) {
+                if (PtInRectPoint(mouse, &box[i]) != 0) {
+                    overButton = i;
                     break;
                 }
-                overButton = overButton + 1;
-                walk = walk + 1;
-            } while ((short)overButton <= 5);
-            if ((short)over != (short)drawnButton && (short)over != (short)downButton)
-                over = -1;
-            if ((short)over != (short)drawnButton) {
-                DrawPlayerInfoButtons(page, (short)over);
+            }
+            if (overButton != drawnButton && overButton != downButton)
+                overButton = -1;
+            if (overButton != drawnButton) {
+                DrawPlayerInfoButtons(page, overButton);
                 nv_UpdateDialogWindow(0);
             }
-            drawnButton = over;
-            down = StillDown();
+            drawnButton = overButton;
         }
     }
     return drawnButton;
@@ -944,123 +792,88 @@ short TrackPlayerInfoButtons(short page, Point where)
 
 /* DrawPlayerInfoButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a1c40
+// MAC: _DrawPlayerInfoButtons i386 0x00027aae ppc 0x0002c1e4
 void DrawPlayerInfoButtons(short page, short hilited)
 {
-    unsigned char *label;
     short itemType;
-    int i;
-    void *item;
+    short i;
+    Handle item;
     Rect box[6];
-    char enabled[6];
-    int j;
-    Rect *walk;
-    Rect *fill;
+    Boolean enabled[6];
 
-    i = 0;
-    walk = box;
     playerInfoButtonTable[0] = 4;
     playerInfoButtonTable[1] = 0x23;
     playerInfoButtonTable[2] = 0x24;
     playerInfoButtonTable[3] = 0x25;
     playerInfoButtonTable[4] = 0x26;
     playerInfoButtonTable[5] = 0x3c;
-    fill = walk;
-    do {
-        enabled[(short)i] = '\x01';
-        GetDialogItem(infoDialog, (short)i + 1, &itemType, &item, fill);
-        i = i + 1;
-        fill = fill + 1;
-    } while ((short)i <= 4);
-    GetDialogItem(infoDialog, 7, &itemType, &item, &box[5]);
+    for (i = 0; i <= 4; i++) {
+        enabled[i] = 1;
+        GetDialogItem(infoDialog, i + 1, &itemType, (void **)&item, &box[i]);
+    }
+    GetDialogItem(infoDialog, 7, &itemType, (void **)&item, &box[5]);
     if (page == 2)
         enabled[5] = PlayerHasJettisonableCargo();
     else
         enabled[5] = 0;
-    RGBForeColor(blackColor);
-    j = 0;
-    do {
-        if (enabled[(short)j] != '\0') {
-            if (hilited == (short)j || page == (short)j) {
-                label = buttonLabel[playerInfoButtonTable[(short)j]];
-                DrawButton(GetDialogPort(infoDialog), walk, label, 0, 1, 0);
-            } else {
-                label = buttonLabel[playerInfoButtonTable[(short)j]];
-                DrawButton(GetDialogPort(infoDialog), walk, label, 0, 0, 0);
-            }
+    ForeColor(blackColor);
+    for (i = 0; i <= 5; i++) {
+        if (enabled[i] != 0) {
+            if (hilited == i || page == i)
+                DrawButton(GetDialogPort(infoDialog), &box[i],
+                           buttonLabel[playerInfoButtonTable[i]], 0, 1, 0);
+            else
+                DrawButton(GetDialogPort(infoDialog), &box[i],
+                           buttonLabel[playerInfoButtonTable[i]], 0, 0, 0);
         }
-        j = j + 1;
-        walk = walk + 1;
-    } while ((short)j <= 5);
+    }
 }
 
 /* TrackEscortButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a1d90
+// MAC: _TrackEscortButtons i386 0x00027987 ppc 0x0002c0a0
 short TrackEscortButtons(Point where)
 {
-    Rect *walk;
-    Rect *r;
-    int downH;
-    int overButton;
-    int i;
-    char down;
-    int drawnButton;
-    int over;
+    short drawnButton;
+    short downButton;
+    short i;
+    short overButton;
     Rect box[4];
     short itemType;
-    void *item;
-    Rect *first;
+    Handle item;
     Point mouse;
-    int downButton;
 
-    RGBForeColor(blackColor);
-    i = 0;
-    walk = box;
-    do {
-        GetDialogItem(commDialog, (short)i + 1, &itemType, &item, walk);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i <= 3);
+    ForeColor(blackColor);
+    for (i = 0; i <= 3; i++)
+        GetDialogItem(commDialog, i + 1, &itemType, (void **)&item, (Rect *)&box + i);
     drawnButton = -1;
-    overButton = 0;
-    first = box;
-    r = box;
-    downButton = *(short *)&where;
-    downH = ((short *)&where)[1];
-    do {
-        if (PtInRect(downH, downButton, r) != 0) {
-            drawnButton = overButton;
+    for (i = 0; i <= 3; i++) {
+        if (PtInRectPoint(where, &box[i]) != 0) {
+            drawnButton = i;
             break;
         }
-        overButton = overButton + 1;
-        r = r + 1;
-    } while ((short)overButton <= 3);
+    }
     downButton = drawnButton;
-    if ((short)drawnButton != -1) {
+    if (drawnButton != -1) {
         DrawEscortButtons(drawnButton);
         nv_UpdateDialogWindow(0);
-        down = StillDown();
-        while (down != 0) {
+        while (StillDown() != 0) {
             BusyIdle();
             GetMouse(&mouse);
-            over = -1;
-            overButton = 0;
-            walk = first;
-            do {
-                if (PtInRect(mouse.h, mouse.v, walk) != 0) {
-                    over = overButton;
+            overButton = -1;
+            for (i = 0; i <= 3; i++) {
+                if (PtInRectPoint(mouse, &box[i]) != 0) {
+                    overButton = i;
                     break;
                 }
-                overButton = overButton + 1;
-                walk = walk + 1;
-            } while ((short)overButton <= 3);
-            if ((short)over != (short)drawnButton && (short)over != (short)downButton)
-                over = -1;
-            if ((short)over != (short)drawnButton) {
-                DrawEscortButtons((short)over);
+            }
+            if (overButton != drawnButton && overButton != downButton)
+                overButton = -1;
+            if (overButton != drawnButton) {
+                DrawEscortButtons(overButton);
                 nv_UpdateDialogWindow(0);
             }
-            drawnButton = over;
-            down = StillDown();
+            drawnButton = overButton;
         }
     }
     return drawnButton;
@@ -1068,25 +881,18 @@ short TrackEscortButtons(Point where)
 
 /* DrawEscortButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a1ed0
+// MAC: _DrawEscortButtons i386 0x000277a4 ppc 0x0002bea0
 void DrawEscortButtons(short hilited)
 {
-    int i;
-    Rect *walk;
-    Rect *fill;
+    short i;
     Rect box[4];
     short itemType;
-    void *item;
-    char enabled[4];
+    Handle item;
+    Boolean enabled[4];
 
-    RGBForeColor(blackColor);
-    i = 0;
-    walk = box;
-    fill = walk;
-    do {
-        GetDialogItem(commDialog, (short)i + 1, &itemType, &item, fill);
-        i = i + 1;
-        fill = fill + 1;
-    } while ((short)i < 4);
+    ForeColor(blackColor);
+    for (i = 0; i < 4; i++)
+        GetDialogItem(commDialog, i + 1, &itemType, (void **)&item, &box[i]);
     enabled[0] = 1;
     enabled[1] = 1;
     if (canUpgradeEscort != 0)
@@ -1099,10 +905,7 @@ void DrawEscortButtons(short hilited)
         enabled[3] = 0;
     escortButtonTable[0] = 0x14;
     escortButtonTable[1] = 0x1f;
-    if (commShip == 0) {
-        escortButtonTable[2] = 0x33;
-        escortButtonTable[3] = 0x35;
-    } else {
+    if (commShip != 0) {
         if (commShip->upgradeOnLanding != 0)
             escortButtonTable[2] = 0x34;
         else
@@ -1111,58 +914,56 @@ void DrawEscortButtons(short hilited)
             escortButtonTable[3] = 0x36;
         else
             escortButtonTable[3] = 0x35;
+    } else {
+        escortButtonTable[2] = 0x33;
+        escortButtonTable[3] = 0x35;
     }
-    i = 0;
-    do {
-        if (enabled[(short)i] == 0)
-            DrawButton(GetDialogPort(commDialog), walk,
-                       buttonLabel[escortButtonTable[(short)i]], -1, 0, 0);
-        else if ((short)i == hilited)
-            DrawButton(GetDialogPort(commDialog), walk,
-                       buttonLabel[escortButtonTable[(short)i]], 0, 1, 0);
-        else
-            DrawButton(GetDialogPort(commDialog), walk,
-                       buttonLabel[escortButtonTable[(short)i]], 0, 0, 0);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i < 4);
+    for (i = 0; i < 4; i++) {
+        if (enabled[i] != 0) {
+            if (i == hilited)
+                DrawButton(GetDialogPort(commDialog), &box[i],
+                           buttonLabel[escortButtonTable[i]], 0, 1, 0);
+            else
+                DrawButton(GetDialogPort(commDialog), &box[i],
+                           buttonLabel[escortButtonTable[i]], 0, 0, 0);
+        } else
+            DrawButton(GetDialogPort(commDialog), &box[i],
+                       buttonLabel[escortButtonTable[i]], -1, 0, 0);
+    }
 }
 
 /* TrackHaggleButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a2090
+// MAC: _TrackHaggleButtons i386 0x00027670 ppc 0x0002bd78
 short TrackHaggleButtons(Point where)
 {
     short drawnButton;
     short downButton;
     short overButton;
-    short downV;
-    short downH;
     Rect box[2];
     short itemType;
-    void *item;
+    Handle item;
     Point mouse;
 
-    RGBForeColor(blackColor);
-    GetDialogItem(haggleDialog, 1, &itemType, &item, &box[kHaggleYesButton]);
-    GetDialogItem(haggleDialog, 2, &itemType, &item, &box[kHaggleNoButton]);
+    ForeColor(blackColor);
+    GetDialogItem(haggleDialog, 1, &itemType, (void **)&item, &box[kHaggleYesButton]);
+    GetDialogItem(haggleDialog, 2, &itemType, (void **)&item, &box[kHaggleNoButton]);
     drawnButton = -1;
-    downV = *(short *)&where;
-    downH = ((short *)&where)[1];
-    if (PtInRect(downH, downV, &box[0]) != 0)
+    if (PtInRectPoint(where, &box[0]) != 0)
         drawnButton = 0;
-    if (PtInRect(downH, downV, &box[1]) != 0)
+    if (PtInRectPoint(where, &box[1]) != 0)
         drawnButton = 1;
     downButton = drawnButton;
-    if (drawnButton != -1) {
+    if (downButton != -1) {
         DrawHaggleButtons(drawnButton);
         nv_UpdateDialogWindow(0);
         while (StillDown() != 0) {
             BusyIdle();
             GetMouse(&mouse);
             overButton = -1;
-            if (PtInRect(mouse.h, mouse.v, &box[0]) != 0)
+            if (PtInRectPoint(mouse, &box[0]) != 0)
                 overButton = 0;
-            if (PtInRect(mouse.h, mouse.v, &box[1]) != 0)
+            if (PtInRectPoint(mouse, &box[1]) != 0)
                 overButton = 1;
             if (overButton != drawnButton && overButton != downButton)
                 overButton = -1;
@@ -1178,17 +979,17 @@ short TrackHaggleButtons(Point where)
 
 /* DrawHaggleButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a21e0
+// MAC: _DrawHaggleButtons i386 0x0002750d ppc 0x0002bc34
 void DrawHaggleButtons(short hilited)
 {
-    Rect *walk;
     short i;
     Rect box[2];
     short itemType;
-    void *item;
+    Handle item;
 
-    RGBForeColor(blackColor);
-    GetDialogItem(haggleDialog, 1, &itemType, &item, &box[0]);
-    GetDialogItem(haggleDialog, 2, &itemType, &item, &box[1]);
+    ForeColor(blackColor);
+    GetDialogItem(haggleDialog, 1, &itemType, (void **)&item, &box[0]);
+    GetDialogItem(haggleDialog, 2, &itemType, (void **)&item, &box[1]);
     if (haggleMode == 1) {
         haggleButtonTable[0] = 0x1b;
         haggleButtonTable[1] = 0x1c;
@@ -1196,57 +997,108 @@ void DrawHaggleButtons(short hilited)
         haggleButtonTable[0] = 0x1d;
         haggleButtonTable[1] = 0x1e;
     }
-    i = 0;
-    walk = box;
-    do {
+    for (i = 0; i <= 1; i++) {
         if (i == hilited)
-            DrawButton(GetDialogPort(haggleDialog), walk,
+            DrawButton(GetDialogPort(haggleDialog), &box[i],
                        buttonLabel[haggleButtonTable[i]], 0, 1, 0);
         else
-            DrawButton(GetDialogPort(haggleDialog), walk,
+            DrawButton(GetDialogPort(haggleDialog), &box[i],
                        buttonLabel[haggleButtonTable[i]], 0, 0, 0);
-        i = i + 1;
-        walk = walk + 1;
-    } while (i <= 1);
+    }
 }
 
 /* TrackPlunderButtons. STATE: MATCH 100%, exe 157 / obj 157, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004a22e0
+// MAC: _TrackPlunderButtons i386 0x0002732a ppc 0x0002b9e0
 short TrackPlunderButtons(Point where)
+#ifdef MAC1010
 {
-    char down;
-    int hit;
+    short i;
+    short drawnButton;
+    short downButton;
+    short over;
+    Rect box[6];
+    Boolean enabled[6];
+    Handle item;
+    Point mouse;
+    short itemType;
+
+    ForeColor(blackColor);
+    for (i = 0; i <= 3; i++)
+        GetDialogItem(plunderDialog, i + 1, &itemType, &item, &box[i]);
+    for (i = 4; i <= 5; i++)
+        GetDialogItem(plunderDialog, i + 2, &itemType, &item, &box[i]);
+    enabled[0] = 1;
+    if (salvageType != -1)
+        enabled[1] = 1;
+    else
+        enabled[1] = 0;
+    if (0 < salvageCredits)
+        enabled[2] = 1;
+    else
+        enabled[2] = 0;
+    if (salvageAmmoType != -1)
+        enabled[3] = 1;
+    else
+        enabled[3] = 0;
+    if (0 < salvageFuelQty)
+        enabled[4] = 1;
+    else
+        enabled[4] = 0;
+    if (0 < captureOdds)
+        enabled[5] = 1;
+    else
+        enabled[5] = 0;
+    drawnButton = -1;
+    for (i = 0; i <= 5; i++) {
+        if (enabled[i] != 0 && (PtInRect)(where, &box[i]))
+            drawnButton = i;
+    }
+    downButton = drawnButton;
+    if (drawnButton != -1) {
+        DrawPlunderButtons(drawnButton);
+        while (StillDown() != 0) {
+            BusyIdle();
+            GetMouse(&mouse);
+            over = -1;
+            for (i = 0; i <= 5; i++) {
+                if (enabled[i] != 0 && (PtInRect)(mouse, &box[i]))
+                    over = i;
+            }
+            if (over != drawnButton && over != downButton)
+                over = -1;
+            if (over != drawnButton)
+                DrawPlunderButtons(over);
+            drawnButton = over;
+        }
+    }
+    return drawnButton;
+}
+#else
+{
+    short drawnButton;
     int downH;
     int downV;
-    int overButton;
+    short overButton;
     Rect *walk;
     Rect *r;
     Rect *fill;
-    int i;
+    short over;
+    short i;
     Rect box[6];
-    char enabled[6];
-    void *item;
+    Boolean enabled[6];
+    Handle item;
     Rect *first;
     Point mouse;
     short itemType;
-    int drawnButton;
+    short downButton;
 
-    RGBForeColor(blackColor);
-    i = 0;
-    fill = box;
-    do {
-        GetDialogItem(plunderDialog, (short)i + 1, &itemType, &item, fill);
-        i = i + 1;
-        fill = fill + 1;
-    } while ((short)i <= 3);
-    i = 4;
-    fill = &box[4];
-    do {
-        GetDialogItem(plunderDialog, (short)i + 2, &itemType, &item, fill);
-        i = i + 1;
-        fill = fill + 1;
-    } while ((short)i <= 5);
+    ForeColor(blackColor);
+    for (over = 0, fill = box; over <= 3; over++, fill++)
+        GetDialogItem(plunderDialog, over + 1, &itemType, (void **)&item, fill);
+    for (over = 4, fill = &box[4]; over <= 5; over++, fill++)
+        GetDialogItem(plunderDialog, over + 2, &itemType, (void **)&item, fill);
     enabled[0] = 1;
     if (salvageType != -1)
         enabled[1] = 1;
@@ -1268,72 +1120,67 @@ short TrackPlunderButtons(Point where)
         enabled[5] = 1;
     else
         enabled[5] = 0;
-    hit = -1;
+    drawnButton = -1;
     overButton = 0;
     first = box;
     walk = box;
+#if V111 /* V111 spelling */
+#else
     downV = *(short *)&where;
     downH = ((short *)&where)[1];
-    do {
-        if (enabled[(short)overButton] != 0
-                && PtInRect(downH, downV, walk) != 0)
-            hit = overButton;
-        overButton = overButton + 1;
-        walk = walk + 1;
-    } while ((short)overButton <= 5);
-    drawnButton = hit;
-    if ((short)hit != -1) {
-        DrawPlunderButtons(hit);
+#endif
+    for (; overButton <= 5; overButton++, walk++) {
+#if V111 /* V111 spelling */
+        if (enabled[overButton] != 0 && PtInRectPoint(where, &box[overButton]) != 0)
+#else
+        if (enabled[overButton] != 0 && PtInRect(downH, downV, walk) != 0)
+#endif
+            drawnButton = overButton;
+    }
+    downButton = drawnButton;
+    if (drawnButton != -1) {
+        DrawPlunderButtons(drawnButton);
         nv_UpdateDialogWindow(0);
-        down = StillDown();
-        while (down != 0) {
+        while (StillDown() != 0) {
             BusyIdle();
             GetMouse(&mouse);
             i = -1;
-            overButton = 0;
-            r = first;
-            do {
-                if (enabled[(short)overButton] != 0
-                        && PtInRect(mouse.h, mouse.v, r) != 0)
+            for (overButton = 0, r = first; overButton <= 5; overButton++, r++) {
+#if V111 /* V111 spelling */
+                if (enabled[overButton] != 0 && PtInRectPoint(mouse, &box[overButton]) != 0)
+#else
+                if (enabled[overButton] != 0 && PtInRectPoint(mouse, r) != 0)
+#endif
                     i = overButton;
-                overButton = overButton + 1;
-                r = r + 1;
-            } while ((short)overButton <= 5);
-            if ((short)i != (short)hit && (short)i != (short)drawnButton)
+            }
+            if (i != drawnButton && i != downButton)
                 i = -1;
-            if ((short)i != (short)hit) {
+            if (i != drawnButton) {
                 DrawPlunderButtons(i);
                 nv_UpdateDialogWindow(0);
             }
-            hit = i;
-            down = StillDown();
+            drawnButton = i;
         }
     }
-    return hit;
+    return drawnButton;
 }
+#endif
 
 /* DrawPlunderButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a24e0
+// MAC: _DrawPlunderButtons i386 0x00027109 ppc 0x0002b784
 void DrawPlunderButtons(short hilited)
 {
-    Rect *walk;
-    int i;
+    short i;
     Rect box[6];
-    char enabled[6];
-    void *item;
+    Boolean enabled[6];
+    Handle item;
     short itemType;
 
-    i = 0;
-    walk = box;
-    do {
-        GetDialogItem(plunderDialog, (short)i + 1, &itemType, &item, &box[i]);
-        i = i + 1;
-    } while ((short)i <= 3);
-    i = 4;
-    do {
-        GetDialogItem(plunderDialog, (short)i + 2, &itemType, &item, &box[i]);
-        i = i + 1;
-    } while ((short)i <= 5);
+    for (i = 0; i <= 3; i++)
+        GetDialogItem(plunderDialog, i + 1, &itemType, (void **)&item, &box[i]);
+    for (i = 4; i <= 5; i++)
+        GetDialogItem(plunderDialog, i + 2, &itemType, (void **)&item, &box[i]);
     plunderButtonTable[0] = 0x22;
     plunderButtonTable[1] = 0x27;
     plunderButtonTable[2] = 0x28;
@@ -1361,87 +1208,63 @@ void DrawPlunderButtons(short hilited)
         enabled[5] = 1;
     else
         enabled[5] = 0;
-    RGBForeColor(blackColor);
-    i = 0;
-    do {
-        if (enabled[(short)i] == 0)
-            DrawButton(GetDialogPort(plunderDialog), walk,
-                       buttonLabel[plunderButtonTable[(short)i]], -1, 0, 0);
-        else if ((short)i == hilited)
-            DrawButton(GetDialogPort(plunderDialog), walk,
-                       buttonLabel[plunderButtonTable[(short)i]], 0, 1, 0);
-        else
-            DrawButton(GetDialogPort(plunderDialog), walk,
-                       buttonLabel[plunderButtonTable[(short)i]], 0, 0, 0);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i <= 5);
+    ForeColor(blackColor);
+    for (i = 0; i <= 5; i++) {
+        if (enabled[i] != 0) {
+            if (i == hilited)
+                DrawButton(GetDialogPort(plunderDialog), &box[i],
+                           buttonLabel[plunderButtonTable[i]], 0, 1, 0);
+            else
+                DrawButton(GetDialogPort(plunderDialog), &box[i],
+                           buttonLabel[plunderButtonTable[i]], 0, 0, 0);
+        } else
+            DrawButton(GetDialogPort(plunderDialog), &box[i],
+                       buttonLabel[plunderButtonTable[i]], -1, 0, 0);
+    }
 }
 
 /* TrackBarButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a26e0
+// MAC: _TrackBarButtons i386 0x00026fd5 ppc 0x0002b644
 short TrackBarButtons(Point where)
 {
-    Rect *walk;
     Rect *r;
-    int downH;
-    int overButton;
-    int i;
-    char down;
-    int drawnButton;
-    int over;
+    short i;
+    short drawnButton;
+    short downButton;
+    short overButton;
     Rect box[6];
     short itemType;
-    void *item;
-    Rect *first;
+    Handle item;
     Point mouse;
-    int downButton;
 
-    RGBForeColor(blackColor);
-    i = 0;
-    walk = box;
-    do {
-        GetDialogItem(barDialog, (short)i + 1, &itemType, &item, walk);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i <= 5);
+    ForeColor(blackColor);
+    for (i = 0; i <= 5; i++)
+        GetDialogItem(barDialog, i + 1, &itemType, (void **)&item, (Rect *)&box + i);
     drawnButton = -1;
-    overButton = 0;
-    first = box;
-    r = box;
-    downButton = *(short *)&where;
-    downH = ((short *)&where)[1];
-    do {
-        if (PtInRect(downH, downButton, r) != 0)
-            drawnButton = overButton;
-        overButton = overButton + 1;
-        r = r + 1;
-    } while ((short)overButton <= 5);
+    for (i = 0; i <= 5; i++) {
+        if (PtInRectPoint(where, &box[i]) != 0)
+            drawnButton = i;
+    }
     downButton = drawnButton;
-    if ((short)drawnButton != -1) {
+    if (drawnButton != -1) {
         DrawBarButtons(drawnButton);
         nv_UpdateDialogWindow(0);
-        down = StillDown();
-        while (down != 0) {
+        while (StillDown() != 0) {
             BusyIdle();
             GetMouse(&mouse);
-            over = -1;
-            overButton = 0;
-            walk = first;
-            do {
-                if (PtInRect(mouse.h, mouse.v, walk) != 0)
-                    over = overButton;
-                overButton = overButton + 1;
-                walk = walk + 1;
-            } while ((short)overButton <= 5);
-            if ((short)over != (short)drawnButton && (short)over != (short)downButton)
-                over = -1;
-            if ((short)over != (short)drawnButton) {
-                DrawBarButtons(over);
+            overButton = -1;
+            for (i = 0; i <= 5; i++) {
+                if (PtInRectPoint(mouse, &box[i]) != 0)
+                    overButton = i;
+            }
+            if (overButton != drawnButton && overButton != downButton)
+                overButton = -1;
+            if (overButton != drawnButton) {
+                DrawBarButtons(overButton);
                 nv_UpdateDialogWindow(0);
             }
-            drawnButton = over;
-            down = StillDown();
+            drawnButton = overButton;
         }
     }
     return drawnButton;
@@ -1449,126 +1272,119 @@ short TrackBarButtons(Point where)
 
 /* DrawBarButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a2810
+// MAC: _DrawBarButtons i386 0x00026e1d ppc 0x0002b4d0
 void DrawBarButtons(short hilited)
 {
-    int i;
-    int j;
-    Rect *walk;
-    Rect *fill;
-    unsigned char *label;
-    short hi;
-    short dim;
-    PicHandle icon;
+    short i;
     Rect box[6];
-    char enabled[6];
-    void *item;
+    Boolean enabled[6];
+    Handle item;
     short itemType;
 
-    i = 0;
-    walk = box;
-    fill = walk;
-    do {
-        GetDialogItem(barDialog, (short)i + 1, &itemType, &item, fill);
-        i = i + 1;
-        fill = fill + 1;
-    } while ((short)i <= 5);
-    enabled[0] = '\x01';
-    enabled[1] = '\x01';
-    enabled[2] = '\x01';
-    enabled[3] = '\0';
+    for (i = 0; i <= 5; i++)
+        GetDialogItem(barDialog, i + 1, &itemType, (void **)&item, &box[i]);
+    enabled[0] = 1;
+    enabled[1] = 1;
+    enabled[2] = 1;
+    enabled[3] = 0;
     enabled[4] = CanHireEscorts();
-    enabled[5] = '\0';
+    enabled[5] = 0;
     barButtonTable[0] = 0;
     barButtonTable[1] = 10;
     barButtonTable[2] = 0xb;
     barButtonTable[4] = 0xc;
-    RGBForeColor(blackColor);
-    j = 0;
-    do {
-        if (enabled[(short)j] == '\0') {
-            label = buttonLabel[barButtonTable[(short)j]];
-            icon = 0;
-            hi = 0;
-            dim = -1;
-            DrawButton(GetDialogPort(barDialog), walk, label, dim, hi, icon);
-        } else if ((short)j == hilited) {
-            label = buttonLabel[barButtonTable[(short)j]];
-            icon = 0;
-            hi = 1;
-            dim = 0;
-            DrawButton(GetDialogPort(barDialog), walk, label, dim, hi, icon);
-        } else {
-            label = buttonLabel[barButtonTable[(short)j]];
-            icon = 0;
-            hi = 0;
-            dim = 0;
-            DrawButton(GetDialogPort(barDialog), walk, label, dim, hi, icon);
-        }
-        j = j + 1;
-        walk = walk + 1;
-    } while ((short)j < 6);
+    ForeColor(blackColor);
+    for (i = 0; i < 6; i++) {
+        if (enabled[i] != 0) {
+            if (i == hilited)
+                DrawButton(GetDialogPort(barDialog), &box[i],
+                           buttonLabel[barButtonTable[i]], 0, 1, 0);
+            else
+                DrawButton(GetDialogPort(barDialog), &box[i],
+                           buttonLabel[barButtonTable[i]], 0, 0, 0);
+        } else
+            DrawButton(GetDialogPort(barDialog), &box[i],
+                       buttonLabel[barButtonTable[i]], -1, 0, 0);
+    }
+}
+
+/* TrackOkButton (mac _TrackOkButton): dead on win (stripped). */
+// MAC: _TrackOkButton i386 0x00026d7a ppc 0x0002b428
+Boolean TrackOkButton(Rect box)
+{
+    Point mouse;
+    Boolean inside;
+    Boolean nowInside;
+
+    GetMouse(&mouse);
+    inside = PtInRectPoint(mouse, &box) != 0;
+    DrawOkButton(box, inside);
+    while (StillDown() != 0) {
+        BusyIdle();
+        GetMouse(&mouse);
+        nowInside = PtInRectPoint(mouse, &box) != 0;
+        if (nowInside != inside)
+            DrawOkButton(box, nowInside);
+        inside = nowInside;
+    }
+    return inside;
+}
+
+/* DrawOkButton (mac _DrawOkButton): dead on win (stripped). */
+// MAC: _DrawOkButton i386 0x00026d06 ppc 0x0002b3b0
+void DrawOkButton(Rect box, Boolean hilited)
+{
+    CGrafPtr port;
+
+    GetPort(&port);
+    if (hilited)
+        DrawButton(port, &box, buttonLabel[kOkButtonLabel], 0, 1, 0);
+    else
+        DrawButton(port, &box, buttonLabel[kOkButtonLabel], 0, 0, 0);
 }
 
 /* TrackTextButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a2960
+// MAC: _TrackTextButtons i386 0x00026bb0 ppc 0x0002b25c
 short TrackTextButtons(Point where)
 {
-    int overButton;
-    char down;
-    int hit;
-    Rect *walk;
-    int i;
-    int drawnButton;
-    Rect *first;
+    short i;
+    short drawnButton;
+    short downButton;
+    short overButton;
     Rect box[3];
     short itemType;
-    void *item;
+    Handle item;
     Point mouse;
-    int downButton;
 
-    RGBForeColor(blackColor);
-    GetDialogItem(textDialog, 1, &itemType, &item, &box[0]);
-    GetDialogItem(textDialog, 5, &itemType, &item, &box[1]);
-    GetDialogItem(textDialog, 6, &itemType, &item, &box[2]);
+    ForeColor(blackColor);
+    GetDialogItem(textDialog, 1, &itemType, (void **)&item, &box[0]);
+    GetDialogItem(textDialog, 5, &itemType, (void **)&item, &box[1]);
+    GetDialogItem(textDialog, 6, &itemType, (void **)&item, &box[2]);
     drawnButton = -1;
-    overButton = 0;
-    first = box;
-    walk = box;
-    downButton = *(short *)&where;
-    i = ((short *)&where)[1];
-    do {
-        hit = PtInRect(i, downButton, walk);
-        if (hit != 0)
-            drawnButton = overButton;
-        overButton = overButton + 1;
-        walk = walk + 1;
-    } while ((short)overButton < 3);
+    for (i = 0; i < 3; i++) {
+        if (PtInRectPoint(where, &box[i]) != 0)
+            drawnButton = i;
+    }
     downButton = drawnButton;
-    if ((short)drawnButton != -1) {
+    if (drawnButton != -1) {
         DrawTextButtons(drawnButton);
         nv_UpdateDialogWindow(0);
-        down = StillDown();
-        while (down != '\0') {
+        while (StillDown() != 0) {
             BusyIdle();
             GetMouse(&mouse);
             overButton = -1;
-            i = 0;
-            walk = first;
-            do {
-                hit = PtInRect(mouse.h, mouse.v, walk);
-                if (hit != 0)
+            for (i = 0; i < 3; i++) {
+                if (PtInRectPoint(mouse, &box[i]) != 0)
                     overButton = i;
-                i = i + 1;
-                walk = walk + 1;
-            } while ((short)i < 3);
-            if ((short)overButton != (short)drawnButton && (short)overButton != (short)downButton)
+            }
+            if (overButton != drawnButton && overButton != downButton)
                 overButton = -1;
-            if ((short)overButton != (short)drawnButton) {
+            if (overButton != drawnButton) {
                 DrawTextButtons(overButton);
                 nv_UpdateDialogWindow(0);
             }
             drawnButton = overButton;
-            down = StillDown();
         }
     }
     return drawnButton;
@@ -1576,26 +1392,23 @@ short TrackTextButtons(Point where)
 
 /* DrawTextButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a2ac0
+// MAC: _DrawTextButtons i386 0x000269ea ppc 0x0002b090
 void DrawTextButtons(short hilited)
 {
-    int i;
-    Rect *walk;
+    short i;
     Rect box[3];
-    short dimmed[4];
-    void *item;
+    short dimmed[3];
+    Handle item;
     short itemType;
 
-    GetDialogItem(textDialog, 1, &itemType, &item, &box[0]);
-    GetDialogItem(textDialog, 5, &itemType, &item, &box[1]);
-    GetDialogItem(textDialog, 6, &itemType, &item, &box[2]);
+    GetDialogItem(textDialog, 1, &itemType, (void **)&item, &box[0]);
+    GetDialogItem(textDialog, 5, &itemType, (void **)&item, &box[1]);
+    GetDialogItem(textDialog, 6, &itemType, (void **)&item, &box[2]);
     textButtonTable[0] = 0x1a;
     textButtonTable[1] = 0x12;
     textButtonTable[2] = 0x13;
     dimmed[0] = 0;
-    if (canScrollTextUp == 0 && canScrollTextDown == 0) {
-        dimmed[1] = -2;
-        dimmed[2] = -2;
-    } else {
+    if (canScrollTextUp != 0 || canScrollTextDown != 0) {
         if (canScrollTextUp != 0)
             dimmed[1] = 0;
         else
@@ -1604,160 +1417,115 @@ void DrawTextButtons(short hilited)
             dimmed[2] = 0;
         else
             dimmed[2] = -1;
+    } else {
+        dimmed[1] = -2;
+        dimmed[2] = -2;
     }
-    RGBForeColor(blackColor);
-    i = 0;
-    walk = box;
-    do {
-        if (hilited == (short)i)
-            DrawButton(GetDialogPort(textDialog), walk,
-                       buttonLabel[textButtonTable[(short)i]], dimmed[(short)i], 1, 0);
+    ForeColor(blackColor);
+    for (i = 0; i < 3; i++) {
+        if (hilited == i)
+            DrawButton(GetDialogPort(textDialog), &box[i],
+                       buttonLabel[textButtonTable[i]], dimmed[i], 1, 0);
         else
-            DrawButton(GetDialogPort(textDialog), walk,
-                       buttonLabel[textButtonTable[(short)i]], dimmed[(short)i], 0, 0);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i < 3);
+            DrawButton(GetDialogPort(textDialog), &box[i],
+                       buttonLabel[textButtonTable[i]], dimmed[i], 0, 0);
+    }
 }
 
 /* DrawRaceButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a2c30
+// MAC: _DrawRaceButtons i386 0x00026617 ppc 0x0002acc4
 void DrawRaceButtons(short hilited)
 {
+    short i;
     PicHandle pic;
-    short dim;
-    int i;
-    Rect *walk;
-    Rect *fill;
-    int racer;
     Rect box[6];
     short dimmed[6];
-    void *item;
+    Handle item;
     short itemType;
 
-    i = 0;
-    walk = box;
-    fill = walk;
-    do {
-        GetDialogItem(raceDialog, (short)i + 1, &itemType, &item, fill);
-        dimmed[(short)i] = 0;
-        i = i + 1;
-        fill = fill + 1;
-    } while ((short)i <= 1);
+    for (i = 0; i <= 1; i++) {
+        GetDialogItem(raceDialog, i + 1, &itemType, (void **)&item, &box[i]);
+        dimmed[i] = 0;
+    }
     if (raceWinner == -1 && raceCount == 0)
         raceButtonTable[0] = 0x21;
     else
         raceButtonTable[0] = 4;
     raceButtonTable[1] = 0x39;
-    i = 0;
-    do {
-        racer = (short)i + 2;
-        GetDialogItem(raceDialog, (short)i + 3, &itemType, &item, &box[racer]);
-        i = i + 1;
-        dimmed[racer] = -3;
-        raceButtonTable[racer] = 0;
-    } while ((short)i < 4);
-    i = 0;
-    do {
-        dim = dimmed[(short)i];
-        if (dim == -3) {
-            racer = (short)i - 2;
-            if (raceWinner == racer) {
-                pic = raceButtonPic[racer][2];
-            } else if (raceWinner != -1) {
-                pic = raceButtonPic[racer][3];
-            } else if (hilited == (short)i) {
-                pic = raceButtonPic[racer][1];
-            } else {
-                pic = raceButtonPic[racer][0];
-            }
+    for (i = 0; i < 4; i++) {
+        GetDialogItem(raceDialog, i + 3, &itemType, (void **)&item, &box[i + 2]);
+        dimmed[i + 2] = -3;
+        raceButtonTable[i + 2] = 0;
+    }
+    for (i = 0; i < 6; i++) {
+        if (dimmed[i] == -3) {
+            if (raceWinner == i - 2)
+                pic = raceButtonPic[i - 2][2];
+            else if (raceWinner != -1)
+                pic = raceButtonPic[i - 2][3];
+            else if (hilited == i)
+                pic = raceButtonPic[i - 2][1];
+            else
+                pic = raceButtonPic[i - 2][0];
         } else {
             pic = 0;
         }
-        if (hilited == (short)i)
-            DrawButton(GetDialogPort(raceDialog), walk,
-                       buttonLabel[raceButtonTable[(short)i]], dim, 1, pic);
+        if (hilited == i)
+            DrawButton(GetDialogPort(raceDialog), &box[i],
+                       buttonLabel[raceButtonTable[i]], dimmed[i], 1, pic);
         else
-            DrawButton(GetDialogPort(raceDialog), walk,
-                       buttonLabel[raceButtonTable[(short)i]], dim, 0, pic);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i < 6);
+            DrawButton(GetDialogPort(raceDialog), &box[i],
+                       buttonLabel[raceButtonTable[i]], dimmed[i], 0, pic);
+    }
 }
 
 /* TrackRaceButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a2de0
+// MAC: _TrackRaceButtons i386 0x0002689d ppc 0x0002af18
 short TrackRaceButtons(Point where)
 {
-    char down;
-    int drawnButton;
-    int over;
-    Rect *r;
-    int downH;
-    int overButton;
-    Rect *walk;
-    int i;
+    short drawnButton;
+    short downButton;
+    short i;
+    short over;
     Rect box[6];
     short itemType;
-    Rect *first;
-    void *item;
+    Handle item;
     Point mouse;
-    int downButton;
 
-    i = 0;
-    walk = box;
-    do {
-        GetDialogItem(raceDialog, (short)i + 1, &itemType, &item, walk);
-        i = i + 1;
-        walk = walk + 1;
-    } while ((short)i <= 1);
-    overButton = 0;
-    do {
-        GetDialogItem(raceDialog, (short)overButton + 3, &itemType, &item,
-                      &box[(short)overButton + 2]);
-        overButton = overButton + 1;
-    } while ((short)overButton < 4);
+    for (i = 0; i <= 1; i++)
+        GetDialogItem(raceDialog, i + 1, &itemType, (void **)&item, (Rect *)&box + i);
+    for (i = 0; i < 4; i++)
+        GetDialogItem(raceDialog, i + 3, &itemType, (void **)&item, &box[i + 2]);
     drawnButton = -1;
-    overButton = 0;
-    first = box;
-    r = box;
-    downButton = *(short *)&where;
-    downH = ((short *)&where)[1];
-    do {
-        if (PtInRect(downH, downButton, r) != 0) {
-            drawnButton = overButton;
+    for (i = 0; i < 6; i++) {
+        if (PtInRectPoint(where, &box[i]) != 0) {
+            drawnButton = i;
             break;
         }
-        overButton = overButton + 1;
-        r = r + 1;
-    } while ((short)overButton < 6);
+    }
     downButton = drawnButton;
-    if ((short)drawnButton != -1) {
+    if (drawnButton != -1) {
         DrawRaceButtons(drawnButton);
         nv_UpdateDialogWindow(0);
-        down = StillDown();
-        while (down != 0) {
+        while (StillDown() != 0) {
             BusyIdle();
             GetMouse(&mouse);
             over = -1;
-            overButton = 0;
-            walk = first;
-            do {
-                if (PtInRect(mouse.h, mouse.v, walk) != 0) {
-                    over = overButton;
+            for (i = 0; i < 6; i++) {
+                if (PtInRectPoint(mouse, &box[i]) != 0) {
+                    over = i;
                     break;
                 }
-                overButton = overButton + 1;
-                walk = walk + 1;
-            } while ((short)overButton < 6);
-            if ((short)over != (short)drawnButton && (short)over != (short)downButton)
+            }
+            if (over != drawnButton && over != downButton)
                 over = -1;
-            if ((short)over != (short)drawnButton) {
+            if (over != drawnButton) {
                 DrawRaceButtons(over);
                 nv_UpdateDialogWindow(0);
             }
             drawnButton = over;
-            down = StillDown();
         }
     }
     return drawnButton;
@@ -1766,6 +1534,7 @@ short TrackRaceButtons(Point where)
 /* InitButtons. STATE: MATCH 100%, exe 264 / obj 264, byte-identical. The mask walker is
    set before the paint loop (the exe loads it there). OPEN: none */
 // FUNCTION: EVNOVA 0x004a2f50
+// MAC: _InitButtons i386 0x00025aa1 ppc 0x0002a1e0
 void InitButtons(void)
 {
     PicHandle buttonPic[kButtonPieceCount];
@@ -1778,11 +1547,11 @@ void InitButtons(void)
     for (n = 0; n < kButtonPieceCount; n++) {
         buttonPic[n] = GetPicture(n + kButtonPictID);
         buttonMaskPic[n] = GetPicture(n + kButtonMaskPictID);
-        if (buttonPic[n] == 0) {
-            SetRect(&buttonPieceRect[n], 0, 0, 0xc, 0x18);
-        } else {
+        if (buttonPic[n] != 0) {
             QDGetPictureBounds(buttonPic[n], &buttonPieceRect[n]);
             OffsetRect(&buttonPieceRect[n], -buttonPieceRect[n].left, -buttonPieceRect[n].top);
+        } else {
+            SetRect(&buttonPieceRect[n], 0, 0, 0xc, 0x18);
         }
     }
     OffsetRect(&buttonPieceRect[1], buttonPieceRect[0].right, 0);
@@ -1793,8 +1562,7 @@ void InitButtons(void)
     OffsetRect(&buttonPieceRect[6], 0, buttonPieceRect[3].bottom);
     OffsetRect(&buttonPieceRect[7], buttonPieceRect[6].right, buttonPieceRect[3].bottom);
     OffsetRect(&buttonPieceRect[8], buttonPieceRect[7].right, buttonPieceRect[3].bottom);
-    bounds.top = 0;
-    bounds.left = bounds.top;
+    bounds.left = bounds.top = 0;
     bounds.right = (buttonPieceRect[2].right > buttonPieceRect[5].right) ?
                     buttonPieceRect[2].right : buttonPieceRect[5].right;
     bounds.right = (bounds.right > buttonPieceRect[8].right) ?
@@ -1803,10 +1571,25 @@ void InitButtons(void)
                      buttonPieceRect[6].bottom : buttonPieceRect[7].bottom;
     bounds.bottom = (bounds.bottom > buttonPieceRect[8].bottom) ?
                      bounds.bottom : buttonPieceRect[8].bottom;
-    CreateGWorldContainer(&buttonImagePort, 0, gSpriteWorld->pixelDepth, &bounds);
-    CreateGWorldContainer(&buttonMaskPort, 0, 1, &bounds);
+    CreateGWorldContainer(&buttonImagePort, kButtonDevice, gSpriteWorld->pixelDepth, &bounds);
+    CreateGWorldContainer(&buttonMaskPort, kButtonDevice, 1, &bounds);
     SetGWorldContainer(&buttonImagePort);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
+#ifdef MAC1010
+    for (n = 0; n < kButtonPieceCount; n++) {
+        PaintRect(&buttonPieceRect[n]);
+        if (buttonPic[n] != 0)
+            DrawPicHandle(buttonPic[n], &buttonPieceRect[n]);
+    }
+    UnsetGWorldContainer(&buttonImagePort);
+    SetGWorldContainer(&buttonMaskPort);
+    ForeColor(blackColor);
+    for (n = 0; n < kButtonPieceCount; n++) {
+        PaintRect(&buttonPieceRect[n]);
+        if (buttonMaskPic[n] != 0)
+            DrawPicHandle(buttonMaskPic[n], &buttonPieceRect[n]);
+    }
+#else
     mask = buttonPieceRect;
     for (n = 0, piece = buttonPieceRect; n < kButtonPieceCount; n++) {
         PaintRect(piece);
@@ -1816,13 +1599,14 @@ void InitButtons(void)
     }
     UnsetGWorldContainer(&buttonImagePort);
     SetGWorldContainer(&buttonMaskPort);
-    RGBForeColor(blackColor);
+    ForeColor(blackColor);
     for (n = 0; n < kButtonPieceCount; n++) {
         PaintRect(mask);
         if (buttonMaskPic[n] != 0)
             DrawPicHandle(buttonMaskPic[n], mask);
         mask++;
     }
+#endif
     UnsetGWorldContainer(&buttonMaskPort);
     for (n = 0; n < kButtonPieceCount; n++) {
         if (buttonPic[n] != 0)
@@ -1830,17 +1614,22 @@ void InitButtons(void)
         if (buttonMaskPic[n] != 0)
             QDReleaseResource(buttonMaskPic[n]);
     }
-    for (n = 0; n < kButtonLabelCount; n++)
+    for (n = 0; (long)n < kButtonLabelCount; n++)
         GetIndString(buttonLabel[n], kButtonStrList, n + 1);
     buttonColor[0].red = buttonColor[0].green = buttonColor[0].blue = 0xffff;
     buttonColor[1].red = buttonColor[1].green = buttonColor[1].blue = 0x8000;
     buttonColor[2].red = buttonColor[2].green = buttonColor[2].blue = 0x8000;
+#ifdef CEFIX /* F12.73-74 */
+    SetRect(&bounds, 0, 0, 500, 75);
+#else
     SetRect(&bounds, 0, 0, 200, 0x32);
-    CreateGWorldContainer(&buttonPort, 0, gSpriteWorld->pixelDepth, &bounds);
+#endif
+    CreateGWorldContainer(&buttonPort, kButtonDevice, gSpriteWorld->pixelDepth, &bounds);
 }
 
 /* DisposeButtons. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a3300
+// MAC: _DisposeButtons i386 0x00025e67 ppc 0x0002a55c
 void DisposeButtons(void)
 {
     if (buttonPort.world != 0)
@@ -1866,16 +1655,17 @@ void DisposeButtons(void)
    CopyRect(), whose pointer operands stop mwcc reusing box.left for OffsetRect's argument.
    OPEN: none. */
 // FUNCTION: EVNOVA 0x004a3340
+// MAC: _DrawButton i386 0x00025ea8 ppc 0x0002a5dc
 void DrawButton(CGrafPtr port, Rect *bounds, unsigned char *label,
                 short state, short selected, PicHandle pic)
 {
-    Rect box;
     Rect piece;
     Rect mid;
+    Rect box;
     CGrafPtr savedPort;
     short mode;
     short size;
-    long glyph;
+    unsigned long glyph;
 
     if (state == 0) {
         if (selected == 0)
@@ -1886,40 +1676,46 @@ void DrawButton(CGrafPtr port, Rect *bounds, unsigned char *label,
         mode = 2;
     GetPort(&savedPort);
     if (state == kButtonPicture) {
-        SetGWorldContainer(&loadPort);
-        RGBForeColor(blackColor);
+        GWorldContainerSetPort(&loadPort);
+        ForeColor(blackColor);
         DrawPicHandle(pic, bounds);
         SetPort(savedPort);
-        RGBForeColor(blackColor);
-        CopyBits(GetGWCPixMap(&loadPort), GetPortBitMapForCopyBits(savedPort),
+        ForeColor(blackColor);
+        CopyBits(GWorldContainerBits(&loadPort), GetPortBitMapForCopyBits(savedPort),
                  bounds, bounds, 0, GetPortVisRgn(port));
     } else {
-        SetGWorldContainer(&buttonPort);
-        RGBForeColor(blackColor);
-        CopyRect(&box, bounds);
-        CopyRect(&mid, &box);
+        GWorldContainerSetPort(&buttonPort);
+        ForeColor(blackColor);
+        box = *bounds;
+        mid = box;
         OffsetRect(&box, -box.left, -box.top);
         OffsetRect(&mid, -mid.left, -mid.top);
-        CopyBits(GetGWCPixMap(&loadPort), (BitMapPtr)GetGWCPixMap(&buttonPort),
+        CopyBits(GWorldContainerBits(&loadPort), (BitMapPtr)GWorldContainerBits(&buttonPort),
                  bounds, &box, 0, 0);
-        if (state == kButtonDim || state == 0) {
-            CopyRect(&piece, &buttonPieceRect[mode * 3]);
+        if (state == 0 || state == kButtonDim) {
+            piece = buttonPieceRect[mode * 3];
             OffsetRect(&piece, -piece.left, -piece.top);
             OffsetRect(&piece, box.left, box.top);
             piece.bottom = box.bottom;
-            CopyMask(GetGWCPixMap(&buttonImagePort), GetGWCPixMap(&buttonMaskPort),
-                     GetGWCPixMap(&buttonPort), &buttonPieceRect[mode * 3],
+#ifdef CEFIX /* F12.75 */
+            piece.right = piece.left + CE_Scale(piece.right - piece.left);
+#endif
+            CopyMask(GWorldContainerBits(&buttonImagePort), GWorldContainerBits(&buttonMaskPort),
+                     GWorldContainerBits(&buttonPort), &buttonPieceRect[mode * 3],
                      &buttonPieceRect[mode * 3], &piece);
             mid.left = piece.right;
-            CopyRect(&piece, &buttonPieceRect[mode * 3 + 2]);
+            piece = buttonPieceRect[mode * 3 + 2];
             OffsetRect(&piece, -piece.left, -piece.top);
             OffsetRect(&piece, box.right - piece.right, box.top);
             piece.bottom = box.bottom;
-            CopyMask(GetGWCPixMap(&buttonImagePort), GetGWCPixMap(&buttonMaskPort),
-                     GetGWCPixMap(&buttonPort), &buttonPieceRect[mode * 3 + 2],
+#ifdef CEFIX /* F12.76 */
+            piece.left = piece.right - CE_Scale(piece.right - piece.left);
+#endif
+            CopyMask(GWorldContainerBits(&buttonImagePort), GWorldContainerBits(&buttonMaskPort),
+                     GWorldContainerBits(&buttonPort), &buttonPieceRect[mode * 3 + 2],
                      &buttonPieceRect[mode * 3 + 2], &piece);
             mid.right = piece.left;
-            CopyBits(GetGWCPixMap(&buttonImagePort), (BitMapPtr)GetGWCPixMap(&buttonPort),
+            CopyBits(GWorldContainerBits(&buttonImagePort), (BitMapPtr)GWorldContainerBits(&buttonPort),
                      &buttonPieceRect[mode * 3 + 1], &mid, 0, 0);
             RGBForeColor(&buttonColor[mode]);
             glyph = label[1];
@@ -1956,25 +1752,34 @@ void DrawButton(CGrafPtr port, Rect *bounds, unsigned char *label,
             } else {
                 TextFont(buttonFontID);
                 TextSize(buttonFontSize);
+#ifdef CEFIX /* F12.77 */
+                CE_SetPen((box.left + box.right) / 2 - StringWidth(label) / 2,
+                          (box.top + box.bottom) / 2 + CE_Scale(5));
+#else
                 MoveTo((box.left + box.right) / 2 - StringWidth(label) / 2,
                        (box.top + box.bottom) / 2 + 5);
+#endif
                 DrawString(label);
             }
         }
         SetPort(savedPort);
-        RGBForeColor(blackColor);
-        CopyBits(GetGWCPixMap(&buttonPort), GetPortBitMapForCopyBits(savedPort),
+        ForeColor(blackColor);
+        CopyBits(GWorldContainerBits(&buttonPort), GetPortBitMapForCopyBits(savedPort),
                  &box, bounds, 0, GetPortVisRgn(port));
     }
 }
 
+#ifndef MACBUILD
 /* CrtInitHook6. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a3a90
 void CrtInitHook6(void)
 {
 }
+#endif
 
 /* The exe ends this object with a C++ static initializer, reached through .CRT$XCU; its body
    is the function above.  An empty constructor makes the compiler emit the hook. */
+#ifndef MACBUILD
 struct CrtHook { CrtHook() {} };
 static CrtHook crtHook;
+#endif
