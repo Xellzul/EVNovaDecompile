@@ -1,0 +1,67 @@
+# MSL 9.0.3 members the exe links, by the exe VA of the member's first matched function.
+# Derived 2026-10-06 (lane QBM) by masked byte search of every code section of MSL_All_x86.lib
+# members in the exe's .text above 0x004d3000. tools/pullorder.py pulls each from
+# MSL_All_x86.lib at its VA (Research/the-link-step.md). Corrected against
+# vendor/msl/linked.tsv (lanes QBV, QBQ): setupargs, mbstring and buffer_io start one function
+# earlier; ExceptionX86's first function is 0x00534930 (0x00534890 is excrtl's static
+# initializer), so it follows exchand as in the exe. strtold.obj has no function in the exe
+# (0x00506ec0 is alloc.obj's malloc) but its 24-byte table is the exe's .data at 0x0057cac0,
+# right before ansifp_x86's: it is pulled there, at ansifp_x86's VA and listed before it.
+# NewHand.obj is out: no function and none of its data in the exe (0x0054dc60 and 0x0054dc80
+# are NMWException.obj's set_terminate and set_unexpected).
+# Members with no live code, placed by their .bss and .data (lane QCD): float.obj's ___float_nan and
+# ___float_huge are the exe's .data at 0x0057cab4, just before strtold.obj's table; the exe's .bss holds
+# stdio_posix.win32.obj (768) and unistd.win32.obj (264) as the 1,032 bytes at 0x0086ce28 after
+# globdest.obj's block and before burgersngwin's.
+# extras.obj (lane QDA): the exe's StrCaseCmp at 0x004ff950 is its _stricmp (linked from the library
+# since lane RS, 2026-10-13; burgerstrcase.c is gone), so the member is pulled there and its 768-byte .bss sits
+# between atplatheap's and direct_io.obj's blocks, where the exe's .bss has the hole; it was pulled last.
+# member<TAB>VA
+string.obj	0x004d6010
+ctype.obj	0x004d61a0
+math_x87.obj	0x004eece0
+stackall.obj	0x004eee50
+mem.obj	0x004eeea0
+printf.obj	0x004eeff0
+file_io.obj	0x004f1000
+compiler_math.obj	0x004f1b00
+LongLongx86.obj	0x004f27d0
+time.obj	0x004fdc70
+abort_exit_win32.obj	0x004fdea0
+extras.obj	0x004ff950
+direct_io.obj	0x00500120
+winmaincrt.obj	0x00503f30
+alloc.obj	0x00506120
+ThreadLocalData.obj	0x00506f90
+file_pos.obj	0x00508310
+setupargs.obj	0x00508590
+sysenv.win32.obj	0x00508b70
+float.obj	0x005273ee
+strtold.obj	0x005273f0
+ansifp_x86.obj	0x005273f0
+mbstring.obj	0x005275f0
+ansi_files.obj	0x005276f0
+wchar_io.obj	0x00527930
+file_io.win32.obj	0x005279a0
+misc_io.obj	0x005280f0
+buffer_io.obj	0x00528110
+startup.win32.obj	0x00528420
+char_io.obj	0x00528c30
+arith.obj	0x0052cb90
+time.win32.obj	0x0052cc30
+signal.obj	0x0052cda0
+globdest.obj	0x0052ce20
+stdio_posix.win32.obj	0x0052ce21
+unistd.win32.obj	0x0052ce22
+qsort.obj	0x00530220
+excrtl.obj	0x00534580
+exchand.obj	0x005348b0
+ExceptionX86.obj	0x00534930
+runinit.obj	0x00534d00
+pool_alloc.win32.obj	0x00534da0
+setjmp.x86.obj	0x00534e00
+wcstold.obj	0x00534e01
+locale.obj	0x00534e02
+wprintf.obj	0x0054016b
+NMWException.obj	0x0054dc40
+wctype.obj	0x0054dc41

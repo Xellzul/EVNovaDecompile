@@ -1,0 +1,25 @@
+# The import thunks (`jmp dword ptr [__imp_X]', 6 bytes) the exe holds inside its runtime band, by
+# exe VA. mwld emits a thunk where the link first pulls its import member, so tools/pullorder.py
+# lists each symbol in its exe place in the reference order that drives the runtime band's pulls.
+# Read off the exe: every `FF 25' in .text whose operand is an IAT slot (lane QBQ, 2026-10-06).
+# symbol<TAB>VA<TAB>DLL
+_WSAStartup@8	0x00528dae	WSOCK32.dll
+_WSACleanup@0	0x00529162	WSOCK32.dll
+_WSAGetLastError@0	0x00529168	WSOCK32.dll
+_closesocket@4	0x0052916e	WSOCK32.dll
+_socket@12	0x00529174	WSOCK32.dll
+_gethostname@8	0x00529604	WSOCK32.dll
+_gethostbyname@4	0x0052960a	WSOCK32.dll
+_connect@12	0x00529610	WSOCK32.dll
+_getsockname@12	0x00529616	WSOCK32.dll
+_getsockopt@20	0x005412fa	WSOCK32.dll
+_setsockopt@20	0x00541300	WSOCK32.dll
+_bind@12	0x00541306	WSOCK32.dll
+_recvfrom@24	0x0054130c	WSOCK32.dll
+_sendto@24	0x00541312	WSOCK32.dll
+_shutdown@8	0x00541318	WSOCK32.dll
+_recv@16	0x0054131e	WSOCK32.dll
+_accept@12	0x00541324	WSOCK32.dll
+_send@16	0x0054132a	WSOCK32.dll
+_RtlUnwind@16	0x0054dc9e	KERNEL32.dll
+_gethostbyaddr@12	0x00552e46	WSOCK32.dll

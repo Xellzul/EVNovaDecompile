@@ -1,0 +1,20 @@
+# qtmlClient.lib members the exe interleaves among the runtime objects, by the exe VA of the
+# member's first linked function (vendor/quicktime/linked.tsv). tools/qtorder.py extracts each
+# from vendor/quicktime/qtmlClient.lib at link time and linkorder.py --qtmembers lists it as a
+# plain object at that VA (a library member lands at the end of .text wherever the library sits).
+# The optional third column renames member symbols: the exe holds QuickTime's own DisposeGWorld,
+# GetPixBaseAddr, GetGWorldDevice and GetGWorldPixMap beside the port's same-named emulation,
+# so the original linked one of the two under other names; the tree's callers of QuickTime's
+# four use the address names.
+# member<TAB>VA[<TAB>symbol=newname,...]
+GestaltShim.obj	0x004d9c70
+ThingWin32Glue.obj	0x004d9e10
+MoviesWin32Glue.obj	0x004d9e30
+OSUtilsShim.obj	0x004eed40
+ClientToolboxAPI.obj	0x004f13d0
+QuickdrawShim.obj	0x004f2a10
+ICMWin32Glue.obj	0x004fc270
+FilesShim.obj	0x004fc2d0
+QDOffScreenShim.obj	0x004fc2f0	_DisposeGWorld=_FUN_004fc310,_GetPixBaseAddr=_FUN_004fc370,_GetGWorldDevice=_FUN_004fc390,_GetGWorldPixMap=_FUN_004fc3b0
+TextUtilsShim.obj	0x004fc3d0
+QTLoadLibraryUtils.obj	0x005288a0

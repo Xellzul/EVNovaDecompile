@@ -1,0 +1,72 @@
+# The Darwin headers the RT3 and MoreFilesX sources include, as compile stand-ins written from Pro 7's CF headers
+# (tools/mac/pefshare.py STUBS). Each "//// PATH" line starts one file under the include directory.
+//// EVCarbonSubset.h
+#include <Aliases.h>
+#include <Debugging.h>
+#include <HFSVolumes.h>
+#include <Files.h>
+#include <Folders.h>
+#include <Finder.h>
+#include <Script.h>
+#include <TextCommon.h>
+#include <UnicodeConverter.h>
+//// CoreFoundation/CoreFoundation.h
+#include <CFBase.h>
+#include <CFArray.h>
+#include <CFData.h>
+#include <CFDictionary.h>
+#include <CFPreferences.h>
+#include <CFString.h>
+typedef void *CFRunLoopRef; typedef double CFTimeInterval;
+CFRunLoopRef CFRunLoopGetCurrent(void); extern const CFStringRef kCFRunLoopDefaultMode;
+unsigned long CFNumberGetTypeID(void); unsigned char CFNumberGetValue(const void *, int, void *);
+#define kCFNumberIntType 9
+//// CoreServices/CoreServices.h
+#include <Files.h>
+typedef unsigned long FSEventStreamEventFlags; typedef unsigned long long FSEventStreamEventId; typedef double CFAbsoluteTimeStub;
+typedef void *FSEventStreamRef; typedef const void *ConstFSEventStreamRef;
+typedef struct { long version; void *info; void *retain; void *release; void *copyDescription; } FSEventStreamContext;
+typedef void (*FSEventStreamCallback)(ConstFSEventStreamRef, void *, size_t, void *, const FSEventStreamEventFlags *, const FSEventStreamEventId *);
+#define kFSEventStreamEventIdSinceNow 0xFFFFFFFFFFFFFFFFULL
+#define kFSEventStreamCreateFlagNone 0
+FSEventStreamRef FSEventStreamCreate(CFAllocatorRef, FSEventStreamCallback, FSEventStreamContext *, CFArrayRef, FSEventStreamEventId, double, unsigned long);
+void FSEventStreamScheduleWithRunLoop(FSEventStreamRef, CFRunLoopRef, CFStringRef);
+unsigned char FSEventStreamStart(FSEventStreamRef);
+void FSEventStreamStop(FSEventStreamRef);
+void FSEventStreamInvalidate(FSEventStreamRef);
+void FSEventStreamRelease(FSEventStreamRef);
+//// Security/Security.h
+#include <CoreFoundation/CoreFoundation.h>
+typedef void *SecKeychainSearchRef; typedef void *SecKeychainItemRef; typedef unsigned long SecKeychainAttrType;
+typedef unsigned long SecProtocolType;
+typedef struct { SecKeychainAttrType tag; unsigned long length; void *data; } SecKeychainAttribute;
+typedef struct { unsigned long count; SecKeychainAttribute *attr; } SecKeychainAttributeList;
+enum { kSecServerItemAttr = 'srvr', kSecProtocolItemAttr = 'ptcl', kSecAccountItemAttr = 'acct', kSecInternetPasswordItemClass = 'inet', errSecAuthFailed = -25293,
+       kSecProtocolTypeSOCKS = 'sox ', kSecProtocolTypeHTTPSProxy = 'htsx', kSecProtocolTypeHTTPProxy = 'htpx' };
+long SecKeychainSearchCreateFromAttributes(void *, unsigned long, const SecKeychainAttributeList *, SecKeychainSearchRef *);
+long SecKeychainSearchCopyNext(SecKeychainSearchRef, SecKeychainItemRef *);
+long SecKeychainItemCopyContent(SecKeychainItemRef, unsigned long *, SecKeychainAttributeList *, unsigned long *, void **);
+long SecKeychainItemFreeContent(SecKeychainAttributeList *, void *);
+//// SystemConfiguration/SystemConfiguration.h
+#include <InternetConfig.h>
+#define CFDictionaryGetValue(d, k) ((void *)(CFDictionaryGetValue)(d, k))
+CFDictionaryRef SCDynamicStoreCopyProxies(void *);
+extern const CFStringRef kSCPropNetProxiesHTTPEnable, kSCPropNetProxiesHTTPProxy, kSCPropNetProxiesHTTPPort, kSCPropNetProxiesHTTPSEnable, kSCPropNetProxiesHTTPSProxy, kSCPropNetProxiesHTTPSPort,
+    kSCPropNetProxiesSOCKSEnable, kSCPropNetProxiesSOCKSProxy, kSCPropNetProxiesSOCKSPort, kSCPropNetProxiesExceptionsList;
+//// Security/Authorization.h
+typedef void *AuthorizationRef; typedef unsigned long AuthorizationFlags;
+typedef struct { const char *name; unsigned long valueLength; void *value; unsigned long flags; } AuthorizationItem;
+typedef struct { unsigned long count; AuthorizationItem *items; } AuthorizationRights;
+enum { kAuthorizationFlagDefaults = 0, kAuthorizationFlagInteractionAllowed = 1, kAuthorizationFlagExtendRights = 2, kAuthorizationFlagPreAuthorize = 16, errAuthorizationSuccess = 0, errAuthorizationCanceled = -60006 };
+long AuthorizationCreate(const AuthorizationRights *, const void *, AuthorizationFlags, AuthorizationRef *);
+long AuthorizationCopyRights(AuthorizationRef, const AuthorizationRights *, const void *, AuthorizationFlags, AuthorizationRights **);
+long AuthorizationExecuteWithPrivileges(AuthorizationRef, const char *, AuthorizationFlags, char *const *, struct _FILE **);
+long AuthorizationFree(AuthorizationRef, AuthorizationFlags);
+//// Security/AuthorizationTags.h
+#define kAuthorizationRightExecute "system.privilege.admin"
+//// netinet/in.h
+unsigned short htons(unsigned short);
+//// pwd.h
+struct passwd { char *pw_name; char *pw_passwd; int pw_uid; int pw_gid; char *pw_dir; }; struct passwd *getpwuid(int);
+//// unistd.h
+int getuid(void); int access(const char *, int);
