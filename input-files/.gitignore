@@ -1,0 +1,8 @@
+*
+!.gitignore
+!README.md
+!SHA256SUMS
+mac111-source/*
+!mac111-source/
+mac111-source/*
+!mac111-source/.gitkeep
