@@ -1,0 +1,5 @@
+# Bytes where a data section of the install's MSL_All_x86.lib differs from the exe, read by tools/vendorlinked.py.
+# vendorlinked compares every data section a row's relocations reach (jump tables, constant pools, C-locale tables);
+# its observed differences must equal this list exactly.
+# member	section	offset	library byte	exe byte	why
+math_x87.obj	22	136	0x58	0x57	cbrt's first polynomial coefficient, the decimal 0.1950252994681516 in math.c: mwcc 418 and 335 both convert it to 0x3fc8f696c98ddd58, the exe holds the correctly rounded ...57 (the other seven doubles of the 236-byte pool are equal); a different literal spelling or converter in the exe's MSL build. Only _sqrt references the pool; cbrt itself is not linked.

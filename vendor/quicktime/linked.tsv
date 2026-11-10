@@ -1,0 +1,64 @@
+# Functions of EV Nova.exe linked from vendor/quicktime/qtmlClient.lib, not compiled from sources/.
+# One row per exe function; tools/vendorlinked.py verifies each against the exe and the linked image.
+# The four the port shadows by name (0x004fc310/370/390/3b0) link from a renamed member copy under their
+# address names (tools/qtorder.tsv).
+# address	library	member	symbol	bytes	retired
+0x004d9c70	qtmlClient.lib	GestaltShim.obj	_Gestalt	26	qtmlthunk.c::FUN_004d9c70
+0x004d9e10	qtmlClient.lib	ThingWin32Glue.obj	_FindNextComponent	26	qtmlthunk.c::FUN_004d9e10
+0x004d9e30	qtmlClient.lib	MoviesWin32Glue.obj	_EnterMovies	26	qtmlthunk.c::FUN_004d9e30
+0x004d9e50	qtmlClient.lib	MoviesWin32Glue.obj	_ExitMovies	26	qtmlthunk.c::FUN_004d9e50
+0x004d9e70	qtmlClient.lib	MoviesWin32Glue.obj	_MoviesTask	26	qtmlthunk.c::MoviesTask
+0x004d9e90	qtmlClient.lib	MoviesWin32Glue.obj	_LoadMovieIntoRam	26	qtmlthunk.c::LoadMovieIntoRam
+0x004d9eb0	qtmlClient.lib	MoviesWin32Glue.obj	_StartMovie	26	qtmlthunk.c::StartMovie
+0x004d9ed0	qtmlClient.lib	MoviesWin32Glue.obj	_StopMovie	26	qtmlthunk.c::StopMovie
+0x004d9ef0	qtmlClient.lib	MoviesWin32Glue.obj	_GoToBeginningOfMovie	26	qtmlthunk.c::GoToBeginningOfMovie
+0x004d9f10	qtmlClient.lib	MoviesWin32Glue.obj	_GetMovieTimeBase	26	qtmlthunk.c::FUN_004d9f10
+0x004d9f30	qtmlClient.lib	MoviesWin32Glue.obj	_SetMovieGWorld	26	qtmlthunk.c::SetMovieGWorld
+0x004d9f50	qtmlClient.lib	MoviesWin32Glue.obj	_DisposeMovie	26	qtmlthunk.c::DisposeMovie
+0x004d9f70	qtmlClient.lib	MoviesWin32Glue.obj	_GetMovieDuration	26	qtmlthunk.c::GetMovieDuration
+0x004d9f90	qtmlClient.lib	MoviesWin32Glue.obj	_SetMovieRate	26	qtmlthunk.c::FUN_004d9f90
+0x004d9fb0	qtmlClient.lib	MoviesWin32Glue.obj	_SetMovieVolume	26	qtmlthunk.c::SetMovieVolume
+0x004d9fd0	qtmlClient.lib	MoviesWin32Glue.obj	_SetTrackGWorld	26	qtmlthunk.c::FUN_004d9fd0
+0x004d9ff0	qtmlClient.lib	MoviesWin32Glue.obj	_GetTimeBaseFlags	26	qtmlthunk.c::FUN_004d9ff0
+0x004da010	qtmlClient.lib	MoviesWin32Glue.obj	_SetTimeBaseFlags	26	qtmlthunk.c::FUN_004da010
+0x004da030	qtmlClient.lib	MoviesWin32Glue.obj	_CloseMovieFile	26	qtmlthunk.c::CloseMovieFile
+0x004da050	qtmlClient.lib	MoviesWin32Glue.obj	_IsMovieDone	26	qtmlthunk.c::IsMovieDone
+0x004da070	qtmlClient.lib	MoviesWin32Glue.obj	_NewMovieFromFile	26	qtmlthunk.c::NewMovieFromFile
+0x004da090	qtmlClient.lib	MoviesWin32Glue.obj	_GetMovieBox	26	qtmlthunk.c::GetMovieBox
+0x004da0b0	qtmlClient.lib	MoviesWin32Glue.obj	_SetMovieBox	26	qtmlthunk.c::SetMovieBox
+0x004da0d0	qtmlClient.lib	MoviesWin32Glue.obj	_OpenMovieFile	26	qtmlthunk.c::OpenMovieFile
+0x004da0f0	qtmlClient.lib	MoviesWin32Glue.obj	_SetMoviePlayHints	26	qtmlthunk.c::FUN_004da0f0
+0x004da110	qtmlClient.lib	MoviesWin32Glue.obj	_GetMovieIndTrackType	26	qtmlthunk.c::FUN_004da110
+0x004eed40	qtmlClient.lib	OSUtilsShim.obj	_GetDateTime	26	qtmlthunk.c::FUN_004eed40
+0x004eed60	qtmlClient.lib	OSUtilsShim.obj	_Microseconds	26	qtmlthunk.c::Microseconds
+0x004f13d0	qtmlClient.lib	ClientToolboxAPI.obj	_QTMLInitInternals	26	qtmlthunk.c::FUN_004f13d0
+0x004f13f0	qtmlClient.lib	ClientToolboxAPI.obj	_QTMLTermInternals	26	qtmlthunk.c::FUN_004f13f0
+0x004f1410	qtmlClient.lib	ClientToolboxAPI.obj	_DebugStr	26	qtmlthunk.c::FUN_004f1410
+0x004f1430	qtmlClient.lib	ClientToolboxAPI.obj	_MemError	26	qtmlthunk.c::MemError
+0x004f1450	qtmlClient.lib	ClientToolboxAPI.obj	_NewHandle	26	qtmlthunk.c::NewHandle
+0x004f1470	qtmlClient.lib	ClientToolboxAPI.obj	_HLock	26	qtmlthunk.c::HLock
+0x004f1490	qtmlClient.lib	ClientToolboxAPI.obj	_DisposeHandle	26	qtmlthunk.c::DisposeHandle
+0x004f14b0	qtmlClient.lib	ClientToolboxAPI.obj	_BlockMove	26	qtmlthunk.c::BlockMove
+0x004f14d0	qtmlClient.lib	ClientToolboxAPI.obj	_callQTMLInitInternals	5	qtmlglue.c::FUN_004f14d0
+0x004f14e0	qtmlClient.lib	ClientToolboxAPI.obj	_callQTMLTermInternals	5	qtmlglue.c::FUN_004f14e0
+0x004f14f0	qtmlClient.lib	ClientToolboxAPI.obj	_BogusDispatcher	16	qtmlglue.c::QTMLUnavailable
+0x004f1500	qtmlClient.lib	ClientToolboxAPI.obj	_autoPatchThoseAddresses	160	qtmlglue.c::QTMLBindOnDemand
+0x004f15a0	qtmlClient.lib	ClientToolboxAPI.obj	_InitializeQTML	320	qtmlglue.c::InitializeQTML
+0x004f16e0	qtmlClient.lib	ClientToolboxAPI.obj	_patchThoseAddresses	112	qtmlglue.c::QTMLRebind
+0x004f1750	qtmlClient.lib	ClientToolboxAPI.obj	_TerminateQTML	176	qtmlglue.c::TerminateQTML
+0x004f2a10	qtmlClient.lib	QuickdrawShim.obj	_MacSetRect	26	qtmlthunk.c::MacSetRect
+0x004f2a30	qtmlClient.lib	QuickdrawShim.obj	_Random	26	qtmlthunk.c::Random
+0x004f2a50	qtmlClient.lib	QuickdrawShim.obj	_GetMainDevice	26	qtmlthunk.c::FUN_004f2a50
+0x004fc270	qtmlClient.lib	ICMWin32Glue.obj	_DecompressImage	26	qtmlthunk.c::DecompressImage
+0x004fc290	qtmlClient.lib	ICMWin32Glue.obj	_NewImageGWorld	26	qtmlthunk.c::NewImageGWorld
+0x004fc2b0	qtmlClient.lib	ICMWin32Glue.obj	_QTNewGWorldFromPtr	26	qtmlthunk.c::QTNewGWorldFromPtr
+0x004fc2d0	qtmlClient.lib	FilesShim.obj	_FSMakeFSSpec	26	qtmlthunk.c::FSMakeFSSpec
+0x004fc2f0	qtmlClient.lib	QDOffScreenShim.obj	_LockPixels	26	qtmlthunk.c::LockPixels
+0x004fc310	qtmlClient.lib	QDOffScreenShim.obj	_DisposeGWorld	26	qtmlthunk.c::FUN_004fc310
+0x004fc330	qtmlClient.lib	QDOffScreenShim.obj	_GetGWorld	26	qtmlthunk.c::GetGWorld
+0x004fc350	qtmlClient.lib	QDOffScreenShim.obj	_SetGWorld	26	qtmlthunk.c::SetGWorld
+0x004fc370	qtmlClient.lib	QDOffScreenShim.obj	_GetPixBaseAddr	26	qtmlthunk.c::FUN_004fc370
+0x004fc390	qtmlClient.lib	QDOffScreenShim.obj	_GetGWorldDevice	26	qtmlthunk.c::FUN_004fc390
+0x004fc3b0	qtmlClient.lib	QDOffScreenShim.obj	_GetGWorldPixMap	26	qtmlthunk.c::FUN_004fc3b0
+0x004fc3d0	qtmlClient.lib	TextUtilsShim.obj	_StringToNum	26	qtmlthunk.c::StringToNum
+0x005288a0	qtmlClient.lib	QTLoadLibraryUtils.obj	_QTLoadLibrary	912	qtmlglue.c::LoadQuickTimeLibrary
