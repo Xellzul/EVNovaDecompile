@@ -30,6 +30,7 @@ Or targeted runs:
 `docker run --rm --platform linux/amd64 --security-opt seccomp=unconfined -v "$PWD":/repo evnova-buildkit python3 /repo/buildkit/build.py {TARGET} {{--OPTIONS}}`
 
 Target can be: all, win, ce, mac1010, mac111, check
+
 Options can be: --twice, --no-pin-date, --unsigned, --config FILE
 
 ## Credits:
