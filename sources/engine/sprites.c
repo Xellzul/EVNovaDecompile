@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* sprites.c -- sprite metric accessors (win region 0x00462340-0x004624c0). Notes: Research/notes/sprites.md */
 #include <stddef.h>
 

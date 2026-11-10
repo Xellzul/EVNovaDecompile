@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* swassertfail.c -- SWAssertFail (win 0x004794d0, donor SpriteWorldUtils.c line 1866). Notes: Research/notes/swassertfail.md */
 #include "macport.h"
 #include "burger.h"

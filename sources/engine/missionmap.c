@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* missionmap.c -- rebuild the starmap's mission-marker system list (win TU region around 0x004aa980, after the map-influence code at 0x004aa070). Notes: Research/notes/missionmap.md */
 #include "gametypes.h"
 #include "resources.h"

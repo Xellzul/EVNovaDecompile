@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* cescale.c -- EV Nova CE: the ui_scale factor and the dialog scaling core (CEFIX only).
    Notes: Research/cefix-plan.md */
 #ifdef CEFIX
@@ -18,12 +18,12 @@ int ceListItemBaseHeight = 8;       /* the list font's 9 in the original; 8 as i
 
 static short SwapShort(unsigned short v)
 {
-    return (short)(v >> 8 | v << 8);
+    return (v >> 8 | v << 8);
 }
 
 int CE_Round(double value)
 {
-    return (int)(value + (value >= 0 ? 0.5 : -0.5));
+    return (value + (value >= 0 ? 0.5 : -0.5));
 }
 
 /* ddraw.ini's ui_scale, read before the fonts are set up. */

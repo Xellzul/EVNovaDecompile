@@ -143,7 +143,7 @@
     MungeBriefing(1, mission);
     SetDialogGWorld(missionDialog);
 
-    GetDialogItem(missionDialog, kItemBriefText, &itemType, &itemHandle, &box);
+    GetDialogItem(missionDialog, kItemBriefText, &itemType, (Handle *)&itemHandle, &box);
     offerTextHandle = TENew(&box, &box);
     if (offerTextHandle != NULL) {
         (*offerTextHandle)->txFont = smallTextFont;
@@ -189,33 +189,33 @@
 #endif
 
                 GetDialogItem(missionDialog, kItemAccept, &itemType,
-                              &itemHandle, &box);
+                              (Handle *)&itemHandle, &box);
                 OffsetRect(&box, 0, -shift);
                 SetDialogItem(missionDialog, kItemAccept, itemType,
                               itemHandle, &box);
 
                 GetDialogItem(missionDialog, kItemRefuse, &itemType,
-                              &itemHandle, &box);
+                              (Handle *)&itemHandle, &box);
                 OffsetRect(&box, 0, -shift);
                 SetDialogItem(missionDialog, kItemRefuse, itemType,
                               itemHandle, &box);
 
                 GetDialogItem(missionDialog, kItemDivider, &itemType,
-                              &itemHandle, &box);
+                              (Handle *)&itemHandle, &box);
                 OffsetRect(&box, 0, -shift);
                 SetDialogItem(missionDialog, kItemDivider, itemType,
                               itemHandle, &box);
 
                 GetDialogItem(missionDialog, kItemBriefText, &itemType,
-                              &itemHandle, &box);
+                              (Handle *)&itemHandle, &box);
                 box.bottom -= shift;
                 SetDialogItem(missionDialog, kItemBriefText, itemType,
                               itemHandle, &box);
             }
             GetDialogItem(missionDialog, kItemBriefText, &itemType,
-                          &itemHandle, &(*offerTextHandle)->destRect);
+                          (Handle *)&itemHandle, &(*offerTextHandle)->destRect);
             GetDialogItem(missionDialog, kItemBriefText, &itemType,
-                          &itemHandle, &(*offerTextHandle)->viewRect);
+                          (Handle *)&itemHandle, &(*offerTextHandle)->viewRect);
             TECalText(offerTextHandle);
         }
     }
@@ -272,15 +272,15 @@
     if (otherWidth < kMinButtonWidth)
         otherWidth = kMinButtonWidth;
 
-    GetDialogItem(missionDialog, kItemAccept, &itemType, &itemHandle, &box);
+    GetDialogItem(missionDialog, kItemAccept, &itemType, (Handle *)&itemHandle, &box);
     box.right = box.left + otherWidth;
     SetDialogItem(missionDialog, kItemAccept, itemType, itemHandle, &box);
 
-    GetDialogItem(missionDialog, kItemRefuse, &itemType, &itemHandle, &box);
+    GetDialogItem(missionDialog, kItemRefuse, &itemType, (Handle *)&itemHandle, &box);
     box.left = box.right - otherWidth;
     SetDialogItem(missionDialog, kItemRefuse, itemType, itemHandle, &box);
 
-    GetDialogItem(missionDialog, kItemDivider, &itemType, &itemHandle, &box);
+    GetDialogItem(missionDialog, kItemDivider, &itemType, (Handle *)&itemHandle, &box);
     box.left = box.right = (box.left + box.right) / 2;
     InsetRect(&box, -otherWidth / 2, 0);
     SetDialogItem(missionDialog, kItemDivider, itemType, itemHandle, &box);

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* swcreateemptysprite.c -- SWCreateEmptySprite (win 0x00474720). Notes: Research/notes/swcreateemptysprite.md */
 #include "macport.h"
 #include "burger.h"

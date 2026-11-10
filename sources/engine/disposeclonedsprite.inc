@@ -4,12 +4,12 @@
 
     if (p == NULL)
         return;
-    q = *(SpritePtr *)p;
+    q = *p;
     if (q == NULL)
         return;
     if (q->isEmptySprite != 0) {
         q->frameArray = NULL;
         q->numFrames = 0;
     }
-    SWDisposeSprite((SpritePtr *)p);
+    SWDisposeSprite(p);
 }

@@ -209,9 +209,9 @@ static void CheckForMatches(CInfoPBPtr cPB, CSParamPtr pb, const Str63 matchName
             goto hit;
     }
     if ((searchBits & fsSBFlParID) != 0) {
-        if ((unsigned long)cPB->hFileInfo.ioFlParID < (unsigned long)searchInfo1->hFileInfo.ioFlParID)
+        if (cPB->hFileInfo.ioFlParID < (unsigned long)searchInfo1->hFileInfo.ioFlParID)
             goto check;
-        if ((unsigned long)cPB->hFileInfo.ioFlParID > (unsigned long)searchInfo2->hFileInfo.ioFlParID)
+        if (cPB->hFileInfo.ioFlParID > (unsigned long)searchInfo2->hFileInfo.ioFlParID)
             goto check;
     }
     if ((searchBits & fsSBFlAttrib) != 0) {

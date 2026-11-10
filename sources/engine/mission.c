@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* mission.c -- the mission object (tu-map O5, win 0x0043bbb0..0x00447f20). Notes: Research/notes/mission.md */
 #include <math.h>
 #include <string.h>
@@ -509,7 +509,7 @@ void SetupMissionList(void)
     }
 
     SetDialogGWorld(missionDialog);
-    GetDialogItem(missionDialog, 2, &itemType, &itemHandle, &box);
+    GetDialogItem(missionDialog, 2, &itemType, (Handle *)&itemHandle, &box);
     SetRect(&cellBounds, 0, 0, 1, count);
 
     TextFont(smallTextFont);
@@ -532,7 +532,7 @@ void SetupMissionList(void)
                        false, false, false, visible);
 #else
     ldefSpec.defType = kListDefUserProcType;
-    ldefSpec.u.userProc = NewListDefUPP(MissionListDefinition);
+    ldefSpec.u.userProc = NewListDefUPP((ListDefProcPtr)MissionListDefinition);
     CreateCustomList(&box, &cellBounds, cellSize, &ldefSpec, GetDialogWindow(missionDialog),
                      true, false, false, visible, &missionList);
 #endif
@@ -549,7 +549,7 @@ void SetupMissionList(void)
 
     if (cellSize.v * count <= box.bottom - box.top) {
         visible = 0;
-        GetDialogItem(missionDialog, 3, &itemType, &itemHandle, &box3);
+        GetDialogItem(missionDialog, 3, &itemType, (Handle *)&itemHandle, &box3);
         box.right = box3.right;
     } else {
         visible = 1;
@@ -566,15 +566,15 @@ void SetupMissionList(void)
     rowPt.h = 0;
     for (rowPt.v = 0; rowPt.v < count; rowPt.v++) {
         if (dockedPortMissions[0][rowPt.v] != -1) {
-            strncpy(buf, (char *)missionName[dockedPortMissions[0][rowPt.v]], 0xfa);
+            strncpy((char *)buf, (char *)missionName[dockedPortMissions[0][rowPt.v]], 0xfa);
             PtoCstr((unsigned char *)buf);
-            strncpy(briefingTextPtr, buf, 0xfa);
+            strncpy(briefingTextPtr, (char *)buf, 0xfa);
             MungeBriefing(1, dockedPortMissions[0][rowPt.v]);
-            strncpy(buf, briefingTextPtr, 0xfa);
+            strncpy((char *)buf, briefingTextPtr, 0xfa);
         } else {
-            strncpy(buf, "", 3);
+            strncpy((char *)buf, "", 3);
         }
-        len = strlen(buf);
+        len = strlen((char *)buf);
         LSetCell(buf, len, rowPt, missionList);
     }
 
@@ -2306,7 +2306,7 @@ Boolean MissionFilter(long unused, EventRecord *ev, short *itemHit)
 #else
         where.v = ev->where.v;
         where.h = ev->where.h;
-        GetDialogItem(missionDialog, 2, &itemType, &item, &box);
+        GetDialogItem(missionDialog, 2, &itemType, (Handle *)&item, &box);
         if (PtInRect(where.h, where.v, &box)) {
 #endif
             LClick(where, ev->modifiers, missionList);
@@ -2339,7 +2339,7 @@ Boolean MissionFilter(long unused, EventRecord *ev, short *itemHit)
 #endif
             }
         }
-        GetDialogItem(missionDialog, 3, &itemType, &item, &box);
+        GetDialogItem(missionDialog, 3, &itemType, (Handle *)&item, &box);
 #ifdef MACBUILD
         if ((PtInRect)(where, &box))
 #else
@@ -2396,7 +2396,7 @@ void MissionDialogUpdate(void)
     PaintRect(GetDialogPortRect(missionDialog));
     if (missionBackgroundPic[0] != NULL)
         DrawPicHandle(missionBackgroundPic[0], GetDialogPortRect(missionDialog));
-    GetDialogItem(missionDialog, 8, &itemType, &item, &box);
+    GetDialogItem(missionDialog, 8, &itemType, (Handle *)&item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(missionDialog)))) {
         TextFont(smallTextFont);
         TextSize(smallTextSize);
@@ -2409,7 +2409,7 @@ void MissionDialogUpdate(void)
         DrawIndString(kGameStrList, kListCaptionIdx);
         ForeColor(blackColor);
     }
-    GetDialogItem(missionDialog, 5, &itemType, &item, &box);
+    GetDialogItem(missionDialog, 5, &itemType, (Handle *)&item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(missionDialog)))) {
         if (selMissionListItem != -1) {
 #ifdef CEFIX /* F23.01 */
@@ -2419,22 +2419,22 @@ void MissionDialogUpdate(void)
 #endif
             TextFont(gTimesFont);
             TextSize(18);
-            strncpy(text, (char *)missionName[dockedPortMissions[missionsOutside]
+            strncpy((char *)text, (char *)missionName[dockedPortMissions[missionsOutside]
                                                                [selMissionListItem]], 0xfa);
 #ifdef MACBUILD
             TruncString(box.right - box.left - 1, text, smTruncEnd);
 #endif
             PtoCstr((unsigned char *)text);
             strncpy(savedBriefing, briefingTextPtr, 0x1ffe);
-            strncpy(briefingTextPtr, text, 0xfa);
+            strncpy(briefingTextPtr, (char *)text, 0xfa);
             MungeBriefing(1, dockedPortMissions[missionsOutside][selMissionListItem]);
-            strncpy(text, briefingTextPtr, 0xfa);
+            strncpy((char *)text, briefingTextPtr, 0xfa);
             strncpy(briefingTextPtr, savedBriefing, 0x1ffe);
 #ifdef CEFIX /* F23.02-03 */
             CE_SetPen(box.left, box.top + CurrentGrafPort->txSize);
             DrawTextRun(text, strlen(text), NULL, 0, 0);
 #else
-            TETextBox(text, strlen(text), &box, 0);
+            TETextBox(text, strlen((char *)text), &box, 0);
             InvertRect(&box);
 #endif
         } else {
@@ -2442,7 +2442,7 @@ void MissionDialogUpdate(void)
             PaintRect(&box);
         }
     }
-    GetDialogItem(missionDialog, 4, &itemType, &item, &box);
+    GetDialogItem(missionDialog, 4, &itemType, (Handle *)&item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(missionDialog)))) {
         if (selMissionListItem != -1) {
             ForeColor(blackColor);
@@ -2455,10 +2455,10 @@ void MissionDialogUpdate(void)
             PaintRect(&box);
         }
     }
-    GetDialogItem(missionDialog, 11, &itemType, &item, &box);
+    GetDialogItem(missionDialog, 11, &itemType, (Handle *)&item, &box);
     RGBForeColor(&rgbDarkGrey);
-    DateToMedString(gameTime, text);
-    CtoPstr(text);
+    DateToMedString(gameTime, (char *)text);
+    CtoPstr((char *)text);
     MoveTo(box.left, box.bottom);
     DrawString((unsigned char *)text);
     ForeColor(blackColor);
@@ -3069,7 +3069,7 @@ void MissionObjectivesCheck(short slot)
         if ((currentMissionObjectives[slot].flags & kMissionHidden) == 0) {
             PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
             GetIndString(buf, kGameStrList, 285);
-            DisplayComm(buf, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+            DisplayComm((PStrChar *)buf, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
         }
         QuickMissionFailure(slot);
     }
@@ -3625,7 +3625,7 @@ void SetupMissionInfoList(void)
     }
 
     SetDialogGWorld(missionInfoDialog);
-    GetDialogItem(missionInfoDialog, 2, &itemType, &itemHandle, &box);
+    GetDialogItem(missionInfoDialog, 2, &itemType, (Handle *)&itemHandle, &box);
     SetRect(&cellBounds, 0, 0, 1, count);
 
     TextFont(smallTextFont);
@@ -3646,7 +3646,7 @@ void SetupMissionInfoList(void)
                            false, false, false, hasScrollbar);
 #else
     ldefSpec.defType = kListDefUserProcType;
-    ldefSpec.u.userProc = NewListDefUPP(MissionListDefinition);
+    ldefSpec.u.userProc = NewListDefUPP((ListDefProcPtr)MissionListDefinition);
     CreateCustomList(&box, &cellBounds, cellSize, &ldefSpec, GetDialogWindow(missionInfoDialog),
                      true, false, false, hasScrollbar, &missionInfoList);
 #endif
@@ -3667,7 +3667,7 @@ void SetupMissionInfoList(void)
             strncpy(marker, "\xa5 ", 4);
 
         strncpy(nameBuf, currentMissions[i].name, kMissionInfoTextSize);
-        PtoCstr(nameBuf);
+        PtoCstr((unsigned char *)nameBuf);
         strncpy(briefingTextPtr, nameBuf, kMissionInfoTextSize);
         MungeBriefing(0, i);
         strncpy(nameBuf, briefingTextPtr, kMissionInfoTextSize);
@@ -4049,7 +4049,7 @@ Boolean MissionInfoFilter(long unused, EventRecord *ev, short *itemHit)
 #else
         where.v = ev->where.v;
         where.h = ev->where.h;
-        GetDialogItem(missionInfoDialog, 2, &itemType, &item, &box);
+        GetDialogItem(missionInfoDialog, 2, &itemType, (Handle *)&item, &box);
         if (PtInRect(where.h, where.v, &box)) {
 #endif
             LClick(where, ev->modifiers, missionInfoList);
@@ -4136,7 +4136,7 @@ void MissionInfoDialogUpdate(void)
     if (missionInfoBackgroundPic != NULL)
         DrawPicHandle(missionInfoBackgroundPic, GetDialogPortRect(missionInfoDialog));
     ForeColor(blackColor);
-    GetDialogItem(missionInfoDialog, 3, &itemType, &item, &box);
+    GetDialogItem(missionInfoDialog, 3, &itemType, (Handle *)&item, &box);
     RGBForeColor(&rgbMedGrey);
     MoveTo(box.left, box.bottom);
     DrawIndString(kGameStrList, kDateCaptionIdx);
@@ -4144,7 +4144,7 @@ void MissionInfoDialogUpdate(void)
     RGBForeColor(&rgbDarkGrey);
     DateToMedString(gameTime, text);
     CtoPstr(text);
-    GetDialogItem(missionInfoDialog, 7, &itemType, &item, &box);
+    GetDialogItem(missionInfoDialog, 7, &itemType, (Handle *)&item, &box);
 #ifdef CEFIX /* F12.04 */
     CE_SetPen((box.right + box.left) / 2 - StringWidth((unsigned char *)text) / 2,
               box.top + smallTextSize - 9 + CE_Scale(9));
@@ -4155,7 +4155,7 @@ void MissionInfoDialogUpdate(void)
 #endif
     DrawString((unsigned char *)text);
     ForeColor(blackColor);
-    GetDialogItem(missionInfoDialog, 4, &itemType, &item, &box);
+    GetDialogItem(missionInfoDialog, 4, &itemType, (Handle *)&item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(missionInfoDialog)))) {
         if (selMissionInfoListItem != -1) {
             ForeColor(blackColor);
@@ -4347,7 +4347,7 @@ Boolean SingleMissionFilter(long unused, EventRecord *ev, short *itemHit)
         GlobalToLocal(&where);
 #endif
         if (canScrollTextUp != 0) {
-            GetDialogItem(missionDialog, 9, &itemType, &item, &box);
+            GetDialogItem(missionDialog, 9, &itemType, (Handle *)&item, &box);
 #ifdef MACBUILD
             if ((PtInRect)(where, &box) && canScrollTextUp != 0) {
 #else
@@ -4369,7 +4369,7 @@ Boolean SingleMissionFilter(long unused, EventRecord *ev, short *itemHit)
             }
         }
         if (canScrollTextDown != 0) {
-            GetDialogItem(missionDialog, 10, &itemType, &item, &box);
+            GetDialogItem(missionDialog, 10, &itemType, (Handle *)&item, &box);
 #ifdef MACBUILD
             if ((PtInRect)(where, &box) && canScrollTextDown != 0) {
 #else
@@ -4490,7 +4490,7 @@ void SingleMissionDialogUpdate(void)
     }
     DrawSingleMissionButtons(-1);
     if (descResourcePictId >= kFirstResourceID) {
-        GetDialogItem(missionDialog, 8, &itemType, &item, &r);
+        GetDialogItem(missionDialog, 8, &itemType, (Handle *)&item, &r);
         inside = RectInRgn(&r, GetWindowVisRgn(FrontWindow(missionDialog)));
         if (inside) {
             loaded = GetPicture(descResourcePictId);
@@ -4500,14 +4500,14 @@ void SingleMissionDialogUpdate(void)
             }
         }
     }
-    (*offerTextHandle)->inPort = loadPort.world;
-    GetDialogItem(missionDialog, 3, &itemType, &item, &r);
+    (*offerTextHandle)->inPort = (GrafPtr)loadPort.world;
+    GetDialogItem(missionDialog, 3, &itemType, (Handle *)&item, &r);
     ForeColor(whiteColor);
     BackColor(blackColor);
     TEUpdate(&r, offerTextHandle);
     ForeColor(blackColor);
     BackColor(whiteColor);
-    (*offerTextHandle)->inPort = GetDialogPort(missionDialog);
+    (*offerTextHandle)->inPort = (GrafPtr)GetDialogPort(missionDialog);
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(missionDialog);
     CopyBits(GWorldContainerBits(&loadPort),

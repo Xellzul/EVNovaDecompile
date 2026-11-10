@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,space -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: AmbrosiaTools (the mac build imports it as AmbrosiaTools.framework) on its own compiler as one library: the draw and sound tools call memset/memcpy at constant sizes, so no ,intrinsics; -enum min -align 8 are the library's struct layout (jpeglib.h's structs in itjpeg.c, a double at 8); build 335 has no -proc; Research/runtime-compiler-ceiling.md
 /* itblit.c -- the draw tool: the two standard palettes and their built guard, the image records (a header owning a port, a device and a pixel map, allocated in one block) and the file-format sniff, and the pixel blitter: the span routines (frame x operation x destination alpha, plus same-format fast paths), their dispatch tables, the scaling blitter and the tiling blitter. Notes: Research/notes/itblit.md */
 

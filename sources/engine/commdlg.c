@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* commdlg.c -- the hail, haggle and plunder dialog object (tu-map O22, win 0x0047e470..0x004860f0). Notes: Research/notes/commdlg.md */
 #include <stddef.h>
@@ -27,7 +27,7 @@
 
 /* the mac engine invalidates a dialog item through the caller's own GetDialogItem locals */
 #ifdef MACBUILD
-#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, (void **)&item, &box), InvalWindowRect(GetDialogWindow(dlg), &box))
+#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, &item, &box), InvalWindowRect(GetDialogWindow(dlg), &box))
 #endif
 #define kCommButtons  3
 
@@ -617,12 +617,12 @@ void CommDialogUpdate(void)
     if (commBackgroundPic != NULL)
         DrawPicHandle(commBackgroundPic, GetDialogPortRect(commDialog));
     DrawCommDialogButtons(-1);
-    GetDialogItem(commDialog, 11, &itemType, (void **)&item, &box);
+    GetDialogItem(commDialog, 11, &itemType, &item, &box);
     if (commShipPic != NULL) {
         ForeColor(blackColor);
         DrawPicHandle(commShipPic, &box);
     }
-    GetDialogItem(commDialog, 12, &itemType, (void **)&item, &box);
+    GetDialogItem(commDialog, 12, &itemType, &item, &box);
     ForeColor(blackColor);
     PaintRect(&box);
     RGBForeColor(&rgbMedGrey);
@@ -662,7 +662,7 @@ void CommDialogUpdate(void)
             DrawIndString(kGameStrList, 0xa8);
     }
     ForeColor(blackColor);
-    GetDialogItem(commDialog, 10, &itemType, (void **)&item, &box);
+    GetDialogItem(commDialog, 10, &itemType, &item, &box);
     pstrcpy(text, commResponseString);
     PtoCstr(text);
     InsetRect(&box, 1, 1);
@@ -853,7 +853,7 @@ void DoPlanetCommDialog(short stellar)
                             strcat((char *)text, " ");
                             StrcatIndCString((char *)text, kGameStrList, 0x64);
                             CtoPstr((char *)text);
-                            DisplayComm(text, 0xfa, 0, 12,
+                            DisplayComm((PStrChar *)text, 0xfa, 0, 12,
                                         &rgbWhite, 0, 0);
                             shipData->credits -= haggleVal;
                             statusRedraw[2] = 1;
@@ -1151,7 +1151,7 @@ void PlanetCommDialogUpdate(void)
     if (commBackgroundPic != NULL)
         DrawPicHandle(commBackgroundPic, GetDialogPortRect(commDialog));
     DrawPlanetCommDialogButtons(-1);
-    GetDialogItem(commDialog, 4, &itemType, (void **)&item, &box);
+    GetDialogItem(commDialog, 4, &itemType, &item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(commDialog)))) {
         strncpy((char *)text, (char *)commResponseString, 0xfe);
         PtoCstr(text);
@@ -1166,7 +1166,7 @@ void PlanetCommDialogUpdate(void)
         TETextBox(text, strlen((char *)text), &textBox, 0);
         InvertRect(&box);
     }
-    GetDialogItem(commDialog, 5, &itemType, (void **)&item, &box);
+    GetDialogItem(commDialog, 5, &itemType, &item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(commDialog)))) {
         ForeColor(blackColor);
         for (i = 0; i < kStellarSprites; i++) {
@@ -1185,12 +1185,12 @@ void PlanetCommDialogUpdate(void)
                  &textBox, &textBox, 0, NULL);
         BlitPixieRLEDrawProc(stellarSprite[i]->curFrameP, gSpriteWorld->workFrameP,
                              &stellarSprite[i]->curFrameP->frameRect, &textBox);
-        CopyBits((PixMapPtr)GetPortPixMapBits(
+        CopyBits(GetPortPixMapBits(
                      gSpriteWorld->workFrameP->framePort),
                  (BitMapPtr)GWorldContainerBits(&loadPort),
                  &textBox, &textBox, 0, NULL);
     }
-    GetDialogItem(commDialog, 6, &itemType, (void **)&item, &box);
+    GetDialogItem(commDialog, 6, &itemType, &item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(commDialog)))) {
         TextFont(smallTextFont);
         TextSize(smallTextSize);
@@ -1587,8 +1587,8 @@ short DoHaggleDialog(Boolean raise, short chance)
     }
     halfW = (GetDialogPortRect(haggleDialog)->right - GetDialogPortRect(haggleDialog)->left) / 2;
     halfH = (GetDialogPortRect(haggleDialog)->bottom - GetDialogPortRect(haggleDialog)->top) / 2;
-    halfW = (GetCWindowPortRect(gWind)->right - GetCWindowPortRect(gWind)->left) / 2;
-    halfH = (GetCWindowPortRect(gWind)->bottom - GetCWindowPortRect(gWind)->top) / 2;
+    halfW = (GetCWindowPortRect((WindowRef)gWind)->right - GetCWindowPortRect((WindowRef)gWind)->left) / 2;
+    halfH = (GetCWindowPortRect((WindowRef)gWind)->bottom - GetCWindowPortRect((WindowRef)gWind)->top) / 2;
     DisposeDialogNoFlash(haggleDialog);
     haggleDialog = NULL;
 #ifdef MACBUILD
@@ -1684,7 +1684,7 @@ void HaggleDialogUpdate(void)
     PaintRect(GetDialogPortRect(haggleDialog));
     if (haggleBackgroundPic != NULL)
         DrawPicHandle(haggleBackgroundPic, GetDialogPortRect(haggleDialog));
-    GetDialogItem(haggleDialog, 3, &itemType, (void **)&item, &box);
+    GetDialogItem(haggleDialog, 3, &itemType, &item, &box);
     ForeColor(whiteColor);
     MoveTo(box.left + kTextInsetH, box.top + kTextBaseline);
     if (haggleMode == kHaggleMission) {
@@ -1864,7 +1864,7 @@ void DoPlunderDialog(void)
                 StrcatIndCString((char *)text, kGameStrList, 0x6c);
                 CtoPstr((char *)text);
                 PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
-                DisplayComm(text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                 RefreshSAT();
 #endif
@@ -1903,7 +1903,7 @@ void DoPlunderDialog(void)
             shipData[shipData->targetShip].deathTimer = 0;
             PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
             GetIndString(text, kGameStrList, 0x71);
-            DisplayComm(text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+            DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
             SetDialogGWorld(plunderDialog);
             break;
         }
@@ -1916,7 +1916,7 @@ void DoPlunderDialog(void)
                 if (salvageQty <= 0) {
                     PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
                     GetIndString(text, kGameStrList, 0x72);
-                    DisplayComm(text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
@@ -1942,7 +1942,7 @@ void DoPlunderDialog(void)
                     StrcatIndCString((char *)text, kGameStrList, 0x6c);
                     CtoPstr((char *)text);
                     PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
-                    DisplayComm(text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
@@ -1972,7 +1972,7 @@ void DoPlunderDialog(void)
                 strcat((char *)text, " ");
                 StrcatIndCString((char *)text, kGameStrList, 0x6c);
                 CtoPstr((char *)text);
-                DisplayComm(text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                 RefreshSAT();
 #endif
@@ -2028,14 +2028,14 @@ void DoPlunderDialog(void)
                     StrcatIndCString((char *)text, kGameStrList, 0x6c);
                     CtoPstr((char *)text);
                     PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
-                    DisplayComm(text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
                 } else {
                     PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
                     GetIndString(text, kGameStrList, 0x75);
-                    DisplayComm(text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
@@ -2062,14 +2062,14 @@ void DoPlunderDialog(void)
                 if (space > 0) {
                     shipData->fuel = shipData->fuel + space;
                     if (shipData->fuel >= ShipFuelCapacity(shipData))
-                        DisplayComm(fuelString[1], 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                        DisplayComm((PStrChar *)fuelString[1], 0xf0, 0, 0xc, &rgbWhite, 0, 0);
                     else
-                        DisplayComm(fuelString[2], 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                        DisplayComm((PStrChar *)fuelString[2], 0xf0, 0, 0xc, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
                 } else {
-                    DisplayComm(fuelString[3], 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)fuelString[3], 0xf0, 0, 0xc, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
@@ -2098,7 +2098,7 @@ void DoPlunderDialog(void)
                     shipData[shipData->targetShip].armor = 0;
                     shipData[shipData->targetShip].deathTimer = 0;
                     GetIndString(text, kGameStrList, 0x71);
-                    DisplayComm(text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
@@ -2130,7 +2130,7 @@ void DoPlunderDialog(void)
                                 LoadIntfResource();
                             } else {
                                 GetIndString(text, kGameStrList, 0x7a);
-                                DisplayComm(text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                                DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
                                 SetDialogGWorld(plunderDialog);
                             }
                         } else {
@@ -2162,7 +2162,7 @@ void DoPlunderDialog(void)
                             for (i = 0; i < 4; i++)
                                 shipData[shipData->targetShip].jamming[i] = -1;
                             GetIndString(text, kGameStrList, 0x7b);
-                            DisplayComm(text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                            DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                             RefreshSAT();
 #endif
@@ -2172,7 +2172,7 @@ void DoPlunderDialog(void)
                     } else {
                         PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
                         GetIndString(text, kGameStrList, 0x7c);
-                        DisplayComm(text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                        DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                         RefreshSAT();
 #endif
@@ -2183,7 +2183,7 @@ void DoPlunderDialog(void)
                 done = 1;
                 PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
                 GetIndString(text, kGameStrList, 0x7d);
-                DisplayComm(text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                 RefreshSAT();
 #endif
@@ -2481,7 +2481,7 @@ void PlunderDialogUpdate(void)
     PaintRect(GetDialogPortRect(plunderDialog));
     if (plunderBackgroundPic != NULL)
         DrawPicHandle(plunderBackgroundPic, GetDialogPortRect(plunderDialog));
-    GetDialogItem(plunderDialog, 5, &itemType, (void **)&item, &box);
+    GetDialogItem(plunderDialog, 5, &itemType, &item, &box);
     ForeColor(blackColor);
     PaintRect(&box);
     RGBForeColor(&rgbLightGrey);
@@ -2832,12 +2832,12 @@ void EscortDialogUpdate(void)
     if (commBackgroundPic != NULL)
         DrawPicHandle(commBackgroundPic, GetDialogPortRect(commDialog));
     DrawEscortButtons(-1);
-    GetDialogItem(commDialog, 11, &itemType, (void **)&item, &box);
+    GetDialogItem(commDialog, 11, &itemType, &item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(commDialog)))) {
         ForeColor(blackColor);
         DrawPicHandle(commShipPic, &box);
     }
-    GetDialogItem(commDialog, 12, &itemType, (void **)&item, &box);
+    GetDialogItem(commDialog, 12, &itemType, &item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(commDialog)))) {
         ForeColor(blackColor);
         PaintRect(&box);
@@ -2860,7 +2860,7 @@ void EscortDialogUpdate(void)
         }
         ForeColor(blackColor);
     }
-    GetDialogItem(commDialog, 10, &itemType, (void **)&item, &box);
+    GetDialogItem(commDialog, 10, &itemType, &item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(commDialog)))) {
         ForeColor(blackColor);
         PaintRect(&box);

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* swcloneframesfrommaster.c -- SWCloneFramesFromMaster (win 0x00475f70). Notes: Research/notes/swcloneframesfrommaster.md */
 #include "macport.h"
 #include "burger.h"

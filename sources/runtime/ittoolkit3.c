@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,intrinsics,space -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: AmbrosiaTools (the mac build imports it as AmbrosiaTools.framework) on its own compiler as one library: its platform, network, file and interface parts inline memset (rep stos in the exe), so ,intrinsics; -enum min -align 8 are the library's struct layout (jpeglib.h's structs in itjpeg.c, a double at 8); build 335 has no -proc; Research/runtime-compiler-ceiling.md
 /* ittoolkit3.c -- the interface tool's control lists, from 0x0051db65: a window's controls built from its page, the key, click, paint and focus walkers over a list, a control's messages, links and scripts, the inserted elements. Notes: Research/notes/ittoolkit.md */
 
@@ -98,7 +98,7 @@ ITControlList *_IT_ItemListCreate(WindowNode *window, ITElement *first)
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
         if (el->name != 0 && el->tag > 0) {
             if (el->wide) {
-                if (UnicodeCompare(kParameterW, el->name) != 0 && UnicodeCompare(kParamW, el->name) != 0)
+                if (UnicodeCompare(kParameterW, (unsigned short *)el->name) != 0 && UnicodeCompare(kParamW, (unsigned short *)el->name) != 0)
                     continue;
             } else {
                 if (StringCompare("PARAMETER", el->name) != 0 && StringCompare("PARAM", el->name) != 0)
@@ -132,12 +132,12 @@ ITControlList *_IT_ItemListCreate(WindowNode *window, ITElement *first)
                 err = kOutOfMemory;
                 goto done;
             }
-            name = C2UStringCopySafe(buffer, name, -1, -1);
+            name = (char *)C2UStringCopySafe((unsigned short *)buffer, (unsigned char *)name, (ULong)-1, (ULong)-1);
         }
         if (name != 0 && window->variables != 0)
-            value = HashLookupUnicode(window->variables, name, 0);
+            value = HashLookupUnicode(window->variables, (unsigned short *)name, 0);
         if (name != 0 && value == 0 && gIT_DefaultHash != 0)
-            value = HashLookupUnicode(gIT_DefaultHash, name, 0);
+            value = HashLookupUnicode(gIT_DefaultHash, (unsigned short *)name, 0);
         if (buffer != 0) {
             MemoryDeallocate(buffer);
             buffer = 0;
@@ -163,7 +163,7 @@ ITControlList *_IT_ItemListCreate(WindowNode *window, ITElement *first)
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
         if (el->name != 0 && el->tag > 0) {
             if (el->wide) {
-                U2CStringCopySafe(tagName, el->name, sizeof(tagName), -1);
+                U2CStringCopySafe((unsigned char *)tagName, (unsigned short *)el->name, sizeof(tagName), (ULong)-1);
                 if (IT_ItemHandlerLookup(window, tagName) == 0)
                     continue;
             } else if (IT_ItemHandlerLookup(window, el->name) == 0) {
@@ -718,7 +718,7 @@ long _IT_ItemCreate(WindowNode *window, ITControlList *list, ITElement *element,
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     if (value != 0) {
         if (wide)
-            Unicode2UpperCopySafe(value, value, -1, -1);
+            Unicode2UpperCopySafe((unsigned short *)value, (unsigned short *)value, (ULong)-1, (ULong)-1);
         else
             String2Upper(value);
     }
@@ -746,7 +746,7 @@ long _IT_ItemCreate(WindowNode *window, ITControlList *list, ITElement *element,
     }
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     if (wide) {
-        U2CStringCopySafe(tagName, c->element->name, sizeof(tagName), -1);
+        U2CStringCopySafe((unsigned char *)tagName, (unsigned short *)c->element->name, sizeof(tagName), (ULong)-1);
         if ((c->proc = IT_ItemHandlerLookup(window, tagName)) == 0)
             err = 0;
     } else
@@ -766,8 +766,8 @@ long _IT_ItemCreate(WindowNode *window, ITControlList *list, ITElement *element,
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     if (wide) {
         if (value == 0)
-            value = kEmptyW;
-        title = IndirectInitialize(value, UnicodeGetByteCount(value));
+            value = (char *)kEmptyW;
+        title = IndirectInitialize(value, UnicodeGetByteCount((unsigned short *)value));
         if (title == 0) {
             err = kOutOfMemory;
             goto done;
@@ -909,7 +909,7 @@ long _IT_ItemExecute(WindowNode *window, ITControl *control, const char *link)
         if (text != 0) {
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
             if (control->element->wide) {
-                String2Upper(U2CStringCopySafe(command, text, sizeof(command), -1));
+                String2Upper((char *)U2CStringCopySafe((unsigned char *)command, (unsigned short *)text, sizeof(command), (ULong)-1));
             } else
 #endif
             String2UpperCopySafe(command, text, sizeof(command));
@@ -921,7 +921,7 @@ long _IT_ItemExecute(WindowNode *window, ITControl *control, const char *link)
                     window = window->parent;
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
                 if (window->result != 0 && control->element->wide && (text = HashLookupUnicode(control->element->attributes, kNameW, 0)) != 0)
-                    U2CStringCopySafe(window->result, text, 0x100, -1);
+                    U2CStringCopySafe((unsigned char *)window->result, (unsigned short *)text, 0x100, (ULong)-1);
                 else if (window->result != 0 && !control->element->wide && (text = HashLookup(control->element->attributes, "NAME", 0)) != 0)
                     StringCopySafe(window->result, text, 0x100);
 #else
@@ -949,7 +949,7 @@ long _IT_ItemExecute(WindowNode *window, ITControl *control, const char *link)
     }
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     if (text != link && control->element->wide)
-        text = U2CStringCopySafe(command, text, sizeof(command), -1);
+        text = (char *)U2CStringCopySafe((unsigned char *)command, (unsigned short *)text, sizeof(command), (ULong)-1);
 #endif
     target = window;
     if (StringFindString(text, "://") != 0 || StringFindString(text, "mailto:") != 0) {
@@ -1259,7 +1259,7 @@ long _IT_ParamModify(WindowNode *window, ULong index, const char *value, ParamWi
     if (value != 0) {
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
         if (unused && window->source.root->wide) {
-            text = IndirectInitialize(value, UnicodeGetByteCount(value));
+            text = IndirectInitialize(value, UnicodeGetByteCount((unsigned short *)value));
             if (text == 0) {
                 err = kOutOfMemory;
                 goto done;
@@ -1278,7 +1278,7 @@ long _IT_ParamModify(WindowNode *window, ULong index, const char *value, ParamWi
                 err = kOutOfMemory;
                 goto done;
             }
-            U2CStringCopySafe(*text, value, length, -1);
+            U2CStringCopySafe(*text, (unsigned short *)value, length, (ULong)-1);
             e = IndirectSetSize(text, length - 1);
             if (e != 0) {
                 err = e;
@@ -1302,7 +1302,7 @@ long _IT_ParamModify(WindowNode *window, ULong index, const char *value, ParamWi
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
             if (element->name != 0 && element->tag > 0) {
                 if (element->wide) {
-                    if (UnicodeCompare(kParameterW, element->name) != 0 && UnicodeCompare(kParamW, element->name) != 0)
+                    if (UnicodeCompare(kParameterW, (unsigned short *)element->name) != 0 && UnicodeCompare(kParamW, (unsigned short *)element->name) != 0)
                         continue;
                 } else {
                     if (StringCompare("PARAMETER", element->name) != 0 && StringCompare("PARAM", element->name) != 0)
@@ -1408,12 +1408,12 @@ long IT_ViewGetNamedItem(WindowNode *window, const char *name)
     value = 0;
     String2UpperCopySafe(wanted, name, sizeof(wanted));
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
-    C2UStringCopySafe(wideWanted, wanted, sizeof(wideWanted), -1);
+    C2UStringCopySafe(wideWanted, (const unsigned char *)wanted, sizeof(wideWanted), (ULong)-1);
 #endif
     for (c = window->controls->first; c != 0; c = c->next) {
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
         if (c->element->wide) {
-            wideValue = HashLookupUnicode(c->element->attributes, kNameW, 0);
+            wideValue = (unsigned short *)HashLookupUnicode(c->element->attributes, kNameW, 0);
             if (wideValue != 0 && *wideValue != 0) {
                 Unicode2UpperCopySafe(wideHave, wideValue, sizeof(wideHave), -1);
                 if (UnicodeCompare(wideWanted, wideHave) == 0)

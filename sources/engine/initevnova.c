@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* initevnova.c -- tu-map object O2: game start, PlayGame, ship spawning, damage, escorts and fleets, then the pirated-key check and the .CRT hook that ends the object. Notes: Research/notes/initevnova.md */
 #include <stdlib.h>
@@ -549,7 +549,7 @@ void InitEVNova(void)
     crashlog("opening data files & loading prefs");
     InitDataFiles();
     LoadPrefs();
-    Microseconds(&fakeLicenseCode);
+    Microseconds((UnsignedWide *)&fakeLicenseCode);
 
     crashlog("initializing monitor");
     SetupMonitor();
@@ -701,9 +701,9 @@ void InitEVNova(void)
 
     for (i = 0; i < kBlacklistCount; i++) {
         if (blk[i] != 0) {
-            strcpy(alertText, "EV Nova");
-            strcat(alertText, " License");
-            CtoPstr(alertText);
+            strcpy((char *)alertText, "EV Nova");
+            strcat((char *)alertText, " License");
+            CtoPstr((char *)alertText);
             if (FSMakeFSSpec(prefsVRefNum, prefsDirID, alertText, &licenseSpec) == noErr)
                 FSpDelete(&licenseSpec);
             break;
@@ -805,9 +805,9 @@ void InitEVNova(void)
             if (settings.shipAnimations || settings.engineGlows || settings.weaponGlows || settings.runningLights)
                 DoPrefsDialog();
             CopyBits(GWorldContainerBits(&loadPort),
-                     GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
-                     GetCWindowPortRect(gWind), GetCWindowPortRect(gWind),
-                     srcCopy, GetCWindowVisRgn(gWind));
+                     GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
+                     GetCWindowPortRect((WindowRef)gWind), GetCWindowPortRect((WindowRef)gWind),
+                     srcCopy, GetCWindowVisRgn((WindowRef)gWind));
             memNeeded = PreflightMemoryUsageTotal() + 10000000;
             if (memNeeded > startupMemoryFree) {
                 GetIndString(alertText, kAlertStrList, 0x1c);
@@ -880,12 +880,12 @@ void InitEVNova(void)
         Boolean ok;
 
         g = shipData[36].licenseCopies;
-        p = shipData[17].licenseName;
+        p = (char *)shipData[17].licenseName;
         mem = shipData[5].licenseCode;
         x = 0;
         if (p != 0 && *p != 0) {
-            while (StringGetLength(p) != 0 && StringGetLength(key) + 1 < 17)
-                StringAppendSafe(key, p, 17);
+            while (StringGetLength((const unsigned char *)p) != 0 && StringGetLength(key) + 1 < 17)
+                StringAppendSafe(key, (const unsigned char *)p, 17);
         }
         x ^= (unsigned char)g;
         x += (char)0xe7;
@@ -2149,7 +2149,7 @@ void PlayGame(void)
                     if (ReadTick() > lastFPSUpdateTime + 120) {
                         if ((unsigned long)lastFPSUpdateTime == 0) {
                             GetIndString(str, kGameStrList, 282);
-                            DisplayComm(str, 100, 0, 12, &rgbWhite, 0, 0);
+                            DisplayComm((PStrChar *)str, 100, 0, 12, &rgbWhite, 0, 0);
                         } else {
                             NumToString((fpsCounter * 60.0 /
                                     (float)(ReadTick() - lastFPSUpdateTime)),
@@ -2159,7 +2159,7 @@ void PlayGame(void)
                             strcat((char *)str, " ");
                             StrcatIndCString((char *)str, kGameStrList, 283);
                             CtoPstr((char *)str);
-                            DisplayComm(str, 999, 0, 12, &rgbWhite, 0, 0);
+                            DisplayComm((PStrChar *)str, 999, 0, 12, &rgbWhite, 0, 0);
                         }
                         lastFPSUpdateTime = ReadTick();
                         fpsCounter = 0;
@@ -2219,7 +2219,7 @@ void PlayGame(void)
                 if (frameCounter > 1024) {
                     frameCounter = 0;
                     if (d.day == 30 && d.month == 6 && commCount <= 0)
-                        DisplayComm("\pHappy birthday Matt",
+                        DisplayComm((PStrChar *)"\pHappy birthday Matt",
                                     5, 3, 9, &rgbDarkGrey, 0, 0);
                     do {
                         unsigned char blob[3] = { 0x49, 0x71, 0xad };
@@ -2242,7 +2242,7 @@ void PlayGame(void)
 
                         g = shipData[36].licenseCopies;
 #ifdef MAC1010
-                        p = shipData[17].licenseName;
+                        p = (char *)shipData[17].licenseName;
 #else
                         p = RT3_CheckLicenseName(shipData[17].licenseName);
 #endif
@@ -2255,7 +2255,7 @@ void PlayGame(void)
 #endif
                         if (p != 0) {
                             while (StringGetLength(key) + 1 < 17 && *p != 0)
-                                StringAppendSafe(key, p, 17);
+                                StringAppendSafe(key, (const unsigned char *)p, 17);
                         }
                         c = key[3];
                         x ^= c;
@@ -2500,7 +2500,7 @@ void PlayGame(void)
         }
         if (absquatulateStr[0] != 0) {
             PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
-            DisplayComm(absquatulateStr, 500, 0, 12, &rgbWhite, 0, 0);
+            DisplayComm((PStrChar *)absquatulateStr, 500, 0, 12, &rgbWhite, 0, 0);
             RedrawComm(1);
             absquatulateStr[0] = 0;
         }
@@ -2514,7 +2514,7 @@ void PlayGame(void)
     FlushEvents(everyEvent - diskMask, 0);
     SWSetPortToWindow(gSpriteWorld);
     ForeColor(blackColor);
-    PaintRect(GetCWindowPortRect(gWind));
+    PaintRect(GetCWindowPortRect((WindowRef)gWind));
 }
 #else
 {
@@ -3305,7 +3305,7 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                         && (currentMissions[ship->specialMission].flags & kMissionHidden) == 0) {
                     PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
                     GetIndString((unsigned char *)msg, kGameStrList, kStrMissionFailed);
-                    DisplayComm((unsigned char *)msg, kCommTicks, 0, kCommFontSize,
+                    DisplayComm((PStrChar *)msg, kCommTicks, 0, kCommFontSize,
                                 &rgbWhite, 0, 0);
                     QuickMissionFailure(ship->specialMission);
                 }
@@ -3331,7 +3331,7 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
         if (ship->index == 0 && wasDisabled == 0) {
             PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
             GetIndString((unsigned char *)msg, kGameStrList, kStrShipDestroyed);
-            DisplayComm((unsigned char *)msg, kCommTicks, 0, kCommFontSize,
+            DisplayComm((PStrChar *)msg, kCommTicks, 0, kCommFontSize,
                         &rgbWhite, 0, 0);
             playerRepairInhibit = 300.0f;
             ship->armor = (long)ship->armor;
@@ -3341,7 +3341,7 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                     PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
                     QuickMissionFailure(i);
                     GetIndString((unsigned char *)msg, kGameStrList, kStrMissionFailed);
-                    DisplayComm((unsigned char *)msg, kCommTicks, 0, kCommFontSize,
+                    DisplayComm((PStrChar *)msg, kCommTicks, 0, kCommFontSize,
                                 &rgbWhite, 0, 0);
                     break;
                 }
@@ -3356,13 +3356,13 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                 && shipData[attacker].persType == kPersCaptainHector) {
             GetIndString((unsigned char *)msg, kHectorStrList,
                          Rand(kHectorTauntCount) + kHectorTauntBase);
-            DisplayComm((unsigned char *)msg, kHectorCommTicks, 0, kCommFontSize,
+            DisplayComm((PStrChar *)msg, kHectorCommTicks, 0, kCommFontSize,
                         &rgbWhite, 0, 0);
             playerKilledByHector = 1;
         }
         if (playerKilledByHector == 0) {
             GetIndString((unsigned char *)msg, kGameStrList, kStrPlayerKilled);
-            DisplayComm((unsigned char *)msg, kCommTicks, 0, kCommFontSize,
+            DisplayComm((PStrChar *)msg, kCommTicks, 0, kCommFontSize,
                         &rgbWhite, 0, 0);
         }
         for (i = 0; i < kMaxActiveMissions; i++) {
@@ -3371,7 +3371,7 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                 PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
                 QuickMissionFailure(i);
                 GetIndString((unsigned char *)msg, kGameStrList, kStrMissionFailed);
-                DisplayComm((unsigned char *)msg, kCommTicks, 0, kCommFontSize,
+                DisplayComm((PStrChar *)msg, kCommTicks, 0, kCommFontSize,
                             &rgbWhite, 0, 0);
                 break;
             }
@@ -4889,7 +4889,7 @@ void JettisonCargo(unsigned char withMissions)
                 if ((currentMissions[k].flags & kMissionHidden) == 0
                     && playerIsLanded == 0) {
                     GetIndString(text, kGameStrList, kMsgMissionAborted);
-                    DisplayComm(text, kCommWidth, 0, kCommHold, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)text, kCommWidth, 0, kCommHold, &rgbWhite, 0, 0);
                     toldMission = 1;
                 }
                 QuickMissionFailure(k);
@@ -4935,7 +4935,7 @@ void JettisonCargo(unsigned char withMissions)
                 GetIndString(text, kGameStrList, kMsgJettisonMission);
             else
                 GetIndString(text, kGameStrList, kMsgJettisonPlain);
-            DisplayComm(text, kCommWidth, 0, kCommHold, &rgbWhite, 0, 0);
+            DisplayComm((PStrChar *)text, kCommWidth, 0, kCommHold, &rgbWhite, 0, 0);
         }
     }
     ResetPlayerPrecalcedValues();
@@ -6461,11 +6461,11 @@ void DoShipCapture(ShipObj *me, Boolean asEscort)
         SystemInfoToShipStats();
         me->active = 0;
         GetIndString(buf, kGameStrList, 0x130);
-        DisplayComm(buf, 360, 0, 0xc, &rgbWhite, 0, 0);
+        DisplayComm((PStrChar *)buf, 360, 0, 0xc, &rgbWhite, 0, 0);
 
     } else {
         GetIndString(buf, kGameStrList, 0x131);
-        DisplayComm(buf, 360, 0, 0xc, &rgbWhite, 0, 0);
+        DisplayComm((PStrChar *)buf, 360, 0, 0xc, &rgbWhite, 0, 0);
     }
 }
 #undef slotL
@@ -6904,7 +6904,7 @@ void HyperSpawnFleet(short sys, short fleet, short escortOf,
                     digit = 0;
             }
             PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
-            DisplayComm(buf, 360, 0, 12, &rgbWhite, 0, 0);
+            DisplayComm((PStrChar *)buf, 360, 0, 12, &rgbWhite, 0, 0);
         }
     }
 }
@@ -6942,7 +6942,7 @@ void ShowPersonHailQuote(short persID)
     strcpy(briefingTextPtr, parseBuffer);
     MungeBriefing(0, -1);
     CtoPstr(briefingTextPtr);
-    DisplayComm((unsigned char *)briefingTextPtr, kHailCommWidth, 0, kHailTextSize,
+    DisplayComm((PStrChar *)briefingTextPtr, kHailCommWidth, 0, kHailTextSize,
                 &rgbWhite, 0, 0);
 }
 

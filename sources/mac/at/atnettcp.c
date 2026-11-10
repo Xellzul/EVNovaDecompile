@@ -250,7 +250,7 @@ long StreamOpenClientMacTCP(TCPMacTCP *s, NetAddress *local, const NetAddress *r
     pb.tcpStream = 0;
     pb.csParam.create.rcvBuff = s->buffer;
     pb.csParam.create.rcvBuffLen = kTcpBuffer;
-    pb.csParam.create.notifyProc = (TCPNotifyUPP)sStreamNotify;
+    pb.csParam.create.notifyProc = sStreamNotify;
     pb.csParam.create.userDataPtr = (Ptr)s->cookie;
     if (PBControlSync((ParmBlkPtr)&pb) != 0) {
         err = kOpenFailed2;
@@ -258,7 +258,7 @@ long StreamOpenClientMacTCP(TCPMacTCP *s, NetAddress *local, const NetAddress *r
     }
     s->stream = pb.tcpStream;
     s->state = kStateConnecting;
-    s->ctlPb.ioCompletion = (TCPIOCompletionUPP)sStreamDone;
+    s->ctlPb.ioCompletion = sStreamDone;
     s->ctlPb.ioResult = 0;
     s->ctlPb.ioCRefNum = gMacTCPRefNum;
     s->ctlPb.csCode = TCPActiveOpen;
@@ -411,7 +411,7 @@ void StreamCloseMacTCP(NetSocket *sock, unsigned char graceful)
     }
     if (s->stream != 0 && abort) {
         finished = 0;
-        pb.ioCompletion = (TCPIOCompletionUPP)sStreamSync;
+        pb.ioCompletion = sStreamSync;
         pb.ioResult = 0;
         pb.ioCRefNum = gMacTCPRefNum;
         pb.csCode = TCPAbort;
@@ -424,7 +424,7 @@ void StreamCloseMacTCP(NetSocket *sock, unsigned char graceful)
             SystemIdle();
     } else if (s->stream != 0 && close) {
         finished = 0;
-        pb.ioCompletion = (TCPIOCompletionUPP)sStreamSync;
+        pb.ioCompletion = sStreamSync;
         pb.ioResult = 0;
         pb.ioCRefNum = gMacTCPRefNum;
         pb.csCode = TCPClose;
@@ -485,14 +485,14 @@ long StreamGetAddressMacTCP(TCPMacTCP *s, NetAddress *local, NetAddress *remote)
 
 void StreamCreateStreamMacTCP(TCPMacTCP *s)
 {
-    s->ctlPb.ioCompletion = (TCPIOCompletionUPP)sStreamDone;
+    s->ctlPb.ioCompletion = sStreamDone;
     s->ctlPb.ioResult = 0;
     s->ctlPb.ioCRefNum = gMacTCPRefNum;
     s->ctlPb.csCode = TCPCreate;
     s->ctlPb.tcpStream = 0;
     s->ctlPb.csParam.create.rcvBuff = s->buffer;
     s->ctlPb.csParam.create.rcvBuffLen = kTcpBuffer;
-    s->ctlPb.csParam.create.notifyProc = (TCPNotifyUPP)sStreamNotify;
+    s->ctlPb.csParam.create.notifyProc = sStreamNotify;
     s->ctlPb.csParam.create.userDataPtr = (Ptr)s->cookie;
     PBControlAsync((ParmBlkPtr)&s->ctlPb);
 }
@@ -505,7 +505,7 @@ static void StreamListenMacTCP(TCPMacTCP *s)
     err = 0;
     s->state = kStateListening;
     AtomicMaskApply(&s->flags, 0);
-    s->ctlPb.ioCompletion = (TCPIOCompletionUPP)sStreamDone;
+    s->ctlPb.ioCompletion = sStreamDone;
     s->ctlPb.ioResult = 0;
     s->ctlPb.ioCRefNum = gMacTCPRefNum;
     s->ctlPb.csCode = TCPPassiveOpen;
@@ -549,7 +549,7 @@ void StreamPostMacTCP(TCPMacTCP *s)
         s->wds[0].length = s->sending->length;
         s->wds[0].ptr = s->sending->data;
         s->wds[1].length = 0;
-        s->sendPb.ioCompletion = (TCPIOCompletionUPP)sStreamDone;
+        s->sendPb.ioCompletion = sStreamDone;
         s->sendPb.ioResult = 0;
         s->sendPb.ioCRefNum = gMacTCPRefNum;
         s->sendPb.csCode = TCPSend;
@@ -588,7 +588,7 @@ void StreamReceiveMacTCP(TCPMacTCP *s)
         if (chunk != 0) {
             AtomicMaskClear(&s->flags, kFlagPosted);
             s->receiving->length = 0;
-            s->ctlPb.ioCompletion = (TCPIOCompletionUPP)sStreamDone;
+            s->ctlPb.ioCompletion = sStreamDone;
             s->ctlPb.ioResult = 0;
             s->ctlPb.ioCRefNum = gMacTCPRefNum;
             s->ctlPb.csCode = TCPRcv;
@@ -617,7 +617,7 @@ void StreamReceiveMacTCP(TCPMacTCP *s)
 
 void StreamCloseAsyncMacTCP(TCPMacTCP *s)
 {
-    s->ctlPb.ioCompletion = (TCPIOCompletionUPP)sStreamDone;
+    s->ctlPb.ioCompletion = sStreamDone;
     s->ctlPb.ioResult = 0;
     s->ctlPb.ioCRefNum = gMacTCPRefNum;
     s->ctlPb.csCode = TCPAbort;
@@ -628,7 +628,7 @@ void StreamCloseAsyncMacTCP(TCPMacTCP *s)
 
 void StreamAbortAsyncMacTCP(TCPMacTCP *s)
 {
-    s->ctlPb.ioCompletion = (TCPIOCompletionUPP)sStreamDone;
+    s->ctlPb.ioCompletion = sStreamDone;
     s->ctlPb.ioResult = 0;
     s->ctlPb.ioCRefNum = gMacTCPRefNum;
     s->ctlPb.csCode = TCPClose;

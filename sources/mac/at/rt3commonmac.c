@@ -66,15 +66,15 @@ ULongLong RT3_CalcMainHash(const char *product, const char *name, long copies)
     h = 0;
     for (i = 0; *product != 0; product++, i++) {
         h = h >> 60 | h << 4;
-        h ^= (long long)*product;
+        h ^= *product;
         h = h >> 63 | h << 1;
-        h ^= (ULong)(copies * (i + 7));
+        h ^= (copies * (i + 7));
     }
     for (i = 0; *name != 0; name++, i++) {
         h = h >> 61 | h << 3;
-        h ^= (long long)*name;
+        h ^= *name;
         h = h >> 63 | h << 1;
-        h ^= (ULong)(copies * (i + 13) * 3);
+        h ^= (copies * (i + 13) * 3);
     }
     if (!h)
         h = 1;

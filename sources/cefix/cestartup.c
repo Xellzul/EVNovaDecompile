@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* cestartup.c -- EV Nova CE: startup, ddraw.ini, video mode, cnc-ddraw windowing, x2 key,
    window procedure (CEFIX only). Notes: Research/cefix-plan.md */
 #ifdef CEFIX

@@ -39,7 +39,7 @@ short GetDepthFromWindow( WindowPtr theWindow )
 	else
 	{
 		GetGWorld( &oldGWorld, &oldGDH );
-		SetPort( GetWindowPort( theWindow ) );
+		SetPort( (GrafPtr)GetWindowPort( theWindow ) );
 		GetGWorld( &windowGWld, &windowGDH );
 		depth = GetGDeviceDepth( windowGDH );
 		SetGWorld( oldGWorld, NULL );

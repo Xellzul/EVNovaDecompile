@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* loaddata.c -- pilot-folder setup, OpenDataFiles, LoadObjectData, LoadStrings, LoadPrefs/SavePrefs, the pilot file, the resource utilities, the chär record readers and VerifyResourceChecksums. Notes: Research/notes/loaddata.md */
 #include <math.h>
 #include <stdio.h>
@@ -2929,10 +2929,10 @@ void LoadPrefs(void)
         gPrefsRefNum = FSpOpenResFile(&spec, fsRdWrPerm);
         if (gPrefsRefNum != -1) {
             gPrefsHandle = NULL;
-            gPrefsHandle = GetResource(kPrefsResType, kPrefsResID);
+            gPrefsHandle = (PrefsRecord **)GetResource(kPrefsResType, kPrefsResID);
             if (gPrefsHandle != NULL) {
-                HNoPurge(gPrefsHandle);
-                HLock(gPrefsHandle);
+                HNoPurge((Handle)gPrefsHandle);
+                HLock((Handle)gPrefsHandle);
                 settings.introMusic = 0;
                 settings.voicesOn = 0;
                 settings.clipping = 0;
@@ -2991,8 +2991,8 @@ void LoadPrefs(void)
                     DAT_00735450 = (*gPrefsHandle)->unk50;
                     DAT_00735450 *= 0.01;
                 }
-                HUnlock(gPrefsHandle);
-                HPurge(gPrefsHandle);
+                HUnlock((Handle)gPrefsHandle);
+                HPurge((Handle)gPrefsHandle);
                 CloseResFile(gPrefsRefNum);
                 if (sig != kPrefsSig1010) {
                     GetIndString(name, kPrefsStrList, 1);
@@ -3057,10 +3057,10 @@ void SavePrefs(void)
             return;
     } else
         return;
-    gPrefsHandle = NewHandle(kPrefsRecSize1010);
+    gPrefsHandle = (PrefsRecord **)NewHandle(kPrefsRecSize1010);
     if (gPrefsHandle != NULL) {
-        HNoPurge(gPrefsHandle);
-        HLock(gPrefsHandle);
+        HNoPurge((Handle)gPrefsHandle);
+        HLock((Handle)gPrefsHandle);
         (*gPrefsHandle)->sig = kPrefsSig1010;
         if (settings.introMusic != 0)
             (*gPrefsHandle)->musicEnabled = 1;
@@ -3134,10 +3134,10 @@ void SavePrefs(void)
         for (i = 0; i <= 5; i++)
             (*gPrefsHandle)->reserved[i] = 0;
         UseResFile(gPrefsRefNum);
-        AddResource(gPrefsHandle, kPrefsResType, kPrefsResID, "\pEV Prefs");
+        AddResource((Handle)gPrefsHandle, kPrefsResType, kPrefsResID, "\pEV Prefs");
         UseResFile(savedResFile);
-        HUnlock(gPrefsHandle);
-        HPurge(gPrefsHandle);
+        HUnlock((Handle)gPrefsHandle);
+        HPurge((Handle)gPrefsHandle);
     }
     UpdateResFile(gPrefsRefNum);
     CloseResFile(gPrefsRefNum);
@@ -3871,8 +3871,8 @@ short WritePilotData(short stellar)
         FlipNpil(kPilotResID + 1, *altPlayerFileHand, GetHandleSize((Handle)altPlayerFileHand), 1);
 #endif
 #ifdef MAC1010
-        DoEncryption(playerFileHand, kPilotCryptKey);
-        DoEncryption(altPlayerFileHand, kPilotCryptKey);
+        DoEncryption((Handle)playerFileHand, kPilotCryptKey);
+        DoEncryption((Handle)altPlayerFileHand, kPilotCryptKey);
 #else
         DoEncryption(*playerFileHand, GetHandleSize((Handle)playerFileHand), kPilotCryptKey);
         DoEncryption(*altPlayerFileHand, GetHandleSize((Handle)altPlayerFileHand), kPilotCryptKey);
@@ -3948,8 +3948,8 @@ void MakeAlias(const FSSpec *target)
         refNum = FSpOpenResFile(&aliasSpec, fsCurPerm);
         if (refNum != -1) {
             UseResFile(refNum);
-            AddResource(alias, rAliasType, 0, aliasSpec.name);
-            WriteResource(alias);
+            AddResource((Handle)alias, rAliasType, 0, aliasSpec.name);
+            WriteResource((Handle)alias);
             CloseResFile(refNum);
             info.fdFlags = kIsAlias;
             FSpSetFInfo(&aliasSpec, &info);
@@ -4351,7 +4351,7 @@ short LoadPilotData(char *path)
     if (playerFileHand != NULL) {
         HNoPurge((Handle)playerFileHand);
 #ifdef MAC1010
-        err = DoEncryption(playerFileHand, kPilotCryptKey);
+        err = DoEncryption((Handle)playerFileHand, kPilotCryptKey);
 #else
         err = DoEncryption(*playerFileHand, GetHandleSize((Handle)playerFileHand), kPilotCryptKey);
 #endif
@@ -4603,7 +4603,7 @@ short LoadPilotData(char *path)
     if (altPlayerFileHand != NULL) {
         HNoPurge((Handle)altPlayerFileHand);
 #ifdef MAC1010
-        err = DoEncryption(altPlayerFileHand, kPilotCryptKey);
+        err = DoEncryption((Handle)altPlayerFileHand, kPilotCryptKey);
 #else
         err = DoEncryption(*altPlayerFileHand, GetHandleSize((Handle)altPlayerFileHand),
                            kPilotCryptKey);
@@ -4839,7 +4839,7 @@ short LoadPilotData(char *path)
         ReleaseResource(h);
     }
 #ifdef MAC1010
-    strncpy(playerName, spec->name, 0x1f);
+    strncpy((char *)playerName, (char *)spec->name, 0x1f);
     CloseResFile(pilotResNum);
 
     crashlog("making alias");
@@ -5063,7 +5063,7 @@ OSErr GetSubfolderOfFile(short refNum, ConstStr255Param name, long *dirID, short
     err = PBGetFCBInfoSync(&fcb);
     if (err == noErr) {
         fileName[0] = 0;
-        pb = NewPtrClear(sizeof(CInfoPBRec));
+        pb = (CInfoPBRec *)NewPtrClear(sizeof(CInfoPBRec));
         if (pb != NULL) {
             spec.vRefNum = fcb.ioFCBVRefNum;
             spec.parID = fcb.ioFCBParID;
@@ -5086,7 +5086,7 @@ OSErr GetSubfolderOfFile(short refNum, ConstStr255Param name, long *dirID, short
                 *dirID = pb->dirInfo.ioDrDirID;
                 *vRefNum = pb->dirInfo.ioVRefNum;
             }
-            DisposePtr(pb);
+            DisposePtr((Ptr)pb);
         }
     }
     return err;
@@ -5568,7 +5568,7 @@ OSErr MyOpenDocument(const FSSpec *defaultSpec, FSSpec *outSpec)
         options.dialogOptionFlags ^= kNavAllowMultipleFiles;
         err = AECreateDesc(typeFSS, defaultSpec, sizeof(FSSpec), &defaultLocation);
         if (err == noErr) {
-            typeList = GetResource('open', 128);
+            typeList = (NavTypeListHandle)GetResource('open', 128);
             if (NavGetFile(&defaultLocation, &reply, &options, NULL, NULL, NULL, typeList, NULL) == noErr
                 && reply.validRecord) {
                 if (AECountItems(&reply.selection, &count) == noErr) {
@@ -5582,7 +5582,7 @@ OSErr MyOpenDocument(const FSSpec *defaultSpec, FSSpec *outSpec)
             } else
                 err = fnfErr;
             if (typeList != NULL)
-                ReleaseResource(typeList);
+                ReleaseResource((Handle)typeList);
             AEDisposeDesc(&defaultLocation);
         }
     }

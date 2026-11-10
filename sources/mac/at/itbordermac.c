@@ -111,7 +111,7 @@ long IT_BorderHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
         if (value != 0) {
 #if TARGET_API_MAC_CARBON
             if (wide)
-                value = (char *)U2CStringCopySafe(text, (const unsigned short *)value, sizeof(text), -1);
+                value = (char *)U2CStringCopySafe((unsigned char *)text, (const unsigned short *)value, sizeof(text), -1);
 #endif
             String2UpperCopySafe(text, value, sizeof(text));
             if (StringCompare(text, "NONE") == 0)
@@ -124,7 +124,7 @@ long IT_BorderHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
         IT_ItemCallbackGetAlign(&border->align);
         value = IT_ItemCallbackGetParam("INDENT", 0);
         if (value != 0)
-            border->indent = (short)IT_ItemCallbackGetNumber(value);
+            border->indent = IT_ItemCallbackGetNumber(value);
         value = IT_ItemCallbackGetParam("CHIPPED", 0);
         if (value != 0)
             border->chipped = IT_ItemCallbackGetFlag(value);

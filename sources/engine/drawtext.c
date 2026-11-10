@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* drawtext.c -- centred Pascal-string drawing (win 0x004622f0). Notes: Research/notes/drawtext.md */
 /*
  * Both halves of the centring divide by two as signed ints, which is why the

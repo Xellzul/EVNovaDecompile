@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* blitpixierleaddover.c -- BlitPixieRLEAddOver (win 0x00472b30), the direct-colour additive RLE walker. Notes: Research/notes/blitpixierleaddover.md */
 #include "macport.h"
 #include "shipobj.h"

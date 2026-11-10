@@ -25,7 +25,7 @@ short OpenEVPlugins(short refNum, ConstStr255Param folderName, OSType type, FILE
     err = GetPluginSubfolder(refNum, folderName, &dirID, &vRefNum);
     if (err == noErr) {
         name[0] = 0;
-        pb = NewPtrClear(sizeof(CInfoPBRec));
+        pb = (CInfoPBRec *)NewPtrClear(sizeof(CInfoPBRec));
         if (pb != NULL) {
             pb->hFileInfo.ioFDirIndex = 0;
             pb->hFileInfo.ioCompletion = NULL;
@@ -52,7 +52,7 @@ short OpenEVPlugins(short refNum, ConstStr255Param folderName, OSType type, FILE
                                 && spec.name[spec.name[0]] != '\r' && spec.name[spec.name[0]] != '\n'
                                 && info.fdType != 0 && info.fdCreator != 0) {
                             logged = 1;
-                            strncpy(cName, &spec.name[1], spec.name[0]);
+                            strncpy(cName, (char *)&spec.name[1], spec.name[0]);
                             cName[spec.name[0]] = 0;
                             fprintf(log, "  %s", cName);
                             fflush(log);
@@ -67,7 +67,7 @@ short OpenEVPlugins(short refNum, ConstStr255Param folderName, OSType type, FILE
                     }
                 }
             }
-            DisposePtr(pb);
+            DisposePtr((Ptr)pb);
         } else
             result = memFullErr;
     } else
@@ -95,7 +95,7 @@ short CountEVPlugins(short refNum, ConstStr255Param folderName, OSType type, FIL
     err = GetPluginSubfolder(refNum, folderName, &dirID, &vRefNum);
     if (err == noErr) {
         name[0] = 0;
-        pb = NewPtrClear(sizeof(CInfoPBRec));
+        pb = (CInfoPBRec *)NewPtrClear(sizeof(CInfoPBRec));
         if (pb != NULL) {
             pb->hFileInfo.ioFDirIndex = 0;
             pb->hFileInfo.ioCompletion = NULL;
@@ -121,7 +121,7 @@ short CountEVPlugins(short refNum, ConstStr255Param folderName, OSType type, FIL
                         if (log != NULL && spec.name[0] != 0 && spec.name[spec.name[0]] != '.'
                                 && spec.name[spec.name[0]] != '\r' && spec.name[spec.name[0]] != '\n'
                                 && info.fdType != 0 && info.fdCreator != 0) {
-                            strncpy(cName, &spec.name[1], spec.name[0]);
+                            strncpy(cName, (char *)&spec.name[1], spec.name[0]);
                             cName[spec.name[0]] = 0;
                             fprintf(log, "  %s\n", cName);
                             fflush(log);
@@ -129,7 +129,7 @@ short CountEVPlugins(short refNum, ConstStr255Param folderName, OSType type, FIL
                     }
                 }
             }
-            DisposePtr(pb);
+            DisposePtr((Ptr)pb);
         } else
             result = memFullErr;
     } else
@@ -154,7 +154,7 @@ OSErr GetPluginSubfolder(short refNum, ConstStr255Param name, long *dirID, short
     err = PBGetFCBInfoSync(&fcb);
     if (err == noErr) {
         fileName[0] = 0;
-        pb = NewPtrClear(sizeof(CInfoPBRec));
+        pb = (CInfoPBRec *)NewPtrClear(sizeof(CInfoPBRec));
         if (pb != NULL) {
             spec.vRefNum = fcb.ioFCBVRefNum;
             spec.parID = fcb.ioFCBParID;
@@ -177,7 +177,7 @@ OSErr GetPluginSubfolder(short refNum, ConstStr255Param name, long *dirID, short
                 *dirID = pb->dirInfo.ioDrDirID;
                 *vRefNum = pb->dirInfo.ioVRefNum;
             }
-            DisposePtr(pb);
+            DisposePtr((Ptr)pb);
         }
     }
     return err;

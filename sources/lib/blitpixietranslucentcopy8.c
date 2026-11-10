@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* blitpixietranslucentcopy8.c -- BlitPixieTranslucentCopy8 (win 0x00473c20). Notes: Research/notes/blitpixietranslucentcopy8.md */
 /* The eight-long parameter block at 0x007ceac8: [0] translucency, [1][2][3] per-channel
    scales clamped to 32, [4][5][6] overflow addends pre-shifted into 1555 field position,

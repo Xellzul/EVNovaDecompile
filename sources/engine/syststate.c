@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* syststate.c -- two small pieces of the system-entry state machine (win 0x0045cfc0 and 0x0045d030, from the run below 0x0045d0a0). Notes: Research/notes/syststate.md */
 #include <stddef.h>
 

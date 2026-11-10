@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* swcreategworldfrompict.c -- SWCreateGWorldFromPict (win 0x00478fa0, donor SpriteWorldUtils.c line 392). Notes: Research/notes/swcreategworldfrompict.md */
 /* The port's NewGWorld takes four arguments, not six: with no GDevice list the donor's
    device query and its first arm both go. The `err == noErr' test goes through an int

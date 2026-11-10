@@ -105,7 +105,7 @@ OSStatus ATSU_LayoutGetControl(ATSUTextLayout layout, ATSUAttributeTag tag, Byte
 {
     OSStatus err = ATSUGetLayoutControl(layout, tag, size, value, 0);
 
-    return (ULong)err == (ULong)kATSUNotSet ? 0 : err;
+    return err == kATSUNotSet ? 0 : err;
 }
 
 OSStatus ATSU_StyleFromPort(ATSUStyle style, GrafPtr port, Boolean clear)

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* globaldefs.c -- the data globals whose type and extent the bucket run has SETTLED, defined here so the tree carries them instead of a generated placeholder. Notes: Research/notes/globaldefs.md */
 #include "macport.h"
 #include "gametypes.h"

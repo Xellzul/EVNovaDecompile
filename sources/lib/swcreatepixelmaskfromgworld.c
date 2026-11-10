@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* swcreatepixelmaskfromgworld.c -- SWCreatePixelMaskFromGWorld (win 0x00479250, donor SpriteWorldUtils.c line 930). Notes: Research/notes/swcreatepixelmaskfromgworld.md */
 /* A four-byte stub, `or eax,-1 / ret': EV Nova asks for a pixel mask nowhere, so the
    porter replaced the donor's 780-byte body with a failure return rather than deleting

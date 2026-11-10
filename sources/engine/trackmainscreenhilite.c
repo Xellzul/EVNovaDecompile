@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* trackmainscreenhilite.c -- MainScreenRolloverIdle; exe 0x0048c210. Notes: Research/notes/mainscreen.md */
 
 #include <stddef.h>

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* showintroscreen.c -- ShowIntroScreen, MainScreenAppearStart, MainScreenAppear; exe 0x0048adc0..0x0048b250. Notes: Research/notes/mainscreen.md */
 
 #include <stddef.h>
@@ -87,8 +87,8 @@ void ShowIntroScreen(void)
 
         SWSetPortToWindow(gSpriteWorld);
         ForeColor(blackColor);
-        PaintRect(GetCWindowPortRect(gWind));
-        CopyBits(GWorldContainerBits(&loadPort), GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+        PaintRect(GetCWindowPortRect((WindowRef)gWind));
+        CopyBits(GWorldContainerBits(&loadPort), GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                  &rect, &rect, 0, NULL);
         QDFlushPortBuffer(GetWindowPort(gWind), NULL);
 
@@ -128,7 +128,7 @@ void ShowIntroScreen(void)
                 HandleIntroMusic(0);
 #endif
                 if (Button()) {
-                    rect = *GetCWindowPortRect(gWind);
+                    rect = *GetCWindowPortRect((WindowRef)gWind);
 #if !defined(MAC1010) || TARGET_API_MAC_CARBON
                     SectRect(&rect, &screenMinusDockRect, &rect);
 #endif
@@ -247,7 +247,7 @@ void ShowIntroScreen(void)
         SWSetPortToWindow(gSpriteWorld);
         ForeColor(blackColor);
         PaintRect(GetCWindowPortRect(gWind));
-        CopyBits(GetGWCPixMap(&loadPort), GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+        CopyBits((BitMapPtr)GetGWCPixMap(&loadPort), GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                  &rect, &rect, 0, NULL);
         ScreenEndScene();
 

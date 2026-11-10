@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* comm.c -- the communication message strip (win TU region 0x0047e2d0-0x0047e463). Notes: Research/notes/comm.md */
 /*
  * The two SpriteWorld frame offsets are the real ones from SpriteWorld's own
@@ -47,7 +47,7 @@ void DisplayComm(PStrChar *msg, short count, short font, short size,
     if (noBlit == 0) {
         ForeColor(blackColor);
         BackColor(whiteColor);
-        CopyBits((PixMapPtr)GetPortPixMapBits(
+        CopyBits(GetPortPixMapBits(
                      gSpriteWorld->backFrameP->framePort),
                  GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
                  &commRect, &commRect, 0, NULL);
@@ -61,6 +61,6 @@ void DisplayComm(PStrChar *msg, short count, short font, short size,
 void RedrawComm(unsigned char noBlit)
 {
     if (commCount > 0)
-        DisplayComm((unsigned char *)commMsg, commCount, 0, kCommTextSize, &rgbWhite, 0,
+        DisplayComm((PStrChar *)commMsg, commCount, 0, kCommTextSize, &rgbWhite, 0,
                     noBlit);
 }

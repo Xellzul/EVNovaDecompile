@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* spriteframe.c -- SpriteWorld's SpriteFrame.c, tu-map object O15: frame creation, disposal and locking. Notes: Research/notes/spriteframe.md */
 #include "macport.h"
 #include "shipobj.h"
@@ -30,7 +30,7 @@ short SWCreateFrame(void *theGDH, SWFrameRec **newFrameP, Rect *frameRect,
     numScanLines = frameRect->bottom - frameRect->top;
 
 #ifdef MAC1010
-    tempFrameP = NewPtrClear(sizeof(SWFrameRec) +
+    tempFrameP = (FramePtr)NewPtrClear(sizeof(SWFrameRec) +
             (sizeof(unsigned long) * (numScanLines + 1)));
 #else
     tempFrameP = (FramePtr)NewPtrClear(sizeof(SWFrameRec) +
@@ -216,14 +216,14 @@ short SWCreateWindowFrame(CWindowPtr srcWindowP, SWFrameRec **newFrameP,
 
     *newFrameP = NULL;
 
-    numScanLines = (GetCWindowPortRect(srcWindowP)->bottom -
-                    GetCWindowPortRect(srcWindowP)->top);
+    numScanLines = (GetCWindowPortRect((WindowRef)srcWindowP)->bottom -
+                    GetCWindowPortRect((WindowRef)srcWindowP)->top);
     numScanLines = SW_MAX(numScanLines, maxHeight);
 
-    frameRect->top = SW_MAX(frameRect->top, GetCWindowPortRect(srcWindowP)->top);
-    frameRect->left = SW_MAX(frameRect->left, GetCWindowPortRect(srcWindowP)->left);
-    frameRect->bottom = SW_MIN(frameRect->bottom, GetCWindowPortRect(srcWindowP)->bottom);
-    frameRect->right = SW_MIN(frameRect->right, GetCWindowPortRect(srcWindowP)->right);
+    frameRect->top = SW_MAX(frameRect->top, GetCWindowPortRect((WindowRef)srcWindowP)->top);
+    frameRect->left = SW_MAX(frameRect->left, GetCWindowPortRect((WindowRef)srcWindowP)->left);
+    frameRect->bottom = SW_MIN(frameRect->bottom, GetCWindowPortRect((WindowRef)srcWindowP)->bottom);
+    frameRect->right = SW_MIN(frameRect->right, GetCWindowPortRect((WindowRef)srcWindowP)->right);
 
     tempFrameP = (FramePtr)NewPtrClear(sizeof(SWFrameRec) +
             (sizeof(unsigned long) * numScanLines));
@@ -231,7 +231,7 @@ short SWCreateWindowFrame(CWindowPtr srcWindowP, SWFrameRec **newFrameP,
     if (tempFrameP != NULL) {
         tempFrameP->framePort = GetWindowPort(srcWindowP);
         tempFrameP->frameDevice = GetMainDevice();
-        tempFrameP->framePixHndl = GetCWindowPixMap(srcWindowP);
+        tempFrameP->framePixHndl = (PixMapHandle)GetCWindowPixMap((WindowRef)srcWindowP);
         if (tempFrameP->framePixHndl == NULL)
             tempFrameP->framePixHndl = GetGWorldPixMap(GetWindowPort(srcWindowP));
 #if defined(MAC1010) && !TARGET_API_MAC_CARBON
@@ -1005,7 +1005,7 @@ Boolean SWAlignFrameToWindow(FramePtr dstFrameP, FramePtr windowFrameP)
         newGWorld = dstFrameP->framePort;
 
         wasCurrent = (newGWorld == oldGWorld);
-        SetPort(windowFrameP->framePort);
+        SetPort((GrafPtr)windowFrameP->framePort);
 
         globalRect = *GetCPortPortRect(dstFrameP->framePort);
         LocalToGlobal(&topLeft(globalRect));
@@ -1023,7 +1023,7 @@ Boolean SWAlignFrameToWindow(FramePtr dstFrameP, FramePtr windowFrameP)
             dstFrameP->framePixHndl = GetGWorldPixMap(newGWorld);
             dstFrameP->frameDevice = GetGWorldDevice(newGWorld);
 
-            SetPort(newGWorld);
+            SetPort((GrafPtr)newGWorld);
             SetOrigin(0, 0);
 
             if (flags & (reallocPix | newDepth | newRowBytes)) {
@@ -1333,7 +1333,7 @@ OSErr SWUpdateFrameMasks(FramePtr srcFrameP)
             if (depth <= 8)
                 SWInvertRect(srcFrameP->maskPort, &srcFrameP->frameRect);
 
-            err = SWCreateRegionFromGWorldAndRect(&srcFrameP->maskRgn,
+            err = SWCreateRegionFromGWorldAndRect((RgnHandle *)&srcFrameP->maskRgn,
                     srcFrameP->maskPort, &srcFrameP->frameRect);
 
             if (err == noErr)
@@ -1544,7 +1544,7 @@ void SWLockWindowFrame(SWFrameRec *windowFrameP)
         windowFrameP->framePix = *pixMapH;
 
         GetPort(&savePort);
-        SetPort(windowFrameP->framePort);
+        SetPort((GrafPtr)windowFrameP->framePort);
         globalRect = *GetCPortPortRect(windowFrameP->framePort);
         LocalToGlobal(&topLeft(globalRect));
         LocalToGlobal(&botRight(globalRect));

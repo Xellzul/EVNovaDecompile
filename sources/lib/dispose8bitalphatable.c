@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* dispose8bitalphatable.c -- Dispose8BitAlphaTable (win 0x00474300), then CrtInitHook3, the .CRT hook that ends its object. Notes: Research/notes/dispose8bitalphatable.md */
 /* Frees the 5 x 256 array of pointers Construct8BitAlphaTable (0x004740d0) builds: the

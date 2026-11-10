@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* gameview.c -- centre the 640x480 play area in the window (win 0x00486790). Notes: Research/notes/gameview.md */
 #include <stddef.h>
 
@@ -160,8 +160,8 @@ short TrackMainScreenButtons(Point where)
                     BlitPixieRLEDrawProc(menuButtonSprite[i]->frameArray[0],
                                          gSpriteWorld->workFrameP, &box, &box);
                 ForeColor(blackColor);
-                CopyBits((PixMapPtr)GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
-                         GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                CopyBits(GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
+                         GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                          &box, &box, 0, NULL);
                 QDFlushPortBuffer(GetCWindowGrafPort(gWind), NULL);
             }
@@ -175,8 +175,8 @@ short TrackMainScreenButtons(Point where)
                      &rolloverDestRect, &rolloverDestRect, 0, NULL);
             MainScreenRolloverIdle();
             MainScreenRolloverDraw();
-            CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
-                     GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+            CopyBits(GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
+                     GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                      &rolloverDestRect, &rolloverDestRect, 0, NULL);
             over = -1;
             for (i = 0; i < kMainButtons; i++) {
@@ -199,8 +199,8 @@ short TrackMainScreenButtons(Point where)
                     BlitPixieRLEDrawProc(menuButtonSprite[over]->frameArray[1],
                                          gSpriteWorld->workFrameP, &box, &box);
                     ForeColor(blackColor);
-                    CopyBits((PixMapPtr)GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
-                             GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                    CopyBits(GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
+                             GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                              &box, &box, 0, NULL);
                     QDFlushPortBuffer(GetCWindowGrafPort(gWind), NULL);
                 } else {
@@ -217,8 +217,8 @@ short TrackMainScreenButtons(Point where)
                     BlitPixieRLEDrawProc(menuButtonSprite[hit]->frameArray[0],
                                          gSpriteWorld->workFrameP, &box, &box);
                     ForeColor(blackColor);
-                    CopyBits((PixMapPtr)GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
-                             GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                    CopyBits(GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
+                             GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                              &box, &box, 0, NULL);
                     QDFlushPortBuffer(GetCWindowGrafPort(gWind), NULL);
                 }
@@ -278,7 +278,7 @@ short TrackMainScreenButtons(Point where)
                     BlitPixieRLEDrawProc(menuButtonSprite[over]->frameArray[0],
                                          gSpriteWorld->workFrameP, &box, &box);
                 ForeColor(blackColor);
-                CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
+                CopyBits(GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
                          GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                          &box, &box, 0, NULL);
                 ScreenEndScene();
@@ -289,12 +289,12 @@ short TrackMainScreenButtons(Point where)
             BusyIdle();
             HandleIntroMusic(0);
             GetGlobalMouse(&pt);
-            CopyBits(GetGWCPixMap(&loadPort),
+            CopyBits((BitMapPtr)GetGWCPixMap(&loadPort),
                      GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
                      &rolloverDestRect, &rolloverDestRect, 0, NULL);
             MainScreenRolloverIdle();
             MainScreenRolloverDraw();
-            CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
+            CopyBits(GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
                      GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                      &rolloverDestRect, &rolloverDestRect, 0, NULL);
             over = -1;
@@ -322,7 +322,7 @@ short TrackMainScreenButtons(Point where)
                     BlitPixieRLEDrawProc(menuButtonSprite[over]->frameArray[1],
                                          gSpriteWorld->workFrameP, &box, &box);
                     ForeColor(blackColor);
-                    CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
+                    CopyBits(GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
                              GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                              &box, &box, 0, NULL);
                     ScreenEndScene();
@@ -344,7 +344,7 @@ short TrackMainScreenButtons(Point where)
                     BlitPixieRLEDrawProc(menuButtonSprite[hit]->frameArray[0],
                                          gSpriteWorld->workFrameP, &box, &box);
                     ForeColor(blackColor);
-                    CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
+                    CopyBits(GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
                              GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                              &box, &box, 0, NULL);
                     ScreenEndScene();
@@ -373,10 +373,10 @@ void InitMainScreen(void)
     onPlanet = 0;
     doMainScreenAnim = 1;
 
-    standardPicRect.left = (GetCWindowPortRect(gWind)->left
-                      + GetCWindowPortRect(gWind)->right) / 2 - kViewWidth / 2;
-    standardPicRect.top = (GetCWindowPortRect(gWind)->top
-                     + GetCWindowPortRect(gWind)->bottom) / 2 - kViewHeight / 2;
+    standardPicRect.left = (GetCWindowPortRect((WindowRef)gWind)->left
+                      + GetCWindowPortRect((WindowRef)gWind)->right) / 2 - kViewWidth / 2;
+    standardPicRect.top = (GetCWindowPortRect((WindowRef)gWind)->top
+                     + GetCWindowPortRect((WindowRef)gWind)->bottom) / 2 - kViewHeight / 2;
     standardPicRect.right = standardPicRect.left + kViewWidth;
     standardPicRect.bottom = standardPicRect.top + kViewHeight;
 

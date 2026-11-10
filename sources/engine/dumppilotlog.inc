@@ -74,26 +74,26 @@
         fprintf(log, "  none\n");
     fprintf(log, "\n");
 
-    pstrcpy(name, playerName);
-    PtoCstr(name);
+    pstrcpy((StringPtr)name, playerName);
+    PtoCstr((StringPtr)name);
     fprintf(log, "Pilot name:        %s\n", name);
-    pstrcpy(name, playerNickname);
-    PtoCstr(name);
+    pstrcpy((StringPtr)name, playerNickname);
+    PtoCstr((StringPtr)name);
     fprintf(log, "Pilot nickname:    %s\n", name);
     fprintf(log, "Pilot gender:      %s\n", playerGender != 0 ? "male" : "female");
     fprintf(log, "Strict play:       %s\n", strictPlay != 0 ? "yes" : "no");
     fprintf(log, "Seen intro screen: %s\n", seenIntroScreen != 0 ? "yes" : "no");
 
-    pstrcpy(name, shipName);
-    PtoCstr(name);
+    pstrcpy((StringPtr)name, shipName);
+    PtoCstr((StringPtr)name);
     fprintf(log, "Ship name:         %s\n", name);
 
-    pstrcpy(name, shipClass[shipData->type].name);
-    PtoCstr(name);
+    pstrcpy((StringPtr)name, shipClass[shipData->type].name);
+    PtoCstr((StringPtr)name);
     fprintf(log, "Ship type:         %s (%i)\n", name, shipData->type + 0x80);
 
-    pstrcpy(name, systemData[shipData->curSystem].name);
-    PtoCstr(name);
+    pstrcpy((StringPtr)name, systemData[shipData->curSystem].name);
+    PtoCstr((StringPtr)name);
     fprintf(log, "Current system:    %s (%i)\n", name, shipData->curSystem + 0x80);
 
     fprintf(log, "Legal status:      %i (in system %i)\n",
@@ -128,8 +128,8 @@
     for (mi = 0; mi < kMaxActiveMissions; mi++) {
         if (currentMissionObjectives[mi].active != 0) {
             found++;
-            pstrcpy(name, (unsigned char *)currentMissions[mi].name);
-            PtoCstr(name);
+            pstrcpy((StringPtr)name, (unsigned char *)currentMissions[mi].name);
+            PtoCstr((StringPtr)name);
             fprintf(log, "  %s (%i):\n", name, currentMissions[mi].misnIndex + 0x80);
             fprintf(log, "    travelObjComplete:        %s\n",
                     currentMissionObjectives[mi].returnDone != 0 ? "yes" : "no");
@@ -208,8 +208,8 @@
     for (i = 1; i < kMaxShips; i++) {
         if (shipData[i].active != 0 && shipData[i].parentShip == 0) {
             found++;
-            pstrcpy(name, shipClass[shipData[i].type].name);
-            PtoCstr(name);
+            pstrcpy((StringPtr)name, shipClass[shipData[i].type].name);
+            PtoCstr((StringPtr)name);
             fprintf(log, "  %s (%i) - ", name, shipData[i].type + 0x80);
             if (shipData[i].aiType == 5)
                 fprintf(log, "fighter");
@@ -233,8 +233,8 @@
     found = 0;
     for (i = 0; i < kMaxOutfits; i++) {
         if (shipSystems[i] > 0) {
-            pstrcpy(name, outfitSystem[i].name);
-            PtoCstr(name);
+            pstrcpy((StringPtr)name, outfitSystem[i].name);
+            PtoCstr((StringPtr)name);
             fprintf(log, "  %i %s (%i)\n", shipSystems[i], name, i + 0x80);
             found++;
         }
@@ -246,8 +246,8 @@
     found = 0;
     for (i = 0; i < kMaxStellars; i++) {
         if (stellarData[i].prepared != 0 && stellarData[i].dominated != 0) {
-            pstrcpy(name, stellarData[i].name);
-            PtoCstr(name);
+            pstrcpy((StringPtr)name, stellarData[i].name);
+            PtoCstr((StringPtr)name);
             fprintf(log, "  %s (%i)\n", name, i + 0x80);
             found++;
         }
@@ -259,8 +259,8 @@
     found = 0;
     for (i = 0; i < kMaxStellars; i++) {
         if (stellarData[i].prepared != 0 && StellarIsDestroyed(&stellarData[i])) {
-            pstrcpy(name, stellarData[i].name);
-            PtoCstr(name);
+            pstrcpy((StringPtr)name, stellarData[i].name);
+            PtoCstr((StringPtr)name);
             fprintf(log, "  %s (%i)\n", name, i + 0x80);
             found++;
         }
@@ -286,11 +286,11 @@
     found = 0;
     for (i = 0; i < kMaxDisasters; i++) {
         if (disasterData[i].loaded != 0 && disasterData[i].stellarID != -1) {
-            pstrcpy(name, disasterData[i].name);
-            PtoCstr(name);
+            pstrcpy((StringPtr)name, disasterData[i].name);
+            PtoCstr((StringPtr)name);
             fprintf(log, "  %s (%i) on ", name, i + 0x80);
-            pstrcpy(name, stellarData[disasterData[i].stellarID].name);
-            PtoCstr(name);
+            pstrcpy((StringPtr)name, stellarData[disasterData[i].stellarID].name);
+            PtoCstr((StringPtr)name);
             fprintf(log, "%s (%i) - %i days left\n",
                     name, disasterData[i].stellarID + 0x80, disasterData[i].countdown);
             found++;

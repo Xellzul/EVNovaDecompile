@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,intrinsics,space -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: AmbrosiaTools (the mac build imports it as AmbrosiaTools.framework) on its own compiler as one library: its platform, network, file and interface parts inline memset (rep stos in the exe), so ,intrinsics; -enum min -align 8 are the library's struct layout (jpeglib.h's structs in itjpeg.c, a double at 8); build 335 has no -proc; Research/runtime-compiler-ceiling.md
 /* itattr.c -- the interface tool's markup element helpers (0x0054016a..0x00540b7e): attribute values, number and rectangle lists, the name table. Notes: Research/notes/itattr.md */
 
@@ -32,7 +32,7 @@ ITElement *_IT_ParseTreeFindNextTag(ITElement *root, ITElement *start, const cha
     String2UpperCopySafe(wanted, name, sizeof(wanted));
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     if (root->wide)
-        C2UStringCopySafe(wideName, wanted, sizeof(wideName), -1);
+        C2UStringCopySafe(wideName, (const unsigned char *)wanted, sizeof(wideName), (ULong)-1);
 #endif
     if (skip && start != 0)
         start = _IT_ParseTreeFindLastNode(root, start);
@@ -43,7 +43,7 @@ ITElement *_IT_ParseTreeFindNextTag(ITElement *root, ITElement *start, const cha
     for (; start != 0; start = PT_ParseTreeGetNext(root, start)) {
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
         if (start->name != 0 && AsByte(start->tag > 0) && !AsByte(start->tag > 2 && start->tag < 0x7f)) {
-            if (root->wide && UnicodeCompare(start->name, wideName) == 0)
+            if (root->wide && UnicodeCompare((unsigned short *)start->name, wideName) == 0)
                 break;
             if (!root->wide && StringCompare(start->name, wanted) == 0)
                 break;
@@ -83,10 +83,10 @@ ITElement *_IT_ParseTreeFindParentTag(ITElement *root, ITElement *element, const
     String2UpperCopySafe(tagName, tag, sizeof(tagName));
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     if (root->wide)
-        C2UStringCopySafe(wideName, tagName, sizeof(wideName), -1);
+        C2UStringCopySafe(wideName, (const unsigned char *)tagName, sizeof(wideName), (ULong)-1);
     do {
         if (element->tag > 0 && !AsByte(element->tag > 2 && element->tag < 0x7f) && element->name != 0) {
-            if (root->wide && UnicodeCompare(element->name, wideName) == 0)
+            if (root->wide && UnicodeCompare((unsigned short *)element->name, wideName) == 0)
                 break;
             if (!root->wide && StringCompare(element->name, tagName) == 0)
                 break;
@@ -196,7 +196,7 @@ ITElement *_IT_ParseTreeFindNextData(ITElement *root, ITElement *node)
     while ((node = PT_ParseTreeGetNext(root, node)) != 0) {
         if (node->tag == kTagText && node->attributes != 0 &&
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
-            (len = node->wide ? UnicodeGetCharCount(node->attributes) : StringGetLength(node->attributes)) != 0)
+            (len = node->wide ? UnicodeGetCharCount((unsigned short *)node->attributes) : StringGetLength((unsigned char *)node->attributes)) != 0)
 #else
             (len = StringGetLength((unsigned char *)node->attributes)) != 0)
 #endif
@@ -230,15 +230,15 @@ char *_IT_ParseTreeFindAttribute(ITElement *root, ITElement *element, const char
     if (tag != 0) {
         String2UpperCopySafe(tagName, tag, sizeof(tagName));
         if (root->wide)
-            C2UStringCopySafe(wideTag, tagName, sizeof(wideTag), -1);
+            C2UStringCopySafe(wideTag, (const unsigned char *)tagName, sizeof(wideTag), (ULong)-1);
     }
     StringCopySafe(keyName, key, sizeof(keyName));
     if (root->wide)
-        C2UStringCopySafe(wideKey, keyName, sizeof(wideKey), -1);
+        C2UStringCopySafe(wideKey, (const unsigned char *)keyName, sizeof(wideKey), (ULong)-1);
     do {
         if (element->tag > 0 && !AsByte(element->tag > 2 && element->tag < 0x7f) && element->name != 0) {
             if (tag != 0) {
-                if (root->wide && UnicodeCompare(element->name, wideTag) != 0)
+                if (root->wide && UnicodeCompare((unsigned short *)element->name, wideTag) != 0)
                     goto next;
                 if (!root->wide && StringCompare(element->name, tagName) != 0)
                     goto next;
@@ -291,7 +291,7 @@ char *_IT_SimpleFindAttribute(ITElement *element, const char *key)
 
     StringCopySafe(name, key, sizeof(name));
     if (element->wide)
-        C2UStringCopySafe(wideName, name, sizeof(wideName), -1);
+        C2UStringCopySafe(wideName, (const unsigned char *)name, sizeof(wideName), (ULong)-1);
     if (element->wide)
         return HashLookupUnicode(element->attributes, wideName, 0);
     return HashLookup(element->attributes, name, 0);
@@ -328,7 +328,7 @@ long _IT_ParseAttributeGetNumber(unsigned char wide, const char *s)
         const unsigned short *p;
         ULong c;
 
-        p = s;
+        p = (const unsigned short *)s;
         value = 0;
         negative = 0;
         while (UnicodeAdvancePtr(&p, &c) && c != ',') {
@@ -422,7 +422,7 @@ long _IT_ParseAttributeGetAlign(unsigned char wide, const char *s)
     align = 0;
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     if (wide) {
-        Unicode2UpperCopySafe(wideValue, s, sizeof(wideValue), -1);
+        Unicode2UpperCopySafe(wideValue, (const unsigned short *)s, sizeof(wideValue), (ULong)-1);
         if (UnicodeCompare(wideValue, kRightW) == 0)
             align = kAlignRight;
         else if (UnicodeCompare(wideValue, kLeftW) == 0)
@@ -467,7 +467,7 @@ ITColor _IT_ParseAttributeGetColor(unsigned char wide, const char *s)
     color = gIT_DefaultColor;
     p = s;
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
-    wp = s;
+    wp = (const unsigned short *)s;
     if (wide) {
         while (UnicodeAdvancePtr(&wp, &c) && c != '#')
             ;
@@ -568,7 +568,7 @@ ITRect *_IT_ParseAttributeGetRect(void *rect, unsigned char wide, const char *s)
     parsed = zero;
 #endif
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
-    wp = s;
+    wp = (const unsigned short *)s;
 #endif
     field = &parsed.left;
     for (i = 0; i < 4; i++) {
@@ -619,7 +619,7 @@ unsigned char _IT_ParseAttributeGetFlag(unsigned char wide, const char *s)
     result = 1;
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     if (wide) {
-        Unicode2UpperCopySafe(wideValue, s, sizeof(wideValue), -1);
+        Unicode2UpperCopySafe(wideValue, (const unsigned short *)s, sizeof(wideValue), (ULong)-1);
         if (UnicodeCompare(wideValue, kFalseW) == 0 || UnicodeCompare(wideValue, kNoneW) == 0)
             result = 0;
     } else {

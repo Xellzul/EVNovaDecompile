@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,intrinsics,space -enum min -align 8 -g -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: AmbrosiaTools (the mac build imports it as AmbrosiaTools.framework) on its own compiler as one library: its platform, network, file and interface parts inline memset (rep stos in the exe), so ,intrinsics; -enum min -align 8 are the library's struct layout (jpeglib.h's structs in itjpeg.c, a double at 8); build 335 has no -proc; -g = this member built with debug symbols (CodeWarrior's per-file debug checkbox; it adds one IR position per source line, and the 335 scorer gives EAX only at an IR gap >= 3 between the two zero stores, here exactly 2 apart), as libpng png_free_data (0x0053711c, a -g object) is byte-identical in the same idiom; across the AmbrosiaTools files -g gains only here and loses MATCHes elsewhere, so it is this file's setting alone; provisional (Research/notes/atzstream.md); Research/runtime-compiler-ceiling.md
 /* atzstream.c -- a handle deflated or inflated in place through a zlib stream that persists between calls (the REGGIE client's TCP data). Notes: Research/notes/atzstream.md */
 

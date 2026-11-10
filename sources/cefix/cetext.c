@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* cetext.c -- EV Nova CE: MacRoman text drawn as UTF-16 in place of iconv's CP1252, and the
    version text on the main menu (CEFIX only). Notes: Research/cefix-plan.md */
 #ifdef CEFIX
@@ -23,7 +23,7 @@ __declspec(dllimport) int __stdcall DrawTextW(void *hdc, const unsigned short *t
 /* One UTF-16 unit per MacRoman byte, so a byte count is still the character count. */
 int CE_MacRomanToWide(const void *text, unsigned long count, char *out, unsigned long outCount)
 {
-    return MultiByteToWideChar(kCPMacCP, 0, (const char *)text, count,
+    return MultiByteToWideChar(kCPMacCP, 0, text, count,
                                (unsigned short *)out, outCount);
 }
 

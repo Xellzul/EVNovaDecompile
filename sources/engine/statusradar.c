@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* statusradar.c -- DrawStatusRadar (win link order 0x0045d600), the fifth member of the status-painter run and the one function of it that is NOT in statusparts.c. Notes: Research/notes/statusradar.md */
 #include <math.h>
 #include <stddef.h>
@@ -106,7 +106,7 @@ void DrawStatusRadar(Boolean highlight)
 #ifdef CEFIX /* F14.06 */
     OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - ceStatusBarWidth, 0);
 #else
-    OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - kTargPanelInset, 0);
+    OffsetRect(&dstRect, GetCWindowPortRect((WindowRef)gWind)->right - kTargPanelInset, 0);
 #endif
     if (highlight == 0 && interferenceThisFrame != 0) {
         cx = Rand(kRadarStaticFrames);
@@ -270,6 +270,6 @@ void DrawStatusRadar(Boolean highlight)
     SWSetPortToWindow(gSpriteWorld);
     if (preventStatusCopy == 0)
         CopyBits(GWorldContainerBits(&loadPort),
-                 GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                 GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                  &dstRect, &dstRect, 0, 0);
 }

@@ -318,7 +318,7 @@ long DatagramOpenDDP(void *ref, NetAddress *address)
     AddressComposeAppleTalk(&s->local, net, node, s->socket, 0);
     if (s->name[0] != 0) {
         for (tries = 0; tries < kNameRetries; tries++) {
-            MakeUniqueNBPName((const unsigned char *)s->name, unique, tries);
+            MakeUniqueNBPName(s->name, unique, tries);
             *(short *)&s->nte[4] = net;
             s->nte[6] = node;
             s->nte[7] = s->socket;
@@ -420,10 +420,10 @@ void DatagramPostDDP(DDPSocket *s)
         s->wds[1].entryPtr = s->sending->data;
         s->wds[2].entryLength = 0;
         s->wds[2].entryPtr = 0;
-        s->pb.DDP.ioCompletion = (ATPCompletionUPP)sDatagramSent;
+        s->pb.DDP.ioCompletion = sDatagramSent;
         s->pb.DDP.socket = s->socket;
         s->pb.DDP.checksumFlag = 1;
-        s->pb.DDP.u.wdsPointer = (Ptr)s->wds;
+        s->pb.DDP.u.wdsPointer = s->wds;
         PWriteDDP(&s->pb, true);
     }
 }
@@ -444,7 +444,7 @@ Ptr DatagramListenerDDP(Ptr rec, DDPSocket *s)
         AddressComposeAppleTalk(&s->receiving->from, *(unsigned short *)&s->rec[2], s->rec[4], s->rec[5], s->rec[1]);
         QueueInsert(&s->recvQueue, &s->receiving->link);
         if (!AtomicMaskApply(&s->flags, kFlagPending))
-            DTInstall((DeferredTaskPtr)&s->task);
+            DTInstall(&s->task);
     }
     SystemLeaveCallback(1);
     _AtomicLeave();

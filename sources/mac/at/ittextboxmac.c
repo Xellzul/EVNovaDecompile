@@ -382,7 +382,7 @@ long IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong
         }
 #if TARGET_API_MAC_CARBON
         if (tb->layout != 0) {
-            e = ATSU_DrawTextBox(tb->layout, CopyDT_2SysRect(&r, &tb->bounds), tb->lines);
+            e = ATSU_DrawTextBox(tb->layout, CopyDT_2SysRect(&r, &tb->bounds), (Handle)tb->lines);
             if (e != 0)
                 err = e;
             ATSU_LayoutGetControl(tb->layout, kATSULineRotationTag, sizeof(tb->rotation), &tb->rotation);
@@ -400,7 +400,7 @@ long IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong
         owner = (*tb->edit)->inPort;
         (*tb->edit)->inPort = dc;
         procs = ((CGrafPtr)dc)->grafProcs;
-        ((CGrafPtr)dc)->grafProcs = (CQDProcsPtr)&gIT_StdCProcs;
+        ((CGrafPtr)dc)->grafProcs = &gIT_StdCProcs;
         CopyDT_2SysRect(&r, &tb->bounds);
         TEUpdate(&r, tb->edit);
         ((CGrafPtr)dc)->grafProcs = procs;
@@ -418,7 +418,7 @@ long IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong
             TEIdle(tb->edit);
         break;
     case kMsgTrack:
-        CopyDT_2SysPoint((ITPoint *)&pt, &((ITInputEvent *)a)->where);
+        CopyDT_2SysPoint(&pt, &((ITInputEvent *)a)->where);
         if (!tb->editable) {
             e = _IT_TextCheck(hwnd, dc, tb, (ITPoint *)&pt, 1, b);
             if (e != 0) {
@@ -436,7 +436,7 @@ long IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong
         if (tb->backSet)
             RGBBackColor(CopyDT_2SysColor(&rgb, &tb->back));
         tb->clicking = 1;
-        err = IT_ItemCallbackGrabFocus((long)tb->edit);
+        err = IT_ItemCallbackGrabFocus(tb->edit);
         tb->clicking = 0;
         if (err != 0)
             goto done;
@@ -479,7 +479,7 @@ long IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong
         RGBBackColor(&savedBack);
         break;
     case kMsgMouse:
-        CopyDT_2SysPoint((ITPoint *)&pt, &((ITInputEvent *)a)->where);
+        CopyDT_2SysPoint(&pt, &((ITInputEvent *)a)->where);
         if (tb->enabled && tb->editable) {
             *(short *)b = kCursorIBeam;
         } else if (tb->enabled && !tb->editable && tb->links != 0) {
@@ -553,7 +553,7 @@ long IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong
                 goto done;
             }
 #else
-            if (GetScrap(text, 'TEXT', (long *)&i) < 0) {
+            if (GetScrap((Handle)text, 'TEXT', (long *)&i) < 0) {
                 err = kOutOfMemory;
                 goto done;
             }
@@ -1008,11 +1008,11 @@ static long IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb)
             continue;
 #if TARGET_API_MAC_CARBON
         if (tb->editable)
-            length = StringGetLength((unsigned char *)piece);
+            length = StringGetLength((const unsigned char *)piece);
         else
-            length = UnicodeGetCharCount((const unsigned short *)piece);
+            length = UnicodeGetCharCount(piece);
 #else
-        length = StringGetLength((unsigned char *)piece);
+        length = StringGetLength((const unsigned char *)piece);
 #endif
         if (length == 0)
             continue;
@@ -1383,7 +1383,7 @@ static long IT_AppendText(void **out, unsigned char upper, const char *text, uns
         }
         if (piece != here) {
             if (upper) {
-                C2UStringCopySafe(buffer, piece, sizeof(buffer), -1);
+                C2UStringCopySafe(buffer, (const unsigned char *)piece, sizeof(buffer), -1);
                 piece = (const char *)buffer;
                 length = UnicodeGetByteCount((const unsigned short *)piece);
             } else {

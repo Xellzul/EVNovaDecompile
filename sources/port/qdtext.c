@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* qdtext.c -- the port's QuickDraw text calls, DrawTextRun .. MeasureWrappedText (8 functions); exe 0x004bc760..0x004bcc70. Notes: Research/notes/toolbox.md */
 
 #include <stddef.h>

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* keydlg.c -- the key-binding dialog's update proc (win 0x0048b860). Notes: Research/notes/keydlg.md */
 /*
  * picBox must be declared before name: with a large array in the frame mwcc
@@ -158,11 +158,11 @@ Boolean KeyFilter(DialogPtr dialog, EventRecord *ev, short *itemHit)
     short code;
     short sel;
 
-    SetPort(GetDialogPort(keyDialog));
+    SetPort((GrafPtr)GetDialogPort(keyDialog));
     if (ev->what == mouseDown) {
         if (DialogSelect(ev, &keyDialog, itemHit))
             return true;
-        SetPort(GetDialogPort(keyDialog));
+        SetPort((GrafPtr)GetDialogPort(keyDialog));
         where = ev->where;
         GlobalToLocal(&where);
         *itemHit = -1;
@@ -221,7 +221,7 @@ Boolean KeyFilter(long unused, EventRecord *ev, short *itemHit)
         i = 0;
         do {
             GetDialogItem(keyDialog, (short)i + kFirstBindingItem, &itemType,
-                          &item, &box);
+                          (Handle *)&item, &box);
             if (PtInRect(h, v, &box) != 0) {
                 *itemHit = (short)i + kFirstBindingItem;
                 return 1;
@@ -262,7 +262,7 @@ void KeyDialogUpdate(void)
     Str255 name;
     short i;
 
-    SetPort(GetDialogPort(keyDialog));
+    SetPort((GrafPtr)GetDialogPort(keyDialog));
     GetDialogItem(keyDialog, 4, &itemType, &item, &picBox);
 #ifdef MAC1010
     if (gWind != NULL)
@@ -309,7 +309,7 @@ void KeyDialogUpdate(void)
     if (gWind != NULL)
         SWSetPortToWindow(gSpriteWorld);
 #endif
-    SetPort(GetDialogPort(keyDialog));
+    SetPort((GrafPtr)GetDialogPort(keyDialog));
     ForeColor(blackColor);
 #ifdef MAC1010
     if (gWind != NULL)
@@ -332,7 +332,7 @@ void KeyDialogUpdate(void)
     int i;
 
     SetDialogGWorld(keyDialog);
-    GetDialogItem(keyDialog, 4, &itemType, &item, &picBox);
+    GetDialogItem(keyDialog, 4, &itemType, (Handle *)&item, &picBox);
     SWSetPortToWorkArea(gSpriteWorld);
     ForeColor(blackColor);
     TextFont(0);
@@ -340,7 +340,7 @@ void KeyDialogUpdate(void)
     DrawPicHandle(keyPic, &picBox);
     i = 0;
     do {
-        GetDialogItem(keyDialog, (short)i + kFirstBindingItem, &itemType, &item,
+        GetDialogItem(keyDialog, (short)i + kFirstBindingItem, &itemType, (Handle *)&item,
                       &itemBox);
         inside = RectInRgn(&itemBox, GetCWindowVisRgn(FrontWindow(keyDialog)));
         if (inside) {
@@ -388,7 +388,7 @@ void KeyDialogUpdate(void)
         SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(keyDialog);
     ForeColor(blackColor);
-    CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
+    CopyBits(GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
              GetPortBitMapForCopyBits(GetDialogPort(keyDialog)),
              &picBox, &picBox, 0, NULL);
 }

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* shipyardbuttons.c -- the head of the buttons TU (win 0x0049eef0..0x0049fbb0), the three Draw/Track button pairs buttons.c does not yet carry: the map, the shipyard and the outfitter. Notes: Research/notes/shipyardbuttons.md */
 #include "macport.h"
 #include "gameconst.h"
@@ -60,12 +60,12 @@ short TrackMapButtons(Point where)
     Point mouse;
 
     ForeColor(blackColor);
-    GetDialogItem(mapDialog, 1, &itemType, (void **)&item, &box[kMapDoneButton]);
-    GetDialogItem(mapDialog, 4, &itemType, (void **)&item, &box[kMapZoomOutButton]);
-    GetDialogItem(mapDialog, 5, &itemType, (void **)&item, &box[kMapZoomInButton]);
-    GetDialogItem(mapDialog, 8, &itemType, (void **)&item, &box[kMapClearRouteButton]);
-    GetDialogItem(mapDialog, 9, &itemType, (void **)&item, &box[kMapInfluenceButton]);
-    GetDialogItem(mapDialog, 0xa, &itemType, (void **)&item, &box[kMapSearchButton]);
+    GetDialogItem(mapDialog, 1, &itemType, &item, &box[kMapDoneButton]);
+    GetDialogItem(mapDialog, 4, &itemType, &item, &box[kMapZoomOutButton]);
+    GetDialogItem(mapDialog, 5, &itemType, &item, &box[kMapZoomInButton]);
+    GetDialogItem(mapDialog, 8, &itemType, &item, &box[kMapClearRouteButton]);
+    GetDialogItem(mapDialog, 9, &itemType, &item, &box[kMapInfluenceButton]);
+    GetDialogItem(mapDialog, 0xa, &itemType, &item, &box[kMapSearchButton]);
     drawnButton = -1;
     if (PtInRectPoint(where, &box[0]) != 0)
         drawnButton = 0;
@@ -123,12 +123,12 @@ void DrawMapButtons(short hilited)
     short itemType;
 
     ForeColor(blackColor);
-    GetDialogItem(mapDialog, 1, &itemType, (void **)&item, &box[0]);
-    GetDialogItem(mapDialog, 4, &itemType, (void **)&item, &box[1]);
-    GetDialogItem(mapDialog, 5, &itemType, (void **)&item, &box[2]);
-    GetDialogItem(mapDialog, 8, &itemType, (void **)&item, &box[3]);
-    GetDialogItem(mapDialog, 9, &itemType, (void **)&item, &box[4]);
-    GetDialogItem(mapDialog, 0xa, &itemType, (void **)&item, &box[5]);
+    GetDialogItem(mapDialog, 1, &itemType, &item, &box[0]);
+    GetDialogItem(mapDialog, 4, &itemType, &item, &box[1]);
+    GetDialogItem(mapDialog, 5, &itemType, &item, &box[2]);
+    GetDialogItem(mapDialog, 8, &itemType, &item, &box[3]);
+    GetDialogItem(mapDialog, 9, &itemType, &item, &box[4]);
+    GetDialogItem(mapDialog, 0xa, &itemType, &item, &box[5]);
     enabled[0] = 1;
     enabled[1] = canZoomOut;
     enabled[2] = canZoomIn;
@@ -177,11 +177,11 @@ short TrackShipyardButtons(Point where)
     Point mouse;
 
     ForeColor(blackColor);
-    GetDialogItem(shipyardDialog, 7, &itemType, (void **)&item, &box[kShipyardDoneButton]);
-    GetDialogItem(shipyardDialog, 1, &itemType, (void **)&item, &box[kShipyardBuyButton]);
-    GetDialogItem(shipyardDialog, 0xa, &itemType, (void **)&item, &box[kShipyardInfoButton]);
-    GetDialogItem(shipyardDialog, 0xc, &itemType, (void **)&item, &box[kShipyardUpButton]);
-    GetDialogItem(shipyardDialog, 0xd, &itemType, (void **)&item, &box[kShipyardDownButton]);
+    GetDialogItem(shipyardDialog, 7, &itemType, &item, &box[kShipyardDoneButton]);
+    GetDialogItem(shipyardDialog, 1, &itemType, &item, &box[kShipyardBuyButton]);
+    GetDialogItem(shipyardDialog, 0xa, &itemType, &item, &box[kShipyardInfoButton]);
+    GetDialogItem(shipyardDialog, 0xc, &itemType, &item, &box[kShipyardUpButton]);
+    GetDialogItem(shipyardDialog, 0xd, &itemType, &item, &box[kShipyardDownButton]);
     drawnButton = -1;
     if (PtInRectPoint(where, &box[1]) != 0 && canBuy != 0)
         drawnButton = 1;
@@ -249,11 +249,11 @@ void DrawShipyardButtons(short hilited)
     short itemType;
     short count;
 
-    GetDialogItem(shipyardDialog, 7, &itemType, (void **)&item, &box[0]);
-    GetDialogItem(shipyardDialog, 1, &itemType, (void **)&item, &box[1]);
-    GetDialogItem(shipyardDialog, 0xa, &itemType, (void **)&item, &box[2]);
-    GetDialogItem(shipyardDialog, 0xc, &itemType, (void **)&item, &box[3]);
-    GetDialogItem(shipyardDialog, 0xd, &itemType, (void **)&item, &box[4]);
+    GetDialogItem(shipyardDialog, 7, &itemType, &item, &box[0]);
+    GetDialogItem(shipyardDialog, 1, &itemType, &item, &box[1]);
+    GetDialogItem(shipyardDialog, 0xa, &itemType, &item, &box[2]);
+    GetDialogItem(shipyardDialog, 0xc, &itemType, &item, &box[3]);
+    GetDialogItem(shipyardDialog, 0xd, &itemType, &item, &box[4]);
     shipyardButtonTable[0] = 4;
     if (shipBuyMode == 0)
         shipyardButtonTable[1] = 3;
@@ -303,11 +303,11 @@ short TrackOutfitButtons(Point where)
     Point mouse;
 
     ForeColor(blackColor);
-    GetDialogItem(outfitDialog, 1, &itemType, (void **)&item, &box[kOutfitDoneButton]);
-    GetDialogItem(outfitDialog, 7, &itemType, (void **)&item, &box[kOutfitBuyButton]);
-    GetDialogItem(outfitDialog, 4, &itemType, (void **)&item, &box[kOutfitSellButton]);
-    GetDialogItem(outfitDialog, 0xa, &itemType, (void **)&item, &box[kOutfitUpButton]);
-    GetDialogItem(outfitDialog, 0xb, &itemType, (void **)&item, &box[kOutfitDownButton]);
+    GetDialogItem(outfitDialog, 1, &itemType, &item, &box[kOutfitDoneButton]);
+    GetDialogItem(outfitDialog, 7, &itemType, &item, &box[kOutfitBuyButton]);
+    GetDialogItem(outfitDialog, 4, &itemType, &item, &box[kOutfitSellButton]);
+    GetDialogItem(outfitDialog, 0xa, &itemType, &item, &box[kOutfitUpButton]);
+    GetDialogItem(outfitDialog, 0xb, &itemType, &item, &box[kOutfitDownButton]);
     drawnButton = -1;
     if (PtInRectPoint(where, &box[0]) != 0)
         drawnButton = 0;
@@ -370,11 +370,11 @@ void DrawOutfitButtons(short hilited)
     short count;
 
     ForeColor(blackColor);
-    GetDialogItem(outfitDialog, 1, &itemType, (void **)&item, &box[0]);
-    GetDialogItem(outfitDialog, 7, &itemType, (void **)&item, &box[1]);
-    GetDialogItem(outfitDialog, 4, &itemType, (void **)&item, &box[2]);
-    GetDialogItem(outfitDialog, 0xa, &itemType, (void **)&item, &box[3]);
-    GetDialogItem(outfitDialog, 0xb, &itemType, (void **)&item, &box[4]);
+    GetDialogItem(outfitDialog, 1, &itemType, &item, &box[0]);
+    GetDialogItem(outfitDialog, 7, &itemType, &item, &box[1]);
+    GetDialogItem(outfitDialog, 4, &itemType, &item, &box[2]);
+    GetDialogItem(outfitDialog, 0xa, &itemType, &item, &box[3]);
+    GetDialogItem(outfitDialog, 0xb, &itemType, &item, &box[4]);
     for (i = 0; i <= 4; i++)
         enabled[i] = 1;
     if (canBuy == 0)

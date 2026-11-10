@@ -161,7 +161,7 @@ static inline ULong FTStrLen(const char *s)
     const unsigned char *p;
     ULong n;
 
-    n = (ULong)-1;
+    n = -1;
     p = (const unsigned char *)s - 1;
     do {
         n++;

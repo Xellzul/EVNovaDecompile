@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* statusparts.c -- the status-panel painters at win link order 0x0045f530 (DrawStatusTarg), 0x00460ec0 (DrawStatusWeap) and 0x004612c0 (DrawStatusCargo); contiguous, and the next function is trigtables.c's, so the run is one original .obj. Notes: Research/notes/statusparts.md */
 #include <math.h>
 #include <stddef.h>
@@ -86,7 +86,7 @@ void DrawStatusNav(void)
 #ifdef CEFIX /* F14.07 */
     OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - ceStatusBarWidth, 0);
 #else
-    OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - kTargPanelInset, 0);
+    OffsetRect(&dstRect, GetCWindowPortRect((WindowRef)gWind)->right - kTargPanelInset, 0);
 #endif
     CopyBits(GWorldContainerPixMap(&statusOffPort), (BitMapPtr)GWorldContainerBits(&loadPort),
              &srcRect, &dstRect, 0, 0);
@@ -194,7 +194,7 @@ void DrawStatusNav(void)
     SWSetPortToWindow(gSpriteWorld);
     if (preventStatusCopy == 0)
         CopyBits(GWorldContainerBits(&loadPort),
-                 GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                 GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                  &dstRect, &dstRect, 0, 0);
 }
 
@@ -227,7 +227,7 @@ void DrawStatusShield(void)
 #ifdef CEFIX /* F14.08 */
         OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - ceStatusBarWidth, 0);
 #else
-        OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - kTargPanelInset, 0);
+        OffsetRect(&dstRect, GetCWindowPortRect((WindowRef)gWind)->right - kTargPanelInset, 0);
 #endif
         CopyBits(GWorldContainerPixMap(&statusOffPort), (BitMapPtr)GWorldContainerBits(&loadPort),
                  &srcRect, &dstRect, 0, 0);
@@ -262,7 +262,7 @@ void DrawStatusShield(void)
             OffsetRect(&barRect, GetCWindowPortRect(gWind)->left, GetCWindowPortRect(gWind)->top);
 #endif
             CopyBits(GWorldContainerBits(&loadPort),
-                     GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                     GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                      &dstRect, &barRect, 0, 0);
         }
     }
@@ -275,7 +275,7 @@ void DrawStatusShield(void)
 #ifdef CEFIX /* F14.09 */
         OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - ceStatusBarWidth, 0);
 #else
-        OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - kTargPanelInset, 0);
+        OffsetRect(&dstRect, GetCWindowPortRect((WindowRef)gWind)->right - kTargPanelInset, 0);
 #endif
         CopyBits(GWorldContainerPixMap(&statusOffPort), (BitMapPtr)GWorldContainerBits(&loadPort),
                  &srcRect, &dstRect, 0, 0);
@@ -306,7 +306,7 @@ void DrawStatusShield(void)
             OffsetRect(&barRect, GetCWindowPortRect(gWind)->left, GetCWindowPortRect(gWind)->top);
 #endif
             CopyBits(GWorldContainerBits(&loadPort),
-                     GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                     GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                      &dstRect, &barRect, 0, 0);
         }
     }
@@ -336,7 +336,7 @@ void DrawStatusFuel(void)
 #ifdef CEFIX /* F14.10 */
     OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - ceStatusBarWidth, 0);
 #else
-    OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - kTargPanelInset, 0);
+    OffsetRect(&dstRect, GetCWindowPortRect((WindowRef)gWind)->right - kTargPanelInset, 0);
 #endif
     CopyBits(GWorldContainerPixMap(&statusOffPort), (BitMapPtr)GWorldContainerBits(&loadPort),
              &srcRect, &dstRect, 0, 0);
@@ -378,7 +378,7 @@ void DrawStatusFuel(void)
         OffsetRect(&barRect, GetCWindowPortRect(gWind)->left, GetCWindowPortRect(gWind)->top);
 #endif
         CopyBits(GWorldContainerBits(&loadPort),
-                 GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                 GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                  &dstRect, &barRect, 0, 0);
     }
 }
@@ -435,7 +435,7 @@ void DrawStatusTarg(void)
 #ifdef CEFIX /* F14.11 */
     OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - ceStatusBarWidth, 0);
 #else
-    OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - kTargPanelInset, 0);
+    OffsetRect(&dstRect, GetCWindowPortRect((WindowRef)gWind)->right - kTargPanelInset, 0);
 #endif
     ForeColor(blackColor);
     CopyBits(GWorldContainerPixMap(&statusOffPort), (BitMapPtr)GWorldContainerBits(&loadPort),
@@ -847,7 +847,7 @@ void DrawStatusTarg(void)
     ForeColor(blackColor);
     if (preventStatusCopy == 0)
         CopyBits(GWorldContainerBits(&loadPort),
-                 GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                 GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                  &dstRect, &dstRect, 0, 0);
 }
 
@@ -883,7 +883,7 @@ void DrawStatusWeap(void)
 #ifdef CEFIX /* F14.12 */
     OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - ceStatusBarWidth, 0);
 #else
-    OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - 0xc2, 0);
+    OffsetRect(&dstRect, GetCWindowPortRect((WindowRef)gWind)->right - 0xc2, 0);
 #endif
     CopyBits(GWorldContainerPixMap(&statusOffPort), (BitMapPtr)GWorldContainerBits(&loadPort),
              &srcRect, &dstRect, 0, 0);
@@ -942,7 +942,7 @@ void DrawStatusWeap(void)
     SWSetPortToWindow(gSpriteWorld);
     if (preventStatusCopy == 0) {
         CopyBits(GWorldContainerBits(&loadPort),
-                 GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                 GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                  &dstRect, &dstRect, 0, 0);
     }
 }
@@ -985,7 +985,7 @@ void DrawStatusCargo(void)
 #ifdef CEFIX /* F14.13 */
     OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - ceStatusBarWidth, 0);
 #else
-    OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - 0xc2, 0);
+    OffsetRect(&dstRect, GetCWindowPortRect((WindowRef)gWind)->right - 0xc2, 0);
 #endif
     CopyBits(GWorldContainerPixMap(&statusOffPort), (BitMapPtr)GWorldContainerBits(&loadPort),
              &srcRect, &dstRect, 0, 0);
@@ -1085,7 +1085,7 @@ void DrawStatusCargo(void)
     SWSetPortToWindow(gSpriteWorld);
     if (preventStatusCopy == 0) {
         CopyBits(GWorldContainerBits(&loadPort),
-                 GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                 GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                  &dstRect, &dstRect, 0, 0);
     }
 #if V111

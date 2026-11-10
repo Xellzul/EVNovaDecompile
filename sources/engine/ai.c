@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* ai.c -- the AI object (tu-map O1, win 0x00401000..0x004160f0). Notes: Research/notes/ai.md */
 #include <stdlib.h>
@@ -283,7 +283,7 @@ void ScanPlayer(ShipObj *ship)
                     if ((currentMissionObjectives[j].flags & kMissionHidden) == 0) {
                         ST_PlaySound(beepSnd[1], 1, gSoundVolume);
                         GetIndString(msg, kGameStrList, 0x11e);
-                        DisplayComm(msg, 400, 0, 0xc, &rgbWhite, 0, 0);
+                        DisplayComm((PStrChar *)msg, 400, 0, 0xc, &rgbWhite, 0, 0);
                     }
                     QuickMissionFailure(j);
                     ship->targetShip = 0;
@@ -353,7 +353,7 @@ void ScanPlayer(ShipObj *ship)
                     }
                     CtoPstr((char *)msg);
                     ST_PlaySound(beepSnd[4], 1, gSoundVolume);
-                    DisplayComm(msg, 400, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)msg, 400, 0, 0xc, &rgbWhite, 0, 0);
                 }
                 break;
             }
@@ -428,7 +428,7 @@ void ScanPlayer(ShipObj *ship)
                         }
                         CtoPstr((char *)msg);
                         ST_PlaySound(beepSnd[4], 1, gSoundVolume);
-                        DisplayComm(msg, 400, 0, 0xc, &rgbWhite, 0, 0);
+                        DisplayComm((PStrChar *)msg, 400, 0, 0xc, &rgbWhite, 0, 0);
                         playerHasIllegalJunk = 0;
                         break;
                     }
@@ -497,7 +497,7 @@ void ScanPlayer(ShipObj *ship)
                     }
                     CtoPstr((char *)msg);
                     ST_PlaySound(beepSnd[4], 1, gSoundVolume);
-                    DisplayComm(msg, 400, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)msg, 400, 0, 0xc, &rgbWhite, 0, 0);
                     playerHasIllegalOutfits = 0;
                     break;
                 }
@@ -1241,7 +1241,7 @@ void InterceptorAI(ShipObj *ship)
                                 strcat((char *)msg, ".");
                                 CtoPstr((char *)msg);
                                 ST_PlaySound(beepSnd[4], 1, gSoundVolume);
-                                DisplayComm(msg, 400, 0, 0xc, &rgbWhite, 0, 0);
+                                DisplayComm((PStrChar *)msg, 400, 0, 0xc, &rgbWhite, 0, 0);
                             }
                         }
                     }
@@ -2277,7 +2277,7 @@ void HighLevelAIHandler(ShipObj *ship)
                             } else {
                                 ST_PlaySound(beepSnd[4], 1, gSoundVolume);
                                 GetIndString(msg, kHackedStrList, Rand(3) + 2);
-                                DisplayComm(msg, 0x168, 0, 12,
+                                DisplayComm((PStrChar *)msg, 0x168, 0, 12,
                                             &rgbWhite, 0, 0);
                                 AIMakeShipLeave(ship);
                             }
@@ -2337,7 +2337,7 @@ void HighLevelAIHandler(ShipObj *ship)
                         strcat((char *)msg, tmp);
                         strcat((char *)msg, ".");
                         CtoPstr((char *)msg);
-                        DisplayComm(msg, 0xf0, 0, 12, &rgbWhite, 0, 0);
+                        DisplayComm((PStrChar *)msg, 0xf0, 0, 12, &rgbWhite, 0, 0);
                         statusRedraw[1] = 1;
                         statusRedraw[4] = 1;
                     }
@@ -2906,7 +2906,7 @@ void LowLevelAIHandler(ShipObj *ship)
                             strcat((char *)msg, tmp);
                             strcat((char *)msg, ".");
                             CtoPstr((char *)msg);
-                            DisplayComm(msg, 240, 0, 12, &rgbWhite, 0, 0);
+                            DisplayComm((PStrChar *)msg, 240, 0, 12, &rgbWhite, 0, 0);
                             statusRedraw[1] = 1;
                             statusRedraw[4] = 1;
                         }
@@ -5313,7 +5313,7 @@ void AICallForHelp(ShipObj *ship)
     PtoCstr((unsigned char *)name);
     strcat(msg, name);
     CtoPstr(msg);
-    DisplayComm((unsigned char *)msg, 0xf0, 0, 12, &rgbWhite, 0, 0);
+    DisplayComm((PStrChar *)msg, 0xf0, 0, 12, &rgbWhite, 0, 0);
     }
 }
 
@@ -5965,7 +5965,7 @@ void AIPlunderShipContents(ShipObj *me, ShipObj *target)
             StrcatIndCString((char *)msg, kGameStrList, kStrPlunderTail);
             CtoPstr((char *)msg);
             ST_PlaySound(beepSnd[1], 1, gSoundVolume);
-            DisplayComm(msg, 400, 0, 0xc, &rgbWhite, 0, 0);
+            DisplayComm((PStrChar *)msg, 400, 0, 0xc, &rgbWhite, 0, 0);
         }
     }
     if (target->index != 0 && target->specialMission == -1
@@ -5990,7 +5990,7 @@ void AIPlunderShipContents(ShipObj *me, ShipObj *target)
             StrcatIndCString((char *)msg, kGameStrList, kStrPlunderTail);
             CtoPstr((char *)msg);
             ST_PlaySound(beepSnd[1], 1, gSoundVolume);
-            DisplayComm(msg, 400, 0, 0xc, &rgbWhite, 0, 0);
+            DisplayComm((PStrChar *)msg, 400, 0, 0xc, &rgbWhite, 0, 0);
         }
         target->parentShip = me->index;
         target->govt = me->govt;

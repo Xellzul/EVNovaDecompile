@@ -9,7 +9,7 @@ static short sVTSavedBarHeight;
 static RgnHandle sVTSavedGray;
 static pascal void VT_ModeProc(void *user, DMListIndexType index, DMDisplayModeListEntryPtr info);
 static RoutineDescriptor sVTModeProcRD = BUILD_ROUTINE_DESCRIPTOR(0xfc0, VT_ModeProc);
-static DMDisplayModeListIteratorUPP sVTModeUPP = (DMDisplayModeListIteratorUPP)&sVTModeProcRD;
+static DMDisplayModeListIteratorUPP sVTModeUPP = &sVTModeProcRD;
 static unsigned short kVTSaveCode[12] = { 0x41fa, 0x0010, 0x209f, 0x2003, 0x41fa, 0x0008, 0x2f10, 0x4e75 };
 static unsigned short kVTRestoreCode[12] = { 0x41fa, 0x0010, 0x209f, 0x2600, 0x41fa, 0x0008, 0x2f10, 0x4e75 };
 static unsigned short kVTStripVisibleCode[12] = { 0x41fa, 0x0012, 0x209f, 0x7000, 0xaaf2, 0x41fa, 0x0008, 0x2f10, 0x4e75 };
@@ -396,7 +396,7 @@ GammaTblPtr VT_GammaCopy(VTDevice *device, void *ref)
     GammaTblPtr copy;
     ULong size;
 
-    table = (GammaTblPtr)ref;
+    table = ref;
     size = kGammaHead + table->gFormulaSize + ((table->gDataWidth + 7) / 8) * (table->gChanCnt * table->gDataCnt);
     if ((copy = MemoryAllocate(size)) != 0)
         VTCopy(copy, table, size);
@@ -569,7 +569,7 @@ long VT_DeviceModes(VTDevice *device)
         entry->width = (*device->gd)->gdRect.right - (*device->gd)->gdRect.left;
         entry->height = (*device->gd)->gdRect.bottom - (*device->gd)->gdRect.top;
         entry->rate = 0;
-        entry->displayMode = *(long *)&(*device->gd)->gdMode;
+        entry->displayMode = * &(*device->gd)->gdMode;
         entry->depthMin = 32;
         entry->depthMax = 1;
         for (depth = 1; depth <= 32; depth *= kDepthStep) {
@@ -630,7 +630,7 @@ long VT_DMCurrentMode(VTDevice *device, VTMode *mode)
         }
         count = device->modeCount;
         for (i = 0; i < count; i++) {
-            if (info.csData == ((VTModeEntry *)device->modes)[i].displayMode)
+            if (info.csData == (device->modes)[i].displayMode)
                 break;
         }
         if (i == count) {
@@ -694,7 +694,7 @@ static unsigned char VT_HasDisplayManager(void)
     long response;
 
     has = 0;
-    if (Gestalt('dply', &response) == 0 && (response & 1) != 0 && (void *)DMGetDisplayMode != 0)
+    if (Gestalt('dply', &response) == 0 && (response & 1) != 0 && DMGetDisplayMode != 0)
         has = 1;
     return has;
 }

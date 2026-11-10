@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* engineutils.c -- the engine's utility object (tu-map O10, win 0x00462550..0x0046f3f0). Notes: Research/notes/engineutils.md */
 #include <stdlib.h>
@@ -2878,7 +2878,7 @@ void ShowHint(void)
     HPurge(h);
     ReleaseResource(h);
     GetIndString(hint, kHintStrList, Rand(count) + 1);
-    DisplayComm(hint, 250, 0, 12, &rgbWhite, 0, 0);
+    DisplayComm((PStrChar *)hint, 250, 0, 12, &rgbWhite, 0, 0);
 }
 #endif
 
@@ -2892,7 +2892,7 @@ void DisplayMessage(short index)
 
     if (LoadPluginString(index + kMessageStrings - 1, (StringPtr)text) == 0)
         GetIndString((StringPtr)text, kMessageStrings, index);
-    DisplayComm((StringPtr)text, 480, 0, 12, &rgbWhite, 0, 0);
+    DisplayComm((PStrChar *)text, 480, 0, 12, &rgbWhite, 0, 0);
 }
 
 /* Walk the gamma ramp to `percent` brightness over `duration` milliseconds. */
@@ -4814,20 +4814,20 @@ void RefreshSAT(void)
     }
 
 #ifdef MACBUILD
-    CopyBits((PixMapPtr)GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
+    CopyBits(GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
              GetPortPixMapBits(GetWindowPort(gWind)),
              &gSpriteWorld->workFrameP->frameRect,
              &gSpriteWorld->windowFrameP->frameRect,
              0, 0);
 #else
-    CopyBits((PixMapPtr)GetPortBitMapForCopyBits(*(CGrafPtr *)gSpriteWorld->workFrameP),
+    CopyBits(GetPortBitMapForCopyBits(*(CGrafPtr *)gSpriteWorld->workFrameP),
              GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
              &gSpriteWorld->workFrameP->frameRect,
              &gSpriteWorld->windowFrameP->frameRect,
              0, 0);
 #endif
 
-    r = GetCWindowPortRect(gWind);
+    r = GetCWindowPortRect((WindowRef)gWind);
     box = *r;
 #ifdef CEFIX /* F14.14 */
     box.left = box.right - ceStatusBarWidth;
@@ -4845,7 +4845,7 @@ void RefreshSAT(void)
              GetPortPixMapBits(GetWindowPort(gWind)),
              &box, &box, 0, 0);
 #else
-    CopyBits(GetGWCPixMap(&loadPort),
+    CopyBits((BitMapPtr)GetGWCPixMap(&loadPort),
              GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
              &box, &box, 0, 0);
 #endif
@@ -4994,7 +4994,7 @@ void SpawnNagShip(void)
             if (totalDaysPlayed > 30) {
             ST_PlaySound(beepSnd[4], 1, gSoundVolume);
             GetIndString(msg, kHackedStrList, Rand(3) + 5);
-            DisplayComm(msg, 0x168, 0, 12, &rgbWhite, 0, 0);
+            DisplayComm((PStrChar *)msg, 0x168, 0, 12, &rgbWhite, 0, 0);
             }
 
             shipData[slot].persType = kPersCaptainHector;
@@ -7420,7 +7420,7 @@ short DrawPicHandle(PicHandle pic, Rect *dstRect)
             err = DT_ImageFileLoad((void **)pic, &image, &mask, &trans, 0);
             if (err == noErr) {
                 dstR = Sys2DT_Rect(dstRect);
-                err = DT_DrawImage(ctx, CopySys2DT_Rect(&dstR, (struct ITRect *)dstRect), image,
+                err = DT_DrawImage(ctx, CopySys2DT_Rect(&dstR, (DTSysRect *)dstRect), image,
                                    mask, &trans, 0);
                 DT_ImageDispose(image);
                 if (mask != NULL)

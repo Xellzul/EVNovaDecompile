@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,intrinsics,space -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: the line of its data neighbours (itmarkup); the TU keeps only data, so no instruction decides it; Research/runtime-compiler-ceiling.md
 // LINK: after itmarkup; data EVNOVA 0x0057c140
 /* regcomp.c -- the POSIX regular-expression compiler's character-class and collating-element tables (Henry Spencer's cclass.h and cname.h) and the two word-boundary bracket literals; its code is not in the exe, only this data. Notes: Research/notes/regcomp.md */

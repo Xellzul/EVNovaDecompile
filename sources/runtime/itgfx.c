@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,space -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: AmbrosiaTools (the mac build imports it as AmbrosiaTools.framework) on its own compiler as one library: the draw and sound tools call memset/memcpy at constant sizes, so no ,intrinsics; -enum min -align 8 are the library's struct layout (jpeglib.h's structs in itjpeg.c, a double at 8); build 335 has no -proc; Research/runtime-compiler-ceiling.md
 /* itgfx.c -- the interface tool's GDI layer (0x0050e7a4..0x00512411): ports, printer devices, DIB sections and pixel-map locking; only the bodies the image core needs so far. Notes: Research/notes/itgfx.md */
 

@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,intrinsics,space -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: AmbrosiaTools (the mac build imports it as AmbrosiaTools.framework) on its own compiler as one library: its platform, network, file and interface parts inline memset (rep stos in the exe), so ,intrinsics; -enum min -align 8 are the library's struct layout (jpeglib.h's structs in itjpeg.c, a double at 8); build 335 has no -proc; Research/runtime-compiler-ceiling.md
 /* atplatstr.c -- the platform layer's own string helpers: a strlen, a strcpy, a three-way strcmp, an upper-casing strncpy, a strpbrk, a bounded sprintf, and the formatter behind it with its two helpers (the number-to-digits writer and the padded field copy). Notes: Research/notes/atplatstr.md */
 
@@ -55,10 +55,10 @@ char *StringDuplicate(const char *s)
     unsigned char *p;
     const unsigned char *q;
 
-    copy = MemoryAllocate(StringGetLength(s) + 1);
+    copy = MemoryAllocate(StringGetLength((const unsigned char *)s) + 1);
     if (copy != 0) {
-        p = copy - 1;
-        q = s - 1;
+        p = (unsigned char *)copy - 1;
+        q = (const unsigned char *)s - 1;
         while ((*++p = *++q) != 0)
             ;
     }
@@ -94,8 +94,8 @@ char *StringCopy(char *dst, const char *src)
     unsigned char *p;
     const unsigned char *q;
 
-    p = dst - 1;
-    q = src - 1;
+    p = (unsigned char *)dst - 1;
+    q = (const unsigned char *)src - 1;
     while ((*++p = *++q) != 0)
         ;
     return dst;
@@ -123,8 +123,8 @@ char *StringCopySafe(char *dst, const char *src, ULong size)
     unsigned char *p;
     const unsigned char *q;
 
-    p = dst - 1;
-    q = src - 1;
+    p = (unsigned char *)dst - 1;
+    q = (const unsigned char *)src - 1;
     while (--size != 0 && (*++p = *++q) != 0)
         ;
     if (size == 0)
@@ -202,8 +202,8 @@ long StringCompare(const char *a, const char *b)
     const unsigned char *s1;
     const unsigned char *s2;
 
-    s1 = a - 1;
-    s2 = b - 1;
+    s1 = (const unsigned char *)a - 1;
+    s2 = (const unsigned char *)b - 1;
     while ((ca = *++s1) == (cb = *++s2)) {
         if (ca == 0)
             return 0;
@@ -241,8 +241,8 @@ long StringCompareSafe(const char *a, const char *b, ULong n)
     const unsigned char *s1;
     const unsigned char *s2;
 
-    s1 = a - 1;
-    s2 = b - 1;
+    s1 = (const unsigned char *)a - 1;
+    s2 = (const unsigned char *)b - 1;
     while (n-- && (ca = *++s1) == (cb = *++s2)) {
         if (ca == 0)
             return 0;
@@ -294,12 +294,12 @@ char *StringTokenize(char *s, int delim, char **next)
     *next = gStringBlank;
     if (*s == 0)
         return 0;
-    p = s - 1;
+    p = (unsigned char *)s - 1;
     while ((c = *++p) != 0 && c != d)
         ;
     if (c != 0) {
         *p = 0;
-        *next = p + 1;
+        *next = (char *)p + 1;
     }
     return s;
 }
@@ -344,8 +344,8 @@ char *StringFindString(const char *s, const char *sub)
     s--;
     while (*(const unsigned char *)++s != 0) {
         if (*(const unsigned char *)s == first) {
-            p = sub;
-            q = s;
+            p = (const unsigned char *)sub;
+            q = (const unsigned char *)s;
             while (*++p != 0 && *p == *++q)
                 ;
             if (*p == 0)
@@ -388,7 +388,7 @@ char *StringFindDelimiter(const char *s, const char *set)
     const unsigned char *p;
 
     s--;
-    b = set - 1;
+    b = (const unsigned char *)set - 1;
     while (*(const unsigned char *)++s != 0) {
         p = b;
         while (*++p != 0) {
@@ -905,12 +905,12 @@ char *StringFormatVarg(char *out, ULong size, const char *format, va_list args)
             uval = sval;
             _StringFormatNumber(buf, uval, 10, "0123456789", flags, width,
                          precision == kNoWidth ? 1 : precision);
-            outPtr = _StringFormatString(outPtr, buf, &size, flags, kNoWidth, kNoWidth);
+            outPtr = _StringFormatString((FmtChar *)outPtr, (FmtChar *)buf, &size, flags, kNoWidth, kNoWidth);
             fmt = fmt + (i + 1);
             continue;
 
         case 'p':
-            outPtr = _StringFormatString(outPtr, "0x", &size, kFlagLeft, 2, kNoWidth);
+            outPtr = _StringFormatString((FmtChar *)outPtr, (FmtChar *)"0x", &size, kFlagLeft, 2, kNoWidth);
             precision = width = kPointerDigits;
             ptr = va_arg(args, void *);
             uval = (ULong)ptr;
@@ -920,7 +920,7 @@ char *StringFormatVarg(char *out, ULong size, const char *format, va_list args)
             _StringFormatNumber(buf, uval, 16, kHexUpper, flags, kPointerDigits,
                          precision == kNoWidth ? 1 : precision);
 #endif
-            outPtr = _StringFormatString(outPtr, buf, &size, flags, kNoWidth, kNoWidth);
+            outPtr = _StringFormatString((FmtChar *)outPtr, (FmtChar *)buf, &size, flags, kNoWidth, kNoWidth);
             fmt = fmt + (i + 1);
             continue;
 
@@ -949,7 +949,7 @@ char *StringFormatVarg(char *out, ULong size, const char *format, va_list args)
                              conv == 'x' ? "0123456789abcdef" : kHexUpper,
                              flags, width, precision == kNoWidth ? 1 : precision);
             }
-            outPtr = _StringFormatString(outPtr, buf, &size, flags, kNoWidth, kNoWidth);
+            outPtr = _StringFormatString((FmtChar *)outPtr, (FmtChar *)buf, &size, flags, kNoWidth, kNoWidth);
             fmt = fmt + (i + 1);
             continue;
 
@@ -961,12 +961,12 @@ char *StringFormatVarg(char *out, ULong size, const char *format, va_list args)
                 for (k = 0; k < p[0]; k = k + 1)
                     buf[k] = p[k + 1];
                 buf[k] = 0;
-                outPtr = _StringFormatString(outPtr, buf, &size, flags, width, precision);
+                outPtr = _StringFormatString((FmtChar *)outPtr, (FmtChar *)buf, &size, flags, width, precision);
             } else {
                 s = va_arg(args, const char *);
                 if (s == 0)
                     s = "<NULL>";
-                outPtr = _StringFormatString(outPtr, s, &size, flags, width, precision);
+                outPtr = _StringFormatString((FmtChar *)outPtr, (FmtChar *)s, &size, flags, width, precision);
             }
             fmt = fmt + (i + 1);
             continue;
@@ -1099,5 +1099,5 @@ char *_StringFormatString(FmtChar *out, FMT_CONST FmtChar *src, ULong *size, ULo
             (*size)--;
         }
     }
-    return out;
+    return (char *)out;
 }

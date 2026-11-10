@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,intrinsics,space -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: AmbrosiaTools (the mac build imports it as AmbrosiaTools.framework) on its own compiler as one library: its platform, network, file and interface parts inline memset (rep stos in the exe), so ,intrinsics; -enum min -align 8 are the library's struct layout (jpeglib.h's structs in itjpeg.c, a double at 8); build 335 has no -proc; Research/runtime-compiler-ceiling.md
 /* atutf162.c -- the UTF-16 helpers, exe run 2 (run 1 is in atcharset.c). Notes: Research/notes/atutf16.md */
 
@@ -414,7 +414,7 @@ ULong count_UTF8_to_UTF16(const unsigned char *s, ULong limit)
         limit -= limit % sizeof(unsigned short);
         end = d + limit / sizeof(unsigned short) - 1;
     }
-    while (ConvertUTF8toUTF16(&src, srcEnd, &d, end, &budget, kStrictConversion) == kSourceIllegal) {
+    while (ConvertUTF8toUTF16(&src, srcEnd, &d, end, (UTFBudget *)&budget, kStrictConversion) == kSourceIllegal) {
         src++;
         d++;
         budget--;
@@ -442,7 +442,7 @@ ULong count_UTF16_to_UTF8(const unsigned short *s, ULong limit)
         limit -= limit % sizeof(unsigned char);
         end = d + limit / sizeof(unsigned char) - 1;
     }
-    while (ConvertUTF16toUTF8(&src, srcEnd, &d, end, &budget, kStrictConversion) == kSourceIllegal) {
+    while (ConvertUTF16toUTF8(&src, srcEnd, &d, end, (UTFBudget *)&budget, kStrictConversion) == kSourceIllegal) {
         src++;
         d++;
         budget--;
@@ -471,7 +471,7 @@ unsigned short *convert_UTF8_to_UTF16(unsigned short *dst, const unsigned char *
         if (terminate != 0)
             end--;
     }
-    while (ConvertUTF8toUTF16(&s, sEnd, &d, end, &budget, kStrictConversion) == kSourceIllegal) {
+    while (ConvertUTF8toUTF16(&s, sEnd, &d, end, (UTFBudget *)&budget, kStrictConversion) == kSourceIllegal) {
         s++;
         *d++ = kBadCharMark;
         budget--;
@@ -502,7 +502,7 @@ unsigned char *convert_UTF16_to_UTF8(unsigned char *dst, const unsigned short *s
         if (terminate != 0)
             end--;
     }
-    while (ConvertUTF16toUTF8(&s, sEnd, &d, end, &budget, kStrictConversion) == kSourceIllegal) {
+    while (ConvertUTF16toUTF8(&s, sEnd, &d, end, (UTFBudget *)&budget, kStrictConversion) == kSourceIllegal) {
         s++;
         *d++ = kBadCharMark;
         budget--;
@@ -529,7 +529,7 @@ ULong count_UTF32_to_UTF16(const ULong *s, ULong limit)
         limit -= limit % sizeof(unsigned short);
         end = d + limit / sizeof(unsigned short) - 1;
     }
-    while (ConvertUTF32toUTF16(&src, srcEnd, &d, end, &budget, kStrictConversion) == kSourceIllegal) {
+    while (ConvertUTF32toUTF16(&src, srcEnd, &d, end, (UTFBudget *)&budget, kStrictConversion) == kSourceIllegal) {
         src++;
         d++;
         budget--;
@@ -558,7 +558,7 @@ unsigned short *convert_UTF32_to_UTF16(unsigned short *dst, const ULong *src, UL
         if (terminate != 0)
             end--;
     }
-    while (ConvertUTF32toUTF16(&s, sEnd, &d, end, &budget, kStrictConversion) == kSourceIllegal) {
+    while (ConvertUTF32toUTF16(&s, sEnd, &d, end, (UTFBudget *)&budget, kStrictConversion) == kSourceIllegal) {
         s++;
         *d++ = kBadCharMark;
         budget--;

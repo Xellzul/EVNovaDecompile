@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* dosystemmap.c -- tu-map object O25: the galaxy map dialog, its drawing, filters and jump routes. Notes: Research/notes/dosystemmap.md */
 #include <stddef.h>
 #include <string.h>
@@ -27,13 +27,13 @@ extern void SaveMapBordersState(void);
 
 /* the mac engine invalidates a dialog item through the caller's own GetDialogItem locals */
 #ifdef MACBUILD
-#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, (void **)&item, &invalRect), InvalWindowRect(GetDialogWindow(dlg), &invalRect))
+#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, &item, &invalRect), InvalWindowRect(GetDialogWindow(dlg), &invalRect))
 #define invalRect box
 static inline void InvalDialogPortRect(DialogPtr dlg, const Rect *r)
 {
     InvalWindowRect(GetDialogWindow(dlg), r);
 }
-#define InvalDialogItemRect(dlg, n) (GetDialogItem(dlg, n, &itemType, (void **)&item, &invalRect), InvalDialogPortRect(dlg, &invalRect))
+#define InvalDialogItemRect(dlg, n) (GetDialogItem(dlg, n, &itemType, &item, &invalRect), InvalDialogPortRect(dlg, &invalRect))
 #endif
 
 /* the mac plots the map arrows as colour icons */
@@ -474,7 +474,7 @@ void DoSystemMap(void)
     for (i = 0; i < kMaxNebulae; i++) {
         for (j = 0; j < 7; j++) {
             if (nebulaPic[i][j] != NULL) {
-                HPurge(nebulaPic[i][j]);
+                HPurge((Handle)nebulaPic[i][j]);
                 QDReleaseResource(nebulaPic[i][j]);
                 nebulaPic[i][j] = 0;
             }
@@ -500,11 +500,11 @@ void DoSystemMap(void)
     PaintRect(&gSpriteWorld->backFrameP->frameRect);
     ForeColor(blackColor);
     SWSetPortToWindow(gSpriteWorld);
-    found = (GetCWindowPortRect(gWind)->right - GetCWindowPortRect(gWind)->left) / 2;
-    y = (GetCWindowPortRect(gWind)->bottom - GetCWindowPortRect(gWind)->top) / 2;
+    found = (GetCWindowPortRect((WindowRef)gWind)->right - GetCWindowPortRect((WindowRef)gWind)->left) / 2;
+    y = (GetCWindowPortRect((WindowRef)gWind)->bottom - GetCWindowPortRect((WindowRef)gWind)->top) / 2;
     ForeColor(blackColor);
     SetRect(&r, found - w, y - h, found + w, y + h);
-    pr = GetCWindowPortRect(gWind);
+    pr = GetCWindowPortRect((WindowRef)gWind);
     box2 = *pr;
     box2.left = box2.right - kTargPanelInset;
     if (SectRect(&r, &box2, &box2))
@@ -668,7 +668,7 @@ void DoSystemMap(void)
     SelectWindow(FrontWindow(mapDialog));
     BringToFront(FrontWindow(mapDialog));
     CreateMapTriggerRgn();
-    GetDialogItem(mapDialog, kMapPictItem, &itemType, (void **)&item, &box);
+    GetDialogItem(mapDialog, kMapPictItem, &itemType, &item, &box);
     if (settings.showMapBorders != 0)
         RecalcAllMapInfluence(&box);
     do {
@@ -740,7 +740,7 @@ void DoSystemMap(void)
             DoSystemSearch();
         if (itemHit == 3) {
             GetMouse(&mouse);
-            GetDialogItem(mapDialog, kMapPictItem, &itemType, (void **)&item, &box2);
+            GetDialogItem(mapDialog, kMapPictItem, &itemType, &item, &box2);
             w = box2.right - box2.left;
             h = box2.bottom - box2.top;
             found = -1;
@@ -1409,57 +1409,57 @@ void MapDialogUpdate(void)
             ForeColor(whiteColor);
             MoveTo(box.left + 0x6e, box.top + 0x24);
             if (systemData[sel].exploreLevel > 0) {
-                strcpy(buf, "");
+                strcpy((char *)buf, "");
                 for (j = 0; j < kNavSlots; j++) {
                     if (systemData[sel].navDefault[j] != -1
                         && stellarData[systemData[sel].navDefault[j]].gravity != 0) {
-                        StrcatIndCString(buf, kGameStrList, 0x138);
+                        StrcatIndCString((char *)buf, kGameStrList, 0x138);
                         if (systemData[sel].asteroidCount > 0
                             || systemData[sel].interference > 0
                             || systemData[sel].murk > 0)
-                            strcat(buf, ", ");
+                            strcat((char *)buf, ", ");
                         break;
                     }
                 }
                 if (systemData[sel].asteroidCount > 0) {
                     if (systemData[sel].asteroidCount <= 3)
-                        StrcatIndCString(buf, kGameStrList, 0x139);
+                        StrcatIndCString((char *)buf, kGameStrList, 0x139);
                     else if (systemData[sel].asteroidCount <= 6)
-                        StrcatIndCString(buf, kGameStrList, 0x13a);
+                        StrcatIndCString((char *)buf, kGameStrList, 0x13a);
                     else
-                        StrcatIndCString(buf, kGameStrList, 0x13b);
-                    strcat(buf, " ");
-                    StrcatIndCString(buf, kGameStrList, 0x13c);
+                        StrcatIndCString((char *)buf, kGameStrList, 0x13b);
+                    strcat((char *)buf, " ");
+                    StrcatIndCString((char *)buf, kGameStrList, 0x13c);
                     if (systemData[sel].interference > 0
                         || systemData[sel].murk > 0)
-                        strcat(buf, ", ");
+                        strcat((char *)buf, ", ");
                 }
                 if (systemData[sel].interference > 0) {
                     if (systemData[sel].interference <= 0x21)
-                        StrcatIndCString(buf, kGameStrList, 0x13d);
+                        StrcatIndCString((char *)buf, kGameStrList, 0x13d);
                     else if (systemData[sel].interference <= 0x42)
-                        StrcatIndCString(buf, kGameStrList, 0x13e);
+                        StrcatIndCString((char *)buf, kGameStrList, 0x13e);
                     else
-                        StrcatIndCString(buf, kGameStrList, 0x13f);
-                    strcat(buf, " ");
-                    StrcatIndCString(buf, kGameStrList, 0x140);
+                        StrcatIndCString((char *)buf, kGameStrList, 0x13f);
+                    strcat((char *)buf, " ");
+                    StrcatIndCString((char *)buf, kGameStrList, 0x140);
                     if (systemData[sel].murk > 0)
-                        strcat(buf, ", ");
+                        strcat((char *)buf, ", ");
                 }
                 if (systemData[sel].murk > 0) {
                     if (systemData[sel].murk <= 0x1e)
-                        StrcatIndCString(buf, kGameStrList, 0x141);
+                        StrcatIndCString((char *)buf, kGameStrList, 0x141);
                     else if (systemData[sel].murk <= 0x3c)
-                        StrcatIndCString(buf, kGameStrList, 0x142);
+                        StrcatIndCString((char *)buf, kGameStrList, 0x142);
                     else
-                        StrcatIndCString(buf, kGameStrList, 0x143);
-                    strcat(buf, " ");
-                    StrcatIndCString(buf, kGameStrList, 0x144);
+                        StrcatIndCString((char *)buf, kGameStrList, 0x143);
+                    strcat((char *)buf, " ");
+                    StrcatIndCString((char *)buf, kGameStrList, 0x144);
                 }
                 if (buf[0] == 0)
-                    StrcatIndCString(buf, kGameStrList, 0x14f);
+                    StrcatIndCString((char *)buf, kGameStrList, 0x14f);
                 buf[0] = toupper(buf[0]);
-                CtoPstr(buf);
+                CtoPstr((char *)buf);
                 DrawString(buf);
             } else {
                 if (cheatsActive != 0) {
@@ -1474,8 +1474,8 @@ void MapDialogUpdate(void)
         if (cheatsActive != 0) {
             NumToString((1.0 / mapZoom * 1000.0), buf);
         } else {
-            DateToMedString(gameTime, buf);
-            CtoPstr(buf);
+            DateToMedString(gameTime, (char *)buf);
+            CtoPstr((char *)buf);
         }
         MoveTo(box.right - StringWidth(buf) - 5, box.top + 0x24);
         DrawString(buf);
@@ -1711,17 +1711,17 @@ void MapDialogUpdate(void)
     if (partialMapDialogUpdate != 0) {
         ok = 1;
     } else {
-        GetDialogItem(mapDialog, kMapPictItem, &itemType, (void **)&item, &box);
+        GetDialogItem(mapDialog, kMapPictItem, &itemType, &item, &box);
         ok = RectInRgn(&box, GetWindowVisRgn(FrontWindow(mapDialog)));
     }
     if (ok != 0) {
         if (partialMapDialogUpdate != 0) {
             SetGWorldContainer(&loadPort);
-            GetDialogItem(mapDialog, kMapPictItem, &itemType, (void **)&item, &box);
+            GetDialogItem(mapDialog, kMapPictItem, &itemType, &item, &box);
         } else {
             SWSetPortToWorkArea(gSpriteWorld);
             PenSize(1, 1);
-            GetDialogItem(mapDialog, kMapPictItem, &itemType, (void **)&item, &box);
+            GetDialogItem(mapDialog, kMapPictItem, &itemType, &item, &box);
         }
         w = box.right - box.left;
         h = box.bottom - box.top;
@@ -1729,7 +1729,7 @@ void MapDialogUpdate(void)
         PaintRect(&box);
         if (partialMapDialogUpdate == 0 && settings.showMapBorders != 0) {
             SWSetPortToWorkArea(gSpriteWorld);
-            GetDialogItem(mapDialog, kMapPictItem, &itemType, (void **)&item, &r2);
+            GetDialogItem(mapDialog, kMapPictItem, &itemType, &item, &r2);
             DrawMapInfluence(r2);
         }
         TextFont(smallTextFont);
@@ -1783,7 +1783,7 @@ void MapDialogUpdate(void)
                             DrawPicHandle(nebulaPic[i][fit], &nebR);
                             SetGWorldContainer(&loadPort);
                             ForeColor(blackColor);
-                            CopyBits((PixMapPtr)GetPortPixMapBits(
+                            CopyBits(GetPortPixMapBits(
                                          gSpriteWorld->workFrameP->framePort),
                                      (BitMapPtr)GWorldContainerBits(&loadPort),
                                      &r2, &r2, 0, 0);
@@ -1791,7 +1791,7 @@ void MapDialogUpdate(void)
                             SWSetPortToBackground(gSpriteWorld);
                             ForeColor(blackColor);
                             DrawPicHandle(nebulaPic[i][fit], &nebR);
-                            CopyBits((PixMapPtr)GetPortPixMapBits(
+                            CopyBits(GetPortPixMapBits(
                                          gSpriteWorld->backFrameP->framePort),
                                      GetPortPixMapBits(
                                          gSpriteWorld->workFrameP->framePort),
@@ -1861,24 +1861,24 @@ void MapDialogUpdate(void)
             SWSetPortToWindow(gSpriteWorld);
             SetDialogGWorld(mapDialog);
             ForeColor(blackColor);
-            CopyBits((PixMapPtr)GetPortPixMapBits(loadPort.world),
+            CopyBits(GetPortPixMapBits(loadPort.world),
                      GetPortBitMapForCopyBits(GetDialogPort(mapDialog)),
                      &box, &box, 0, 0);
         } else {
             SetGWorldContainer(&loadPort);
             ForeColor(blackColor);
-            CopyBits((PixMapPtr)GetPortPixMapBits(
+            CopyBits(GetPortPixMapBits(
                          gSpriteWorld->workFrameP->framePort),
                      (BitMapPtr)GWorldContainerBits(&loadPort),
                      &box, &box, 0, 0);
         }
     }
     if (partialMapDialogUpdate == 0) {
-        GetDialogItem(mapDialog, 2, &itemType, (void **)&item, &box);
+        GetDialogItem(mapDialog, 2, &itemType, &item, &box);
 #ifdef MACBUILD
         if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(mapDialog)))) {
 #endif
-        GetDialogItem(mapDialog, 6, &itemType, (void **)&item, &box6);
+        GetDialogItem(mapDialog, 6, &itemType, &item, &box6);
         TextFont(smallTextFont);
         TextSize(smallTextSize);
         MoveTo(box6.left + 1, box.top);
@@ -2028,7 +2028,7 @@ void MapDialogUpdate(void)
 #ifdef MACBUILD
         }
 #endif
-        GetDialogItem(mapDialog, 6, &itemType, (void **)&item, &r2);
+        GetDialogItem(mapDialog, 6, &itemType, &item, &r2);
 #ifdef MACBUILD
         if (RectInRgn(&r2, GetWindowVisRgn(FrontWindow(mapDialog)))) {
 #endif
@@ -2204,7 +2204,7 @@ void MapDialogUpdate(void)
         SWSetPortToWindow(gSpriteWorld);
         SetDialogGWorld(mapDialog);
         ForeColor(blackColor);
-        CopyBits((PixMapPtr)GetPortPixMapBits(loadPort.world),
+        CopyBits(GetPortPixMapBits(loadPort.world),
                  GetPortBitMapForCopyBits(GetDialogPort(mapDialog)),
                  GetDialogPortRect(mapDialog), GetDialogPortRect(mapDialog),
                  0, 0);
@@ -2225,7 +2225,7 @@ void ScrollMapDisplay(short dh, short dv)
     if (dh == 0 && dv == 0)
         return;
     SetDialogGWorld(mapDialog);
-    GetDialogItem(mapDialog, kMapPictItem, &itemType, (void **)&item, &box);
+    GetDialogItem(mapDialog, kMapPictItem, &itemType, &item, &box);
     box.left += 1;
     box.top += 1;
     box.right -= 1;
@@ -2663,7 +2663,7 @@ Boolean MapFilter(DialogPtr dlg, EventRecord *event, short *itemHit)
             InvalDialogItem(mapDialog, 2);
             InvalDialogItem(mapDialog, 6);
             InvalDialogItem(mapDialog, 3);
-            GetDialogItem(mapDialog, 3, &itemType, (void **)&item, &box);
+            GetDialogItem(mapDialog, 3, &itemType, &item, &box);
             if (settings.showMapBorders != 0)
                 RecalcAllMapInfluence(&box);
         } else if (key == '-') {
@@ -2675,25 +2675,25 @@ Boolean MapFilter(DialogPtr dlg, EventRecord *event, short *itemHit)
         } else if (key == kLeftArrowChar) {
             mapScroll.h -= 10;
             InvalDialogItem(mapDialog, 3);
-            GetDialogItem(mapDialog, 3, &itemType, (void **)&item, &box);
+            GetDialogItem(mapDialog, 3, &itemType, &item, &box);
             if (settings.showMapBorders != 0)
                 RecalcAllMapInfluence(&box);
         } else if (key == kRightArrowChar) {
             mapScroll.h += 10;
             InvalDialogItem(mapDialog, 3);
-            GetDialogItem(mapDialog, 3, &itemType, (void **)&item, &box);
+            GetDialogItem(mapDialog, 3, &itemType, &item, &box);
             if (settings.showMapBorders != 0)
                 RecalcAllMapInfluence(&box);
         } else if (key == kUpArrowChar) {
             mapScroll.v -= 10;
             InvalDialogItem(mapDialog, 3);
-            GetDialogItem(mapDialog, 3, &itemType, (void **)&item, &box);
+            GetDialogItem(mapDialog, 3, &itemType, &item, &box);
             if (settings.showMapBorders != 0)
                 RecalcAllMapInfluence(&box);
         } else if (key == kDownArrowChar) {
             mapScroll.v += 10;
             InvalDialogItem(mapDialog, 3);
-            GetDialogItem(mapDialog, 3, &itemType, (void **)&item, &box);
+            GetDialogItem(mapDialog, 3, &itemType, &item, &box);
             if (settings.showMapBorders != 0)
                 RecalcAllMapInfluence(&box);
         } else if (what == kKeyDown && (key == 'f' || key == 's')) {
@@ -2709,7 +2709,7 @@ Boolean MapFilter(DialogPtr dlg, EventRecord *event, short *itemHit)
 #if V111
         pt = event->where;
         GlobalToLocal(&pt);
-        GetDialogItem(mapDialog, 3, &itemType, (void **)&item, &box);
+        GetDialogItem(mapDialog, 3, &itemType, &item, &box);
         if (PtInRectPoint(pt, &box) == 0) {
             MapDialogUpdate();
             SetDialogGWorld(mapDialog);
@@ -2743,7 +2743,7 @@ Boolean MapFilter(DialogPtr dlg, EventRecord *event, short *itemHit)
 #else
         pt.v = event->where.v;
         pt.h = event->where.h;
-        GetDialogItem(mapDialog, 3, &itemType, (void **)&item, &box);
+        GetDialogItem(mapDialog, 3, &itemType, &item, &box);
         if (PtInRect(pt.h, pt.v, &box) != 0) {
             *itemHit = 3;
             return 1;
@@ -2799,7 +2799,7 @@ Boolean MapFilter(DialogPtr dlg, EventRecord *event, short *itemHit)
                     }
                 }
             }
-            GetDialogItem(mapDialog, 3, &itemType, (void **)&item, &box);
+            GetDialogItem(mapDialog, 3, &itemType, &item, &box);
             while (nextInfluenceSyst < kMaxSystems) {
                 nextInfluenceSyst += 1;
                 sys = FindActiveCoLocatedSystem(nextInfluenceSyst - 1);
@@ -2825,7 +2825,7 @@ Boolean MapFilter(DialogPtr dlg, EventRecord *event, short *itemHit)
                 }
             }
         } else {
-            GetDialogItem(mapDialog, 3, &itemType, (void **)&item, &box);
+            GetDialogItem(mapDialog, 3, &itemType, &item, &box);
             while (nextInfluenceSyst < kMaxSystems) {
                 nextInfluenceSyst += 1;
                 sys = FindActiveCoLocatedSystem(nextInfluenceSyst - 1);

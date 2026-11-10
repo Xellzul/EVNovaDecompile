@@ -336,7 +336,7 @@ long DT_SetLineAttributes(ITImage *image, const ITColor *fore, const ITColor *ba
         RGBBackColor(CopyDT_2SysColor(&color, back));
     if (pattern != 0)
         PenPat((const Pattern *)pattern);
-    if ((ULong)width != (ULong)-1) {
+    if (width != (ULong)-1) {
         if ((ULong)width == 0)
             width = 1;
         PenSize(width, width);
@@ -425,7 +425,7 @@ char *_DT_GetFontByNameList(CGrafPtr dc, const char *faces, char *out)
             if (EqualString(pname, found, 0, 0))
                 break;
         }
-        String2UpperCopySafe(name, name, (ULong)-1);
+        String2UpperCopySafe(name, name, -1);
         if (ATStrCmp(name, "SYSTEM") == 0 &&
             _DT_GetFontByNameList(dc, "Charcoal,Lucida_Grande,Chicago", out) != 0)
             return out;
@@ -635,7 +635,7 @@ long DT_SetClipRect(ITImage *image, const ITRect *r)
     port = _DT_ContextGetContext(image);
 #if TARGET_API_MAC_CARBON
     GetPort(&old);
-    SetPort((GrafPtr)port->dc);
+    SetPort(port->dc);
     ClipRect(CopyDT_2SysRect(&box, r));
     SetPort(old);
 #else
@@ -1043,7 +1043,7 @@ long DT_SetPenLocation(ITImage *image, long x, long y)
     port = _DT_ContextGetContext(image);
 #if TARGET_API_MAC_CARBON
     GetPort(&old);
-    SetPort((GrafPtr)port->dc);
+    SetPort(port->dc);
     MoveTo(x, y);
     SetPort(old);
 #else
@@ -1422,22 +1422,22 @@ void _DT_PrinterDispose(ITDevice *device)
     old = 0;
     if (device->dc != 0) {
         GetPort(&old);
-        SetPort((GrafPtr)device->dc);
+        SetPort(device->dc);
     }
     if (device->pageOpen) {
-        e = PMSessionEndPage((PMPrintSession)device->record);
+        e = PMSessionEndPage(device->record);
         if (device->status == 0 && e != 0)
             device->status = kPrintFailed;
         device->pageOpen = 0;
     }
     if (device->docOpen) {
-        e = PMSessionEndDocument((PMPrintSession)device->record);
+        e = PMSessionEndDocument(device->record);
         if (device->status == 0 && e != 0)
             device->status = kPrintFailed;
         device->docOpen = 0;
     }
-    if (PMSessionError((PMPrintSession)device->record) != 0 && device->status == 0)
-        device->status = (short)(PMSessionError((PMPrintSession)device->record) == kPMCancel ? kPrintAborted : kPrintFailed);
+    if (PMSessionError(device->record) != 0 && device->status == 0)
+        device->status = (short)(PMSessionError(device->record) == kPMCancel ? kPrintAborted : kPrintFailed);
     if (device->record != 0) {
         e = PMRelease(device->record);
         if (device->status == 0 && e != 0)
@@ -1460,7 +1460,7 @@ void _DT_PrinterDispose(ITDevice *device)
         SetPort((GrafPtr)device->dc);
     }
     if (device->pageOpen) {
-        PrClosePage((TPPrPort)device->printPort);
+        PrClosePage(device->printPort);
         if (device->status == 0 && PrError() != 0) {
             PrError();
             device->status = kPrintFailed;
@@ -1468,7 +1468,7 @@ void _DT_PrinterDispose(ITDevice *device)
         device->pageOpen = 0;
     }
     if (device->docOpen) {
-        PrCloseDoc((TPPrPort)device->printPort);
+        PrCloseDoc(device->printPort);
         if (device->status == 0 && PrError() != 0) {
             PrError();
             device->status = kPrintFailed;
@@ -1477,7 +1477,7 @@ void _DT_PrinterDispose(ITDevice *device)
         device->printPort = 0;
     }
     if (device->status == 0 && (*(THPrint)device->record)->prJob.bJDocLoop == bSpoolLoop) {
-        PrPicFile((THPrint)device->record, 0, 0, 0, &status);
+        PrPicFile(device->record, 0, 0, 0, &status);
         if (device->status == 0 && PrError() != 0) {
             PrError();
             device->status = kPrintFailed;
@@ -1486,7 +1486,7 @@ void _DT_PrinterDispose(ITDevice *device)
     if (PrError() != noErr && device->status == 0)
         device->status = (short)(PrError() == userCanceledErr ? kPrintAborted : kPrintFailed);
     if (device->record != 0) {
-        IndirectDeallocate((void **)device->record);
+        IndirectDeallocate(device->record);
         device->record = 0;
     }
     if (old != 0)

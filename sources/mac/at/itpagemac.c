@@ -61,7 +61,7 @@ ITPageTable *_IT_PageListCreate(ITElement *root)
         value = _IT_SimpleFindAttribute(page->element, "TITLE");
         if (value != 0) {
             if (page->element->wide)
-                UnicodeCopySafe((unsigned short *)page->title, (const unsigned short *)value, sizeof(page->title), (ULong)-1);
+                UnicodeCopySafe(page->title, value, sizeof(page->title), -1);
             else
                 C2UStringCopySafe((unsigned short *)page->title, (const unsigned char *)value, sizeof(page->title), (ULong)-1);
         }
@@ -92,7 +92,7 @@ void _IT_PageListDispose(void *tableRef)
 {
     ITPage *e;
     ITPage *next;
-    ITPageTable *table = (ITPageTable *)tableRef;
+    ITPageTable *table = tableRef;
 
     for (e = table->first; e != 0; e = next) {
         next = e->next;

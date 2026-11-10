@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 // LINK: after setup; data EVNOVA 0x00575acc
 /* portcolors.c -- the four QuickDraw colour globals the port had to supply, 0x00575acc .. 0x00575af0. Notes: Research/notes/portcolors.md */
 #include "macport.h"

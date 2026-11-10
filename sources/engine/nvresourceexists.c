@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* nvresourceexists.c -- nv_ResourceExists; exe 0x004ce640. Notes: Research/notes/resmgr.md */
 
 #include <stddef.h>

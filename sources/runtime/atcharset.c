@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,intrinsics,space -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: AmbrosiaTools (the mac build imports it as AmbrosiaTools.framework) on its own compiler as one library: its platform, network, file and interface parts inline memset (rep stos in the exe), so ,intrinsics; -enum min -align 8 are the library's struct layout (jpeglib.h's structs in itjpeg.c, a double at 8); build 335 has no -proc; Research/runtime-compiler-ceiling.md
 /* atcharset.c -- the platform layer's character-set registry, the last thing `Platform_Open' initialises, and the UTF-16 helpers that read its tables. Notes: Research/notes/atcharset.md */
 
@@ -1048,7 +1048,7 @@ long IndirectNormalizeUnicode(void **handle, const char *charset)
                 goto done;
             }
             src = (unsigned char *)*handle + size;
-            dst = ((char *)*handle + count);
+            dst = (unsigned short *)((char *)*handle + count);
             for (i = 0; i < size; i++)
                 *--dst = table[*--src].unicode;
             dst[-1] = 0xfeff;
@@ -1079,7 +1079,7 @@ long IndirectNormalizeUnicode(void **handle, const char *charset)
         count = IndirectGetSize(handle) >> 1;
         for (i = 0; i < count; i++)
             half[i] = ATSwap16(half[i]);
-        half = &bom;
+        half = (unsigned short *)&bom;
         half[0] = ATSwap16(half[0]);
         half[1] = ATSwap16(half[1]);
     case kBomUtf32Little:
@@ -1421,7 +1421,7 @@ unsigned short *UnicodeAppendSafe(unsigned short *dst, const unsigned short *src
     if (bytes < size && chars < count) {
         count -= chars;
         size -= bytes;
-        UnicodeCopySafe(((char *)dst + bytes), src, size, count);
+        UnicodeCopySafe((unsigned short *)((char *)dst + bytes), src, size, count);
     }
     return dst;
 }
@@ -1605,7 +1605,7 @@ unsigned char *U2CStringCopySafe(unsigned char *dst, const unsigned short *src, 
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
 ULong C2UGetByteCount(const char *s)
 {
-    return StringGetLength(s) << 1;
+    return StringGetLength((const unsigned char *)s) << 1;
 }
 #endif
 
@@ -1653,7 +1653,7 @@ unsigned short *C2UStringAppendSafe(unsigned short *dst, const char *src, ULong 
     if (bytes < size && chars < count) {
         count -= chars;
         size -= bytes;
-        C2UStringCopySafe(((char *)dst + bytes), src, size, count);
+        C2UStringCopySafe((unsigned short *)((char *)dst + bytes), (const unsigned char *)src, size, count);
     }
     return dst;
 }

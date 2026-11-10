@@ -70,8 +70,8 @@ static void *_FindBundleSymbol(CFStringRef bundleName, CFStringRef symbolName)
         long e;
 
         e = FSFindFolder(kOnAppropriateDisk, kFrameworksFolderType, kCreateFolder, &sFrameworks);
-        if ((short)e != 0) {
-            err = (short)e;
+        if (e != 0) {
+            err = e;
             goto done;
         }
         sFound = 1;
@@ -95,7 +95,7 @@ static void *_FindBundleSymbol(CFStringRef bundleName, CFStringRef symbolName)
     if ((symbol = CFBundleGetFunctionPointerForName(bundle, symbolName)) == 0)
         err = cfragNoSymbolErr;
 done:
-    if ((void *)CFRelease != 0) {
+    if (CFRelease != 0) {
         if (base != 0)
             CFRelease(base);
         if (url != 0)
@@ -168,27 +168,27 @@ long WriteToFileAsSuperUser(char *path, const void *data, long size)
     rights.count = 1;
     rights.items = &item;
     args[0] = path;
-    if ((sAuthCreate = (AuthCreateProc)_FindBundleSymbol(CFSTR("Security.framework"), CFSTR("AuthorizationCreate"))) == 0) {
+    if ((sAuthCreate = _FindBundleSymbol(CFSTR("Security.framework"), CFSTR("AuthorizationCreate"))) == 0) {
         err = kNoSymbolFound;
         goto done;
     }
-    if ((sAuthCopyRights = (AuthCopyRightsProc)_FindBundleSymbol(CFSTR("Security.framework"), CFSTR("AuthorizationCopyRights"))) == 0) {
+    if ((sAuthCopyRights = _FindBundleSymbol(CFSTR("Security.framework"), CFSTR("AuthorizationCopyRights"))) == 0) {
         err = kNoSymbolFound;
         goto done;
     }
-    if ((sAuthExecute = (AuthExecuteProc)_FindBundleSymbol(CFSTR("Security.framework"), CFSTR("AuthorizationExecuteWithPrivileges"))) == 0) {
+    if ((sAuthExecute = _FindBundleSymbol(CFSTR("Security.framework"), CFSTR("AuthorizationExecuteWithPrivileges"))) == 0) {
         err = kNoSymbolFound;
         goto done;
     }
-    if ((sAuthFree = (AuthFreeProc)_FindBundleSymbol(CFSTR("Security.framework"), CFSTR("AuthorizationFree"))) == 0) {
+    if ((sAuthFree = _FindBundleSymbol(CFSTR("Security.framework"), CFSTR("AuthorizationFree"))) == 0) {
         err = kNoSymbolFound;
         goto done;
     }
-    if ((sFwrite = (FwriteProc)_FindBundleSymbol(CFSTR("System.framework"), CFSTR("fwrite"))) == 0) {
+    if ((sFwrite = _FindBundleSymbol(CFSTR("System.framework"), CFSTR("fwrite"))) == 0) {
         err = kNoSymbolFound;
         goto done;
     }
-    if ((sFclose = (FcloseProc)_FindBundleSymbol(CFSTR("System.framework"), CFSTR("fclose"))) == 0) {
+    if ((sFclose = _FindBundleSymbol(CFSTR("System.framework"), CFSTR("fclose"))) == 0) {
         err = kNoSymbolFound;
         goto done;
     }
@@ -214,7 +214,7 @@ done:
         sFclose(pipe);
     if (sAuthFree != 0 && authRef != 0)
         sAuthFree(authRef, 0);
-    if (err == (ULong)kAuthCanceled)
+    if (err == kAuthCanceled)
         err = kUserCanceled;
     return err;
 }
@@ -224,7 +224,7 @@ unsigned char RT3_CanSetSystemLicense(void)
     GetEuidProc geteuid;
 
     if (_PlatformIsThreaded()) {
-        geteuid = (GetEuidProc)_FindBundleSymbol(CFSTR("System.framework"), CFSTR("geteuid"));
+        geteuid = _FindBundleSymbol(CFSTR("System.framework"), CFSTR("geteuid"));
         if (geteuid != 0 && geteuid() == 0)
             return 1;
     }

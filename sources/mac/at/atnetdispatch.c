@@ -32,13 +32,13 @@ void ResolverTickle(NetSocket *s)
         if (gInetUsesOT)
             ResolverTickleOT(s);
         else
-            ResolverTickleMacTCP(s);
+            ResolverTickleMacTCP((struct DNRResolver *)s);
         break;
     case kStackAppleTalk:
         if (gAppleTalkUsesOT)
             ResolverTickleOT(s);
         else
-            ResolverTickleNBP(s);
+            ResolverTickleNBP((struct NBPResolver *)s);
         break;
     }
 }
@@ -318,13 +318,13 @@ void StreamTickle(NetStream *s)
     switch (s->unk6) {
     case kStackInet:
         if (gInetUsesOT)
-            StreamTickleOT(s);
+            StreamTickleOT((struct OTStream *)s);
         else
-            StreamTickleMacTCP(s);
+            StreamTickleMacTCP((struct TCPMacTCP *)s);
         break;
     case kStackAppleTalk:
         if (gAppleTalkUsesOT)
-            StreamTickleOT(s);
+            StreamTickleOT((struct OTStream *)s);
         else
             StreamTickleADSP(s);
         break;
@@ -333,7 +333,7 @@ void StreamTickle(NetStream *s)
 
 void StreamDispose(NetSocket *sock)
 {
-    switch (((NetSocket *)sock)->unk6) {
+    switch ((sock)->unk6) {
     case kStackInet:
         if (gInetUsesOT)
             StreamDisposeOT(sock);
@@ -436,7 +436,7 @@ done:
 
 void StreamClose(NetSocket *sock, unsigned char graceful)
 {
-    switch (((NetSocket *)sock)->unk6) {
+    switch ((sock)->unk6) {
     case kStackInet:
         if (gInetUsesOT)
             StreamCloseOT(sock, graceful);
@@ -580,7 +580,7 @@ NetStream *StreamCreate(NetStackID stack, void *ref, NetProc proc, MutexList *se
 
 void StreamTickle(NetStream *s)
 {
-    StreamTickleOT(s);
+    StreamTickleOT((struct OTStream *)s);
 }
 
 void StreamDispose(NetSocket *sock)

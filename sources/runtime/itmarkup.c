@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,intrinsics,space -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: AmbrosiaTools (the mac build imports it as AmbrosiaTools.framework) on its own compiler as one library: its platform, network, file and interface parts inline memset (rep stos in the exe), so ,intrinsics; -enum min -align 8 are the library's struct layout (jpeglib.h's structs in itjpeg.c, a double at 8); build 335 has no -proc; Research/runtime-compiler-ceiling.md
 /* itmarkup.c -- the interface tool's markup tree (0x0052489d..0x00526eac): elements linked by next / first child and numbered in document order; the character classes and the URL / HTML escaper. Notes: Research/notes/itmarkup.md */
 
@@ -627,17 +627,17 @@ advanced:
                 if (wide) {
                     limit = end - q + 1;
                     n = limit > sizeof(wideName) ? sizeof(wideName) : limit;
-                    Unicode2UpperCopySafe(wideName, q, n,
-                                 UnicodeGetCharCount(parser.open->name));
-                    r = UnicodeCompare(parser.open->name, wideName);
+                    Unicode2UpperCopySafe(wideName, (const unsigned short *)q, n,
+                                 UnicodeGetCharCount((unsigned short *)parser.open->name));
+                    r = UnicodeCompare((unsigned short *)parser.open->name, wideName);
                     if (r != 0)
                         continue;
                     q += n;
                 } else {
                     limit = end - q + 1;
                     n = limit > sizeof(name) ? sizeof(name) : limit;
-                    if (n > StringGetLength(parser.open->name) + 1)
-                        n = StringGetLength(parser.open->name) + 1;
+                    if (n > StringGetLength((unsigned char *)parser.open->name) + 1)
+                        n = StringGetLength((unsigned char *)parser.open->name) + 1;
                     String2UpperCopySafe(name, q, n);
                     r = StringCompare(parser.open->name, name);
                     if (r != 0)

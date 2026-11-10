@@ -110,7 +110,7 @@ void ResolverTickleNBP(NBPResolver *r)
     if (r->deadline != 0 && r->deadline <= TickCount()) {
         r->deadline = 0;
         MemoryClear(&pb, sizeof(pb));
-        pb.NBPKILL.nKillQEl = (Ptr)&r->pb;
+        pb.NBPKILL.nKillQEl = &r->pb;
         PKillNBP(&pb, false);
     }
     state = r->state;
@@ -170,7 +170,7 @@ void ResolverCloseNBP(NBPResolver *r)
     IsMPPOpen();
     SystemCheckCallback();
     while (r->pb.NBP.ioResult == 1)
-        ResolverTickleNBP((NetSocket *)r);
+        ResolverTickleNBP(r);
     r->state = 0;
     AtomicMaskClear(&r->flags, kFlagOpened);
     AtomicMaskClear(&r->flags, kFlagBusy);
@@ -234,7 +234,7 @@ static void ResolverNextNBP(NBPResolver *r, unsigned char start)
             zone[0] = n;
             NBPSetEntity((Ptr)&r->entity, object, type, zone);
             MemoryClear(&r->pb, sizeof(r->pb));
-            r->pb.NBP.ioCompletion = (ATPCompletionUPP)sResolverDoneNBP;
+            r->pb.NBP.ioCompletion = sResolverDoneNBP;
             r->pb.NBP.interval = 8;
             r->pb.NBP.count = 4;
             r->pb.NBP.nbpPtrs.entityPtr = (Ptr)&r->entity;

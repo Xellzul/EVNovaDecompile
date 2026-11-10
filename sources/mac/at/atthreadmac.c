@@ -492,7 +492,7 @@ void ThreadsPostflight(void)
         while ((t = (ThreadRec *)QueueRemove(&gThreadsFree)) != 0)
             _ThreadRecordFree(t);
         while (sAllMutexes != 0)
-            _ThreadRecordClose((ThreadMutex *)sAllMutexes);
+            _ThreadRecordClose(sAllMutexes);
         QueueDispose(&gThreadsFree);
         QueueDispose(&gThreadsReady);
         QueueDispose(&gThreadsWaiting);
@@ -533,7 +533,7 @@ long ThreadDispose(ULong id)
         if (t->owned != 0)
             err = 0;
         while (t->owned != 0)
-            _ThreadMutexLeave((ThreadMutex *)t->owned);
+            _ThreadMutexLeave(t->owned);
         _ThreadSetCurrent(old);
         t->running = 0;
         t->dead = 1;
@@ -608,7 +608,7 @@ long _ThreadRecordClose(void *ref)
     ThreadMutex *m;
     long err;
 
-    m = (ThreadMutex *)ref;
+    m = ref;
     t = _ThreadRecordCurrent();
     err = 0;
     AtomicMaskTest(&gThreadFlags, kThreadsReady) || AtomicMaskTest(&gThreadFlags, kThreadsInit);
@@ -638,7 +638,7 @@ unsigned char _ThreadMutexEnter(ThreadMutex *m)
         _ThreadTableUnlock();
         got = 1;
     } else if (m->owner == t->id) {
-        AtomicIncrement(&m->depth, 1);
+        AtomicIncrement((long *)&m->depth, 1);
         got = 1;
     }
     return got;
@@ -655,7 +655,7 @@ long _ThreadMutexLeave(ThreadMutex *m)
         err = kMutexOwnedElse;
     } else if (m->owner != t->id) {
         err = kMutexOwnedElse;
-    } else if (m->depth != 0 && AtomicIncrement(&m->depth, -1) == 1) {
+    } else if (m->depth != 0 && AtomicIncrement((long *)&m->depth, -1) == 1) {
         _ThreadTableLock();
         m->owner = 0;
         _ThreadListMove(m, &t->owned, &sAllMutexes);
@@ -960,7 +960,7 @@ static unsigned char _ThreadWake(ThreadRec *t, ULongLong now)
 
 void ThreadDeferredInstall(void)
 {
-    DTInstall((DeferredTaskPtr)&gThreadDeferred);
+    DTInstall(&gThreadDeferred);
 }
 
 void _ThreadDeferredProc(void)

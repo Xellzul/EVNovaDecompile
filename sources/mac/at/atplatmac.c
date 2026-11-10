@@ -165,7 +165,7 @@ static pascal void _PlatformBeep(short count)
 }
 
 static RoutineDescriptor sBeepDescriptor = BUILD_ROUTINE_DESCRIPTOR(uppSoundProcInfo, _PlatformBeep);
-static SoundUPP sBeepUPP = (SoundUPP)&sBeepDescriptor;
+static SoundUPP sBeepUPP = &sBeepDescriptor;
 
 static void _PlatformInitDialogs(UniversalProcPtr resume)
 {
@@ -210,7 +210,7 @@ long PlatformOpen(void)
         gPlatformThreaded = 1;
     InitCursor();
     if (gPlatformThreaded) {
-        if (_MutexCreate(&gPlatformMutex) != 0) {
+        if (_MutexCreate((struct TaskMutex **)&gPlatformMutex) != 0) {
             err = kNoMemory;
             goto done;
         }
@@ -260,10 +260,10 @@ long PlatformOpen(void)
             goto done;
         }
     }
-    if ((void *)UpTime == 0 && (gUpTimeProc = _PlatformFindSymbol("DriverServicesLib", "UpTime")) != 0)
+    if (UpTime == 0 && (gUpTimeProc = _PlatformFindSymbol("DriverServicesLib", "UpTime")) != 0)
         gAbsoluteToNanosecondsProc = _PlatformFindSymbol("DriverServicesLib", "AbsoluteToNanoseconds");
     gHasUpTimeOnly = gHasRTC = gHasTimeBase = 0;
-    if ((void *)UpTime != 0 || gUpTimeProc != 0) {
+    if (UpTime != 0 || gUpTimeProc != 0) {
         if (Gestalt(gestaltTimeMgrVersion, &response) == 0 && (ULong)response > 3)
             gHasUpTimeOnly = 1;
     } else if (Gestalt(gestaltNativeCPUtype, &response) == 0) {
@@ -272,12 +272,12 @@ long PlatformOpen(void)
         else if ((ULong)response > kPpc601)
             gHasTimeBase = 1;
     }
-    if ((((void *)UpTime != 0 || gUpTimeProc != 0) && gHasUpTimeOnly == 0) || gHasRTC || gHasTimeBase) {
+    if (((UpTime != 0 || gUpTimeProc != 0) && gHasUpTimeOnly == 0) || gHasRTC || gHasTimeBase) {
         ULongLong start;
         ULongLong end;
         UnsignedWide t;
 
-        if ((void *)UpTime != 0) {
+        if (UpTime != 0) {
             ULongLong tick;
             double until;
 
@@ -286,8 +286,8 @@ long PlatformOpen(void)
                 ;
             t = AbsoluteToNanoseconds(UpTime());
             start = *(ULongLong *)&t;
-            until = kCalibrationTicks + (double)(ULongLong)tick;
-            while (until > (double)TickCount())
+            until = kCalibrationTicks + (ULongLong)tick;
+            while (until > TickCount())
                 ;
             t = AbsoluteToNanoseconds(UpTime());
             end = *(ULongLong *)&t;
@@ -296,16 +296,16 @@ long PlatformOpen(void)
             double until;
 
             tick = TickCount() + 1;
-            while ((ULongLong)TickCount() < (ULongLong)tick)
+            while (TickCount() < (ULongLong)tick)
                 ;
             start = CLOCK_READ(t);
-            until = kCalibrationTicks + (double)(ULongLong)tick;
-            while (until > (double)TickCount())
+            until = kCalibrationTicks + (ULongLong)tick;
+            while (until > TickCount())
                 ;
             end = CLOCK_READ(t);
         }
-        gMicrosPerNano = kCalibrationTicks * 1000000.0 / ((double)(end - start) * kTicksPerSecond);
-        gMillisPerNano = kCalibrationTicks * 1000.0 / ((double)(end - start) * kTicksPerSecond);
+        gMicrosPerNano = kCalibrationTicks * 1000000.0 / ((end - start) * kTicksPerSecond);
+        gMillisPerNano = kCalibrationTicks * 1000.0 / ((end - start) * kTicksPerSecond);
     }
     if (Gestalt(gestaltThreadMgrAttr, &response) == 0 && (response & 1) != 0)
         gIdleHookEnabled = 1;
@@ -316,7 +316,7 @@ long PlatformOpen(void)
 
         shift = TickCount();
         shift %= kSeedBits;
-        gRandomSeed = (ULong)TimerGetMicroseconds();
+        gRandomSeed = TimerGetMicroseconds();
         gRandomSeed = (gRandomSeed << shift) | (gRandomSeed >> (kSeedBits - shift));
     }
     {
@@ -398,12 +398,12 @@ long PlatformOpen(void)
         while (LMGetTicks() < tick)
             ;
         start = CLOCK_READ(t);
-        until = kCalibrationTicks + (double)(ULongLong)tick;
-        while (until > (double)LMGetTicks())
+        until = kCalibrationTicks + (ULongLong)tick;
+        while (until > LMGetTicks())
             ;
         end = CLOCK_READ(t);
-        gMicrosPerNano = kCalibrationTicks * 1000000.0 / ((double)(end - start) * kTicksPerSecond);
-        gMillisPerNano = kCalibrationTicks * 1000.0 / ((double)(end - start) * kTicksPerSecond);
+        gMicrosPerNano = kCalibrationTicks * 1000000.0 / ((end - start) * kTicksPerSecond);
+        gMillisPerNano = kCalibrationTicks * 1000.0 / ((end - start) * kTicksPerSecond);
     }
     if (Gestalt(gestaltThreadMgrAttr, &response) == 0 && (response & 1) != 0) {
         gIdleHook = _PlatformFindSymbol("ThreadsLib", "YieldToAnyThread");
@@ -416,7 +416,7 @@ long PlatformOpen(void)
 
         shift = TickCount();
         shift %= kSeedBits;
-        gRandomSeed = (ULong)TimerGetMicroseconds();
+        gRandomSeed = TimerGetMicroseconds();
         gRandomSeed = (gRandomSeed << shift) | (gRandomSeed >> (kSeedBits - shift));
     }
     e = ThreadsPreflight(0, 0);
@@ -625,7 +625,7 @@ void SystemEnterCallback(unsigned char lock)
     } else {
         if (gCallbackDepth == 0)
             _AtomicEnter2();
-        AtomicIncrement(&gCallbackDepth, 1);
+        AtomicIncrement((long *)&gCallbackDepth, 1);
     }
 }
 
@@ -641,7 +641,7 @@ void SystemLeaveCallback(unsigned char lock)
             MPSetTaskStorageValue(gCallbackIndex, depth - 1);
     } else {
         if (gCallbackDepth != 0)
-            AtomicIncrement(&gCallbackDepth, -1);
+            AtomicIncrement((long *)&gCallbackDepth, -1);
         if (gCallbackDepth == 0)
             _AtomicLeave2();
     }
@@ -708,13 +708,13 @@ void SystemEnterCallback(int lock)
 {
     if (gCallbackDepth == 0)
         _AtomicEnter2();
-    AtomicIncrement(&gCallbackDepth, 1);
+    AtomicIncrement((long *)&gCallbackDepth, 1);
 }
 
 void SystemLeaveCallback(int lock)
 {
     if (gCallbackDepth != 0)
-        AtomicIncrement(&gCallbackDepth, -1);
+        AtomicIncrement((long *)&gCallbackDepth, -1);
     if (gCallbackDepth == 0)
         _AtomicLeave2();
 }
@@ -776,8 +776,8 @@ void *_PlatformFindBundleSymbol(CFStringRef bundleName, CFStringRef symbolName)
         long e;
 
         e = FSFindFolder(kOnAppropriateDisk, kFrameworksFolderType, kCreateFolder, &sFrameworks);
-        if ((short)e != 0) {
-            err = (short)e;
+        if (e != 0) {
+            err = e;
             goto done;
         }
         sFound = 1;
@@ -801,7 +801,7 @@ void *_PlatformFindBundleSymbol(CFStringRef bundleName, CFStringRef symbolName)
     if ((symbol = CFBundleGetFunctionPointerForName(bundle, symbolName)) == 0)
         err = cfragNoSymbolErr;
 done:
-    if ((void *)CFRelease != 0) {
+    if (CFRelease != 0) {
         if (base != 0)
             CFRelease(base);
         if (url != 0)

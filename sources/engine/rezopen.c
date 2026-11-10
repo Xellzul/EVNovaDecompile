@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* rezopen.c -- open a BurgerLib REZ container, parse its "resource.map" entry into resmgr.c's RezFile/RezTypeEntry/ResRecord layout, and link it into gRezFiles (win 0x004ce4d0). Notes: Research/notes/rezopen.md */
 /* This file adds the raw, still-big-endian counterparts the map's bytes are
    read as before SwapEndianShort/Long convert them in place; every struct and

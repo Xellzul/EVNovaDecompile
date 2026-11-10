@@ -118,7 +118,7 @@ long _ST_GetSystemVolume(ULong *left, ULong *right, ULong *max)
         err = kNoSysVolume;
         goto done;
     }
-    *left = (ULong)volume & 0xffff;
+    *left = volume & 0xffff;
     *right = (ULong)volume >> 16;
     if (max != 0)
         *max = kVolumeMax;
@@ -176,7 +176,7 @@ static SndDoubleBufferPtr _ST_NewBuffer(long frames, ULong bytes)
 static pascal void _ST_DoubleBack(SndChannelPtr channel, SndDoubleBufferPtr buffer)
 {
     SystemEnterCallback(0);
-    _ST_MixerDispatch((short *)buffer->dbSoundData, buffer->dbNumFrames);
+    _ST_MixerDispatch(buffer->dbSoundData, buffer->dbNumFrames);
     buffer->dbFlags = dbBufferReady;
     SystemLeaveCallback(0);
 }
@@ -278,7 +278,7 @@ long _ST_CreateSoundPump(void)
 
     err = 0;
     size = 0;
-    format.sampleRate = gSampleRate != 0 ? (double)gSampleRate / 65536.0 : kDefaultRate;
+    format.sampleRate = gSampleRate != 0 ? gSampleRate / 65536.0 : kDefaultRate;
     format.formatFlags = 0xc;
     format.formatID = 'lpcm';
     format.formatFlags = 0xe;
@@ -357,7 +357,7 @@ void _ST_DisposeSoundPump(void)
 long _ST_GetCurrentSampleRate(ULong *rate)
 {
     if (gSoundOpen)
-        *rate = UInt32_To_UFix32((ULong)gPumpOut.format.sampleRate);
+        *rate = UInt32_To_UFix32(gPumpOut.format.sampleRate);
     else
         *rate = UInt32_To_UFix32(kDefaultRate);
     return 0;

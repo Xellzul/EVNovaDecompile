@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,intrinsics,space -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: AmbrosiaTools (mac AmbrosiaTools.framework) is one library on its own compiler: its parts inline memset (rep stos in the exe), so ,intrinsics; -enum min -align 8 are the library's struct layout; these functions lose under REGGIE's -g; build 335 has no -proc; Research/runtime-compiler-ceiling.md
 /* atnetinfo.c -- the network layer's socket accessors (kind, state, event proc, the four packet lists), the last socket error, and dotted-address text. Notes: Research/notes/atnetinfo.md */
 

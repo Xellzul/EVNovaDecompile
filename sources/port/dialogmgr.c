@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 // COMPILE-WHY: ModalDialog alone is built under `#pragma opt_lifetimes off'; not
 // `-opt ...,nolifetimes' because file-wide it breaks PopUpListSelect and nv_NewDialog.
@@ -695,7 +695,7 @@ long PopUpListSelect(DialogPtr dlg, ControlRecord *rec)
                     }
                 }
                 DrawBevel(&box, NULL, &bevelGray1, &bevelGray4);
-                CopyBits(GetGWCPixMap(&gw),
+                CopyBits((BitMapPtr)GetGWCPixMap(&gw),
                          GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                          &box, &box, 0, NULL);
                 SetPort(savedPort);
@@ -809,7 +809,7 @@ void DisposeDialog(DialogPtr dlg)
 
 /* GetDialogItem. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cf960
-void GetDialogItem(DialogPtr dlg, long item, short *type, void **handle,
+void GetDialogItem(DialogPtr dlg, long item, short *type, Handle *handle,
                    Rect *box)
 {
     ControlRecord *rec;
@@ -818,7 +818,7 @@ void GetDialogItem(DialogPtr dlg, long item, short *type, void **handle,
     if (type != NULL)
         *type = rec != NULL ? rec->kind : 0;
     if (handle != NULL)
-        *handle = rec;
+        *handle = (Handle)rec;
     if (box != NULL) {
         box->top = rec != NULL ? rec->box.top : 0;
         box->left = rec != NULL ? rec->box.left : 0;
@@ -910,13 +910,13 @@ void SetControlText(ControlPtr ctl, const char *text)
 
 /* SetDialogItemText. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cfb90
-void SetDialogItemText(ControlPtr ctl, const unsigned char *text)
+void SetDialogItemText(Handle item, const unsigned char *text)
 {
     char buf[256];
 
     memcpy(buf, text + 1, text[0]);
     buf[text[0]] = 0;
-    SetControlText(ctl, buf);
+    SetControlText((ControlPtr)item, buf);
 }
 
 /* GetControlText. STATE: MATCH, byte-identical. OPEN: none */
@@ -934,11 +934,11 @@ void GetControlText(ControlPtr ctl, char *text)
 
 /* GetDialogItemText. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cfc10
-void GetDialogItemText(ControlPtr ctl, unsigned char *text)
+void GetDialogItemText(Handle item, unsigned char *text)
 {
     char buf[256];
 
-    GetControlText(ctl, buf);
+    GetControlText((ControlPtr)item, buf);
     text[0] = strlen(buf);
     memcpy(text + 1, buf, text[0]);
 }
@@ -958,7 +958,7 @@ void SetControlTitle(ControlPtr ctl, const unsigned char *text)
     case 4:
     case 5:
     case 6:
-        SetDialogItemText(ctl, text);
+        SetDialogItemText((Handle)ctl, text);
     }
 }
 
@@ -1882,7 +1882,7 @@ void DrawDialog(DialogPtr dlg)
         if (updateProc != NULL)
             updateProc();
 
-        CopyBits(GetGWCPixMap((GWorldContainer *)dlg),
+        CopyBits((BitMapPtr)GetGWCPixMap((GWorldContainer *)dlg),
                  GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                  &dlg->portRect, &dlg->bounds, 0, 0);
         SetPort(savedPort);
@@ -1902,14 +1902,14 @@ void nv_UpdateDialogWindow(int all)
         for (i = 0; i < gDialogCount; i++) {
             dlg = gDialogStack[i];
             if (dlg->visible != 0)
-                CopyBits(GetGWCPixMap((GWorldContainer *)dlg),
+                CopyBits((BitMapPtr)GetGWCPixMap((GWorldContainer *)dlg),
                          GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                          &dlg->portRect, &dlg->bounds, 0, 0);
         }
     } else {
         cur = gCurDialog;
         if (cur->visible != 0)
-            CopyBits(GetGWCPixMap((GWorldContainer *)cur),
+            CopyBits((BitMapPtr)GetGWCPixMap((GWorldContainer *)cur),
                      GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                      &cur->portRect, &cur->bounds, 0, 0);
     }
@@ -2433,7 +2433,7 @@ long __stdcall WinGameWndProc(void *hwnd, unsigned long msg,
                     }
                 } else {
                     if (loadPort.world != NULL) {
-                        CopyBits(GetGWCPixMap(&loadPort),
+                        CopyBits((BitMapPtr)GetGWCPixMap(&loadPort),
                                  GetPortBitMapForCopyBits(
                                      GetCWindowGrafPort(gWind)),
                                  GetCWindowPortRect(gWind),

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* blitpixiemask.c -- BlitPixieMask (win 0x00471a70), the per-row masked blit BlitPixieMaskDrawProc calls. Notes: Research/notes/blitpixiemask.md */
 /* The row strides are pre-adjusted once at the top, on the PARAMETER slots, so the
    per-row advance adds only the leftover stride. The source pixels are pre-masked by

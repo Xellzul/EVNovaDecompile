@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* swcreatespritelayer.c -- SWCreateSpriteLayer (win 0x004770d0, donor SpriteLayer.c line 39) and SWDisposeSpriteLayer (win 0x00477120, donor line 73). Notes: Research/notes/swcreatespritelayer.md */
 /* The fork's SpriteLayerRec is 0x1c bytes, not the donor's 0x18: a 4-byte member at
    +0x10 (written only by SWSetLayerCallBack) pushes tileLayer to +0x18, isPaused to

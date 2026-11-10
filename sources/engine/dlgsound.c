@@ -1,6 +1,6 @@
 #include "gametypes.h"
 
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* dlgsound.c -- the dialog sound bank's stop-all and its two-part chime (win 0x0048bbb0 and 0x0048bc20). Notes: Research/notes/dlgsound.md */
 #include <stddef.h>
 
@@ -176,19 +176,19 @@ void MainScreenAnimIdle(void)
     MainScreenAnimDraw();
     MainScreenUpdate(2);
 
-    SetPortWindowPort(gWind);
+    SetPortWindowPort((WindowRef)gWind);
     ForeColor(blackColor);
-    CopyBits(GWorldContainerBits(&loadPort), GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+    CopyBits(GWorldContainerBits(&loadPort), GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
              &logoDestRect, &logoDestRect, 0, NULL);
 
-    CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
-             GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+    CopyBits(GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
+             GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
              &rolloverDestRect, &rolloverDestRect, 0, NULL);
 
     for (i = 0; i < 3; i++) {
         if (slidePort[i].world != NULL && slideIndex[i] < 0x7d00) {
-            CopyBits((PixMapPtr)GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
-                     GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+            CopyBits(GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
+                     GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                      &slideDestRect[i], &slideDestRect[i], 0, NULL);
             if (slideIndex[i] >= slideFrameCount[i])
                 slideIndex[i] = 0x7d00;

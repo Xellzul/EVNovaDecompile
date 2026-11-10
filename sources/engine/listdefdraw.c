@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* listdefdraw.c -- the mission-list TU: per-arrival mission housekeeping and the mission list's LDEF (win 0x00448910..0x00448b85), then CrtInitHook2, the .CRT hook that ends the object. Notes: Research/notes/listdefdraw.md */
 #include "macport.h"
@@ -117,9 +117,9 @@ void MissionListDefinition(short lMessage, Boolean lSelect, Rect *lRect, long lC
     case lDrawMsg:
         GetFontInfo(&fontInfo);
         if (lSelect)
-            RGBForeColor(&ldefColors[2]);
+            RGBForeColor((RGBColor *)&ldefColors[2]);
         else
-            RGBForeColor(&ldefColors[1]);
+            RGBForeColor((RGBColor *)&ldefColors[1]);
         PaintRect(lRect);
         ForeColor(blackColor);
         if (lDataLen <= 0)
@@ -131,17 +131,17 @@ void MissionListDefinition(short lMessage, Boolean lSelect, Rect *lRect, long lC
         TextFace(0);
         if (TextWidth(text, lDataOffset, lDataLen) > lRect->right - h)
             TextFace(condense);
-        RGBForeColor(&ldefColors[0]);
+        RGBForeColor((RGBColor *)&ldefColors[0]);
         DrawText(text, lDataOffset, lDataLen);
         ForeColor(blackColor);
         break;
     case lHiliteMsg:
         GetPort(&port);
-        penMode = GetPortPenMode(port);
+        penMode = GetPortPenMode((CGrafPtr)port);
         if (lSelect)
-            RGBForeColor(&ldefColors[2]);
+            RGBForeColor((RGBColor *)&ldefColors[2]);
         else
-            RGBForeColor(&ldefColors[1]);
+            RGBForeColor((RGBColor *)&ldefColors[1]);
         PaintRect(lRect);
         ForeColor(blackColor);
         if (lDataLen > 0) {
@@ -152,11 +152,11 @@ void MissionListDefinition(short lMessage, Boolean lSelect, Rect *lRect, long lC
             TextFace(0);
             if (TextWidth(text, lDataOffset, lDataLen) > lRect->right - h)
                 TextFace(condense);
-            RGBForeColor(&ldefColors[0]);
+            RGBForeColor((RGBColor *)&ldefColors[0]);
             DrawText(text, lDataOffset, lDataLen);
             ForeColor(blackColor);
         }
-        SetPortPenMode(port, penMode);
+        SetPortPenMode((CGrafPtr)port, penMode);
         break;
     }
 #else

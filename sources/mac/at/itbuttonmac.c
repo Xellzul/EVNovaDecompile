@@ -83,7 +83,7 @@ typedef struct ITButton {
 #define TAIL_FIRST
 #define COPY_NAME(d, s) do { \
         if (element->wide) \
-            U2CStringCopySafe((unsigned char *)(d), (unsigned char *)(s), sizeof(face.name), -1); \
+            U2CStringCopySafe((unsigned char *)(d), (const unsigned short *)(s), sizeof(face.name), -1); \
         else \
             StringCopySafe((d), (s), sizeof(face.name)); \
     } while (0)
@@ -255,7 +255,7 @@ long _IT_ButtonDraw(void *dc, ITImage *image, const ITRect *r, void **faces, lon
     }
     if (faces != 0) {
         count = IndirectGetSize(faces) / sizeof(ITButtonFace);
-        if (count != 0 && (ULong)(value * kFacesPerValue + variant) < count) {
+        if (count != 0 && (value * kFacesPerValue + variant) < count) {
             MemoryCopy(&face, (ITButtonFace *)*faces + value * kFacesPerValue + variant,
                          sizeof(ITButtonFace));
             err = IT_ItemCallbackGetImage(face.name, &picture, &mask, &trans);
@@ -395,7 +395,7 @@ long IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
         if (value != 0) {
 #if TARGET_API_MAC_CARBON
             if (wide)
-                value = U2CStringCopySafe(text, value, sizeof(text), -1);
+                value = (char *)U2CStringCopySafe((unsigned char *)text, (const unsigned short *)value, sizeof(text), -1);
 #endif
             String2UpperCopySafe(text, value, sizeof(text));
             if (StringCompare(text, "CHECKBOX") == 0 || StringCompare(text, "CHECK") == 0)
@@ -412,7 +412,7 @@ long IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
 #if TARGET_API_MAC_CARBON
         if (value != 0) {
             if (wide)
-                value = U2CStringCopySafe(text, value, sizeof(text), -1);
+                value = (char *)U2CStringCopySafe((unsigned char *)text, (const unsigned short *)value, sizeof(text), -1);
             if (StringFindDelimiter(value, "+") != 0)
                 button->isDefault = 1;
         }
@@ -453,7 +453,7 @@ long IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
             StringC2PCopy(name, text);
         }
         CopyDT_2SysRect(&r, &button->bounds);
-        if ((ULong)button->value > maximum)
+        if (button->value > maximum)
             button->value = maximum;
         if ((button->control = NewControl(hwnd, &r, name, button->visible, button->value, 0, maximum,
                                           kind, 0)) == 0) {
@@ -480,8 +480,8 @@ long IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
 #else
             e = (*gIT_SetControlData)(button->control, 0, kControlPushButtonDefaultTag, sizeof(flag), &flag);
 #endif
-            if ((short)e != 0)
-                err = (short)e;
+            if (e != 0)
+                err = e;
         }
         update = 1;
         break;
@@ -510,7 +510,7 @@ long IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
         break;
     case kMsgClick:
         where = &((ITInputEvent *)a)->where;
-        CopyDT_2SysPoint((ITPoint *)&pt, where);
+        CopyDT_2SysPoint(&pt, where);
         if (button->faces != 0) {
             *(unsigned char *)b = DT_IsPointInRect(where, &button->bounds);
             break;
@@ -539,7 +539,7 @@ long IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
             owner = (*button->control)->contrlOwner;
             (*button->control)->contrlOwner = dc;
             procs = ((CGrafPtr)dc)->grafProcs;
-            ((CGrafPtr)dc)->grafProcs = (CQDProcsPtr)&gIT_StdCProcs;
+            ((CGrafPtr)dc)->grafProcs = &gIT_StdCProcs;
             Draw1Control(button->control);
             ((CGrafPtr)dc)->grafProcs = procs;
             (*button->control)->contrlOwner = owner;
@@ -547,7 +547,7 @@ long IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
         }
         break;
     case kMsgTrack:
-        CopyDT_2SysPoint((ITPoint *)&pt, &((ITInputEvent *)a)->where);
+        CopyDT_2SysPoint(&pt, &((ITInputEvent *)a)->where);
         if (button->faces == 0) {
             if (TrackControl(button->control, pt, 0) != 0)
                 *(unsigned char *)b = 1;

@@ -39,7 +39,7 @@
             found++;
             GetResInfo(stellarFileHand, &resID, &resType, name);
             TrimResourceName(name);
-            strncpy(stellarData[i].name, name, 31);
+            strncpy((char *)stellarData[i].name, (char *)name, 31);
             stellarData[i].pos.h = ResRec(SpobRes, stellarFileHand)->xPos;
             stellarData[i].pos.v = ResRec(SpobRes, stellarFileHand)->yPos;
             stellarData[i].type = ResRec(SpobRes, stellarFileHand)->type;
@@ -181,7 +181,7 @@
                 found++;
                 GetResInfo(systemFileHand, &resID, &resType, name);
                 TrimResourceName(name);
-                strncpy(systemData[i].name, name, 31);
+                strncpy((char *)systemData[i].name, (char *)name, 31);
                 systemData[i].loaded = 1;
                 systemData[i].prepared = 1;
                 for (j = 0; j < 8; j++) {
@@ -195,8 +195,8 @@
                 systemData[i].interference = ResRec(SystRes, systemFileHand)->interference;
                 if (systemData[i].asteroidCount > 0) {
                     systemData[i].asteroidCount *=
-                        (GetCWindowPortRect(gWind)->right -
-                                 GetCWindowPortRect(gWind)->left) / 640.0;
+                        (GetCWindowPortRect((WindowRef)gWind)->right -
+                                 GetCWindowPortRect((WindowRef)gWind)->left) / 640.0;
                     if (systemData[i].asteroidCount > 16)
                         systemData[i].asteroidCount = 16;
                 } else {
@@ -250,7 +250,7 @@
                 }
                 if (k != 100 && k > 0) {
                     for (j = 0; j < 8; j++)
-                        systemData[i].dudeProbs[j] *= 100.0 / (float)k;
+                        systemData[i].dudeProbs[j] *= 100.0 / k;
                 }
                 for (j = 0; j < kMaxSystemLinks; j++) {
                     if (ResRec(SystRes, systemFileHand)->con[j] >= kFirstResourceID && ResRec(SystRes, systemFileHand)->con[j] < kFirstResourceID + kMaxSystems)
@@ -493,7 +493,7 @@
                     outfitSystem[i].persistent = 1;
                 GetResInfo(outfitSystemFileHand, &resID, &resType, name);
                 TrimResourceName(name);
-                strncpy(outfitSystem[i].name, name, 63);
+                strncpy((char *)outfitSystem[i].name, (char *)name, 63);
                 outfitSystem[i].modType[1] = ResRec(OutfRes, outfitSystemFileHand)->modType2;
                 outfitSystem[i].modVal[1] = ResRec(OutfRes, outfitSystemFileHand)->modVal2;
                 outfitSystem[i].modType[2] = ResRec(OutfRes, outfitSystemFileHand)->modType3;
@@ -509,12 +509,12 @@
                 outfitSystem[i].contributes[1] = ResRec(OutfRes, outfitSystemFileHand)->contribute2;
                 outfitSystem[i].requires[0] = ResRec(OutfRes, outfitSystemFileHand)->require1;
                 outfitSystem[i].requires[1] = ResRec(OutfRes, outfitSystemFileHand)->require2;
-                strcpy(outfitShortNames[i], ResRec(OutfRes, outfitSystemFileHand)->shortName);
-                strcpy(lcOutfitName[i], ResRec(OutfRes, outfitSystemFileHand)->lcName);
-                strcpy(lcPluralOutfitName[i], ResRec(OutfRes, outfitSystemFileHand)->lcPlural);
-                CtoPstr(outfitShortNames[i]);
-                CtoPstr(lcOutfitName[i]);
-                CtoPstr(lcPluralOutfitName[i]);
+                strcpy((char *)outfitShortNames[i], ResRec(OutfRes, outfitSystemFileHand)->shortName);
+                strcpy((char *)lcOutfitName[i], ResRec(OutfRes, outfitSystemFileHand)->lcName);
+                strcpy((char *)lcPluralOutfitName[i], ResRec(OutfRes, outfitSystemFileHand)->lcPlural);
+                CtoPstr((char *)outfitShortNames[i]);
+                CtoPstr((char *)lcOutfitName[i]);
+                CtoPstr((char *)lcPluralOutfitName[i]);
                 UnlockAHandle(outfitSystemFileHand);
                 ResourcePurge(outfitSystemFileHand);
                 ReleaseResource(outfitSystemFileHand);
@@ -1094,17 +1094,17 @@
                 AdjustHandleSize(shipClassFileHand, 0x744);
                 GetResInfo(shipClassFileHand, &resID, &resType, name);
                 TrimResourceName(name);
-                strncpy(shipClass[i].name, name, 63);
-                strcpy(shipyardShortNames[i], ResRec(ShipRes, shipClassFileHand)->shortName);
-                strcpy(shipyardLongNames[i], ResRec(ShipRes, shipClassFileHand)->longName);
-                strcpy(shipCommNames[i], ResRec(ShipRes, shipClassFileHand)->commName);
-                strcpy(shipMovieFilenames[i], ResRec(ShipRes, shipClassFileHand)->movieName);
-                strcpy(shipClass[i].subtitle, ResRec(ShipRes, shipClassFileHand)->subtitle);
-                CtoPstr(shipyardShortNames[i]);
-                CtoPstr(shipyardLongNames[i]);
-                CtoPstr(shipCommNames[i]);
-                CtoPstr(shipMovieFilenames[i]);
-                CtoPstr(shipClass[i].subtitle);
+                strncpy((char *)shipClass[i].name, (char *)name, 63);
+                strcpy((char *)shipyardShortNames[i], ResRec(ShipRes, shipClassFileHand)->shortName);
+                strcpy((char *)shipyardLongNames[i], ResRec(ShipRes, shipClassFileHand)->longName);
+                strcpy((char *)shipCommNames[i], ResRec(ShipRes, shipClassFileHand)->commName);
+                strcpy((char *)shipMovieFilenames[i], ResRec(ShipRes, shipClassFileHand)->movieName);
+                strcpy((char *)shipClass[i].subtitle, ResRec(ShipRes, shipClassFileHand)->subtitle);
+                CtoPstr((char *)shipyardShortNames[i]);
+                CtoPstr((char *)shipyardLongNames[i]);
+                CtoPstr((char *)shipCommNames[i]);
+                CtoPstr((char *)shipMovieFilenames[i]);
+                CtoPstr((char *)shipClass[i].subtitle);
                 if (crashlog_isactive()) {
                     if (m < 0) {
                         crashlog_print("warning: ");
@@ -1347,13 +1347,13 @@
                     govtData[i].newsPict = -1;
                 GetResInfo(govtFileHand, &resID, &resType, name);
                 TrimResourceName(name);
-                strncpy(govtData[i].name, name, 31);
-                strcpy(govtTargStrings[i], ResRec(GovtRes, govtFileHand)->targetCode);
-                strcpy(govtShortNames[i], ResRec(GovtRes, govtFileHand)->commName);
-                strcpy(govtMediumNames[i], ResRec(GovtRes, govtFileHand)->mediumName);
-                CtoPstr(govtTargStrings[i]);
-                CtoPstr(govtShortNames[i]);
-                CtoPstr(govtMediumNames[i]);
+                strncpy((char *)govtData[i].name, (char *)name, 31);
+                strcpy((char *)govtTargStrings[i], ResRec(GovtRes, govtFileHand)->targetCode);
+                strcpy((char *)govtShortNames[i], ResRec(GovtRes, govtFileHand)->commName);
+                strcpy((char *)govtMediumNames[i], ResRec(GovtRes, govtFileHand)->mediumName);
+                CtoPstr((char *)govtTargStrings[i]);
+                CtoPstr((char *)govtShortNames[i]);
+                CtoPstr((char *)govtMediumNames[i]);
                 UnlockAHandle(govtFileHand);
                 AdjustHandleSize(govtFileHand, 0xc0);
                 ResourcePurge(govtFileHand);
@@ -1484,7 +1484,7 @@
                 personData[i].loaded = 1;
                 GetResInfo(personFileHand, &resID, &resType, name);
                 TrimResourceName(name);
-                strncpy(personData[i].name, name, 30);
+                strncpy(personData[i].name, (char *)name, 30);
                 UnlockAHandle(personFileHand);
                 ResourcePurge(personFileHand);
                 ReleaseResource(personFileHand);
@@ -1516,8 +1516,8 @@
         personData[kPersCaptainHector].rgb5[0] = personData[kPersCaptainHector].rgb5[1] = personData[kPersCaptainHector].rgb5[2] = 0;
         personData[kPersCaptainHector].loaded = 1;
         k = kPersCaptainHector;
-        strncpy(personData[k].name, "\pCaptain Hector", 16);
-        strncpy(personData[k].subtitle, "\pShareware Enforcer", 20);
+        strncpy(personData[k].name, (char *)"\pCaptain Hector", 16);
+        strncpy(personData[k].subtitle, (char *)"\pShareware Enforcer", 20);
 
         /* pick him a ship: sufficiently shielded and agile vs the fleet average */
         sum = 0;
@@ -1798,7 +1798,7 @@
                 }
                 GetResInfo(junkFileHand, &resID, &resType, name);
                 TrimResourceName(name);
-                strncpy(junkData[i].name, name, 63);
+                strncpy((char *)junkData[i].name, (char *)name, 63);
                 strcpy(junkData[i].lcName, ResRec(JunkRes, junkFileHand)->lcName);
                 strcpy(junkData[i].abbrev, ResRec(JunkRes, junkFileHand)->abbrev);
                 strcpy(junkData[i].buyOn, ResRec(JunkRes, junkFileHand)->buyOn);
@@ -1920,7 +1920,7 @@
                 GetResInfo(rankFileHand, &resID, &resType, name);
                 TrimResourceName(name);
                 PtoCstr(name);
-                strncpy(rankData[i].name, name, 127);
+                strncpy(rankData[i].name, (char *)name, 127);
                 strcpy(rankData[i].convName, ResRec(RankRes, rankFileHand)->name);
                 strcpy(rankData[i].shortName, ResRec(RankRes, rankFileHand)->shortName);
                 UnlockAHandle(rankFileHand);
@@ -1946,7 +1946,7 @@
                 asteroidType[i].strength = ResRec(RoidRes, asteroidFileHand)->strength;
                 if (asteroidType[i].strength < 1)
                     asteroidType[i].strength = 1;
-                asteroidType[i].frameRate = (float)ResRec(RoidRes, asteroidFileHand)->spinRate * 0.01;
+                asteroidType[i].frameRate = ResRec(RoidRes, asteroidFileHand)->spinRate * 0.01;
                 asteroidType[i].yieldType = ResRec(RoidRes, asteroidFileHand)->yieldType;
                 asteroidType[i].yieldQty = ResRec(RoidRes, asteroidFileHand)->yieldQty;
                 if (asteroidType[i].yieldQty < 0) {
@@ -2042,12 +2042,12 @@
         ldefColors[2][kLdefGreen] = ((ResRec(ColrRes, colorFileHand)->listColor[2] >> 8) & 0xff) * 256;
         ldefColors[2][kLdefRed] = ((ResRec(ColrRes, colorFileHand)->listColor[2] >> 16) & 0xff) * 256;
         progressDefRect = ResRec(ColrRes, colorFileHand)->progressBar;
-        strcpy(name, ResRec(ColrRes, colorFileHand)->menuFont);
-        CtoPstr(name);
+        strcpy((char *)name, ResRec(ColrRes, colorFileHand)->menuFont);
+        CtoPstr((char *)name);
         GetFNum(name, &menuFontID);
         menuTextSize = ResRec(ColrRes, colorFileHand)->menuFontSize;
-        strcpy(name, ResRec(ColrRes, colorFileHand)->buttonFont);
-        CtoPstr(name);
+        strcpy((char *)name, ResRec(ColrRes, colorFileHand)->buttonFont);
+        CtoPstr((char *)name);
         GetFNum(name, &buttonFontID);
         buttonFontSize = ResRec(ColrRes, colorFileHand)->buttonFontSize;
         logoDestPoint.h = ResRec(ColrRes, colorFileHand)->logoPos[0];

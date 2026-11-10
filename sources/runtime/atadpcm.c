@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,speed -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: AmbrosiaTools (the mac build imports it as AmbrosiaTools.framework) on its own compiler as one library: the sound tool is its speed part (16-byte aligned, where 335's level 2 is packed) and calls memset at constant sizes, so no ,intrinsics; -enum min -align 8 are the library's struct layout (jpeglib.h's structs in itjpeg.c, a double at 8); build 335 has no -proc; Research/runtime-compiler-ceiling.md
 /* atadpcm.c -- IMA ADPCM: Jack Jansen's public-domain coder that packs sounds held in memory, and the decoder that resamples and mixes them. Notes: Research/notes/atadpcm.md */
 

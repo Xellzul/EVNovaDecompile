@@ -400,7 +400,7 @@ long StreamOpenClientOT(void *ref, NetAddress *local, const NetAddress *remote, 
         err = kNetErrConfig;
         goto done;
     }
-    if ((void *)OTUseSyncIdleEvents != 0 && OTUseSyncIdleEvents(s->endpoint, true) != 0) {
+    if (OTUseSyncIdleEvents != 0 && OTUseSyncIdleEvents(s->endpoint, true) != 0) {
         err = kNetErrConfig;
         goto done;
     }
@@ -588,7 +588,7 @@ void StreamCloseOT(NetSocket *sock, unsigned char inGraceful)
                 goto done;
             if (OTSetAsynchronous(s->endpoint) != 0)
                 goto done;
-            if ((void *)OTUseSyncIdleEvents != 0 && OTUseSyncIdleEvents(s->endpoint, true) != 0)
+            if (OTUseSyncIdleEvents != 0 && OTUseSyncIdleEvents(s->endpoint, true) != 0)
                 goto done;
         }
     }
@@ -679,7 +679,7 @@ long StreamOpenEndpointOT(void *ref)
         err = kNetErrConfig;
         goto done;
     }
-    if ((void *)OTUseSyncIdleEvents != 0 && OTUseSyncIdleEvents(s->endpoint, true) != 0)
+    if (OTUseSyncIdleEvents != 0 && OTUseSyncIdleEvents(s->endpoint, true) != 0)
         err = kNetErrConfig;
 done:
     return err;

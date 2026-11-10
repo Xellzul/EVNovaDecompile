@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* newpilotdlg.c -- the New Pilot confirm/abort gate (win 0x0048a7e0). Notes: Research/notes/newpilotdlg.md */
 #include <stddef.h>
 
@@ -206,10 +206,10 @@ Boolean DoNewPilotNameDialog(Boolean *strictPlay)
 #if defined(MAC1010) && !TARGET_API_MAC_CARBON
         GetDialogItem(dlg, kItemCharPopup, &type, &h, &box);
         popupMenu = *(MenuHandle *)*(*(ControlHandle)h)->contrlData;
-        GetMenuItemText(popupMenu, GetControlValue(h), newPilotPopupChoice[0]);
+        GetMenuItemText(popupMenu, GetControlValue((ControlHandle)h), newPilotPopupChoice[0]);
         GetDialogItem(dlg, kItemGenderPopup, &type, &h, &box);
         popupMenu = *(MenuHandle *)*(*(ControlHandle)h)->contrlData;
-        GetMenuItemText(popupMenu, GetControlValue(h), newPilotPopupChoice[1]);
+        GetMenuItemText(popupMenu, GetControlValue((ControlHandle)h), newPilotPopupChoice[1]);
 #else
         GetDialogItemAsControl(dlg, kItemCharPopup, &popup);
         popupMenu = GetMenu(GetControlPopupMenuID(popup));
@@ -293,7 +293,7 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
     DrawDialog(dlg);
     FrameDefaultButton(dlg, 1);
 
-    GetDialogItem(dlg, kItemStrictPlay, &type, &h, &box);
+    GetDialogItem(dlg, kItemStrictPlay, &type, (Handle *)&h, &box);
     ctl = h;
     if (strict != 0)
         SetControlValue(ctl, 1);
@@ -301,7 +301,7 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
         SetControlValue(ctl, 0);
 
     for (i = 0, p = newPlayerName[0]; i < kNameFieldCount; i++) {
-        GetDialogItem(dlg, i + kItemFirstNameField, &type, &h, &box);
+        GetDialogItem(dlg, i + kItemFirstNameField, &type, (Handle *)&h, &box);
         SetDialogItemText(h, p);
         p += kNameFieldStride;
     }
@@ -333,7 +333,7 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
             } while (++i < n);
         }
     }
-    GetDialogItem(dlg, kItemCharPopup, &type, &h, &box);
+    GetDialogItem(dlg, kItemCharPopup, &type, (Handle *)&h, &box);
     ctl = h;
     SetControlValue(ctl, (short)selected);
 
@@ -349,7 +349,7 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
                 extern short strlen(const char *s);      /* 0x004eedb0 */
 #endif
 
-                GetDialogItem(dlg, n + kItemFirstNameField, &type, &h, &box);
+                GetDialogItem(dlg, n + kItemFirstNameField, &type, (Handle *)&h, &box);
                 GetDialogItemText(h, savedName);
                 PtoCstr(savedName);
                 if (strlen((char *)savedName) > kMaxPilotNameLen) {
@@ -367,7 +367,7 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
                 strict = 0;
             else
                 strict = 1;
-            GetDialogItem(dlg, kItemStrictPlay, &type, &h, &box);
+            GetDialogItem(dlg, kItemStrictPlay, &type, (Handle *)&h, &box);
             ctl = h;
             if (strict != 0)
                 SetControlValue(ctl, 1);
@@ -383,14 +383,14 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
 
     if (result != 0) {
         for (i = 0, p = newPlayerName[0]; i < kNameFieldCount; i++) {
-            GetDialogItem(dlg, i + kItemFirstNameField, &type, &h, &box);
+            GetDialogItem(dlg, i + kItemFirstNameField, &type, (Handle *)&h, &box);
             GetDialogItemText(h, p);
             p += kNameFieldStride;
         }
         *strictPlay = strict;
-        GetDialogItem(dlg, kItemCharPopup, NULL, (void **)&ctl, NULL);
+        GetDialogItem(dlg, kItemCharPopup, NULL, (Handle *)&ctl, NULL);
         GetMenuItemText(ctl, GetControlValue(ctl), newPilotPopupChoice[0]);
-        GetDialogItem(dlg, kItemGenderPopup, NULL, (void **)&ctl, NULL);
+        GetDialogItem(dlg, kItemGenderPopup, NULL, (Handle *)&ctl, NULL);
         GetMenuItemText(ctl, GetControlValue(ctl), newPilotPopupChoice[1]);
     }
     SWSetPortToWindow(gSpriteWorld);

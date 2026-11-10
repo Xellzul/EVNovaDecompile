@@ -156,13 +156,13 @@ long IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULon
             *(unsigned char *)b = 1;
         break;
     case kMsgPaint:
-        owner = (GrafPtr)(*popup->control)->contrlOwner;
-        (*popup->control)->contrlOwner = (WindowPtr)dc;
+        owner = (*popup->control)->contrlOwner;
+        (*popup->control)->contrlOwner = dc;
         procs = ((CGrafPtr)dc)->grafProcs;
         ((CGrafPtr)dc)->grafProcs = &gIT_StdCProcs;
         Draw1Control(popup->control);
         ((CGrafPtr)dc)->grafProcs = procs;
-        (*popup->control)->contrlOwner = (WindowPtr)owner;
+        (*popup->control)->contrlOwner = owner;
         break;
     case kMsgWhat:
         CopyDT_2SysPoint(&pt, &((ITInputEvent *)a)->where);
@@ -250,7 +250,7 @@ long IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULon
             MemoryCopy(copy, *(void **)a, index);
             copy[index] = 0;
             for (index = GetControlMinimum(popup->control); index <= GetControlMaximum(popup->control); index++) {
-                GetMenuItemText(popup->menu, (short)index, item);
+                GetMenuItemText(popup->menu, index, item);
                 StringP2C(item);
                 if (StringCompare(copy, (char *)item) == 0)
                     break;
@@ -646,7 +646,7 @@ long IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULon
             MemoryCopy(copy, *(void **)a, size);
             copy[size] = 0;
             for (index = GetControlMinimum(popup->control); index <= GetControlMaximum(popup->control); index++) {
-                GetMenuItemText(popup->menu, (short)index, item);
+                GetMenuItemText(popup->menu, index, item);
                 StringP2C(item);
                 if (StringCompare(copy, (char *)item) == 0)
                     break;

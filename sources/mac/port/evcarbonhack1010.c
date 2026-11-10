@@ -99,12 +99,12 @@ Rect *GetCWindowPortRect(WindowRef window)
 
 CGrafPtr GetWindowGrafPort(WindowRef window)
 {
-    return window;
+    return (CGrafPtr)window;
 }
 
 CGrafPtr GetCWindowGrafPort(WindowRef window)
 {
-    return window;
+    return (CGrafPtr)window;
 }
 
 pascal PixMapHandle GetPortPixMap(CGrafPtr port)
@@ -119,7 +119,7 @@ PixMapHandle GetCWindowPixMap(WindowRef window)
 
 pascal CGrafPtr GetDialogPort(DialogRef dialog)
 {
-    return dialog;
+    return (CGrafPtr)dialog;
 }
 
 Rect *GetDialogPortRect(DialogRef dialog)

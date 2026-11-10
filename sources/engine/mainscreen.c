@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* mainscreen.c -- the main screen: DoMainScreen, its choice and keyboard handlers (win 0x00486880..0x004872a0). Notes: Research/notes/mainscreen.md */
 /*
  * The checks are a straight run of independent ifs rather than a chain, so each
@@ -136,7 +136,7 @@ void DoMainScreen(void)
             crashlog("beginning version check");
             GetIndString(versionURL, kStrListVersion, kStrVersionURL);
             PtoCstr(versionURL);
-            err = ReggieVersionBegin(0, versionURL);
+            err = ReggieVersionBegin(0, (char *)versionURL);
             if (err == 0) {
                 reggieStarted = TimerGetSeconds();
             } else {
@@ -159,7 +159,7 @@ void DoMainScreen(void)
     MainScreenAppearStart();
     MainScreenAppear();
     SWSetPortToWindow(gSpriteWorld);
-    InvalWindowPortRect(gWind);
+    InvalWindowPortRect((WindowRef)gWind);
 #ifndef MAC1010
     FadeScreenIn();
 #endif
@@ -178,7 +178,7 @@ void DoMainScreen(void)
         regNoticeShown = 0;
     }
 
-    InvalWindowPortRect(gWind);
+    InvalWindowPortRect((WindowRef)gWind);
     AdjustSoundVolume();
     ShowTheCursor();
     RT3_Idle();
@@ -234,10 +234,10 @@ void DoMainScreen(void)
             break;
         case updateEvt:
             SWSetPortToWindow(gSpriteWorld);
-            BeginUpdate(gWind);
+            BeginUpdate((WindowRef)gWind);
             MainScreenAnimDraw();
             MainScreenUpdate(1);
-            EndUpdate(gWind);
+            EndUpdate((WindowRef)gWind);
             break;
 #if TARGET_API_MAC_OS8
         case diskEvt:
@@ -253,7 +253,7 @@ void DoMainScreen(void)
             if (gEvent.message & (suspendResumeMessage << 24)) {
                 if (gEvent.message & resumeFlag) {
                     MainScreenActivate(true);
-                    InvalWindowPortRect(gWind);
+                    InvalWindowPortRect((WindowRef)gWind);
                     SwitchedIn(&gEvent);
                 } else {
                     MainScreenActivate(false);
@@ -528,14 +528,14 @@ void MainScreenChoice(short which)
         if (confirmed) {
             DoNewPilot();
             SWSetPortToWindow(gSpriteWorld);
-            InvalWindowPortRect(gWind);
+            InvalWindowPortRect((WindowRef)gWind);
             SWHideAllSprites(gSpriteWorld);
         }
     }
 
     if (which == kMainScreenOpen) {
         crashlog("opening pilot file");
-        if (OpenPilotFile(&missingResource)) {
+        if (OpenPilotFile((char *)&missingResource)) {
             if (missingResource) {
                 crashlog("showing missing resource warning");
                 MainScreenAnimDraw();
@@ -545,7 +545,7 @@ void MainScreenChoice(short which)
             }
             crashlog("preparing universe");
             gameInProgress = 1;
-            InvalWindowPortRect(gWind);
+            InvalWindowPortRect((WindowRef)gWind);
             DeleteAllComputerShips(0, 1);
             PropagateMissionBitEffects();
             SetupShipsInSystem(shipData->curSystem, 1);
@@ -615,7 +615,7 @@ void MainScreenChoice(short which)
         MainScreenAnimDraw();
         MainScreenUpdate(1);
         SWSetPortToWindow(gSpriteWorld);
-        InvalWindowPortRect(gWind);
+        InvalWindowPortRect((WindowRef)gWind);
         AdjustSoundVolume();
     }
 
@@ -625,7 +625,7 @@ void MainScreenChoice(short which)
         MainScreenAnimDraw();
         MainScreenUpdate(1);
         SWSetPortToWindow(gSpriteWorld);
-        InvalWindowPortRect(gWind);
+        InvalWindowPortRect((WindowRef)gWind);
     }
 
     if (!gQuit) {
@@ -654,7 +654,7 @@ void MainScreenMouse(EventRecord *event)
         SysBeep(1);
         break;
     case inDrag:
-        if (window == gWind) {
+        if (window == (WindowPtr)gWind) {
             if (useLegacyRenderingPipeline) {
                 GetWindowDragBounds(&dragBounds, event->where);
                 if (dragBounds.right <= dragBounds.left || dragBounds.bottom <= dragBounds.top)
@@ -712,7 +712,7 @@ void MainScreenMouse(EventRecord *event)
         MainScreenChoice(TrackMainScreenButtons(where));
         break;
     case inGoAway:
-        if ((FrontWindow)() == gWind) {
+        if ((FrontWindow)() == (WindowRef)gWind) {
             ShowTheCursor();
             GetIndString(prompt, kStrListMainScreen, kStrQuitConfirm);
             if (EVYesNoDialog(prompt))

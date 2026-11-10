@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 // COMPILE-WHY: two scoped `#pragma opt_repositioncode off' regions (pragma-only, no -opt
 // spelling), over SetupMonitor and over ConvertSpriteToRLE; each matches only with it.
@@ -361,7 +361,7 @@ void SetupSpriteWorld(void)
 #else
     windRect.right -= 194;
 #endif
-    SetPortWindowPort(gWind);
+    SetPortWindowPort((WindowRef)gWind);
     err = SWCreateSpriteWorldFromWindow(&gSpriteWorld, gWind, &windRect, &windRect, 0);
     if ((long)err != 0) {
         FadeScreenIn();
@@ -443,7 +443,7 @@ void SetupSpriteWorld(void)
             - (windRect.right - windRect.left + ceStatusBarWidth + 16), 150);
 #else
     OffsetRect(&floatingMapRect,
-            GetCWindowPortRect(gWind)->right - GetCWindowPortRect(gWind)->left
+            GetCWindowPortRect((WindowRef)gWind)->right - GetCWindowPortRect((WindowRef)gWind)->left
             - (windRect.right - windRect.left + 210), 150);
 #endif
 #ifdef CEFIX /* F12.79 */
@@ -468,7 +468,7 @@ void SetupSpriteWorld(void)
     SWLockSpriteWorld(gSpriteWorld);
     SWSetPortToWindow(gSpriteWorld);
     ForeColor(blackColor);
-    PaintRect(GetCWindowPortRect(gWind));
+    PaintRect(GetCWindowPortRect((WindowRef)gWind));
 
     spriteClipRect = windRect;
     spriteClipRect.top -= 75;
@@ -548,7 +548,7 @@ void SetupWind(void)
         if (mainWindRect.bottom - mainWindRect.top < 600)
             OffsetRect(&mainWindRect, 0, 8);
 #if defined(MAC1010) && !TARGET_API_MAC_CARBON
-        gWind = NewCWindow(NULL, &mainWindRect, "\pEV Nova", false, documentProc, NULL, true, -1);
+        gWind = (CWindowPtr)NewCWindow(NULL, &mainWindRect, "\pEV Nova", false, documentProc, NULL, true, -1);
 #else
         CreateNewWindow(kDocumentWindowClass, kWindowCloseBoxAttribute, &mainWindRect, &gWind);
 #ifndef MAC1010
@@ -569,9 +569,9 @@ void SetupWind(void)
 #elif TARGET_API_MAC_CARBON
         CreateNewWindow(kPlainWindowClass, kWindowNoAttributes, &mainWindRect, &gWind);
         height = width = 0;
-        BeginFullScreen(&fullScreenRestore, NULL, &width, &height, NULL, &rgbBlack, 0);
+        BeginFullScreen((Ptr *)&fullScreenRestore, NULL, &width, &height, NULL, &rgbBlack, 0);
 #else
-        gWind = NewCWindow(NULL, &mainWindRect, "\pEV Nova", false, plainDBox, NULL, true, -1);
+        gWind = (CWindowPtr)NewCWindow(NULL, &mainWindRect, "\pEV Nova", false, plainDBox, NULL, true, -1);
 #endif
     }
 #ifdef MAC1010
@@ -586,21 +586,21 @@ void SetupWind(void)
     crashlog_print(")\n");
 #endif
     ShowWindowNoFlash(gWind);
-    SetPort(GetCWindowGrafPort(gWind));
+    SetPort((GrafPtr)GetCWindowGrafPort((WindowRef)gWind));
     ForeColor(blackColor);
-    PaintRect(GetCWindowPortRect(gWind));
-    SelectWindow(gWind);
-    BringToFront(gWind);
+    PaintRect(GetCWindowPortRect((WindowRef)gWind));
+    SelectWindow((WindowRef)gWind);
+    BringToFront((WindowRef)gWind);
     if (!useLegacyRenderingPipeline)
         QDFlushPortBuffer(GetCWindowGrafPort(gWind), NULL);
     if (settings.windowed == 0) {
         HideTheMenuBar();
         mBarHidden = 1;
     }
-    screenCenter.h = ((GetCWindowPortRect(gWind)->right
-                             - GetCWindowPortRect(gWind)->left - 194) * 0.5);
-    screenCenter.v = ((GetCWindowPortRect(gWind)->bottom
-                             - GetCWindowPortRect(gWind)->top) * 0.5);
+    screenCenter.h = ((GetCWindowPortRect((WindowRef)gWind)->right
+                             - GetCWindowPortRect((WindowRef)gWind)->left - 194) * 0.5);
+    screenCenter.v = ((GetCWindowPortRect((WindowRef)gWind)->bottom
+                             - GetCWindowPortRect((WindowRef)gWind)->top) * 0.5);
 #else
     short top;
     short left;
@@ -734,12 +734,12 @@ void InitOffscreen(void)
     unsigned char msg[256];
     Rect r;
 
-    bounds = GetCWindowPortRect(gWind);
+    bounds = GetCWindowPortRect((WindowRef)gWind);
     r = *bounds;
     OffsetRect(&r, -r.left, -r.top);
     CreateGWorldContainer(&loadPort, GetMainDevice(), 0, &r);
     if (loadPort.world == NULL) {
-        HideWindow(gWind);
+        HideWindow((WindowRef)gWind);
         ShowTheMenuBar();
         ShowTheCursor();
         FadeScreenIn();
@@ -755,7 +755,7 @@ void InitOffscreen(void)
 #endif
     CreateGWorldContainer(&statusOffPort, GetMainDevice(), 0, &r);
     if (statusOffPort.world == NULL) {
-        HideWindow(gWind);
+        HideWindow((WindowRef)gWind);
         ShowTheMenuBar();
         ShowTheCursor();
         FadeScreenIn();
@@ -833,7 +833,7 @@ void Bye(void)
         ST_DisposeSound(voiceSnd);
 
     ByeLog("disposing buttons");
-    SetPortWindowPort(gWind);
+    SetPortWindowPort((WindowRef)gWind);
     DisposeButtons();
     ShowTheMenuBar();
 
@@ -961,9 +961,9 @@ void Bye(void)
     if (masterWeapTargetSprite != NULL)
         SWDisposeSprite(&masterWeapTargetSprite);
     if (redMapArrow != NULL)
-        DisposeCIcon(redMapArrow);
+        DisposeCIcon((CIconHandle)redMapArrow);
     if (greenMapArrow != NULL)
-        DisposeCIcon(greenMapArrow);
+        DisposeCIcon((CIconHandle)greenMapArrow);
 
     ByeLog("disposing particles");
     DisposeParticles();
@@ -975,7 +975,7 @@ void Bye(void)
         Dispose8BitAlphaTable();
     for (i = 0; i < 0xa; i++) {
         if (staticPat[i] != NULL)
-            DisposePixPat((Image_t *)staticPat[i]);
+            DisposePixPat((PixPatHandle)staticPat[i]);
     }
     for (i = 0; i < 0x300; i++) {
         if (targetInfoPic[i] != NULL) {
@@ -1076,9 +1076,9 @@ void Bye(void)
 #if !TARGET_API_MAC_CARBON
     ByeLog("disposing window");
 #endif
-    HideWindow(gWind);
+    HideWindow((WindowRef)gWind);
 #if defined(MAC1010) && !TARGET_API_MAC_CARBON
-    CloseWindow(gWind);
+    CloseWindow((WindowRef)gWind);
 #else
     DisposeWindow(gWind);
 #endif
@@ -1607,8 +1607,8 @@ void LoadSprites(void)
     SWSetSpriteDrawProc(doubleTimeSprite, BlitPixieRLETranslucentDrawProc);
     IterateInGameEventLoop(1);
 
-    redMapArrow = GetCIcon(15000);
-    greenMapArrow = GetCIcon(15001);
+    redMapArrow = (Image_t *)GetCIcon(15000);
+    greenMapArrow = (Image_t *)GetCIcon(15001);
 }
 
 /* LoadShipSprites (mac _LoadShipSprites). STATE: MATCH 100.0%, byte-identical. OPEN: none */
@@ -2114,10 +2114,10 @@ void InitSprites(void)
     if (commRect.right - commRect.left == 0)
         RaiseException(kCEIntDivideByZero, 0, 0, NULL);
 #else
-    SetRect(&commRect, GetCWindowPortRect(gWind)->left + 25,
-            GetCWindowPortRect(gWind)->bottom - 5,
-            GetCWindowPortRect(gWind)->right - 244,
-            GetCWindowPortRect(gWind)->bottom - 5);
+    SetRect(&commRect, GetCWindowPortRect((WindowRef)gWind)->left + 25,
+            GetCWindowPortRect((WindowRef)gWind)->bottom - 5,
+            GetCWindowPortRect((WindowRef)gWind)->right - 244,
+            GetCWindowPortRect((WindowRef)gWind)->bottom - 5);
     commRect.top -= 29470 / (commRect.right - commRect.left);
 #endif
 #ifdef MACBUILD
@@ -3724,7 +3724,7 @@ short SWAddFramesFromSinglePictXY(SpriteWorldPtr destSpriteWorldP, SpritePtr src
                 }
             } else if ((maskType & kPixelMask) != 0) {
                 SWFixImageGWorld(tempPictGWorldP, tempMaskGWorldP, NULL);
-                SetPort(tempMaskGWorldP);
+                SetPort((GrafPtr)tempMaskGWorldP);
                 ForeColor(blackColor);
                 BackColor(whiteColor);
                 InvertRect(GetWindowPortRect(GetWindowFromPort(tempMaskGWorldP)));
@@ -4692,7 +4692,7 @@ void DoMemoryUsageDialog(void)
     if (dlg == NULL)
         return;
     ShowWindow(GetDialogWindow(dlg));
-    SetPort(GetDialogPort(dlg));
+    SetPort((GrafPtr)GetDialogPort(dlg));
     SelectWindow(GetDialogWindow(dlg));
     FrameDefaultButton(dlg, 1);
     done = false;

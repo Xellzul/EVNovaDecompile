@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* gameutils.c -- the engine helpers: CenterWindow (empty, two windows). Notes: Research/notes/gameutils.md */
 #include <math.h>
 #include <stddef.h>
@@ -49,7 +49,7 @@ void CenterWindow(void *front, void *window)
     if (window != NULL) {
         center.h = (GetWindowPortRect(window)->right - GetWindowPortRect(window)->left) / 2;
         center.v = (GetWindowPortRect(window)->bottom - GetWindowPortRect(window)->top) / 2;
-        SetPort(GetWindowGrafPort(window));
+        SetPort((GrafPtr)GetWindowGrafPort(window));
         LocalToGlobal(&center);
     } else {
         center.h = ((*mainScreenDevice)->gdRect.right - (*mainScreenDevice)->gdRect.left) / 2;

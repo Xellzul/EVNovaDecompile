@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* blitcopy16.c -- the 16-bit straight-copy blitter (win 0x004b74c0). Notes: Research/notes/blitcopy16.md */
 #include "macport.h"
 #include "gametypes.h"

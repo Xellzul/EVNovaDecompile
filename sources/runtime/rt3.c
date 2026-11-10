@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,speed -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: RT3 sits in the AmbrosiaTools run (its exe run 0x004d4420-0x004d5cd0 follows the atplat*/atticks run directly and its calls go into that framework's platform, string and handle code), so it takes the library's build 335 and the speed line of the Sound Toolkit next door; the mac has real _RT3_* bodies (isThunk=0), only gRT3_IsRegisteredPtr1/2 are imported, so the mac is no evidence; Research/runtime-compiler-ceiling.md, notes/rt3.md
 /* rt3.c -- RT3, the registration toolkit: the license file, the usage log in the registry, the license code. Notes: Research/notes/rt3.md */
 

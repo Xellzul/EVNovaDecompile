@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* spriteworld.c -- SpriteWorld's SpriteWorld.c, tu-map object O17: the sprite world, its update and animation. Notes: Research/notes/spriteworld.md */
 #include <stddef.h>
 
@@ -27,9 +27,9 @@ short SWCreateSpriteWorldFromWindow(SpriteWorldPtr *spriteWorldP, CWindowPtr src
     *spriteWorldP = NULL;
     windowFrameP = backFrameP = workFrameP = NULL;
 
-    SetPort(GetCWindowGrafPort(srcWindowP));
+    SetPort((GrafPtr)GetCWindowGrafPort((WindowRef)srcWindowP));
 
-    windRect = (worldRectP == NULL) ? *GetCWindowPortRect(srcWindowP) : *worldRectP;
+    windRect = (worldRectP == NULL) ? *GetCWindowPortRect((WindowRef)srcWindowP) : *worldRectP;
 
     globalRect = windRect;
     LocalToGlobal((Point *)&globalRect.top);
@@ -45,7 +45,7 @@ short SWCreateSpriteWorldFromWindow(SpriteWorldPtr *spriteWorldP, CWindowPtr src
         }
     } else {
         depth = 16;
-        basePixMap = GetPortPixMap(GetCWindowGrafPort(srcWindowP));
+        basePixMap = GetPortPixMap(GetCWindowGrafPort((WindowRef)srcWindowP));
     }
 
 #if defined(MAC1010) && !TARGET_API_MAC_CARBON
@@ -684,7 +684,7 @@ void SWStdWorldDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP,
             return;
     }
 
-    CopyBits(srcFrameP->framePix,(BitMapPtr)dstFrameP->framePix,
+    CopyBits((BitMapPtr)srcFrameP->framePix,(BitMapPtr)dstFrameP->framePix,
              &srcCopyBitsRect, &dstCopyBitsRect, srcCopy, 0);
 }
 
@@ -950,9 +950,9 @@ void SWWindowFrameMoved(SWFrameRec *windowFrameP, Rect *frameRect)
 
     GetPort(&savedPort);
     windowRect = *frameRect;
-    SetPort(windowFrameP->framePort);
-    LocalToGlobal(&windowRect.top);
-    LocalToGlobal(&windowRect.bottom);
+    SetPort((GrafPtr)windowFrameP->framePort);
+    LocalToGlobal((Point *)&windowRect.top);
+    LocalToGlobal((Point *)&windowRect.bottom);
     deviceRect = (**GetMaxDevice(&windowRect)).gdRect;
     if (windowRect.top < deviceRect.top)
         windowRect.top = deviceRect.top;
@@ -962,8 +962,8 @@ void SWWindowFrameMoved(SWFrameRec *windowFrameP, Rect *frameRect)
         windowRect.left = deviceRect.left;
     if (windowRect.right > deviceRect.right)
         windowRect.right = deviceRect.right;
-    GlobalToLocal(&windowRect.top);
-    GlobalToLocal(&windowRect.bottom);
+    GlobalToLocal((Point *)&windowRect.top);
+    GlobalToLocal((Point *)&windowRect.bottom);
     windowFrameP->frameRect = windowRect;
     if (windowFrameP->isFrameLocked) {
         SWUnlockWindowFrame(windowFrameP);
@@ -2712,7 +2712,7 @@ Boolean SWIsWindowInForeground(SpriteWorldPtr spriteWorldP)
         spriteWorldP->fastBlit = false;
     } else if ((FrontWindow)() != NULL) {
 #if defined(MAC1010) && !TARGET_API_MAC_CARBON
-        if (spriteWorldP->windowFrameP->framePort == (FrontWindow)()) {
+        if (spriteWorldP->windowFrameP->framePort == (CGrafPtr)(FrontWindow)()) {
             if (EmptyRgn(((WindowPeek)(FrontWindow)())->contRgn))
 #else
         if (spriteWorldP->windowFrameP->framePort == GetWindowGrafPort((FrontWindow)())) {

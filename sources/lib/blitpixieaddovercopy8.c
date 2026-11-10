@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* blitpixieaddovercopy8.c -- BlitPixieAddOverCopy8 (win 0x00473fa0), inside the un-anchored BlitPixie block. Notes: Research/notes/blitpixieaddovercopy8.md */
 #include "macport.h"
 #include "shipobj.h"

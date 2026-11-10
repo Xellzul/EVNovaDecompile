@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* blitpixiefloatingrect.c -- BlitPixieFloatingRect (win 0x00471d30), the direct-colour twin of BlitPixieFloatingRect8. Notes: Research/notes/blitpixiefloatingrect.md */
 #include "macport.h"
 #include "shipobj.h"

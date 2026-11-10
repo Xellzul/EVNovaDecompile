@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* tradedlg.c -- tu-map object O24: the trade, outfit, shipyard, port, player-info and description dialogs, then the escort menu, quantity dialog and map world, ending at the .CRT hook. Notes: Research/notes/tradedlg.md */
 #include <stddef.h>
@@ -152,7 +152,7 @@ EXTERN_C_BEGIN
 
 /* the mac engine invalidates a dialog item through the caller's own GetDialogItem locals */
 #ifdef MACBUILD
-#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, (void **)&item, &box), InvalWindowRect(GetDialogWindow(dlg), &box))
+#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, &item, &box), InvalWindowRect(GetDialogWindow(dlg), &box))
 #endif
 /* DoTradeDialog (mac _DoTradeDialog). STATE: MATCH, 628/628, byte-identical yes.
    OPEN: none */
@@ -535,7 +535,7 @@ Boolean TradeFilter(long unused, EventRecord *ev, short *itemHit)
         GlobalToLocal(&where);
 #endif
         for (i = kFirstRowItem; i <= kLastRowItem; i++) {
-            GetDialogItem(tradeDialog, i, &itemType, (void **)&item, &box);
+            GetDialogItem(tradeDialog, i, &itemType, &item, &box);
             if (PtInRectPoint(where, &box) &&
                 tradePrice[i - kFirstRowItem] != 0) {
                 InvalDialogItem(tradeDialog, selTradeItem + kFirstRowItem);
@@ -553,7 +553,7 @@ Boolean TradeFilter(long unused, EventRecord *ev, short *itemHit)
                     GetMouse(&mouse);
                     for (j = 0; j <= kLastRow; j++) {
                         GetDialogItem(tradeDialog, j + kFirstRowItem, &itemType,
-                                      (void **)&item, &box);
+                                      &item, &box);
                         if (PtInRectPoint(mouse, &box) &&
                             tradePrice[j] != 0) {
                             last = selTradeItem;
@@ -637,17 +637,17 @@ void TradeDialogTabKey(Boolean back)
             selTradeItem = kMapFilterCount - 1;
     }
 #ifdef MACBUILD
-    GetDialogItem(tradeDialog, 13, &itemType, &item, &box);
+    GetDialogItem(tradeDialog, 13, &itemType, (Handle *)&item, &box);
     InvalWindowRect(GetDialogWindow(tradeDialog), &box);
-    GetDialogItem(tradeDialog, 14, &itemType, &item, &box);
+    GetDialogItem(tradeDialog, 14, &itemType, (Handle *)&item, &box);
     InvalWindowRect(GetDialogWindow(tradeDialog), &box);
 #else
     InvalDialogItem(tradeDialog, 13);
     InvalDialogItem(tradeDialog, 14);
 #endif
-    GetDialogItem(tradeDialog, 3, &itemType, &item, &box);
+    GetDialogItem(tradeDialog, 3, &itemType, (Handle *)&item, &box);
     bounds = box;
-    GetDialogItem(tradeDialog, 12, &itemType, &item, &box);
+    GetDialogItem(tradeDialog, 12, &itemType, (Handle *)&item, &box);
     bounds.bottom = box.bottom;
     InvalDialogRect(tradeDialog, &bounds);
 }
@@ -748,7 +748,7 @@ void TradeDialogUpdate(void)
     ForeColor(blackColor);
     TextFont(smallTextFont);
     TextSize(smallTextSize);
-    GetDialogItem(tradeDialog, kHoldsItem, &itemType, &item, &box);
+    GetDialogItem(tradeDialog, kHoldsItem, &itemType, (Handle *)&item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(tradeDialog)))) {
         RGBForeColor(&rgbDarkGrey);
         FrameRect(&box);
@@ -782,15 +782,15 @@ void TradeDialogUpdate(void)
         GetDialogItem(tradeDialog, i + kFirstRowItem, &itemType, &item, &box);
 #else
         row = i;
-        GetDialogItem(tradeDialog, row + kFirstRowItem, &itemType, &item, &box);
+        GetDialogItem(tradeDialog, row + kFirstRowItem, &itemType, (Handle *)&item, &box);
 #endif
         if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(tradeDialog)))) {
             insetBox = box;
             InsetRect(&insetBox, 1, 1);
             if (i == selTradeItem)
-                RGBForeColor(&ldefColors[2]);
+                RGBForeColor((RGBColor *)&ldefColors[2]);
             else
-                RGBForeColor(&ldefColors[1]);
+                RGBForeColor((RGBColor *)&ldefColors[1]);
             PaintRect(&insetBox);
             ForeColor(blackColor);
 
@@ -814,7 +814,7 @@ void TradeDialogUpdate(void)
 #else
             if (tradePrice[i] != 0) {
 #endif
-                RGBForeColor(&ldefColors[0]);
+                RGBForeColor((RGBColor *)&ldefColors[0]);
                 if (i <= kLastCommodity) {
 #ifdef CEFIX /* F12.49 */
                     CE_SetPen(box.left + CE_Scale(7), box.top + CE_Scale(10));
@@ -829,16 +829,16 @@ void TradeDialogUpdate(void)
                     qty = shipData->cargo[i];
 #endif
                     if (qty > 0) {
-                        NumToString(qty, text);
+                        NumToString(qty, (StringPtr)text);
 #ifdef CEFIX /* F12.50 */
-                        CE_SetPen(box.right - (StringWidth(text) + CE_Scale(0x6e)),
+                        CE_SetPen(box.right - (StringWidth((StringPtr)text) + CE_Scale(0x6e)),
                                   box.top + CE_Scale(10));
 #else
                         MoveTo((box.right -
-                                       (StringWidth(text) + 0x6e)),
+                                       (StringWidth((StringPtr)text) + 0x6e)),
                                (box.top + 10));
 #endif
-                        DrawString(text);
+                        DrawString((StringPtr)text);
                     }
 #ifdef MAC1010
                 } else if (junkType[i - kFirstJunkItem] != -1) {
@@ -859,16 +859,16 @@ void TradeDialogUpdate(void)
                     qty = junkData[junkType[junkIdx]].held;
 #endif
                     if (qty > 0) {
-                        NumToString(qty, text);
+                        NumToString(qty, (StringPtr)text);
 #ifdef CEFIX /* F12.46 */
-                        CE_SetPen(box.right - (StringWidth(text) + CE_Scale(0x6e)),
+                        CE_SetPen(box.right - (StringWidth((StringPtr)text) + CE_Scale(0x6e)),
                                   box.top + CE_Scale(10));
 #else
                         MoveTo((box.right -
-                                       (StringWidth(text) + 0x6e)),
+                                       (StringWidth((StringPtr)text) + 0x6e)),
                                (box.top + 10));
 #endif
-                        DrawString(text);
+                        DrawString((StringPtr)text);
                     }
                 }
 
@@ -917,24 +917,24 @@ void TradeDialogUpdate(void)
                 }
 
 #ifdef MAC1010
-                NumToString(tradePrice[row], text);
+                NumToString(tradePrice[row], (StringPtr)text);
 #else
                 NumToString(tradePrice[i], text);
 #endif
 #ifdef CEFIX /* F12.48 */
-                CE_SetPen(box.right - (StringWidth(text) + CE_Scale(10)),
+                CE_SetPen(box.right - (StringWidth((StringPtr)text) + CE_Scale(10)),
                           box.top + CE_Scale(10));
 #else
-                MoveTo((box.right - (StringWidth(text) + 10)),
+                MoveTo((box.right - (StringWidth((StringPtr)text) + 10)),
                        (box.top + 10));
 #endif
-                DrawString(text);
+                DrawString((StringPtr)text);
             }
             ForeColor(blackColor);
         }
     }
 
-    GetDialogItem(tradeDialog, kCargoItem, &itemType, &item, &box);
+    GetDialogItem(tradeDialog, kCargoItem, &itemType, (Handle *)&item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(tradeDialog)))) {
         ForeColor(blackColor);
         insetBox = box;
@@ -1114,7 +1114,7 @@ void TradeDialogUpdate(void)
     }
     DrawTradeButtons(-1);
 
-    GetDialogItem(tradeDialog, kNewsItem, &itemType, &item, &box);
+    GetDialogItem(tradeDialog, kNewsItem, &itemType, (Handle *)&item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(tradeDialog)))) {
         for (p = 0; p < 0x100; p++) {
             if (disasterData[p].loaded != 0 && disasterData[p].countdown > 0 &&
@@ -1126,7 +1126,7 @@ void TradeDialogUpdate(void)
                     strcat((char *)text, (char *)num);
                 } else {
                     strncpy((char *)text, (char *)disasterData[p].name, 0x3f);
-                    PtoCstr(text);
+                    PtoCstr((StringPtr)text);
                 }
                 strcat((char *)text, " ");
                 StrcatIndCString((char *)text, kGameStrList, 0xc0);
@@ -1297,7 +1297,7 @@ void DoOutfitDialog(void)
     outfitBackgroundPic = GetPicture(kOutfitPictID);
     CenterWindow(FrontWindow(outfitDialog), FrontWindow(portDialog));
     GetDialogItem(outfitDialog, kGridItem, &itemType, &item, &box);
-    SetupListRects(&box);
+    SetupListRects((Point *)&box);
     strncpy(dialogDescTextPtr, "", 3);
     ShowWindowNoFlash(FrontWindow(outfitDialog));
     SetDialogGWorld(outfitDialog);
@@ -1400,7 +1400,7 @@ void DoOutfitDialog(void)
                         shipData->credits -= cost;
                         crashlog_mission_bit_set(
                             "purchasing outfit",
-                            outfitSystem[selOutfitItem].name, 1,
+                            (char *)outfitSystem[selOutfitItem].name, 1,
                             selOutfitItem + kFirstResourceID,
                             outfitSystem[selOutfitItem].onPurchase);
                         if (shipData->credits < 0) {
@@ -1472,7 +1472,7 @@ void DoOutfitDialog(void)
                         if (!shown) {
                             GetIndString(msg, kGameStrList, 0xcf);
                             PtoCstr(msg);
-                            strcpy(textShowString, msg);
+                            strcpy(textShowString, (char *)msg);
                             ShowTextDialog(0, 0, 0);
                             shown = 1;
                         }
@@ -1489,15 +1489,15 @@ void DoOutfitDialog(void)
                             shortfall = shipSystems[outfitSystem[selOutfitItem].modVal[j] - kFirstResourceID] - k;
                             if (shortfall > 0) {
                                 if (!shown) {
-                                    strcpy(msg,"");
+                                    strcpy((char *)msg,"");
 
-                                    StrcatIndCString(msg,kGameStrList, 0xd0);
-                                    strcat(msg," ");
+                                    StrcatIndCString((char *)msg,kGameStrList, 0xd0);
+                                    strcat((char *)msg," ");
                                     if (shortfall > 3)
-                                        StrcatCommaNumber(shortfall, msg);
+                                        StrcatCommaNumber(shortfall, (char *)msg);
                                     else
-                                        StrcatOrdinalNumber(shortfall, msg,0);
-                                    strcat(msg," ");
+                                        StrcatOrdinalNumber(shortfall, (char *)msg,0);
+                                    strcat((char *)msg," ");
                                     if (shortfall > 1)
                                         pstrcpy(nameBuf,
                                             lcPluralOutfitName[outfitSystem[selOutfitItem].modVal[j] - kFirstResourceID]);
@@ -1505,18 +1505,18 @@ void DoOutfitDialog(void)
                                         pstrcpy(nameBuf,
                                             lcOutfitName[outfitSystem[selOutfitItem].modVal[j] - kFirstResourceID]);
                                     PtoCstr(nameBuf);
-                                    strcat(msg,nameBuf);
-                                    strcat(msg," ");
-                                    StrcatIndCString(msg,kGameStrList, 0xd4);
-                                    strcat(msg," ");
+                                    strcat((char *)msg,(char *)nameBuf);
+                                    strcat((char *)msg," ");
+                                    StrcatIndCString((char *)msg,kGameStrList, 0xd4);
+                                    strcat((char *)msg," ");
                                     if (i < count - 1)
                                         pstrcpy(nameBuf, lcPluralOutfitName[selOutfitItem]);
                                     else
                                         pstrcpy(nameBuf, lcOutfitName[selOutfitItem]);
                                     PtoCstr(nameBuf);
-                                    strcat(msg,nameBuf);
-                                    strcat(msg,".");
-                                    strcpy(textShowString, msg);
+                                    strcat((char *)msg,(char *)nameBuf);
+                                    strcat((char *)msg,".");
+                                    strcpy(textShowString, (char *)msg);
                                     ShowTextDialog(0, 0, 0);
                                     shown = 1;
                                 }
@@ -1554,15 +1554,15 @@ void DoOutfitDialog(void)
                                       * weaponStats[weapID].maxAmmo);
                         if (shortfall > 0 && ammo > 0) {
                             if (!shown) {
-                                strcpy(msg,"");
+                                strcpy((char *)msg,"");
 
-                                StrcatIndCString(msg,kGameStrList, 0xd0);
-                                strcat(msg," ");
+                                StrcatIndCString((char *)msg,kGameStrList, 0xd0);
+                                strcat((char *)msg," ");
                                 if (shortfall > 3)
-                                    StrcatCommaNumber(shortfall, msg);
+                                    StrcatCommaNumber(shortfall, (char *)msg);
                                 else
-                                    StrcatOrdinalNumber(shortfall, msg,0);
-                                strcat(msg," ");
+                                    StrcatOrdinalNumber(shortfall, (char *)msg,0);
+                                strcat((char *)msg," ");
                                 k = -1;
                                 for (j = 0; j < kMaxOutfits; j++) {
                                     for (m = 0; m < kOutfMods; m++) {
@@ -1581,26 +1581,26 @@ void DoOutfitDialog(void)
                                     else
                                         pstrcpy(nameBuf, lcOutfitName[k]);
                                     PtoCstr(nameBuf);
-                                    strcat(msg,nameBuf);
+                                    strcat((char *)msg,(char *)nameBuf);
                                 } else {
                                     if (shortfall > 1)
-                                        StrcatIndCString(msg,kGameStrList, 0xd2);
+                                        StrcatIndCString((char *)msg,kGameStrList, 0xd2);
                                     else
-                                        StrcatIndCString(msg,kGameStrList, 0xd1);
-                                    strcat(msg," ");
-                                    StrcatIndCString(msg,kGameStrList, 0xd3);
+                                        StrcatIndCString((char *)msg,kGameStrList, 0xd1);
+                                    strcat((char *)msg," ");
+                                    StrcatIndCString((char *)msg,kGameStrList, 0xd3);
                                 }
-                                strcat(msg," ");
-                                StrcatIndCString(msg,kGameStrList, 0xd4);
-                                strcat(msg," ");
+                                strcat((char *)msg," ");
+                                StrcatIndCString((char *)msg,kGameStrList, 0xd4);
+                                strcat((char *)msg," ");
                                 if (i < count - 1)
                                     pstrcpy(nameBuf, lcPluralOutfitName[selOutfitItem]);
                                 else
                                     pstrcpy(nameBuf, lcOutfitName[selOutfitItem]);
                                 PtoCstr(nameBuf);
-                                strcat(msg,nameBuf);
-                                strcat(msg,".");
-                                strcpy(textShowString, msg);
+                                strcat((char *)msg,(char *)nameBuf);
+                                strcat((char *)msg,".");
+                                strcpy(textShowString, (char *)msg);
                                 ShowTextDialog(0, 0, 0);
                                 shown = 1;
                             }
@@ -1639,7 +1639,7 @@ void DoOutfitDialog(void)
                         }
                         crashlog_mission_bit_set(
                             "selling outfit",
-                            outfitSystem[selOutfitItem].name, 1,
+                            (char *)outfitSystem[selOutfitItem].name, 1,
                             selOutfitItem + kFirstResourceID,
                             outfitSystem[selOutfitItem].onSell);
                         EvalMissionBitSetString(outfitSystem[selOutfitItem].onSell);
@@ -1766,7 +1766,7 @@ void DoOutfitDialog(void)
         outfitBackgroundPic = NULL;
     }
     if (previewPic != NULL) {
-        HUnlock(previewPic);
+        HUnlock((Handle)previewPic);
         QDReleaseResource(previewPic);
         previewPic = NULL;
     }
@@ -1899,7 +1899,7 @@ void DoOutfitDialog(void)
         return;
     outfitBackgroundPic = GetPicture(kOutfitPictID);
     CenterWindow(FrontWindow(outfitDialog), FrontWindow(portDialog));
-    GetDialogItem(outfitDialog, kGridItem, &itemType, &item, &box);
+    GetDialogItem(outfitDialog, kGridItem, &itemType, (Handle *)&item, &box);
     SetupListRects((Point *)&box);
     strncpy(dialogDescTextPtr, "", 3);
     ShowWindowNoFlash(FrontWindow(outfitDialog));
@@ -2444,7 +2444,7 @@ void DoOutfitDialog(void)
 #define kGridPageDownKey    kPageDownChar
 #endif
 #ifdef MACBUILD
-#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, (void **)&item, &r), InvalWindowRect(GetDialogWindow(dlg), &r))
+#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, &item, &r), InvalWindowRect(GetDialogWindow(dlg), &r))
 #endif
 /* OutfitFilter. STATE: MATCH 100%, 562/562, relocregcheck 0 of 154.
    OPEN: none. */
@@ -2641,7 +2641,7 @@ Boolean OutfitFilter(long unused, EventRecord *ev, short *itemHit)
 #ifdef MACBUILD
         GlobalToLocal(&where);
 #endif
-        GetDialogItem(outfitDialog, kGridItem, &itemType, (void **)&item, &box);
+        GetDialogItem(outfitDialog, kGridItem, &itemType, &item, &box);
         if (PtInRectPoint(where, &box)) {
 #ifdef CEFIX /* F13.01 */
             count = CE_GridDivide(where.h - box.left, ceGridCellWidth);
@@ -2788,7 +2788,7 @@ void OutfitDialogUpdate(void)
         DrawPicHandle(outfitBackgroundPic, GetDialogPortRect(outfitDialog));
     ForeColor(blackColor);
     skipped = 0;
-    GetDialogItem(outfitDialog, kGridItem, &itemType, (void **)&item, &box);
+    GetDialogItem(outfitDialog, kGridItem, &itemType, &item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(outfitDialog)))) {
         TextFont(smallTextFont);
         TextSize(smallTextSize);
@@ -2901,7 +2901,7 @@ void OutfitDialogUpdate(void)
         }
     }
     if (selOutfitListItem != -1) {
-        GetDialogItem(outfitDialog, 8, &itemType, (void **)&item, &box);
+        GetDialogItem(outfitDialog, 8, &itemType, &item, &box);
         if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(outfitDialog)))) {
             if (previewPicID != selOutfitItem + kOutfitPictBase) {
                 if (previewPic != NULL) {
@@ -2939,7 +2939,7 @@ void OutfitDialogUpdate(void)
                 ForeColor(blackColor);
             }
         }
-        GetDialogItem(outfitDialog, 9, &itemType, (void **)&item, &box);
+        GetDialogItem(outfitDialog, 9, &itemType, &item, &box);
         if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(outfitDialog)))) {
             TextFont(smallTextFont);
             TextSize(smallTextSize);
@@ -3004,7 +3004,7 @@ void OutfitDialogUpdate(void)
             ForeColor(blackColor);
         }
     }
-    GetDialogItem(outfitDialog, 6, &itemType, (void **)&item, &box);
+    GetDialogItem(outfitDialog, 6, &itemType, &item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(outfitDialog)))) {
         TextFont(smallTextFont);
         TextSize(smallTextSize);
@@ -3230,7 +3230,7 @@ Boolean CanBuyOutfitItem(short outfit)
 
 /* the mac engine invalidates a dialog item through the caller's own GetDialogItem locals */
 #ifdef MACBUILD
-#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, (void **)&item, &box), InvalWindowRect(GetDialogWindow(dlg), &box))
+#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, &item, &box), InvalWindowRect(GetDialogWindow(dlg), &box))
 #endif
 /* DoPortDialog (mac _DoPortDialog). STATE: MATCH 561/561, byte-identical yes (2413 bytes),
    relocregcheck 0 of 237. `n' holds the fuel call's result and counts the shown missions;
@@ -3636,7 +3636,7 @@ Boolean PortFilter(long unused, EventRecord *ev, short *itemHit)
 #endif
         PortDialogUpdate();
         button = TrackPlanetButtons(where);
-        GetDialogItem(portDialog, 5, &itemType, &item, &box);
+        GetDialogItem(portDialog, 5, &itemType, (Handle *)&item, &box);
         if (PtInRectPoint(where, &box)) {
             *itemHit = 5;
             return 1;
@@ -3704,7 +3704,7 @@ void PortDialogUpdate(void)
     PaintRect(GetDialogPortRect(portDialog));
     if (portBackgroundPic != NULL)
         DrawPicHandle(portBackgroundPic, GetDialogPortRect(portDialog));
-    GetDialogItem(portDialog, 3, &itemType, (void **)&item, &box);
+    GetDialogItem(portDialog, 3, &itemType, &item, &box);
     inside = RectInRgn(&box, GetWindowVisRgn(FrontWindow(portDialog)));
     if (inside) {
         ForeColor(blackColor);
@@ -3722,7 +3722,7 @@ void PortDialogUpdate(void)
 #endif
         ForeColor(blackColor);
     }
-    GetDialogItem(portDialog, 5, &itemType, (void **)&item, &box);
+    GetDialogItem(portDialog, 5, &itemType, &item, &box);
     inside = RectInRgn(&box, GetWindowVisRgn(FrontWindow(portDialog)));
     if (inside) {
         if (planetPicContainer.world != NULL)
@@ -3749,7 +3749,7 @@ void PortDialogUpdate(void)
         }
 #endif
     }
-    GetDialogItem(portDialog, 6, &itemType, (void **)&item, &box);
+    GetDialogItem(portDialog, 6, &itemType, &item, &box);
     inside = RectInRgn(&box, GetWindowVisRgn(FrontWindow(portDialog)));
     if (inside) {
         ForeColor(blackColor);
@@ -3814,11 +3814,11 @@ void MyModalDialog(DialogPtr dlg, void *eventProc, short *itemHit,
                 HideTheMenuBar();
 #endif
                 mBarHidden = 1;
-                r = *GetCWindowPortRect(gWind);
+                r = *GetCWindowPortRect((WindowRef)gWind);
                 r.top -= 30;
-                InvalWindowRect(gWind, &r);
+                InvalWindowRect((WindowRef)gWind, &r);
                 if (gSystemVersion < 0x1000 && mBarHidden && SWIsWindowInForeground(gSpriteWorld))
-                    KeepMenuBarHidden(gSpriteWorld->windowFrameP->framePort);
+                    KeepMenuBarHidden((GrafPtr)gSpriteWorld->windowFrameP->framePort);
             }
             SwitchedIn(&ev);
         } else {
@@ -3839,14 +3839,14 @@ void MyModalDialog(DialogPtr dlg, void *eventProc, short *itemHit,
     }
     if (!inBackground) {
         SelectWindow(GetDialogWindow(dlg));
-        SetPort(GetDialogPort(dlg));
+        SetPort((GrafPtr)GetDialogPort(dlg));
     }
     if (ev.what == updateEvt) {
         GetPort(&savedPort);
         window = (WindowPtr)ev.message;
         BeginUpdate(window);
-        if (window == gWind) {
-            SetPort(GetCWindowGrafPort(gWind));
+        if (window == (WindowPtr)gWind) {
+            SetPort((GrafPtr)GetCWindowGrafPort((WindowRef)gWind));
             if (gPause) {
                 if (showingIntroText) {
                     SetGWorldContainer(&loadPort);
@@ -3854,7 +3854,7 @@ void MyModalDialog(DialogPtr dlg, void *eventProc, short *itemHit,
                     PaintRect(&loadPort.bounds);
                     SWSetPortToWindow(gSpriteWorld);
                     ForeColor(blackColor);
-                    PaintRect(GetWindowPortRect(gWind));
+                    PaintRect(GetWindowPortRect((WindowRef)gWind));
                 } else {
                     mainScreenBackgroundDirty = 1;
                     MainScreenUpdate(1);
@@ -3865,58 +3865,58 @@ void MyModalDialog(DialogPtr dlg, void *eventProc, short *itemHit,
             }
         }
         if (portDialog != NULL && window == GetDialogWindow(portDialog)) {
-            SetPort(GetDialogPort(portDialog));
+            SetPort((GrafPtr)GetDialogPort(portDialog));
             PortDialogUpdate();
         }
         if (shipyardDialog != NULL && window == GetDialogWindow(shipyardDialog)) {
-            SetPort(GetDialogPort(shipyardDialog));
+            SetPort((GrafPtr)GetDialogPort(shipyardDialog));
             ShipyardDialogUpdate();
         }
         if (shipDescDialog != NULL && window == GetDialogWindow(shipDescDialog)) {
-            SetPort(GetDialogPort(shipDescDialog));
+            SetPort((GrafPtr)GetDialogPort(shipDescDialog));
             ShipDescDialogUpdate();
         }
         if (outfitDialog != NULL && window == GetDialogWindow(outfitDialog)) {
-            SetPort(GetDialogPort(outfitDialog));
+            SetPort((GrafPtr)GetDialogPort(outfitDialog));
             OutfitDialogUpdate();
         }
         if (tradeDialog != NULL && window == GetDialogWindow(tradeDialog)) {
-            SetPort(GetDialogPort(tradeDialog));
+            SetPort((GrafPtr)GetDialogPort(tradeDialog));
             TradeDialogUpdate();
         }
         if (textDialog != NULL && window == GetDialogWindow(textDialog)) {
-            SetPort(GetDialogPort(textDialog));
+            SetPort((GrafPtr)GetDialogPort(textDialog));
             TextDialogUpdate();
         }
         if (infoDialog != NULL && window == GetDialogWindow(infoDialog)) {
-            SetPort(GetDialogPort(infoDialog));
+            SetPort((GrafPtr)GetDialogPort(infoDialog));
             PlayerInfoDialogUpdate();
         }
         if (missionDialog != NULL && window == GetDialogWindow(missionDialog)) {
-            SetPort(GetDialogPort(missionDialog));
+            SetPort((GrafPtr)GetDialogPort(missionDialog));
             if (missionsOutside == 0 && portDialog != NULL)
                 MissionDialogUpdate();
             else
                 SingleMissionDialogUpdate();
         }
         if (missionInfoDialog != NULL && window == GetDialogWindow(missionInfoDialog)) {
-            SetPort(GetDialogPort(missionInfoDialog));
+            SetPort((GrafPtr)GetDialogPort(missionInfoDialog));
             MissionInfoDialogUpdate();
         }
         if (barDialog != NULL && window == GetDialogWindow(barDialog)) {
-            SetPort(GetDialogPort(barDialog));
+            SetPort((GrafPtr)GetDialogPort(barDialog));
             BarDialogUpdate();
         }
         if (raceDialog != NULL && window == GetDialogWindow(raceDialog)) {
-            SetPort(GetDialogPort(raceDialog));
+            SetPort((GrafPtr)GetDialogPort(raceDialog));
             RaceDialogUpdate();
         }
         if (newsDialog != NULL && window == GetDialogWindow(newsDialog)) {
-            SetPort(GetDialogPort(newsDialog));
+            SetPort((GrafPtr)GetDialogPort(newsDialog));
             NewsDialogUpdate();
         }
         if (commDialog != NULL && window == GetDialogWindow(commDialog)) {
-            SetPort(GetDialogPort(commDialog));
+            SetPort((GrafPtr)GetDialogPort(commDialog));
             if (commDialogMode == 1) {
                 PlanetCommDialogUpdate();
             } else if (commShip != NULL) {
@@ -3927,27 +3927,27 @@ void MyModalDialog(DialogPtr dlg, void *eventProc, short *itemHit,
             }
         }
         if (haggleDialog != NULL && window == GetDialogWindow(haggleDialog)) {
-            SetPort(GetDialogPort(haggleDialog));
+            SetPort((GrafPtr)GetDialogPort(haggleDialog));
             HaggleDialogUpdate();
         }
         if (plunderDialog != NULL && window == GetDialogWindow(plunderDialog)) {
-            SetPort(GetDialogPort(plunderDialog));
+            SetPort((GrafPtr)GetDialogPort(plunderDialog));
             PlunderDialogUpdate();
         }
         if (mapDialog != NULL && window == GetDialogWindow(mapDialog)) {
-            SetPort(GetDialogPort(mapDialog));
+            SetPort((GrafPtr)GetDialogPort(mapDialog));
             MapDialogUpdate();
         }
         if (captureDialog != NULL && window == GetDialogWindow(captureDialog)) {
-            SetPort(GetDialogPort(captureDialog));
+            SetPort((GrafPtr)GetDialogPort(captureDialog));
             CapturedAssignmentDialogUpdate();
         }
         if (newsDialog != NULL && window == GetDialogWindow(newsDialog)) {
-            SetPort(GetDialogPort(newsDialog));
+            SetPort((GrafPtr)GetDialogPort(newsDialog));
             NewsDialogUpdate();
         }
         if (keyDialog != NULL && window == GetDialogWindow(keyDialog)) {
-            SetPort(GetDialogPort(keyDialog));
+            SetPort((GrafPtr)GetDialogPort(keyDialog));
             KeyDialogUpdate();
         }
         EndUpdate(window);
@@ -4050,7 +4050,7 @@ void DoShipyardDialog(void)
         return;
     shipyardBackgroundPic = GetPicture(kShipyardPictID);
     CenterWindow(FrontWindow(shipyardDialog), FrontWindow(portDialog));
-    GetDialogItem(shipyardDialog, kGridItem, &itemType, &item, &box);
+    GetDialogItem(shipyardDialog, kGridItem, &itemType, (Handle *)&item, &box);
     SetupListRects((Point *)&box);
     strncpy(dialogDescTextPtr, "", 3);
     ShowWindowNoFlash(FrontWindow(shipyardDialog));
@@ -4063,7 +4063,7 @@ void DoShipyardDialog(void)
     if (shipBuyMode == 0)
         OfferMissionFromPort(5);
     RedrawDialog(shipyardDialog);
-    GetDialogItem(shipyardDialog, kMovieItem, &itemType, &item, &box);
+    GetDialogItem(shipyardDialog, kMovieItem, &itemType, (Handle *)&item, &box);
 
     do {
         if (gQuit)
@@ -4324,10 +4324,10 @@ void DoShipyardDialog(void)
         previewPic = NULL;
     }
     if (shipBuyMode != 0) {
-        box.left = box.right = ((GetCWindowPortRect(gWind)->left +
-                             GetCWindowPortRect(gWind)->right) / 2);
-        box.top = box.bottom = ((GetCWindowPortRect(gWind)->top +
-                              GetCWindowPortRect(gWind)->bottom) / 2);
+        box.left = box.right = ((GetCWindowPortRect((WindowRef)gWind)->left +
+                             GetCWindowPortRect((WindowRef)gWind)->right) / 2);
+        box.top = box.bottom = ((GetCWindowPortRect((WindowRef)gWind)->top +
+                              GetCWindowPortRect((WindowRef)gWind)->bottom) / 2);
         InsetRect(&box, n - 1, halfHeight - 1);
         SWSetPortToWindow(gSpriteWorld);
         ForeColor(blackColor);
@@ -4351,7 +4351,7 @@ void DoShipyardDialog(void)
 }
 
 #ifdef MACBUILD
-#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, (void **)&item, &movieBox), InvalWindowRect(GetDialogWindow(dlg), &movieBox))
+#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, &item, &movieBox), InvalWindowRect(GetDialogWindow(dlg), &movieBox))
 #endif
 /* ShipyardFilter (mac _ShipyardFilter). STATE: MATCH 587/587 (2026-09-24).
    OPEN: none */
@@ -4499,7 +4499,7 @@ Boolean ShipyardFilter(long unused, EventRecord *ev, short *itemHit)
                     if (selShipyardItem != -1 &&
                         shipMovieFilenames[selShipyardItem][0] != 0) {
                         GetDialogItem(shipyardDialog, kMovieItem, &itemType,
-                                      (void **)&item, &movieBox);
+                                      &item, &movieBox);
                         StartLoopingMovie(shipMovieFilenames[selShipyardItem],
                                           FrontWindow(shipyardDialog),
                                           &movieBox);
@@ -4536,7 +4536,7 @@ Boolean ShipyardFilter(long unused, EventRecord *ev, short *itemHit)
 #ifdef MACBUILD
         GlobalToLocal(&where);
 #endif
-        GetDialogItem(shipyardDialog, kGridItem, &itemType, (void **)&item, &box);
+        GetDialogItem(shipyardDialog, kGridItem, &itemType, &item, &box);
         if (PtInRectPoint(where, &box)) {
 #ifdef CEFIX /* F13.02 */
             count = CE_GridDivide(where.h - box.left, ceGridCellWidth);
@@ -4577,7 +4577,7 @@ Boolean ShipyardFilter(long unused, EventRecord *ev, short *itemHit)
                     if (selShipyardItem != -1 &&
                         shipMovieFilenames[selShipyardItem][0] != 0) {
                         GetDialogItem(shipyardDialog, kMovieItem, &itemType,
-                                      (void **)&item, &movieBox);
+                                      &item, &movieBox);
                         StartLoopingMovie(shipMovieFilenames[selShipyardItem],
                                           FrontWindow(shipyardDialog),
                                           &movieBox);
@@ -4681,7 +4681,7 @@ void ShipyardDialogUpdate(void)
     if (shipyardBackgroundPic != NULL)
         DrawPicHandle(shipyardBackgroundPic, GetDialogPortRect(shipyardDialog));
     skipped = 0;
-    GetDialogItem(shipyardDialog, kGridItem, &itemType, (void **)&item, &box);
+    GetDialogItem(shipyardDialog, kGridItem, &itemType, &item, &box);
     box.right += 1;
     box.bottom += 1;
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipyardDialog)))) {
@@ -4785,10 +4785,10 @@ void ShipyardDialogUpdate(void)
         }
     }
     if (selShipyardItem != -1) {
-        GetDialogItem(shipyardDialog, kMovieItem, &itemType, (void **)&item, &box);
+        GetDialogItem(shipyardDialog, kMovieItem, &itemType, &item, &box);
         if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipyardDialog)))) {
             if (loopingMovie != NULL) {
-                CopyBits((PixMapPtr)GetPortBitMapForCopyBits(
+                CopyBits(GetPortBitMapForCopyBits(
                              GetDialogPort(shipyardDialog)),
                          (BitMapPtr)GWorldContainerBits(&loadPort), &box, &box, 0,
                          GetWindowVisRgn(FrontWindow(shipyardDialog)));
@@ -4830,7 +4830,7 @@ void ShipyardDialogUpdate(void)
                 }
             }
         }
-        GetDialogItem(shipyardDialog, 9, &itemType, (void **)&item, &box);
+        GetDialogItem(shipyardDialog, 9, &itemType, &item, &box);
         if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipyardDialog)))) {
             TextFont(smallTextFont);
             TextSize(smallTextSize);
@@ -4898,7 +4898,7 @@ void ShipyardDialogUpdate(void)
             }
         }
     }
-    GetDialogItem(shipyardDialog, 6, &itemType, (void **)&item, &box);
+    GetDialogItem(shipyardDialog, 6, &itemType, &item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipyardDialog)))) {
         TextFont(smallTextFont);
         TextSize(smallTextSize);
@@ -5087,7 +5087,7 @@ Boolean ShipDescFilter(long unused, EventRecord *ev, short *itemHit)
 #ifdef MACBUILD
         GlobalToLocal(&where);
 #endif
-        GetDialogItem(shipDescDialog, 1, &itemType, &item, &box);
+        GetDialogItem(shipDescDialog, 1, &itemType, (Handle *)&item, &box);
         if (PtInRectPoint(where, &box)) {
             GetIndString(label, kLabelStrList, kLabelStrIdx);
             DrawButton(GetDialogPort(shipDescDialog), &box, label, 0, 1, 0);
@@ -5174,7 +5174,7 @@ void ShipDescDialogUpdate(void)
     else
         hasPict = 0;
     ForeColor(blackColor);
-    GetDialogItem(shipDescDialog, 3, &itemType, (void **)&item, &box);
+    GetDialogItem(shipDescDialog, 3, &itemType, &item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipDescDialog)))) {
         TextFont(gTimesFont);
         TextSize(18);
@@ -5197,7 +5197,7 @@ void ShipDescDialogUpdate(void)
 #endif
         ForeColor(blackColor);
     }
-    GetDialogItem(shipDescDialog, 5, &itemType, (void **)&item, &box);
+    GetDialogItem(shipDescDialog, 5, &itemType, &item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipDescDialog)))) {
         sel = selShipyardItem;
         ForeColor(blackColor);
@@ -5411,7 +5411,7 @@ void ShipDescDialogUpdate(void)
         if ((short)numWeapTypes == 0) {
             ForeColor(whiteColor);
             if (hasPict) {
-                GetDialogItem(shipDescDialog, 8, &itemType, (void **)&item, &box2);
+                GetDialogItem(shipDescDialog, 8, &itemType, &item, &box2);
                 MoveTo(box2.left, (box2.top + 12));
             } else {
                 MoveTo(box.left, (box.top + 108));
@@ -5422,7 +5422,7 @@ void ShipDescDialogUpdate(void)
             drawn = 0;
             if (hasPict) {
                 strcpy(line, "");
-                GetDialogItem(shipDescDialog, 8, &itemType, (void **)&item, &box2);
+                GetDialogItem(shipDescDialog, 8, &itemType, &item, &box2);
                 MoveTo(box2.left, (box2.top + 12));
                 box2.top += 16;
             } else {
@@ -5553,13 +5553,13 @@ void ShipDescDialogUpdate(void)
             DrawString(buf);
         }
     }
-    GetDialogItem(shipDescDialog, 1, &itemType, (void **)&item, &box);
+    GetDialogItem(shipDescDialog, 1, &itemType, &item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipDescDialog)))) {
         GetIndString(buf, kButtonStrList, 5);
         DrawButton(GetDialogPort(shipDescDialog), &box, buf, 0, 0, 0);
     }
     if (bigShipPic != NULL) {
-        GetDialogItem(shipDescDialog, 7, &itemType, (void **)&item, &box);
+        GetDialogItem(shipDescDialog, 7, &itemType, &item, &box);
         if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(shipDescDialog))))
             DrawPicHandle(bigShipPic, &box);
     }
@@ -5642,7 +5642,7 @@ void IterateInGameEventLoop(short tickCount)
             case inDrag:
                 if (gameInProgress && gameLoaded)
                     RefreshSAT();
-                if (window == gWind) {
+                if (window == (WindowPtr)gWind) {
                     if (useLegacyRenderingPipeline) {
                         GetWindowDragBounds(&dragBounds, ev.where);
                         if (dragBounds.right > dragBounds.left && dragBounds.bottom > dragBounds.top) {
@@ -5670,7 +5670,7 @@ void IterateInGameEventLoop(short tickCount)
                 break;
             case inGoAway:
                 if (gameLoaded) {
-                    if ((FrontWindow)() == gWind && !screenFaded) {
+                    if ((FrontWindow)() == (WindowRef)gWind && !screenFaded) {
                         ShowTheCursor();
                         GetIndString(str, kAlertStrList, 10);
                         if (EVYesNoDialog(str))
@@ -5723,7 +5723,7 @@ void IterateInGameEventLoop(short tickCount)
             if (depthMismatch)
                 break;
             SWSetPortToWindow(gSpriteWorld);
-            BeginUpdate(gWind);
+            BeginUpdate((WindowRef)gWind);
             if (!creatingPilotFile) {
                 if (gameInProgress && gameLoaded) {
                     if (onPlanet || inBackground) {
@@ -5739,15 +5739,15 @@ void IterateInGameEventLoop(short tickCount)
                     }
                 } else {
                     CopyBits(GWorldContainerBits(&loadPort),
-                             GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
-                             GetCWindowPortRect(gWind), GetCWindowPortRect(gWind), 0, NULL);
+                             GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
+                             GetCWindowPortRect((WindowRef)gWind), GetCWindowPortRect((WindowRef)gWind), 0, NULL);
                 }
             }
             SWSetPortToWindow(gSpriteWorld);
-            EndUpdate(gWind);
+            EndUpdate((WindowRef)gWind);
             SWSetPortToWindow(gSpriteWorld);
 #if defined(MAC1010) && !TARGET_API_MAC_CARBON
-            ValidRect(GetCWindowPortRect(gWind));
+            ValidRect(GetCWindowPortRect((WindowRef)gWind));
 #else
             ValidWindowRect(gWind, GetWindowPortRect(gWind));
 #endif
@@ -5773,7 +5773,7 @@ void IterateInGameEventLoop(short tickCount)
                     cursorHidden = 0;
                     ShowTheCursor();
                     if (gSystemVersion < 0x1000 && mBarHidden && SWIsWindowInForeground(gSpriteWorld))
-                        KeepMenuBarHidden(gSpriteWorld->windowFrameP->framePort);
+                        KeepMenuBarHidden((GrafPtr)gSpriteWorld->windowFrameP->framePort);
                     SwitchedIn(&ev);
                     if (gameLoaded) {
                         RefreshSAT();
@@ -5792,7 +5792,7 @@ void IterateInGameEventLoop(short tickCount)
             break;
         case nullEvent:
             if (gSystemVersion < 0x1000 && mBarHidden && SWIsWindowInForeground(gSpriteWorld))
-                KeepMenuBarHidden(gSpriteWorld->windowFrameP->framePort);
+                KeepMenuBarHidden((GrafPtr)gSpriteWorld->windowFrameP->framePort);
             exitLoop = true;
             break;
         }
@@ -5887,11 +5887,11 @@ void EVNoteAlert(const unsigned char *text)
 #ifdef MACBUILD
     strncpy((char *)str, (const char *)text, 254);
 #endif
-    GetDialogItem(alertDialog, 3, &itemType, (void **)&item, &box);
+    GetDialogItem(alertDialog, 3, &itemType, &item, &box);
 #ifdef MACBUILD
     SetDialogItemText(item, str);
 #else
-    SetDialogItemText((ControlPtr)item,text);
+    SetDialogItemText((Handle)item,text);
 #endif
     FlushEvents(everyEvent - diskMask, 0);
     ShowTheCursor();
@@ -5935,11 +5935,11 @@ Boolean EVYesNoDialog(unsigned char *text)
 #ifdef MACBUILD
     strncpy((char *)str, (const char *)text, 254);
 #endif
-    GetDialogItem(alertDialog, 3, &itemType, (void **)&item, &box);
+    GetDialogItem(alertDialog, 3, &itemType, &item, &box);
 #ifdef MACBUILD
     SetDialogItemText(item, str);
 #else
-    SetDialogItemText((ControlPtr)item,text);
+    SetDialogItemText((Handle)item,text);
 #endif
     FlushEvents(everyEvent - diskMask, 0);
     ShowTheCursor();
@@ -5990,15 +5990,15 @@ Boolean EVTextInputDialog(unsigned char *prompt, unsigned char *initial, short m
     SelectWindow(FrontWindow(alertDialog));
     SetDialogGWorld(alertDialog);
     FrameDefaultButton(alertDialog, 1);
-    GetDialogItem(alertDialog, 3, &itemType, (void **)&item, &box);
-    SetDialogItemText((ControlPtr)item,prompt);
+    GetDialogItem(alertDialog, 3, &itemType, &item, &box);
+    SetDialogItemText((Handle)item,prompt);
 #ifdef MACBUILD
     strncpy((char *)text, (const char *)initial, 254);
-    GetDialogItem(alertDialog, 5, &itemType, (void **)&item, &box);
+    GetDialogItem(alertDialog, 5, &itemType, &item, &box);
     SetDialogItemText(item, text);
 #else
-    GetDialogItem(alertDialog, 5, &itemType, (void **)&item, &box);
-    SetDialogItemText((ControlPtr)item,initial);
+    GetDialogItem(alertDialog, 5, &itemType, &item, &box);
+    SetDialogItemText((Handle)item,initial);
 #endif
     SelectDialogItemText(alertDialog, 5, 0, 254);
     FlushEvents(everyEvent - diskMask, 0);
@@ -6006,8 +6006,8 @@ Boolean EVTextInputDialog(unsigned char *prompt, unsigned char *initial, short m
     do {
         ModalDialog(NULL, &itemHit);
         if (itemHit == 1) {
-            GetDialogItem(alertDialog, 5, &itemType, (void **)&item, &box);
-            GetDialogItemText((ControlPtr)item,text);
+            GetDialogItem(alertDialog, 5, &itemType, &item, &box);
+            GetDialogItemText((Handle)item,text);
 #ifdef MACBUILD
             PtoCstr(text);
             len = strlen((char *)text);
@@ -6027,8 +6027,8 @@ Boolean EVTextInputDialog(unsigned char *prompt, unsigned char *initial, short m
             done = 1;
         }
     } while (done == 0);
-    GetDialogItem(alertDialog, 5, &itemType, (void **)&item, &box);
-    GetDialogItemText((ControlPtr)item,textInputString);
+    GetDialogItem(alertDialog, 5, &itemType, &item, &box);
+    GetDialogItemText((Handle)item,textInputString);
     SWSetPortToWindow(gSpriteWorld);
     DisposeDialog(alertDialog);
     alertDialog = NULL;
@@ -6078,8 +6078,8 @@ Boolean RetrieveMenuIcon(short picID, CGrafPtr dest, Rect *destRect)
     }
     if (slot < 0 || slot >= kPictCacheSlots)
         slot = 0;
-    GetPort(&savedPort);
-    SetPort(iconsPort.world);
+    GetPort((GrafPtr *)&savedPort);
+    SetPort((GrafPtr)iconsPort.world);
     ForeColor(blackColor);
     pic = GetPicture(picID);
     if (pic != NULL) {
@@ -6092,7 +6092,7 @@ Boolean RetrieveMenuIcon(short picID, CGrafPtr dest, Rect *destRect)
         PaintRect(&listPicOffRect[slot]);
         missed = true;
     }
-    SetPort(savedPort);
+    SetPort((GrafPtr)savedPort);
     CopyBits(GetPortBitMapForCopyBits(iconsPort.world), GetPortBitMapForCopyBits(dest),
              &listPicOffRect[slot], destRect, 0, NULL);
     return missed;
@@ -6116,7 +6116,7 @@ Boolean RetrieveMenuIcon(short picID, GWorldContainer *dest, Rect *destRect)
         if (id == -1)
             slot = i;
         if (picID == id) {
-            CopyBits(GetGWCPixMap(&iconsPort), (BitMapPtr)GetGWCPixMap(dest),
+            CopyBits((BitMapPtr)GetGWCPixMap(&iconsPort), (BitMapPtr)GetGWCPixMap(dest),
                      &listPicOffRect[(short)i], destRect, 0, 0);
             iconCache[(short)i].stamp = ReadTick();
             return 1;
@@ -6153,7 +6153,7 @@ Boolean RetrieveMenuIcon(short picID, GWorldContainer *dest, Rect *destRect)
         missed = 1;
     }
     SetPort(savedPort);
-    CopyBits(GetGWCPixMap(&iconsPort), (BitMapPtr)GetGWCPixMap(dest),
+    CopyBits((BitMapPtr)GetGWCPixMap(&iconsPort), (BitMapPtr)GetGWCPixMap(dest),
              (Rect *)j, destRect, 0, 0);
     return missed;
 }
@@ -6255,7 +6255,7 @@ void RefreshWindowBuffer(void)
 #ifdef MACBUILD
         SetRetainedWindow(gWind, false);
 #endif
-        CopyBits((PixMapPtr)GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
+        CopyBits(GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
                  GetPortPixMapBits(GetWindowPort(gWind)),
                  &gSpriteWorld->workFrameP->frameRect,
                  &gSpriteWorld->windowFrameP->frameRect,
@@ -6279,7 +6279,7 @@ void RefreshWindowBuffer(void)
     SetRetainedWindow(gWind, true);
     QDFlushPortBuffer(GetWindowPort(gWind), NULL);
 #else
-    CopyBits((PixMapPtr)GetPortBitMapForCopyBits(
+    CopyBits(GetPortBitMapForCopyBits(
                  gSpriteWorld->workFrameP->framePort),
              GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
              &gSpriteWorld->workFrameP->frameRect,
@@ -6437,7 +6437,7 @@ void CapturedAssignmentDialogUpdate(void)
         DrawPicHandle(captureBackgroundPic, GetDialogPortRect(captureDialog));
     ForeColor(whiteColor);
     BackColor(blackColor);
-    GetDialogItem(captureDialog, 3, &itemType, &item, &box);
+    GetDialogItem(captureDialog, 3, &itemType, (Handle *)&item, &box);
     strcpy(text, "");
     StrcatIndCString(text, kGameStrList, kCaptureStrIdx);
     TETextBox(text, strlen(text), &box, 0);
@@ -6476,7 +6476,7 @@ void CapturedAssignmentDialogUpdate(void)
 /* on mac ShowTextDialog paints gWind through GetWindowPortRect and invalidates items itself */
 #ifdef MACBUILD
 #define GetCWindowPortRect(w)       GetWindowPortRect(w)
-#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, (void **)&item, &box), InvalWindowRect(GetDialogWindow(dlg), &box))
+#define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, &item, &box), InvalWindowRect(GetDialogWindow(dlg), &box))
 #endif
 /* ShowTextDialog. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004982a0
@@ -6516,7 +6516,7 @@ void ShowTextDialog(Boolean allowMap, Boolean redrawMission, Boolean showMovie)
                     PaintRect(&loadPort.bounds);
                     SWSetPortToWindow(gSpriteWorld);
                     ForeColor(blackColor);
-                    PaintRect(GetCWindowPortRect(gWind));
+                    PaintRect(GetCWindowPortRect((WindowRef)gWind));
                 } else {
                     mainScreenBackgroundDirty = 1;
                     MainScreenUpdate(1);
@@ -6556,7 +6556,7 @@ void ShowTextDialog(Boolean allowMap, Boolean redrawMission, Boolean showMovie)
             textDialogBackgroundPic[i] = GetPicture(kTextDlgBackdropPictID + i);
     }
     SetDialogGWorld(textDialog);
-    GetDialogItem(textDialog, 3, &itemType, (void **)&item, &box);
+    GetDialogItem(textDialog, 3, &itemType, &item, &box);
     textDialogTextHandle = TENew(&box, &box);
     (*textDialogTextHandle)->txFont = smallTextFont;
     (*textDialogTextHandle)->txSize = smallTextSize;
@@ -6565,7 +6565,7 @@ void ShowTextDialog(Boolean allowMap, Boolean redrawMission, Boolean showMovie)
     TESetLineMetrics(textDialogTextHandle);
     TESetText(textShowString, strlen(textShowString), textDialogTextHandle);
     textHeight = TEMeasureText(textDialogTextHandle, box.right - box.left);
-    GetDialogItem(textDialog, 3, &itemType, (void **)&item, &box);
+    GetDialogItem(textDialog, 3, &itemType, &item, &box);
     viewHeight = box.bottom - box.top;
     if (textHeight < viewHeight && descResourcePictId < kFirstResourceID) {
         if (textHeight >= kTextDlgMinHeight)
@@ -6592,21 +6592,21 @@ void ShowTextDialog(Boolean allowMap, Boolean redrawMission, Boolean showMovie)
         pt.v += slack * kTextDlgRecentre;
         OffsetDialogWindow(textDialog, pt.h, pt.v, 1);
 #endif
-        GetDialogItem(textDialog, 1, &itemType, (void **)&item, &box);
+        GetDialogItem(textDialog, 1, &itemType, &item, &box);
         OffsetRect(&box, 0, -slack);
         SetDialogItem(textDialog, 1, itemType, item, &box);
-        GetDialogItem(textDialog, 5, &itemType, (void **)&item, &box);
+        GetDialogItem(textDialog, 5, &itemType, &item, &box);
         OffsetRect(&box, 0, -slack);
         SetDialogItem(textDialog, 5, itemType, item, &box);
-        GetDialogItem(textDialog, 6, &itemType, (void **)&item, &box);
+        GetDialogItem(textDialog, 6, &itemType, &item, &box);
         OffsetRect(&box, 0, -slack);
         SetDialogItem(textDialog, 6, itemType, item, &box);
-        GetDialogItem(textDialog, 3, &itemType, (void **)&item, &box);
+        GetDialogItem(textDialog, 3, &itemType, &item, &box);
         box.bottom -= slack;
         SetDialogItem(textDialog, 3, itemType, item, &box);
-        GetDialogItem(textDialog, 3, &itemType, (void **)&item,
+        GetDialogItem(textDialog, 3, &itemType, &item,
                       &(*textDialogTextHandle)->destRect);
-        GetDialogItem(textDialog, 3, &itemType, (void **)&item,
+        GetDialogItem(textDialog, 3, &itemType, &item,
                       &(*textDialogTextHandle)->viewRect);
         TECalText(textDialogTextHandle);
     }
@@ -6637,7 +6637,7 @@ void ShowTextDialog(Boolean allowMap, Boolean redrawMission, Boolean showMovie)
             PaintRect(&loadPort.bounds);
             SWSetPortToWindow(gSpriteWorld);
             ForeColor(blackColor);
-            PaintRect(GetCWindowPortRect(gWind));
+            PaintRect(GetCWindowPortRect((WindowRef)gWind));
         } else {
             mainScreenBackgroundDirty = 1;
             MainScreenUpdate(1);
@@ -6651,7 +6651,7 @@ void ShowTextDialog(Boolean allowMap, Boolean redrawMission, Boolean showMovie)
                 PaintRect(&loadPort.bounds);
                 SWSetPortToWindow(gSpriteWorld);
                 ForeColor(blackColor);
-                PaintRect(GetCWindowPortRect(gWind));
+                PaintRect(GetCWindowPortRect((WindowRef)gWind));
             } else {
                 mainScreenBackgroundDirty = 1;
                 MainScreenUpdate(1);
@@ -6729,7 +6729,7 @@ void ShowTextDialog(Boolean allowMap, Boolean redrawMission, Boolean showMovie)
             PaintRect(&loadPort.bounds);
             SWSetPortToWindow(gSpriteWorld);
             ForeColor(blackColor);
-            PaintRect(GetCWindowPortRect(gWind));
+            PaintRect(GetCWindowPortRect((WindowRef)gWind));
         } else {
             mainScreenBackgroundDirty = 1;
             MainScreenUpdate(1);
@@ -6749,7 +6749,7 @@ void ShowTextDialog(Boolean allowMap, Boolean redrawMission, Boolean showMovie)
                     PaintRect(&loadPort.bounds);
                     SWSetPortToWindow(gSpriteWorld);
                     ForeColor(blackColor);
-                    PaintRect(GetCWindowPortRect(gWind));
+                    PaintRect(GetCWindowPortRect((WindowRef)gWind));
                 } else {
                     mainScreenBackgroundDirty = 1;
                     MainScreenUpdate(1);
@@ -6926,13 +6926,13 @@ void ScrollDialogText(DialogPtr dlg, short item, TEHandle hTE, short dv, Boolean
 
     SetGWorldContainer(&loadPort);
     savedTop = (*hTE)->destRect.top;
-    (*hTE)->inPort = loadPort.world;
+    (*hTE)->inPort = (GrafPtr)loadPort.world;
     ForeColor(whiteColor);
     BackColor(blackColor);
     TEPinScroll(0, dv, hTE);
     ForeColor(blackColor);
     BackColor(whiteColor);
-    (*hTE)->inPort = GetDialogPort(textDialog);
+    (*hTE)->inPort = (GrafPtr)GetDialogPort(textDialog);
     lastTextScrollTime = ReadTick();
     SetDialogGWorld(dlg);
 
@@ -6946,7 +6946,7 @@ void ScrollDialogText(DialogPtr dlg, short item, TEHandle hTE, short dv, Boolean
     else if ((*hTE)->viewRect.bottom > (*hTE)->destRect.top)
         canScrollTextDown = 1;
 
-    GetDialogItem(dlg, item, &type, &handle, &box);
+    GetDialogItem(dlg, item, &type, (Handle *)&handle, &box);
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(dlg);
     ForeColor(blackColor);
@@ -7073,7 +7073,7 @@ Boolean TextDialogFilter(long unused, EventRecord *ev, short *itemHit)
         GlobalToLocal(&where);
 #endif
         if (canScrollTextUp != 0) {
-            GetDialogItem(textDialog, 5, &itemType, &item, &box);
+            GetDialogItem(textDialog, 5, &itemType, (Handle *)&item, &box);
             if (PtInRectPoint(where, &box) && canScrollTextUp != 0) {
                 lastTextScrollTime = ReadTick();
                 while (StillDown()) {
@@ -7091,7 +7091,7 @@ Boolean TextDialogFilter(long unused, EventRecord *ev, short *itemHit)
             }
         }
         if (canScrollTextDown != 0) {
-            GetDialogItem(textDialog, 6, &itemType, &item, &box);
+            GetDialogItem(textDialog, 6, &itemType, (Handle *)&item, &box);
             if (PtInRectPoint(where, &box) && canScrollTextDown != 0) {
                 lastTextScrollTime = ReadTick();
                 while (StillDown()) {
@@ -7204,22 +7204,22 @@ void TextDialogUpdate(void)
     if (descResourcePictId >= kFirstResourceID) {
         loaded = GetPicture(descResourcePictId);
         if (loaded != NULL) {
-            GetDialogItem(textDialog, 2, &itemType, (void **)&item, &r);
+            GetDialogItem(textDialog, 2, &itemType, &item, &r);
             DrawPicHandle(loaded, &r);
             QDReleaseResource(loaded);
         }
     }
-    (*textDialogTextHandle)->inPort = loadPort.world;
-    GetDialogItem(textDialog, 3, &itemType, (void **)&item, &r);
+    (*textDialogTextHandle)->inPort = (GrafPtr)loadPort.world;
+    GetDialogItem(textDialog, 3, &itemType, &item, &r);
     ForeColor(whiteColor);
     BackColor(blackColor);
     TEUpdate(&r, textDialogTextHandle);
     ForeColor(blackColor);
     BackColor(whiteColor);
-    (*textDialogTextHandle)->inPort = GetDialogPort(textDialog);
+    (*textDialogTextHandle)->inPort = (GrafPtr)GetDialogPort(textDialog);
     SWSetPortToWindow(gSpriteWorld);
     SetDialogGWorld(textDialog);
-    GetDialogItem(textDialog, 1, &itemType, (void **)&item, &r);
+    GetDialogItem(textDialog, 1, &itemType, &item, &r);
     ForeColor(blackColor);
     CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(textDialog)),
@@ -7328,9 +7328,9 @@ void DoPlayerInfoDialog(void)
     savedBottom = win->bottom;
     savedRight = win->right;
 #endif
-    GetDialogItem(infoDialog, 6, &itemType, (void **)&item, &box6);
-    GetDialogItem(infoDialog, 1, &itemType, (void **)&item, &buttonBox[0]);
-    GetDialogItem(infoDialog, 7, &itemType, (void **)&item, &buttonBox[1]);
+    GetDialogItem(infoDialog, 6, &itemType, &item, &box6);
+    GetDialogItem(infoDialog, 1, &itemType, &item, &buttonBox[0]);
+    GetDialogItem(infoDialog, 7, &itemType, &item, &buttonBox[1]);
     textDialogTextHandle = TENew(&box6, &box6);
     (*textDialogTextHandle)->txFont = smallTextFont;
     (*textDialogTextHandle)->txSize = smallTextSize;
@@ -7362,15 +7362,15 @@ void DoPlayerInfoDialog(void)
         MoveWindow(GetDialogWindow(infoDialog), pt.h, pt.v, true);
         r = buttonBox[0];
         OffsetRect(&r, 0, delta);
-        GetDialogItem(infoDialog, 1, &itemType, (void **)&item, &buttonBox[0]);
+        GetDialogItem(infoDialog, 1, &itemType, &item, &buttonBox[0]);
         SetDialogItem(infoDialog, 1, itemType, item, &r);
         r = buttonBox[1];
-        GetDialogItem(infoDialog, 7, &itemType, (void **)&item, &buttonBox[1]);
+        GetDialogItem(infoDialog, 7, &itemType, &item, &buttonBox[1]);
         OffsetRect(&r, 0, delta);
         SetDialogItem(infoDialog, 7, itemType, item, &r);
         r = box6;
         r.bottom += delta;
-        GetDialogItem(infoDialog, 6, &itemType, (void **)&item, &box6);
+        GetDialogItem(infoDialog, 6, &itemType, &item, &box6);
         SetDialogItem(infoDialog, 6, itemType, item, &r);
 #else
         r.top = savedTop;
@@ -7388,13 +7388,13 @@ void DoPlayerInfoDialog(void)
         r.bottom = buttonBox[0].bottom;
         r.right = buttonBox[0].right;
         OffsetRect(&r, 0, delta);
-        GetDialogItem(infoDialog, 1, &itemType, (void **)&item, &buttonBox[0]);
+        GetDialogItem(infoDialog, 1, &itemType, &item, &buttonBox[0]);
         SetDialogItem(infoDialog, 1, itemType, item, &r);
         r.top = buttonBox[1].top;
         r.left = buttonBox[1].left;
         r.bottom = buttonBox[1].bottom;
         r.right = buttonBox[1].right;
-        GetDialogItem(infoDialog, 7, &itemType, (void **)&item, &buttonBox[1]);
+        GetDialogItem(infoDialog, 7, &itemType, &item, &buttonBox[1]);
         OffsetRect(&r, 0, delta);
         SetDialogItem(infoDialog, 7, itemType, item, &r);
         r.top = box6.top;
@@ -7402,7 +7402,7 @@ void DoPlayerInfoDialog(void)
         r.bottom = box6.bottom;
         r.right = box6.right;
         r.bottom += delta;
-        GetDialogItem(infoDialog, 6, &itemType, (void **)&item, &box6);
+        GetDialogItem(infoDialog, 6, &itemType, &item, &box6);
         SetDialogItem(infoDialog, 6, itemType, item, &r);
 #endif
     }
@@ -7645,7 +7645,7 @@ void PlayerInfoDialogUpdate(void)
 
     TextFont(smallTextFont);
     TextSize(smallTextSize);
-    GetDialogItem(infoDialog, 6, &itemType, &itemHandle, &box);
+    GetDialogItem(infoDialog, 6, &itemType, (Handle *)&itemHandle, &box);
     if (!RectInRgn(&box, GetWindowVisRgn(FrontWindow(infoDialog))))
         goto blit_back;
 
@@ -7665,7 +7665,7 @@ void PlayerInfoDialogUpdate(void)
         MoveTo((box.left + 0x50), (box.top + 0x1c));
         DateToMedString(gameTime, (char *)buf);
         CtoPstr((char *)buf);
-        DrawString(buf);
+        DrawString((const unsigned char *)buf);
 
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 5), (box.top + 0x2c));
@@ -7737,11 +7737,11 @@ void PlayerInfoDialogUpdate(void)
         ForeColor(whiteColor);
         MoveTo((box.left + 0x118), (box.top + 0x2c));
 #ifdef CEFIX /* F29.02 */
-        NumToString(CE_TruncF32(ShipTurnRate(shipData) * 30.0f), buf);
+        NumToString(CE_TruncF32(ShipTurnRate(shipData) * 30.0f), (StringPtr)buf);
 #else
-        NumToString((ShipTurnRate(shipData) * 30.0f), buf);
+        NumToString((ShipTurnRate(shipData) * 30.0f), (StringPtr)buf);
 #endif
-        DrawString(buf);
+        DrawString((const unsigned char *)buf);
         DrawIndString(kGameStrList, 0x102);
 
         RGBForeColor(&rgbLightGrey);
@@ -7750,11 +7750,11 @@ void PlayerInfoDialogUpdate(void)
         ForeColor(whiteColor);
         MoveTo((box.left + 0x118), (box.top + 0x3c));
 #ifdef CEFIX /* F29.03 */
-        NumToString(CE_TruncF32(ShipAccelRate(shipData) * 2500.0), buf);
+        NumToString(CE_TruncF32(ShipAccelRate(shipData) * 2500.0), (StringPtr)buf);
 #else
-        NumToString((ShipAccelRate(shipData) * 2500.0), buf);
+        NumToString((ShipAccelRate(shipData) * 2500.0), (StringPtr)buf);
 #endif
-        DrawString(buf);
+        DrawString((const unsigned char *)buf);
 
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 0xcd), (box.top + 0x4c));
@@ -7763,25 +7763,25 @@ void PlayerInfoDialogUpdate(void)
         MoveTo((box.left + 0x118), (box.top + 0x4c));
 #ifdef CEFIX /* F29.04-05 */
         if (strictPlay)
-            NumToString(CE_TruncF32(ShipMaxSpeed(shipData) * 100.0f), buf);
+            NumToString(CE_TruncF32(ShipMaxSpeed(shipData) * 100.0f), (StringPtr)buf);
         else
             NumToString(CE_TruncF32(ShipMaxSpeed(shipData) * 100.0f *
-                                    0.6666666666666666), buf);
+                                    0.6666666666666666), (StringPtr)buf);
 #else
         if (strictPlay)
-            NumToString((ShipMaxSpeed(shipData) * 100.0f), buf);
+            NumToString((ShipMaxSpeed(shipData) * 100.0f), (StringPtr)buf);
         else
             NumToString((ShipMaxSpeed(shipData) * 100.0f *
-                               0.6666666666666666), buf);
+                               0.6666666666666666), (StringPtr)buf);
 #endif
-        DrawString(buf);
+        DrawString((const unsigned char *)buf);
 
         RGBForeColor(&rgbLightGrey);
         MoveTo((box.left + 0xcd), (box.top + 0x5c));
-        pstrcpy(buf, creditsString);
+        pstrcpy((StringPtr)buf, creditsString);
         if ((char)buf[0] > 0)
             buf[1] = toupper((char)buf[1]);
-        DrawString(buf);
+        DrawString((const unsigned char *)buf);
         DrawString("\p:");
         ForeColor(whiteColor);
         MoveTo((box.left + 0x118), (box.top + 0x5c));
@@ -7797,8 +7797,8 @@ void PlayerInfoDialogUpdate(void)
             if (shipData->shield >= 0.0f) {
                 if (shipData->shield <= ShipShieldCapacity(shipData)) {
                     NumToString((shipData->shield /
-                                       ShipShieldCapacity(shipData) * 100.0), buf);
-                    DrawString(buf);
+                                       ShipShieldCapacity(shipData) * 100.0), (StringPtr)buf);
+                    DrawString((const unsigned char *)buf);
                     DrawString("\p%");
                 } else {
                     DrawString("\p100%");
@@ -7820,8 +7820,8 @@ void PlayerInfoDialogUpdate(void)
         } else if (ShipArmorCapacity(shipData) > 0.0) {
             if (shipData->armor <= ShipArmorCapacity(shipData)) {
                 NumToString((shipData->armor /
-                                   ShipArmorCapacity(shipData) * 100.0), buf);
-                DrawString(buf);
+                                   ShipArmorCapacity(shipData) * 100.0), (StringPtr)buf);
+                DrawString((const unsigned char *)buf);
                 DrawString("\p%");
             } else {
                 DrawString("\p100%");
@@ -7839,14 +7839,14 @@ void PlayerInfoDialogUpdate(void)
             DrawIndString(kGameStrList, 0x14f);
         } else {
             NumToString((shipData->fuel /
-                               ShipFuelCapacity(shipData) * 100.0), buf);
-            DrawString(buf);
+                               ShipFuelCapacity(shipData) * 100.0), (StringPtr)buf);
+            DrawString((const unsigned char *)buf);
             DrawString("\p%");
             jumps = (shipData->fuel / 100.0);
             if (jumps > 0) {
                 DrawString("\p  (");
-                NumToString(jumps, buf);
-                DrawString(buf);
+                NumToString(jumps, (StringPtr)buf);
+                DrawString((const unsigned char *)buf);
                 DrawString("\p ");
                 if (jumps > 1)
                     DrawIndString(kGameStrList, 0xf0);
@@ -7952,13 +7952,13 @@ void PlayerInfoDialogUpdate(void)
         } else {
             RGBForeColor(&rgbLightGrey);
             if (TotalFleetHolds() > ShipTotalHolds())
-                GetIndString(buf, kGameStrList, 0x10c);
+                GetIndString((StringPtr)buf, kGameStrList, 0x10c);
             else
-                GetIndString(buf, kGameStrList, 0x10d);
+                GetIndString((StringPtr)buf, kGameStrList, 0x10d);
 #ifdef CEFIX /* F12.67 */
-            DrawStringCentered(buf, box.left, box.right, box.top + CE_Scale(0x37));
+            DrawStringCentered((StringPtr)buf, box.left, box.right, box.top + CE_Scale(0x37));
 #else
-            DrawStringCentered(buf, box.left, box.right, (box.top + 0x37));
+            DrawStringCentered((StringPtr)buf, box.left, box.right, (box.top + 0x37));
 #endif
         }
     } else if (selPlayerInfoMode == 3) {
@@ -7981,11 +7981,11 @@ void PlayerInfoDialogUpdate(void)
             InvertRect(&box2);
         } else {
             RGBForeColor(&rgbLightGrey);
-            GetIndString(buf, kGameStrList, 0x10e);
+            GetIndString((StringPtr)buf, kGameStrList, 0x10e);
 #ifdef CEFIX /* F12.67 */
-            DrawStringCentered(buf, box.left, box.right, box.top + CE_Scale(0x37));
+            DrawStringCentered((StringPtr)buf, box.left, box.right, box.top + CE_Scale(0x37));
 #else
-            DrawStringCentered(buf, box.left, box.right, (box.top + 0x37));
+            DrawStringCentered((StringPtr)buf, box.left, box.right, (box.top + 0x37));
 #endif
         }
     } else if (selPlayerInfoMode == 4) {
@@ -8012,11 +8012,11 @@ void PlayerInfoDialogUpdate(void)
             InvertRect(&box2);
         } else {
             RGBForeColor(&rgbLightGrey);
-            GetIndString(buf, kGameStrList, 0x10f);
+            GetIndString((StringPtr)buf, kGameStrList, 0x10f);
 #ifdef CEFIX /* F12.67 */
-            DrawStringCentered(buf, box.left, box.right, box.top + CE_Scale(0x37));
+            DrawStringCentered((StringPtr)buf, box.left, box.right, box.top + CE_Scale(0x37));
 #else
-            DrawStringCentered(buf, box.left, box.right, (box.top + 0x37));
+            DrawStringCentered((StringPtr)buf, box.left, box.right, (box.top + 0x37));
 #endif
         }
     }
@@ -8148,18 +8148,18 @@ void SetupPlayerInfoText(void)
                     else
                         pstrcpy(str, tonsString);
                     PtoCstr(str);
-                    strcat(playerInfoText[0], str);
+                    strcat(playerInfoText[0], (char *)str);
                     strcat(playerInfoText[0], " ");
                     StrcatIndCString(playerInfoText[0], kGameStrList, kStrOf);
                     strcat(playerInfoText[0], " ");
                 }
                 /* BUG: copies 64 bytes of a Pascal name, so a name over 63 characters keeps stale bytes */
-                strncpy(str, lcCargoName[i], 64);
+                strncpy((char *)str, (char *)lcCargoName[i], 64);
                 PtoCstr(str);
                 if (lcCargoName[i][1] == '*')
-                    strcat(playerInfoText[0], &str[1]);
+                    strcat(playerInfoText[0], (char *)&str[1]);
                 else
-                    strcat(playerInfoText[0], str);
+                    strcat(playerInfoText[0], (char *)str);
                 if (shown < numTypes - 2) {
                     strcat(playerInfoText[0], ", ");
                 } else if (shown == numTypes - 2) {
@@ -8190,13 +8190,13 @@ void SetupPlayerInfoText(void)
                     else
                         pstrcpy(str, tonsString);
                     PtoCstr(str);
-                    strcat(playerInfoText[0], str);
+                    strcat(playerInfoText[0], (char *)str);
                     strcat(playerInfoText[0], " ");
                     StrcatIndCString(playerInfoText[0], kGameStrList, kStrOf);
                     strcat(playerInfoText[0], " ");
                     /* BUG: a junk name of 64+ characters is left unterminated for the strcat below */
-                    strncpy(str, junkData[i].lcName, 64);
-                    strcat(playerInfoText[0], str);
+                    strncpy((char *)str, junkData[i].lcName, 64);
+                    strcat(playerInfoText[0], (char *)str);
                     if (shown < numTypes - 2)
                         strcat(playerInfoText[0], ", ");
                     if (shown == numTypes - 2) {
@@ -8227,14 +8227,14 @@ void SetupPlayerInfoText(void)
                 StrcatIndCString(playerInfoText[0], kGameStrList, kStrHolds);
                 strcat(playerInfoText[0], ":  ");
                 PtoCstr(str);
-                strcat(playerInfoText[0], str);
+                strcat(playerInfoText[0], (char *)str);
                 strcat(playerInfoText[0], " ");
                 if (freeSpace == 1)
                     pstrcpy(str, tonString);
                 else
                     pstrcpy(str, tonsString);
                 PtoCstr(str);
-                strcat(playerInfoText[0], str);
+                strcat(playerInfoText[0], (char *)str);
                 n = TotalMissionCargoSpace();
                 if (n < 0)
                     n = 0;
@@ -8242,14 +8242,14 @@ void SetupPlayerInfoText(void)
                     strcat(playerInfoText[0], "  (");
                     NumToString(n, str);
                     PtoCstr(str);
-                    strcat(playerInfoText[0], str);
+                    strcat(playerInfoText[0], (char *)str);
                     strcat(playerInfoText[0], " ");
                     if (n == 1)
                         pstrcpy(str, tonString);
                     else
                         pstrcpy(str, tonsString);
                     PtoCstr(str);
-                    strcat(playerInfoText[0], str);
+                    strcat(playerInfoText[0], (char *)str);
                     strcat(playerInfoText[0], " ");
                     StrcatIndCString(playerInfoText[0], kGameStrList, kStrFree);
                     strcat(playerInfoText[0], ")");
@@ -8264,14 +8264,14 @@ void SetupPlayerInfoText(void)
                 StrcatIndCString(playerInfoText[0], kGameStrList, kStrFreeSpace);
                 strcat(playerInfoText[0], ": ");
                 PtoCstr(str);
-                strcat(playerInfoText[0], str);
+                strcat(playerInfoText[0], (char *)str);
                 strcat(playerInfoText[0], " ");
                 if (freeSpace == 1)
                     pstrcpy(str, tonString);
                 else
                     pstrcpy(str, tonsString);
                 PtoCstr(str);
-                strcat(playerInfoText[0], str);
+                strcat(playerInfoText[0], (char *)str);
             }
         }
     }
@@ -8324,7 +8324,7 @@ void SetupPlayerInfoText(void)
                     } else if (outfitQty[i] > 3) {
                         NumToString(outfitQty[i], str);
                         PtoCstr(str);
-                        strcat(playerInfoText[1], str);
+                        strcat(playerInfoText[1], (char *)str);
                     }
                     strcat(playerInfoText[1], " ");
                     if (outfitQty[i] <= 3 && len > 0)
@@ -8335,7 +8335,7 @@ void SetupPlayerInfoText(void)
                     else
                         pstrcpy(str, lcOutfitName[i]);
                     PtoCstr(str);
-                    strcat(playerInfoText[1], str);
+                    strcat(playerInfoText[1], (char *)str);
                     shown++;
                     if (shown <= count - 1 && count > 2)
                         strcat(playerInfoText[1], ",");
@@ -8458,7 +8458,7 @@ void SetupPlayerInfoText(void)
                 } else if (type > 3) {
                     NumToString(type, str);
                     PtoCstr(str);
-                    strcat(playerInfoText[2], str);
+                    strcat(playerInfoText[2], (char *)str);
                 }
                 strcat(playerInfoText[2], " ");
                 if (type <= 3 && len > 0)
@@ -8469,7 +8469,7 @@ void SetupPlayerInfoText(void)
                 else
                     pstrcpy(str, lcOutfitName[i]);
                 PtoCstr(str);
-                strcat(playerInfoText[2], str);
+                strcat(playerInfoText[2], (char *)str);
                 shown++;
                 if (shown <= count - 1)
                     strcat(playerInfoText[2], ", ");
@@ -9050,7 +9050,7 @@ void FrameDefaultButton(void *dlg, short flag)
     Rect box;
 
     if (gSystemVersion < 0x1000) {
-        SetPort(GetDialogPort(dlg));
+        SetPort((GrafPtr)GetDialogPort(dlg));
         GetDialogItem(dlg, flag, &itemType, &item, &box);
         PenSize(3, 3);
         InsetRect(&box, -4, -4);
@@ -9175,7 +9175,7 @@ void StartLoopingMovie(const unsigned char *name, void *window, Rect *box)
             return;
     }
     resID = 0;
-    NewMovieFromFile(&loopingMovie, loopingMovieResRefNum, &resID, NULL, newMovieActive, NULL);
+    NewMovieFromFile((Movie *)&loopingMovie, loopingMovieResRefNum, &resID, NULL, newMovieActive, NULL);
     CloseMovieFile(loopingMovieResRefNum);
     if (err != noErr) {
         loopingMovie = NULL;
@@ -9450,13 +9450,13 @@ void PlayQTMovie(unsigned char *name, unsigned char doubled, unsigned char fade)
     }
     SetMovieBox(movie, &box);
     if (fade != 0)
-        r = *GetCWindowPortRect(gWind);
+        r = *GetCWindowPortRect((WindowRef)gWind);
     else
         r = box;
     win = NewCWindow(NULL, &r, "\p", false, plainDBox, NULL, true, -1);
     CenterWindow(win, gWind);
     ShowWindowNoFlash(win);
-    SetPort(GetWindowPort(win));
+    SetPort((GrafPtr)GetWindowPort(win));
     ForeColor(blackColor);
     PaintRect(GetWindowPortRect(win));
 #ifndef MAC1010
@@ -9728,18 +9728,18 @@ void InitAEVTHandlers(void)
     OSErr err;
     long response;
 
-    OAPPHandlerUPP = NewAEEventHandlerUPP(DummyAEVTHandler);
+    OAPPHandlerUPP = NewAEEventHandlerUPP((AEEventHandlerProcPtr)DummyAEVTHandler);
     err = AEInstallEventHandler(kCoreEventClass, kAEOpenApplication, OAPPHandlerUPP, 0, false);
     if (err == noErr) {
-        ODOCHandlerUPP = NewAEEventHandlerUPP(DummyAEVTHandler);
+        ODOCHandlerUPP = NewAEEventHandlerUPP((AEEventHandlerProcPtr)DummyAEVTHandler);
         err = AEInstallEventHandler(kCoreEventClass, kAEOpenDocuments, ODOCHandlerUPP, 0, false);
     }
     if (err == noErr) {
-        PDOCHandlerUPP = NewAEEventHandlerUPP(DummyAEVTHandler);
+        PDOCHandlerUPP = NewAEEventHandlerUPP((AEEventHandlerProcPtr)DummyAEVTHandler);
         err = AEInstallEventHandler(kCoreEventClass, kAEPrintDocuments, PDOCHandlerUPP, 0, false);
     }
     if (err == noErr) {
-        QUITHandlerUPP = NewAEEventHandlerUPP(QuitAEVTHandler);
+        QUITHandlerUPP = NewAEEventHandlerUPP((AEEventHandlerProcPtr)QuitAEVTHandler);
         err = AEInstallEventHandler(kCoreEventClass, kAEQuitApplication, QUITHandlerUPP, 0, false);
     }
     if (err == noErr) {
@@ -9748,7 +9748,7 @@ void InitAEVTHandlers(void)
 #else
         Gestalt(gestaltMenuMgrAttr, &response);
         if (response & gestaltMenuMgrAquaLayoutMask) {
-            PREFHandlerUPP = NewAEEventHandlerUPP(PrefAEVTHandler);
+            PREFHandlerUPP = NewAEEventHandlerUPP((AEEventHandlerProcPtr)PrefAEVTHandler);
             AEInstallEventHandler(kCoreEventClass, kAEShowPreferences, PREFHandlerUPP, 0, false);
         } else {
             PREFHandlerUPP = NULL;
@@ -9985,7 +9985,7 @@ void GetWindowDragBounds(Rect *bounds, Point where)
         origin.v = 0;
         origin.h = 0;
         LocalToGlobal(&origin);
-        portRect = *GetCWindowPortRect(gWind);
+        portRect = *GetCWindowPortRect((WindowRef)gWind);
         OffsetRect(&portRect, -portRect.left, -portRect.top);
         OffsetRect(&portRect, origin.h, origin.v);
         bounds->left = where.h - portRect.left;
@@ -10011,11 +10011,11 @@ void ForceWindowOnscreen(void)
 
     if (useLegacyRenderingPipeline) {
 #if defined(MAC1010) && !TARGET_API_MAC_CARBON
-        bounds = *GetCWindowPortRect(gWind);
+        bounds = *GetCWindowPortRect((WindowRef)gWind);
         OffsetRect(&bounds, -bounds.left, -bounds.top);
         pt.v = 0;
         pt.h = 0;
-        SetPort(gWind);
+        SetPort((GrafPtr)gWind);
         LocalToGlobal(&pt);
         OffsetRect(&bounds, pt.h, pt.v);
         screen = (*GetMainDevice())->gdRect;
@@ -10039,7 +10039,7 @@ void ForceWindowOnscreen(void)
             v -= bounds.bottom - screen.bottom;
 #ifdef MAC1010 /* 1.0.10 spelling */
         if (h != left || v != top)
-            MoveWindow(gWind, h, v, false);
+            MoveWindow((WindowRef)gWind, h, v, false);
 #else
         if (h != left)
             MoveWindow(gWind, h, v, false);
@@ -10112,24 +10112,24 @@ long DoQuantityDialog(long maxCount, short mode)
     FrameDefaultButton(qtyDialog, 1);
     SelectDialogItemText(qtyDialog, kQtyTextItem, 0, 0x7fff);
 
-    GetDialogItem(qtyDialog, kQtyPromptItem, &itemType, (void **)&item, &box);
+    GetDialogItem(qtyDialog, kQtyPromptItem, &itemType, &item, &box);
     if (mode == 1)
-        SetControlTitle((ControlPtr)item,buttonLabel[2]);
+        SetControlTitle((ControlRef)item,buttonLabel[2]);
     else if (mode == 2)
-        SetControlTitle((ControlPtr)item,buttonLabel[0x3a]);
+        SetControlTitle((ControlRef)item,buttonLabel[0x3a]);
     else
-        SetControlTitle((ControlPtr)item,buttonLabel[1]);
+        SetControlTitle((ControlRef)item,buttonLabel[1]);
     if (mode == 2)
         GetIndString(text, kGameStrList, 0x174);
     else
         GetIndString(text, kGameStrList, 0x173);
 
-    GetDialogItem(qtyDialog, kQtyMaxItem, &itemType, (void **)&item, &box);
-    SetDialogItemText((ControlPtr)item,text);
+    GetDialogItem(qtyDialog, kQtyMaxItem, &itemType, &item, &box);
+    SetDialogItemText((Handle)item,text);
 
-    GetDialogItem(qtyDialog, kQtyTextItem, &itemType, (void **)&item, &box);
+    GetDialogItem(qtyDialog, kQtyTextItem, &itemType, &item, &box);
     NumToString(maxCount, text);
-    SetDialogItemText((ControlPtr)item,text);
+    SetDialogItemText((Handle)item,text);
 
     done = 0;
     result = 0;
@@ -10138,8 +10138,8 @@ long DoQuantityDialog(long maxCount, short mode)
         if (itemHit == 4) {
             done = 1;
         } else if (itemHit == 1) {
-            GetDialogItem(qtyDialog, kQtyTextItem, &itemType, (void **)&item, &box);
-            GetDialogItemText((ControlPtr)item,text);
+            GetDialogItem(qtyDialog, kQtyTextItem, &itemType, &item, &box);
+            GetDialogItemText((Handle)item,text);
             if (text[0] != 0) {
                 allDigits = 1;
                 digits[0] = 0;
@@ -10164,17 +10164,17 @@ long DoQuantityDialog(long maxCount, short mode)
                             NumToString(0, text);
                         else
                             NumToString(maxCount, text);
-                        SetDialogItemText((ControlPtr)item,text);
+                        SetDialogItemText((Handle)item,text);
                         SelectDialogItemText(qtyDialog, kQtyTextItem, 0, 0x7fff);
                     }
                 } else {
                     SysBeep(0);
-                    SetDialogItemText((ControlPtr)item,digits);
+                    SetDialogItemText((Handle)item,digits);
                     SelectDialogItemText(qtyDialog, kQtyTextItem, 0, 0x7fff);
                 }
             } else {
                 SysBeep(0);
-                SetDialogItemText((ControlPtr)item,"\p");
+                SetDialogItemText((Handle)item,(const unsigned char *)"\p");
 #if !defined(MACBUILD) && !V111
                 SelectDialogItemText(qtyDialog, kQtyTextItem, 0, 0x7fff);
 #endif

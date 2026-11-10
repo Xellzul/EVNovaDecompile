@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* swcreategworldfrompictresource.c -- SWCreateGWorldFromPictResource (win 0x00478f30, donor SpriteWorldUtils.c line 356). Notes: Research/notes/swcreategworldfrompictresource.md */
 /* The fork's fourth parameter is a byte flag choosing between 0x004b9050 and 0x004b9060
    -- both print as `LoadPictResource(id, 0)' in a decompiler export and the exe bytes

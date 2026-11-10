@@ -268,5 +268,5 @@ done:
         HashDispose(t);
         t = 0;
     }
-    return (HashTable *)t;
+    return t;
 }

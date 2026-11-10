@@ -286,9 +286,9 @@ ULong StackGetAddressListOT(unsigned short kind, NetAddress *out, ULong max)
 
         loopback = kLoopback;
         hasSecondary = 0;
-        if (Gestalt(gestaltOpenTptVersions, &response) == 0 && response >= kOTVersion130 && (void *)OTInetGetSecondaryAddresses != 0)
+        if (Gestalt(gestaltOpenTptVersions, &response) == 0 && response >= kOTVersion130 && OTInetGetSecondaryAddresses != 0)
             hasSecondary = 1;
-        list = (void **)IndirectAllocate(0);
+        list = IndirectAllocate(0);
         if (list == 0)
             break;
         interface = -1;

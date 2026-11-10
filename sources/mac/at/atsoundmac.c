@@ -187,7 +187,7 @@ long ST_PlaySound(void *snd, unsigned short priority, unsigned short level)
 
     err = 0;
     result = 0;
-    req.handle = (void **)snd;
+    req.handle = snd;
     req.priority = priority;
     req.leftLevel = level;
     req.rightLevel = level;

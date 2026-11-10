@@ -542,8 +542,8 @@ static ULong _RT3_CalcLoginHash(void)
     name = 0;
     hash = 0;
     if (_PlatformIsThreaded()) {
-        getUid = (GetUidProc)_PlatformFindBundleSymbol(CFSTR("System.framework"), CFSTR("getuid"));
-        getPwUid = (GetPwUidProc)_PlatformFindBundleSymbol(CFSTR("System.framework"), CFSTR("getpwuid"));
+        getUid = _PlatformFindBundleSymbol(CFSTR("System.framework"), CFSTR("getuid"));
+        getPwUid = _PlatformFindBundleSymbol(CFSTR("System.framework"), CFSTR("getpwuid"));
         if (getUid != 0 && getPwUid != 0) {
             pw = getPwUid(getUid());
             if (pw != 0)

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* getgdevicedepth.c -- GetGDeviceDepth (win 0x0047b7c0, donor SWGameUtils.c line 372). Notes: Research/notes/getgdevicedepth.md */
 #include "macport.h"
 

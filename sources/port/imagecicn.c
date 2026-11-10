@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* imagecicn.c -- BurgerLib's ImageParseCicn (win 0x004d2bd0), the cicn decoder GetCIcon feeds a raw resource. Notes: Research/notes/imagecicn.md */
 #include "macport.h"
 /* Image_t is pinned by vendor/burgerlib/Burger_2004_period.h: ImagePtr +0, PalettePtr

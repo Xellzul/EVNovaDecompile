@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* loadbar.c -- the startup progress bar (win 0x004ab1b0..0x004ab3d0). Notes: Research/notes/loadbar.md */
 #include <stdlib.h>
 #include "macport.h"
@@ -32,10 +32,10 @@ void InitIntroProgressBar(void)
     progressMax = CountResources(kShipType);
     progressCount = 0;
 
-    midH = ((GetCWindowPortRect(gWind)->left
-                    + GetCWindowPortRect(gWind)->right) / 2);
-    midV = ((GetCWindowPortRect(gWind)->top
-                    + GetCWindowPortRect(gWind)->bottom) / 2);
+    midH = ((GetCWindowPortRect((WindowRef)gWind)->left
+                    + GetCWindowPortRect((WindowRef)gWind)->right) / 2);
+    midV = ((GetCWindowPortRect((WindowRef)gWind)->top
+                    + GetCWindowPortRect((WindowRef)gWind)->bottom) / 2);
 
 #ifdef MACBUILD
     progressRect = progressDefRect;
@@ -169,7 +169,7 @@ void DrawIntroProgressBar(void)
     SWSetPortToWindow(gSpriteWorld);
     ForeColor(blackColor);
     CopyBits(GWorldContainerBits(&loadPort),
-             GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+             GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
              &progressRect, &progressRect, 0, 0);
 #ifndef MACBUILD
     ScreenEndScene();
@@ -224,7 +224,7 @@ unsigned char ShowScrollingText(short strListID)
 
     SWSetPortToWindow(gSpriteWorld);
     (ForeColor)(kQDBlackColor);
-    screen = *GetCWindowPortRect(gWind);
+    screen = *GetCWindowPortRect((WindowRef)gWind);
     screen.top -= 20;
     PaintRect(&screen);
     PaintRect(&screen);
@@ -254,10 +254,10 @@ unsigned char ShowScrollingText(short strListID)
     if (maxWidth < 32)
         maxWidth = 32;
 
-    box.left = box.right = (GetCWindowPortRect(gWind)->left
-                            + GetCWindowPortRect(gWind)->right) / 2;
-    box.top = box.bottom = (GetCWindowPortRect(gWind)->top
-                            + GetCWindowPortRect(gWind)->bottom) / 2;
+    box.left = box.right = (GetCWindowPortRect((WindowRef)gWind)->left
+                            + GetCWindowPortRect((WindowRef)gWind)->right) / 2;
+    box.top = box.bottom = (GetCWindowPortRect((WindowRef)gWind)->top
+                            + GetCWindowPortRect((WindowRef)gWind)->bottom) / 2;
     InsetRect(&box, -8 - maxWidth / 2, -160);
     OffsetRect(&box, -10, 0);
     view = box;
@@ -301,7 +301,7 @@ unsigned char ShowScrollingText(short strListID)
         SWSetPortToWindow(gSpriteWorld);
         (ForeColor)(kQDBlackColor);
         CopyBits(GWorldContainerBits(&loadPort),
-                 GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)), &view, &box, 0, 0);
+                 GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)), &view, &box, 0, 0);
         SetGWorldContainer(&loadPort);
         (ForeColor)(kQDBlackColor);
         PaintRect(&view);

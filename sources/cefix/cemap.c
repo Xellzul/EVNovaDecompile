@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* cemap.c -- EV Nova CE: the galaxy map's border grid, recomputed over its visible part only
    (CEFIX only). Notes: Research/cefix-plan.md */
 #ifdef CEFIX

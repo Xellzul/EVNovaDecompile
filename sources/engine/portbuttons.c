@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* portbuttons.c -- the spaceport's button pair, TrackPlanetButtons and DrawPlanetButtons. Notes: Research/notes/portbuttons.md, Research/notes/trackplanetbuttons.md */
 /*
  * A disabled button draws with state -2, the selected one with the hilite
@@ -51,13 +51,13 @@ short TrackPlanetButtons(Point where)
     Boolean noShips;
 
     ForeColor(blackColor);
-    GetDialogItem(portDialog, 0xc, &itemType, (void **)&item, &box[kPortLeaveButton]);
-    GetDialogItem(portDialog, 4, &itemType, (void **)&item, &box[kPortRefuelButton]);
-    GetDialogItem(portDialog, 7, &itemType, (void **)&item, &box[kPortTradeButton]);
-    GetDialogItem(portDialog, 8, &itemType, (void **)&item, &box[kPortOutfitButton]);
-    GetDialogItem(portDialog, 9, &itemType, (void **)&item, &box[kPortShipyardButton]);
-    GetDialogItem(portDialog, 0xa, &itemType, (void **)&item, &box[kPortMissionsButton]);
-    GetDialogItem(portDialog, 0xb, &itemType, (void **)&item, &box[kPortBarButton]);
+    GetDialogItem(portDialog, 0xc, &itemType, &item, &box[kPortLeaveButton]);
+    GetDialogItem(portDialog, 4, &itemType, &item, &box[kPortRefuelButton]);
+    GetDialogItem(portDialog, 7, &itemType, &item, &box[kPortTradeButton]);
+    GetDialogItem(portDialog, 8, &itemType, &item, &box[kPortOutfitButton]);
+    GetDialogItem(portDialog, 9, &itemType, &item, &box[kPortShipyardButton]);
+    GetDialogItem(portDialog, 0xa, &itemType, &item, &box[kPortMissionsButton]);
+    GetDialogItem(portDialog, 0xb, &itemType, &item, &box[kPortBarButton]);
 
     noShips = (dockedPort->flags & kSpobUninhabited);
     hit = -1;
@@ -146,13 +146,13 @@ void DrawPlanetButtons(short selected)
     Boolean noShips;
 
     ForeColor(blackColor);
-    GetDialogItem(portDialog, 0xc, &itemType, (void **)&item, &box[0]);
-    GetDialogItem(portDialog, 4, &itemType, (void **)&item, &box[1]);
-    GetDialogItem(portDialog, 7, &itemType, (void **)&item, &box[2]);
-    GetDialogItem(portDialog, 8, &itemType, (void **)&item, &box[3]);
-    GetDialogItem(portDialog, 9, &itemType, (void **)&item, &box[4]);
-    GetDialogItem(portDialog, 0xa, &itemType, (void **)&item, &box[5]);
-    GetDialogItem(portDialog, 0xb, &itemType, (void **)&item, &box[6]);
+    GetDialogItem(portDialog, 0xc, &itemType, &item, &box[0]);
+    GetDialogItem(portDialog, 4, &itemType, &item, &box[1]);
+    GetDialogItem(portDialog, 7, &itemType, &item, &box[2]);
+    GetDialogItem(portDialog, 8, &itemType, &item, &box[3]);
+    GetDialogItem(portDialog, 9, &itemType, &item, &box[4]);
+    GetDialogItem(portDialog, 0xa, &itemType, &item, &box[5]);
+    GetDialogItem(portDialog, 0xb, &itemType, &item, &box[6]);
 
     noShips = (dockedPort->flags & kSpobUninhabited);
     live[0] = 1;

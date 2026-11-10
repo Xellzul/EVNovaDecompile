@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* missionbiteffects.c -- PropagateMissionBitEffects (win 0x00448090-0x0044864c). Notes: Research/notes/missionbiteffects.md */
 #include "space.h"
 #include "gametypes.h"
@@ -16,7 +16,7 @@
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00448090
 // MAC: _PropagateMissionBitEffects i386 0x00099676 ppc 0x000a52a0
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 void PropagateMissionBitEffects(void)
 {
     short i;

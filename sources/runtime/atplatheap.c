@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,intrinsics,space -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: AmbrosiaTools (the mac build imports it as AmbrosiaTools.framework) on its own compiler as one library: its platform, network, file and interface parts inline memset (rep stos in the exe), so ,intrinsics; -enum min -align 8 are the library's struct layout (jpeglib.h's structs in itjpeg.c, a double at 8); build 335 has no -proc; Research/runtime-compiler-ceiling.md
 /* atplatheap.c -- the platform layer's heap and memory primitives, and the handle manager: allocate, copy, release, resize, lock, append/insert/replace, pack and unpack, the heap check. Notes: Research/notes/atplatheap.md */
 
@@ -324,7 +324,7 @@ void **IndirectAllocate(ULong size)
     SystemCheckCallback();
     _AtomicCheckCritical();
     _ThreadCheckCritical();
-    return NewHandle(size);
+    return (void **)NewHandle(size);
 }
 #endif
 
@@ -348,7 +348,7 @@ void **IndirectAllocateTempMem(ULong size)
     _AtomicCheckCritical();
     _ThreadCheckCritical();
 #ifdef MAC1010
-    result = TempNewHandle(size, &e);
+    result = (void **)TempNewHandle(size, &e);
 #else
     result = IndirectAllocate(size);
 #endif
@@ -364,7 +364,7 @@ void **IndirectDuplicate(void **handle)
     SystemCheckCallback();
     _AtomicCheckCritical();
     _ThreadCheckCritical();
-    if (HandToHand(&handle) != 0)
+    if (HandToHand((Handle *)&handle) != 0)
         handle = 0;
     return handle;
 }
@@ -430,7 +430,7 @@ long IndirectDeallocate(void **p)
         gIndirectBusy(p);
 #ifdef MAC1010
     if (gIndirectBusy == 0 || gIndirectBusy(p) == 0)
-        DisposeHandle(p);
+        DisposeHandle((Handle)p);
 #else
     if (gIndirectBusy != 0) {
         if (gIndirectBusy(p) != 0)
@@ -455,7 +455,7 @@ long IndirectDeallocate(void **p)
 ULong IndirectGetSize(void **handle)
 #ifdef MAC1010
 {
-    return GetHandleSize(handle);
+    return GetHandleSize((Handle)handle);
 }
 #else
 {
@@ -487,7 +487,7 @@ long IndirectSetSize(void **handle, ULong size)
     if ((unsigned char)IndirectGetLock(handle) != 0) {
         err = kBadArgument;
     } else {
-        SetHandleSize(handle, size);
+        SetHandleSize((Handle)handle, size);
         if (MemError() != 0)
             err = kOutOfMemory;
     }
@@ -532,7 +532,7 @@ LockResult IndirectGetLock(void **handle)
     long state;
 
     result = 0;
-    state = HGetState(handle);
+    state = HGetState((Handle)handle);
     if (MemError() != 0)
         MemError();
     else
@@ -567,15 +567,15 @@ LockResult IndirectSetLock(void **handle, unsigned char lock)
     SystemCheckCallback();
     _AtomicCheckCritical();
     _ThreadCheckCritical();
-    state = HGetState(handle);
+    state = HGetState((Handle)handle);
     if (MemError() != 0)
         MemError();
     else
         old = (state >> 7) & 1;
     if (lock != 0)
-        HLock(handle);
+        HLock((Handle)handle);
     else
-        HUnlock(handle);
+        HUnlock((Handle)handle);
     return old;
 }
 #else

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 // COMPILE-WHY: `#pragma opt_repositioncode off' (pragma-only) around CopyBitsScale16Average alone, on
 // after CopyBitsScale8 and reset before CopyBitsScale24. Without it the block mover parks the
@@ -582,7 +582,7 @@ BlitProc copyBitsAdMaxProcs[5][5] = {        /* 0x00575c54 same-size adMax */
 /* CopyBits (mac _CopyBits). STATE: MATCH 100.0%, exe 400 / obj 400 instrs, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004b8530
-void CopyBits(PixMapPtr srcBits, BitMapPtr dstBits, const Rect *srcRect,
+void CopyBits(BitMapPtr srcBits, BitMapPtr dstBits, const Rect *srcRect,
               const Rect *dstRect, long mode, void *maskRgn)
 {
     Rect dst;
@@ -592,6 +592,7 @@ void CopyBits(PixMapPtr srcBits, BitMapPtr dstBits, const Rect *srcRect,
     long yStep;
     long xFrac;
     long yFrac;
+    PixMapPtr srcPix;
     PixMapPtr dstPix;
     BlitProc proc;
     long scaled;
@@ -610,6 +611,7 @@ void CopyBits(PixMapPtr srcBits, BitMapPtr dstBits, const Rect *srcRect,
     dst.bottom = dstRect->bottom;
     dst.right = dstRect->right;
 
+    srcPix = (PixMapPtr)srcBits;
     dstPix = (PixMapPtr)dstBits;
 
     scaled = 1;
@@ -620,7 +622,7 @@ void CopyBits(PixMapPtr srcBits, BitMapPtr dstBits, const Rect *srcRect,
     if ((char)scaled) {
         switch (mode) {
         case transfer_srcCopy:
-            proc = scaleBitsCopyProcs[srcBits->pixelSize / 8][dstPix->pixelSize / 8];
+            proc = scaleBitsCopyProcs[srcPix->pixelSize / 8][dstPix->pixelSize / 8];
             break;
         }
         xStep = srcWidth;
@@ -632,35 +634,35 @@ void CopyBits(PixMapPtr srcBits, BitMapPtr dstBits, const Rect *srcRect,
     } else {
         switch (mode) {
         case transfer_srcCopy:
-            proc = copyBitsProcs[srcBits->pixelSize / 8][dstPix->pixelSize / 8];
+            proc = copyBitsProcs[srcPix->pixelSize / 8][dstPix->pixelSize / 8];
             break;
         case transfer_srcOr:
             proc = BP CopyBitsOr8;
             break;
         case transfer_addOver:
-            proc = copyBitsAddOverProcs[srcBits->pixelSize / 8][dstPix->pixelSize / 8];
+            proc = copyBitsAddOverProcs[srcPix->pixelSize / 8][dstPix->pixelSize / 8];
             break;
         case transfer_adMax:
-            proc = copyBitsAdMaxProcs[srcBits->pixelSize / 8][dstPix->pixelSize / 8];
+            proc = copyBitsAdMaxProcs[srcPix->pixelSize / 8][dstPix->pixelSize / 8];
             break;
         }
     }
 
-    if (src.top < srcBits->bounds.top) {
-        dst.top += (((dstRect->bottom - dstRect->top) * (srcBits->bounds.top - src.top)) / (srcRect->bottom - srcRect->top));
-        src.top = srcBits->bounds.top;
+    if (src.top < srcPix->bounds.top) {
+        dst.top += (((dstRect->bottom - dstRect->top) * (srcPix->bounds.top - src.top)) / (srcRect->bottom - srcRect->top));
+        src.top = srcPix->bounds.top;
     }
-    if (src.left < srcBits->bounds.left) {
-        dst.left += (((dstRect->right - dstRect->left) * (srcBits->bounds.left - src.left)) / (srcRect->right - srcRect->left));
-        src.left = srcBits->bounds.left;
+    if (src.left < srcPix->bounds.left) {
+        dst.left += (((dstRect->right - dstRect->left) * (srcPix->bounds.left - src.left)) / (srcRect->right - srcRect->left));
+        src.left = srcPix->bounds.left;
     }
-    if (src.bottom > srcBits->bounds.bottom) {
-        dst.bottom -= (((dstRect->bottom - dstRect->top) * (src.bottom - srcBits->bounds.bottom)) / (srcRect->bottom - srcRect->top));
-        src.bottom = srcBits->bounds.bottom;
+    if (src.bottom > srcPix->bounds.bottom) {
+        dst.bottom -= (((dstRect->bottom - dstRect->top) * (src.bottom - srcPix->bounds.bottom)) / (srcRect->bottom - srcRect->top));
+        src.bottom = srcPix->bounds.bottom;
     }
-    if (src.right > srcBits->bounds.right) {
-        dst.right -= (((dstRect->right - dstRect->left) * (src.right - srcBits->bounds.right)) / (srcRect->right - srcRect->left));
-        src.right = srcBits->bounds.right;
+    if (src.right > srcPix->bounds.right) {
+        dst.right -= (((dstRect->right - dstRect->left) * (src.right - srcPix->bounds.right)) / (srcRect->right - srcRect->left));
+        src.right = srcPix->bounds.right;
     }
 
     if (dst.top < dstPix->bounds.top) {
@@ -685,12 +687,12 @@ void CopyBits(PixMapPtr srcBits, BitMapPtr dstBits, const Rect *srcRect,
 
     if (dst.left >= dst.right || dst.top >= dst.bottom)
         return;
-    if (src.left < srcBits->bounds.left || src.top < srcBits->bounds.top
-            || src.right > srcBits->bounds.right
-            || src.bottom > srcBits->bounds.bottom)
+    if (src.left < srcPix->bounds.left || src.top < srcPix->bounds.top
+            || src.right > srcPix->bounds.right
+            || src.bottom > srcPix->bounds.bottom)
         return;
 
-    proc(srcBits, dstPix, &src, &dst, xStep, yStep, xFrac, yFrac);
+    proc(srcPix, dstPix, &src, &dst, xStep, yStep, xFrac, yFrac);
 }
 
 /* GetPortBitMapForCopyBits (mac _GetPortBitMapForCopyBits). STATE: MATCH, byte-identical. OPEN: none */
@@ -1067,7 +1069,7 @@ void DrawPicHandle(PicHandle pic, Rect *dstRect)
     src.image.Height = pic->Height;
     src.image.RowBytes = pic->RowBytes;
     src.image.DataType = pic->DataType;
-    CopyBits((PixMapPtr)&src, GetPortBitMapForCopyBits(CurrentGrafPort),
+    CopyBits((BitMapPtr)&src, GetPortBitMapForCopyBits(CurrentGrafPort),
              &src.bounds, dstRect, 0, NULL);
 }
 
@@ -1272,7 +1274,7 @@ BlitMaskProc scaleMaskProcs[5][5] = {   /* 0x00575d1c */
 
 /* CopyMask. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b9410
-void CopyMask(PixMapPtr srcBits, PixMapPtr maskBits, PixMapPtr dstBits,
+void CopyMask(BitMapPtr srcBits, BitMapPtr maskBits, BitMapPtr dstBits,
               Rect *srcRect, Rect *maskRect, Rect *dstRect)
 {
     Rect mask;
@@ -1313,9 +1315,9 @@ void CopyMask(PixMapPtr srcBits, PixMapPtr maskBits, PixMapPtr dstBits,
     if (dstWidth == srcWidth
             && dstRect->bottom - dstRect->top
                    == srcRect->bottom - srcRect->top) {
-        proc = copyMaskProcs[srcBits->pixelSize / 8][dstBits->pixelSize / 8];
+        proc = copyMaskProcs[((PixMapPtr)srcBits)->pixelSize / 8][((PixMapPtr)dstBits)->pixelSize / 8];
     } else {
-        proc = scaleMaskProcs[srcBits->pixelSize / 8][dstBits->pixelSize / 8];
+        proc = scaleMaskProcs[((PixMapPtr)srcBits)->pixelSize / 8][((PixMapPtr)dstBits)->pixelSize / 8];
         xStep = srcWidth;
         xStep <<= 16;
         xStep /= dstWidth;
@@ -1324,38 +1326,38 @@ void CopyMask(PixMapPtr srcBits, PixMapPtr maskBits, PixMapPtr dstBits,
         yStep /= dstRect->bottom - dstRect->top;
     }
 
-    if (dst.left < dstBits->bounds.left) {
-        delta = dstBits->bounds.left - dst.left;
+    if (dst.left < ((PixMapPtr)dstBits)->bounds.left) {
+        delta = ((PixMapPtr)dstBits)->bounds.left - dst.left;
         src.left += delta;
         mask.left += delta;
         dst.left += delta;
         xFrac = xStep * delta;
     }
-    if (dst.top < dstBits->bounds.top) {
-        delta = dstBits->bounds.top - dst.top;
+    if (dst.top < ((PixMapPtr)dstBits)->bounds.top) {
+        delta = ((PixMapPtr)dstBits)->bounds.top - dst.top;
         src.top += delta;
         mask.top += delta;
         dst.top += delta;
         /* BUG: the top clip scales by xStep, not yStep */
         yFrac = xStep * delta;
     }
-    if (dst.right > dstBits->bounds.right)
-        dst.right -= dst.right - dstBits->bounds.right;
-    if (dst.bottom > dstBits->bounds.bottom)
-        dst.bottom -= dst.bottom - dstBits->bounds.bottom;
+    if (dst.right > ((PixMapPtr)dstBits)->bounds.right)
+        dst.right -= dst.right - ((PixMapPtr)dstBits)->bounds.right;
+    if (dst.bottom > ((PixMapPtr)dstBits)->bounds.bottom)
+        dst.bottom -= dst.bottom - ((PixMapPtr)dstBits)->bounds.bottom;
 
     if (dst.left >= dst.right || dst.top >= dst.bottom)
         return;
-    if (src.left < srcBits->bounds.left || src.top < srcBits->bounds.top
-            || src.right > srcBits->bounds.right
-            || src.bottom > srcBits->bounds.bottom)
+    if (src.left < ((PixMapPtr)srcBits)->bounds.left || src.top < ((PixMapPtr)srcBits)->bounds.top
+            || src.right > ((PixMapPtr)srcBits)->bounds.right
+            || src.bottom > ((PixMapPtr)srcBits)->bounds.bottom)
         return;
-    if (mask.left < maskBits->bounds.left || mask.top < maskBits->bounds.top
-            || mask.right > maskBits->bounds.right
-            || mask.bottom > maskBits->bounds.bottom)
+    if (mask.left < ((PixMapPtr)maskBits)->bounds.left || mask.top < ((PixMapPtr)maskBits)->bounds.top
+            || mask.right > ((PixMapPtr)maskBits)->bounds.right
+            || mask.bottom > ((PixMapPtr)maskBits)->bounds.bottom)
         return;
 
-    proc(srcBits, maskBits, dstBits, &src, &mask, &dst,
+    proc((PixMapPtr)srcBits, (PixMapPtr)maskBits, (PixMapPtr)dstBits, &src, &mask, &dst,
          xStep, yStep, xFrac, yFrac);
 }
 
@@ -2575,7 +2577,7 @@ void nv_BlitImageOr(Rect *dstRect, Image_t *icon)
     src.image.Height = icon->Height;
     src.image.RowBytes = icon->RowBytes;
     src.image.DataType = icon->DataType;
-    CopyBits((PixMapPtr)&src, GetPortBitMapForCopyBits(CurrentGrafPort),
+    CopyBits((BitMapPtr)&src, GetPortBitMapForCopyBits(CurrentGrafPort),
              &src.bounds, dstRect, 1, NULL);
 }
 
@@ -2711,7 +2713,7 @@ void FillCRect(Rect *dstRect, Image_t *pat)
             srcR.left = srcR.top = 0;
             srcR.right = dstR.right - dstR.left;
             srcR.bottom = dstR.bottom - dstR.top;
-            CopyBits((PixMapPtr)&src, GetPortBitMapForCopyBits(CurrentGrafPort),
+            CopyBits((BitMapPtr)&src, GetPortBitMapForCopyBits(CurrentGrafPort),
                      &srcR, &dstR, 0, NULL);
             x = x + pat->Width;
             col -= 1;

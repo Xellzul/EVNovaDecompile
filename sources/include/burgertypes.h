@@ -15,6 +15,9 @@
 #define AT_EXTERN
 #endif
 
+#ifndef MACBUILD
+typedef char **Handle;
+#endif
 typedef unsigned char Word8;
 typedef unsigned short Word16;
 typedef unsigned int Word;

@@ -573,7 +573,7 @@ long FT_FileClose(void *ref)
     long err;
     long result;
 
-    file = (FTFile *)ref;
+    file = ref;
     err = 0;
     if (_FT_FileUpdateRefCount(file, -1) == 0) {
         link = &gFT_FileList;
@@ -619,7 +619,7 @@ long FT_FileFlush(void *ref)
     FTFile *file;
     long err, e, result;
 
-    file = (FTFile *)ref;
+    file = ref;
     err = 0;
     if (file->parent != 0) {
         result = FT_FileFlush(file->parent);
@@ -642,7 +642,7 @@ long FT_FileRead(void *ref, ULong count, void *buffer)
     FTFile *file;
     long err, e;
 
-    file = (FTFile *)ref;
+    file = ref;
     err = 0;
     if (count > file->size - file->position)
         err = kFTErrPosition;

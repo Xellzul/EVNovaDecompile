@@ -182,7 +182,7 @@ long DatagramOpenMacTCP(void *ref, NetAddress *address)
     pb.udpStream = 0;
     pb.csParam.create.rcvBuff = s->buffer;
     pb.csParam.create.rcvBuffLen = kUdpBuffer;
-    pb.csParam.create.notifyProc = (UDPNotifyUPP)sDatagramNotify;
+    pb.csParam.create.notifyProc = sDatagramNotify;
     pb.csParam.create.localPort = port;
     pb.csParam.create.userDataPtr = (Ptr)s;
     err = PBControlSync((ParmBlkPtr)&pb);
@@ -296,7 +296,7 @@ void DatagramPostMacTCP(UDPMacTCP *s)
         s->wds[0].length = s->sending->length;
         s->wds[0].ptr = s->sending->data;
         s->wds[1].length = 0;
-        s->sendPb.ioCompletion = (UDPIOCompletionUPP)sDatagramDone;
+        s->sendPb.ioCompletion = sDatagramDone;
         s->sendPb.ioResult = 0;
         s->sendPb.ioCRefNum = gMacTCPRefNum;
         s->sendPb.csCode = UDPWrite;
@@ -330,7 +330,7 @@ void DatagramReceiveMacTCP(UDPMacTCP *s)
         s->receiving = packet;
         if (packet != 0) {
             AtomicMaskClear(&s->flags, kFlagPosted);
-            s->recvPb.ioCompletion = (UDPIOCompletionUPP)sDatagramDone;
+            s->recvPb.ioCompletion = sDatagramDone;
             s->recvPb.ioResult = 0;
             s->recvPb.ioCRefNum = gMacTCPRefNum;
             s->recvPb.csCode = UDPRead;

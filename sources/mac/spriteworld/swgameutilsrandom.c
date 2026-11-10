@@ -7,7 +7,7 @@
 void Randomize( void )
 {
 #if defined(MAC1010) && !TARGET_API_MAC_CARBON
-	GetDateTime( &qd.randSeed );
+	GetDateTime( (unsigned long *)&qd.randSeed );
 #else
 	unsigned long	secs;
 

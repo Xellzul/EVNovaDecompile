@@ -145,7 +145,7 @@ OSStatus ATSU_FontFromFamily(FMFontFamily family, FMFontStyle style, ATSUFontID 
 {
     OSStatus err;
 
-    if ((void *)FMGetFontFromFontFamilyInstance != 0)
+    if (FMGetFontFromFontFamilyInstance != 0)
         return FMGetFontFromFontFamilyInstance(family, style, font, fontStyle);
     if (fontStyle != 0)
         *fontStyle = 0;

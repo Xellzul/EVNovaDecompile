@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* blitpixierletranslucent.c -- BlitPixieRLETranslucent (win 0x00472900), the direct-colour partial-translucency RLE walker and the twin of BlitPixieRLETranslucent8. Notes: Research/notes/blitpixierletranslucent.md */
 #include "macport.h"
 #include "shipobj.h"

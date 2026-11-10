@@ -148,7 +148,7 @@ unsigned char MacEventToMouseEvent(const EventRecord *mac, ITInputEvent *event)
     is = 0;
     MemoryClear(event, kInputBytes);
     if (mac->what == mouseDown) {
-        *(long *)&pt = *(const long *)&mac->where;
+        * &pt = * &mac->where;
         event->where = Sys2DT_Point(&pt);
         event->screen = event->where;
         if (FindWindow(pt, &window) == inContent) {

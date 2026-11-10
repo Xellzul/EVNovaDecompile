@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* buttons.c -- the custom picture buttons every EV Nova dialog draws over its Dialog Manager items (win TU region 0x0049eef0..0x004a3aa0), ending in CrtInitHook6, the object's .CRT hook. Notes: Research/notes/buttons.md */
 #include "macport.h"
@@ -95,9 +95,9 @@ short TrackTradeButtons(Point where)
     Point mouse;
 
     ForeColor(blackColor);
-    GetDialogItem(tradeDialog, 1, &itemType, (void **)&item, &box[kTradeDoneButton]);
-    GetDialogItem(tradeDialog, 0xd, &itemType, (void **)&item, &box[kTradeBuyButton]);
-    GetDialogItem(tradeDialog, 0xe, &itemType, (void **)&item, &box[kTradeSellButton]);
+    GetDialogItem(tradeDialog, 1, &itemType, &item, &box[kTradeDoneButton]);
+    GetDialogItem(tradeDialog, 0xd, &itemType, &item, &box[kTradeBuyButton]);
+    GetDialogItem(tradeDialog, 0xe, &itemType, &item, &box[kTradeSellButton]);
     drawnButton = -1;
     if (PtInRectPoint(where, &box[0]) != 0)
         drawnButton = 0;
@@ -145,9 +145,9 @@ void DrawTradeButtons(short hilited)
     short i;
 
     ForeColor(blackColor);
-    GetDialogItem(tradeDialog, 1, &itemType, (void **)&item, &box[0]);
-    GetDialogItem(tradeDialog, 0xd, &itemType, (void **)&item, &box[1]);
-    GetDialogItem(tradeDialog, 0xe, &itemType, (void **)&item, &box[2]);
+    GetDialogItem(tradeDialog, 1, &itemType, &item, &box[0]);
+    GetDialogItem(tradeDialog, 0xd, &itemType, &item, &box[1]);
+    GetDialogItem(tradeDialog, 0xe, &itemType, &item, &box[2]);
     enabled[0] = 1;
     enabled[1] = CanBuyGoods(selTradeItem);
     enabled[2] = CanSellGoods(selTradeItem);
@@ -183,7 +183,7 @@ short TrackCapAssignButtons(Point where)
     Point mouse;
 
     for (i = 0; i <= 1; i++)
-        GetDialogItem(captureDialog, i + 1, &itemType, (void **)&item, (Rect *)&box + i);
+        GetDialogItem(captureDialog, i + 1, &itemType, &item, (Rect *)&box + i);
     drawnButton = -1;
     for (i = 0; i <= 1; i++) {
         if (PtInRectPoint(where, &box[i]) != 0) {
@@ -230,7 +230,7 @@ void DrawCapAssignButtons(short hilited)
     capAssignButtonTable[0] = 0x2e;
     capAssignButtonTable[1] = 0x2d;
     for (i = 0; i <= 1; i++) {
-        GetDialogItem(captureDialog, i + 1, &itemType, (void **)&item, &box);
+        GetDialogItem(captureDialog, i + 1, &itemType, &item, &box);
         if (i == hilited)
             DrawButton(GetDialogPort(captureDialog), &box,
                        buttonLabel[capAssignButtonTable[i]], 0, 1, 0);
@@ -260,12 +260,12 @@ short TrackCommDialogButtons(Point where)
             && (govtData[commShip->govt].flags2 & kGovtNotTalkative) != 0)
         altItem = 1;
     if (altItem != 0) {
-        GetDialogItem(commDialog, 1, &itemType, (void **)&item, &box[0]);
-        GetDialogItem(commDialog, 4, &itemType, (void **)&item, &box[1]);
-        GetDialogItem(commDialog, 2, &itemType, (void **)&item, &box[2]);
+        GetDialogItem(commDialog, 1, &itemType, &item, &box[0]);
+        GetDialogItem(commDialog, 4, &itemType, &item, &box[1]);
+        GetDialogItem(commDialog, 2, &itemType, &item, &box[2]);
     } else {
         for (i = 0; i <= 2; i++)
-            GetDialogItem(commDialog, i + 1, &itemType, (void **)&item, &box[i]);
+            GetDialogItem(commDialog, i + 1, &itemType, &item, &box[i]);
     }
     drawnButton = -1;
     for (i = 0; i <= 2; i++) {
@@ -319,12 +319,12 @@ void DrawCommDialogButtons(short hilited)
             && (govtData[commShip->govt].flags2 & kGovtNotTalkative) != 0)
         altItem = 1;
     if (altItem != 0) {
-        GetDialogItem(commDialog, 1, &itemType, (void **)&item, &box[0]);
-        GetDialogItem(commDialog, 4, &itemType, (void **)&item, &box[1]);
-        GetDialogItem(commDialog, 2, &itemType, (void **)&item, &box[2]);
+        GetDialogItem(commDialog, 1, &itemType, &item, &box[0]);
+        GetDialogItem(commDialog, 4, &itemType, &item, &box[1]);
+        GetDialogItem(commDialog, 2, &itemType, &item, &box[2]);
     } else {
         for (i = 0; i <= 2; i++)
-            GetDialogItem(commDialog, i + 1, &itemType, (void **)&item, &box[i]);
+            GetDialogItem(commDialog, i + 1, &itemType, &item, &box[i]);
     }
     hasMission = 0;
     if (commShip != 0 && commShip->specialMission != -1
@@ -378,7 +378,7 @@ short TrackPlanetCommDialogButtons(Point where)
     Point mouse;
 
     for (i = 0; i <= 2; i++)
-        GetDialogItem(commDialog, i + 1, &itemType, (void **)&item, (Rect *)&box + i);
+        GetDialogItem(commDialog, i + 1, &itemType, &item, (Rect *)&box + i);
     drawnButton = -1;
     for (i = 0; i <= 2; i++) {
         if (PtInRectPoint(where, &box[i]) != 0) {
@@ -425,7 +425,7 @@ void DrawPlanetCommDialogButtons(short hilited)
 
     ForeColor(blackColor);
     for (i = 0; i < 3; i++)
-        GetDialogItem(commDialog, i + 1, &itemType, (void **)&item, &box[i]);
+        GetDialogItem(commDialog, i + 1, &itemType, &item, &box[i]);
     enabled[0] = 1;
     enabled[1] = 1;
     planetCommButtonTable[0] = 0x14;
@@ -473,8 +473,8 @@ short TrackMissionButtons(Point where)
     Point mouse;
 
     ForeColor(blackColor);
-    GetDialogItem(missionDialog, 1, &itemType, (void **)&item, &box[kMissionAcceptButton]);
-    GetDialogItem(missionDialog, 7, &itemType, (void **)&item, &box[kMissionOkButton]);
+    GetDialogItem(missionDialog, 1, &itemType, &item, &box[kMissionAcceptButton]);
+    GetDialogItem(missionDialog, 7, &itemType, &item, &box[kMissionOkButton]);
     drawnButton = -1;
     if (PtInRectPoint(where, &box[0]) != 0 && selMissionListItem != -1)
         drawnButton = 0;
@@ -517,8 +517,8 @@ void DrawMissionButtons(short hilited)
     Boolean enabled[2];
 
     ForeColor(blackColor);
-    GetDialogItem(missionDialog, 1, &itemType, (void **)&item, &box[0]);
-    GetDialogItem(missionDialog, 7, &itemType, (void **)&item, &box[1]);
+    GetDialogItem(missionDialog, 1, &itemType, &item, &box[0]);
+    GetDialogItem(missionDialog, 7, &itemType, &item, &box[1]);
     missionButtonTable[0] = 0x19;
     missionButtonTable[1] = 0;
     if (selMissionListItem == -1)
@@ -554,8 +554,8 @@ short TrackMissionInfoButtons(Point where)
     Point mouse;
 
     ForeColor(blackColor);
-    GetDialogItem(missionInfoDialog, 1, &itemType, (void **)&item, &box[kMissionInfoDoneButton]);
-    GetDialogItem(missionInfoDialog, 5, &itemType, (void **)&item, &box[kMissionInfoAbortButton]);
+    GetDialogItem(missionInfoDialog, 1, &itemType, &item, &box[kMissionInfoDoneButton]);
+    GetDialogItem(missionInfoDialog, 5, &itemType, &item, &box[kMissionInfoAbortButton]);
     drawnButton = -1;
     if (PtInRectPoint(where, &box[0]) != 0)
         drawnButton = 0;
@@ -597,8 +597,8 @@ void DrawMissionInfoButtons(short hilited)
     Boolean enabled[2];
 
     ForeColor(blackColor);
-    GetDialogItem(missionInfoDialog, 1, &itemType, (void **)&item, &box[0]);
-    GetDialogItem(missionInfoDialog, 5, &itemType, (void **)&item, &box[1]);
+    GetDialogItem(missionInfoDialog, 1, &itemType, &item, &box[0]);
+    GetDialogItem(missionInfoDialog, 5, &itemType, &item, &box[1]);
     enabled[0] = 1;
     if (selMissionListItem == -1 || showAbortMissionButton == 0)
         enabled[1] = 0;
@@ -639,13 +639,13 @@ short TrackSingleMissionButtons(Point where)
     ForeColor(blackColor);
     if (canRefuseMission != 0) {
         for (i = 0; i <= 1; i++)
-            GetDialogItem(missionDialog, i + 1, &itemType, (void **)&item, &box[i]);
+            GetDialogItem(missionDialog, i + 1, &itemType, &item, &box[i]);
     } else {
-        GetDialogItem(missionDialog, 6, &itemType, (void **)&item, &box[0]);
+        GetDialogItem(missionDialog, 6, &itemType, &item, &box[0]);
         SetRect(&box[1], -1, -1, 0, 0);
     }
     for (i = 0; i <= 1; i++)
-        GetDialogItem(missionDialog, i + 9, &itemType, (void **)&item, &box[i + 2]);
+        GetDialogItem(missionDialog, i + 9, &itemType, &item, &box[i + 2]);
     drawnButton = -1;
     for (i = 0; i <= 3; i++) {
         if (PtInRectPoint(where, &box[i]) != 0)
@@ -703,11 +703,11 @@ void DrawSingleMissionButtons(short hilited)
         dimmed[2] = -2;
         dimmed[3] = -2;
     }
-    GetDialogItem(missionDialog, 9, &itemType, (void **)&item, &box[2]);
-    GetDialogItem(missionDialog, 10, &itemType, (void **)&item, &box[3]);
+    GetDialogItem(missionDialog, 9, &itemType, &item, &box[2]);
+    GetDialogItem(missionDialog, 10, &itemType, &item, &box[3]);
     if (canRefuseMission) {
         for (i = 0; i <= 1; i++)
-            GetDialogItem(missionDialog, i + 1, &itemType, (void **)&item, &box[i]);
+            GetDialogItem(missionDialog, i + 1, &itemType, &item, &box[i]);
         singleMissionButtonTable[0] = 0x31;
         singleMissionButtonTable[1] = 0x32;
         dimmed[0] = 0;
@@ -719,8 +719,8 @@ void DrawSingleMissionButtons(short hilited)
                 DrawButton(GetDialogPort(missionDialog), &box[i], missionButtonLabel[i], dimmed[i], 0, 0);
         }
     } else {
-        GetDialogItem(missionDialog, 6, &itemType, (void **)&item, &box[0]);
-        GetDialogItem(missionDialog, 6, &itemType, (void **)&item, &box[1]);
+        GetDialogItem(missionDialog, 6, &itemType, &item, &box[0]);
+        GetDialogItem(missionDialog, 6, &itemType, &item, &box[1]);
         singleMissionButtonTable[0] = 0x1a;
         dimmed[0] = 0;
         dimmed[1] = -2;
@@ -755,8 +755,8 @@ short TrackPlayerInfoButtons(short page, Point where)
 
     ForeColor(blackColor);
     for (i = 0; i <= 4; i++)
-        GetDialogItem(infoDialog, i + 1, &itemType, (void **)&item, (Rect *)&box + i);
-    GetDialogItem(infoDialog, 7, &itemType, (void **)&item, &box[5]);
+        GetDialogItem(infoDialog, i + 1, &itemType, &item, (Rect *)&box + i);
+    GetDialogItem(infoDialog, 7, &itemType, &item, &box[5]);
     drawnButton = -1;
     for (i = 0; i <= 5; i++) {
         if (PtInRectPoint(where, &box[i]) != 0) {
@@ -809,9 +809,9 @@ void DrawPlayerInfoButtons(short page, short hilited)
     playerInfoButtonTable[5] = 0x3c;
     for (i = 0; i <= 4; i++) {
         enabled[i] = 1;
-        GetDialogItem(infoDialog, i + 1, &itemType, (void **)&item, &box[i]);
+        GetDialogItem(infoDialog, i + 1, &itemType, &item, &box[i]);
     }
-    GetDialogItem(infoDialog, 7, &itemType, (void **)&item, &box[5]);
+    GetDialogItem(infoDialog, 7, &itemType, &item, &box[5]);
     if (page == 2)
         enabled[5] = PlayerHasJettisonableCargo();
     else
@@ -845,7 +845,7 @@ short TrackEscortButtons(Point where)
 
     ForeColor(blackColor);
     for (i = 0; i <= 3; i++)
-        GetDialogItem(commDialog, i + 1, &itemType, (void **)&item, (Rect *)&box + i);
+        GetDialogItem(commDialog, i + 1, &itemType, &item, (Rect *)&box + i);
     drawnButton = -1;
     for (i = 0; i <= 3; i++) {
         if (PtInRectPoint(where, &box[i]) != 0) {
@@ -892,7 +892,7 @@ void DrawEscortButtons(short hilited)
 
     ForeColor(blackColor);
     for (i = 0; i < 4; i++)
-        GetDialogItem(commDialog, i + 1, &itemType, (void **)&item, &box[i]);
+        GetDialogItem(commDialog, i + 1, &itemType, &item, &box[i]);
     enabled[0] = 1;
     enabled[1] = 1;
     if (canUpgradeEscort != 0)
@@ -946,8 +946,8 @@ short TrackHaggleButtons(Point where)
     Point mouse;
 
     ForeColor(blackColor);
-    GetDialogItem(haggleDialog, 1, &itemType, (void **)&item, &box[kHaggleYesButton]);
-    GetDialogItem(haggleDialog, 2, &itemType, (void **)&item, &box[kHaggleNoButton]);
+    GetDialogItem(haggleDialog, 1, &itemType, &item, &box[kHaggleYesButton]);
+    GetDialogItem(haggleDialog, 2, &itemType, &item, &box[kHaggleNoButton]);
     drawnButton = -1;
     if (PtInRectPoint(where, &box[0]) != 0)
         drawnButton = 0;
@@ -988,8 +988,8 @@ void DrawHaggleButtons(short hilited)
     Handle item;
 
     ForeColor(blackColor);
-    GetDialogItem(haggleDialog, 1, &itemType, (void **)&item, &box[0]);
-    GetDialogItem(haggleDialog, 2, &itemType, (void **)&item, &box[1]);
+    GetDialogItem(haggleDialog, 1, &itemType, &item, &box[0]);
+    GetDialogItem(haggleDialog, 2, &itemType, &item, &box[1]);
     if (haggleMode == 1) {
         haggleButtonTable[0] = 0x1b;
         haggleButtonTable[1] = 0x1c;
@@ -1096,9 +1096,9 @@ short TrackPlunderButtons(Point where)
 
     ForeColor(blackColor);
     for (over = 0, fill = box; over <= 3; over++, fill++)
-        GetDialogItem(plunderDialog, over + 1, &itemType, (void **)&item, fill);
+        GetDialogItem(plunderDialog, over + 1, &itemType, &item, fill);
     for (over = 4, fill = &box[4]; over <= 5; over++, fill++)
-        GetDialogItem(plunderDialog, over + 2, &itemType, (void **)&item, fill);
+        GetDialogItem(plunderDialog, over + 2, &itemType, &item, fill);
     enabled[0] = 1;
     if (salvageType != -1)
         enabled[1] = 1;
@@ -1178,9 +1178,9 @@ void DrawPlunderButtons(short hilited)
     short itemType;
 
     for (i = 0; i <= 3; i++)
-        GetDialogItem(plunderDialog, i + 1, &itemType, (void **)&item, &box[i]);
+        GetDialogItem(plunderDialog, i + 1, &itemType, &item, &box[i]);
     for (i = 4; i <= 5; i++)
-        GetDialogItem(plunderDialog, i + 2, &itemType, (void **)&item, &box[i]);
+        GetDialogItem(plunderDialog, i + 2, &itemType, &item, &box[i]);
     plunderButtonTable[0] = 0x22;
     plunderButtonTable[1] = 0x27;
     plunderButtonTable[2] = 0x28;
@@ -1240,7 +1240,7 @@ short TrackBarButtons(Point where)
 
     ForeColor(blackColor);
     for (i = 0; i <= 5; i++)
-        GetDialogItem(barDialog, i + 1, &itemType, (void **)&item, (Rect *)&box + i);
+        GetDialogItem(barDialog, i + 1, &itemType, &item, (Rect *)&box + i);
     drawnButton = -1;
     for (i = 0; i <= 5; i++) {
         if (PtInRectPoint(where, &box[i]) != 0)
@@ -1282,7 +1282,7 @@ void DrawBarButtons(short hilited)
     short itemType;
 
     for (i = 0; i <= 5; i++)
-        GetDialogItem(barDialog, i + 1, &itemType, (void **)&item, &box[i]);
+        GetDialogItem(barDialog, i + 1, &itemType, &item, &box[i]);
     enabled[0] = 1;
     enabled[1] = 1;
     enabled[2] = 1;
@@ -1336,7 +1336,7 @@ void DrawOkButton(Rect box, Boolean hilited)
 {
     CGrafPtr port;
 
-    GetPort(&port);
+    GetPort((GrafPtr *)&port);
     if (hilited)
         DrawButton(port, &box, buttonLabel[kOkButtonLabel], 0, 1, 0);
     else
@@ -1358,9 +1358,9 @@ short TrackTextButtons(Point where)
     Point mouse;
 
     ForeColor(blackColor);
-    GetDialogItem(textDialog, 1, &itemType, (void **)&item, &box[0]);
-    GetDialogItem(textDialog, 5, &itemType, (void **)&item, &box[1]);
-    GetDialogItem(textDialog, 6, &itemType, (void **)&item, &box[2]);
+    GetDialogItem(textDialog, 1, &itemType, &item, &box[0]);
+    GetDialogItem(textDialog, 5, &itemType, &item, &box[1]);
+    GetDialogItem(textDialog, 6, &itemType, &item, &box[2]);
     drawnButton = -1;
     for (i = 0; i < 3; i++) {
         if (PtInRectPoint(where, &box[i]) != 0)
@@ -1401,9 +1401,9 @@ void DrawTextButtons(short hilited)
     Handle item;
     short itemType;
 
-    GetDialogItem(textDialog, 1, &itemType, (void **)&item, &box[0]);
-    GetDialogItem(textDialog, 5, &itemType, (void **)&item, &box[1]);
-    GetDialogItem(textDialog, 6, &itemType, (void **)&item, &box[2]);
+    GetDialogItem(textDialog, 1, &itemType, &item, &box[0]);
+    GetDialogItem(textDialog, 5, &itemType, &item, &box[1]);
+    GetDialogItem(textDialog, 6, &itemType, &item, &box[2]);
     textButtonTable[0] = 0x1a;
     textButtonTable[1] = 0x12;
     textButtonTable[2] = 0x13;
@@ -1445,7 +1445,7 @@ void DrawRaceButtons(short hilited)
     short itemType;
 
     for (i = 0; i <= 1; i++) {
-        GetDialogItem(raceDialog, i + 1, &itemType, (void **)&item, &box[i]);
+        GetDialogItem(raceDialog, i + 1, &itemType, &item, &box[i]);
         dimmed[i] = 0;
     }
     if (raceWinner == -1 && raceCount == 0)
@@ -1454,7 +1454,7 @@ void DrawRaceButtons(short hilited)
         raceButtonTable[0] = 4;
     raceButtonTable[1] = 0x39;
     for (i = 0; i < 4; i++) {
-        GetDialogItem(raceDialog, i + 3, &itemType, (void **)&item, &box[i + 2]);
+        GetDialogItem(raceDialog, i + 3, &itemType, &item, &box[i + 2]);
         dimmed[i + 2] = -3;
         raceButtonTable[i + 2] = 0;
     }
@@ -1495,9 +1495,9 @@ short TrackRaceButtons(Point where)
     Point mouse;
 
     for (i = 0; i <= 1; i++)
-        GetDialogItem(raceDialog, i + 1, &itemType, (void **)&item, (Rect *)&box + i);
+        GetDialogItem(raceDialog, i + 1, &itemType, &item, (Rect *)&box + i);
     for (i = 0; i < 4; i++)
-        GetDialogItem(raceDialog, i + 3, &itemType, (void **)&item, &box[i + 2]);
+        GetDialogItem(raceDialog, i + 3, &itemType, &item, &box[i + 2]);
     drawnButton = -1;
     for (i = 0; i < 6; i++) {
         if (PtInRectPoint(where, &box[i]) != 0) {
@@ -1674,12 +1674,12 @@ void DrawButton(CGrafPtr port, Rect *bounds, unsigned char *label,
             mode = 1;
     } else
         mode = 2;
-    GetPort(&savedPort);
+    GetPort((GrafPtr *)&savedPort);
     if (state == kButtonPicture) {
         GWorldContainerSetPort(&loadPort);
         ForeColor(blackColor);
         DrawPicHandle(pic, bounds);
-        SetPort(savedPort);
+        SetPort((GrafPtr)savedPort);
         ForeColor(blackColor);
         CopyBits(GWorldContainerBits(&loadPort), GetPortBitMapForCopyBits(savedPort),
                  bounds, bounds, 0, GetPortVisRgn(port));
@@ -1762,7 +1762,7 @@ void DrawButton(CGrafPtr port, Rect *bounds, unsigned char *label,
                 DrawString(label);
             }
         }
-        SetPort(savedPort);
+        SetPort((GrafPtr)savedPort);
         ForeColor(blackColor);
         CopyBits(GWorldContainerBits(&buttonPort), GetPortBitMapForCopyBits(savedPort),
                  &box, bounds, 0, GetPortVisRgn(port));

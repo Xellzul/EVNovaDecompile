@@ -95,7 +95,7 @@ long IT_Open(void)
     }
     SetStdCProcs(&gIT_StdCProcs);
 #if TARGET_API_MAC_CARBON
-    if ((gIT_StdCProcs.rectProc = NewQDRectUPP(IT_FrameRectHook)) == 0) {
+    if ((gIT_StdCProcs.rectProc = NewQDRectUPP((QDRectProcPtr)IT_FrameRectHook)) == 0) {
         err = kNoMemory;
         goto done;
     }
@@ -105,11 +105,11 @@ long IT_Open(void)
     }
     if (!_PlatformIsThreaded())
 #else
-    if ((gIT_StdCProcs.rectProc = (QDRectUPP)NewRoutineDescriptor((ProcPtr)IT_FrameRectHook, kItemsProcInfo, kPowerPCISA)) == 0) {
+    if ((gIT_StdCProcs.rectProc = NewRoutineDescriptor((ProcPtr)IT_FrameRectHook, kItemsProcInfo, kPowerPCISA)) == 0) {
         err = kNoMemory;
         goto done;
     }
-    if ((gIT_StdCProcs.rgnProc = (QDRgnUPP)NewRoutineDescriptor((ProcPtr)IT_FrameRgnHook, kItemsProcInfo, kPowerPCISA)) == 0) {
+    if ((gIT_StdCProcs.rgnProc = NewRoutineDescriptor((ProcPtr)IT_FrameRgnHook, kItemsProcInfo, kPowerPCISA)) == 0) {
         err = kNoMemory;
         goto done;
     }
@@ -127,7 +127,7 @@ long IT_Open(void)
         if (GetProcessInformation(&psn, &info) != 0)
             info.processSignature = '????';
 #if !TARGET_API_MAC_CARBON
-        if ((void *)ICStart != 0)
+        if (ICStart != 0)
 #endif
         if (ICStart(&ic, info.processSignature) != 0)
             ic = 0;
@@ -406,7 +406,7 @@ long IT_HandleMacEvent(EventRecord *event, short edit, short *cursor)
         long e;
 
         InputReadMouseState(0, &state);
-        e = _IT_ViewHandleCursor(view, &state, cursor);
+        e = _IT_ViewHandleCursor(view, &state, (unsigned short *)cursor);
         if (e != 0)
             err = e;
     } else if (cursor != 0 && view == 0) {
@@ -489,7 +489,7 @@ long IT_OpenBrowser(const char *url)
 #if TARGET_API_MAC_CARBON
     IT_ViewCheckWindows(0);
 #endif
-    h = IndirectInitialize(url, StringGetLength(url));
+    h = IndirectInitialize(url, StringGetLength((const unsigned char *)url));
     if (h == 0) {
         err = kNoMemory;
         goto done;
@@ -541,7 +541,7 @@ long IT_OpenBrowser(const char *url)
         goto done;
     }
 #endif
-    if (ICLaunchURL(ic, 0, url, StringGetLength(url), &selStart, &selEnd) != 0)
+    if (ICLaunchURL(ic, 0, url, StringGetLength((const unsigned char *)url), &selStart, &selEnd) != 0)
         err = kBrowserFailed;
 done:
 #if TARGET_API_MAC_CARBON
@@ -583,7 +583,7 @@ long IT_ReadLanguages(char *languages)
     count = CFArrayGetCount(list);
     if ((unsigned long)count > kMaxLanguages)
         count = kMaxLanguages;
-    for (i = 0; (unsigned long)i < (unsigned long)count; i++) {
+    for (i = 0; i < (unsigned long)count; i++) {
         language = CFArrayGetValueAtIndex(list, i);
         if (language != 0) {
             if (!CFStringGetCString(language, name, sizeof(name), kCFStringEncodingASCII)) {
@@ -593,11 +593,11 @@ long IT_ReadLanguages(char *languages)
             region = StringFindDelimiter(name, "_");
             if (region != 0)
                 *region = 0;
-            if (StringGetLength(languages) + StringGetLength(",") + StringGetLength(name) >= sizeof(name))
+            if (StringGetLength((const unsigned char *)languages) + StringGetLength((const unsigned char *)",") + StringGetLength((const unsigned char *)name) >= sizeof(name))
                 goto done;
             if (languages[0] != 0)
-                StringAppendSafe(languages, ",", sizeof(name));
-            StringAppendSafe(languages, name, sizeof(name));
+                StringAppendSafe((unsigned char *)languages, (const unsigned char *)",", sizeof(name));
+            StringAppendSafe((unsigned char *)languages, (const unsigned char *)name, sizeof(name));
         }
     }
 done:

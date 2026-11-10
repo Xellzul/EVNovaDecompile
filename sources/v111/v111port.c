@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, as the engine TUs whose C++-linkage declarations this calls (macport.h); the file is not part of the exe
 /* v111port.c -- win stand-ins for the Carbon calls of the 1.1.1 hunks; built only by `tools/build.ps1 -V111`. Notes: Research/mac-1.1.1-plan.md P4 */
 #include "macport.h"

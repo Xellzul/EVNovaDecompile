@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* simplecrypt.c -- the resource XOR cipher (win 0x0046f960). Notes: Research/notes/simplecrypt.md */
 #include <stddef.h>
 
@@ -24,7 +24,7 @@ OSErr DoEncryption(Handle h, unsigned long key)
         err = nilHandleErr;
     else {
         curKey = key;
-        p = *h;
+        p = (unsigned long *)*h;
         size = GetHandleSize(h);
         count = size >> 2;
         rem = size - (count << 2);
@@ -35,7 +35,7 @@ OSErr DoEncryption(Handle h, unsigned long key)
             p++;
         }
         word = *p ^ curKey;
-        tail = p;
+        tail = (unsigned char *)p;
         while (rem--) {
             *tail = word >> 24;
             word <<= 8;

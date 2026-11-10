@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* fadeblack.c -- fade out and paint the window black (win 0x004ab180), and the two startup splash screens that ride the same GWorldContainer/CopyBits plumbing as gworld.c. Notes: Research/notes/fadeblack.md */
 #include "macport.h"
 #include "gameutil.h"
@@ -43,11 +43,11 @@ void ShowSplashScreen(void)
     UnsetGWorldContainer(&loadPort);
     SWSetPortToWindow(gSpriteWorld);
     ForeColor(blackColor);
-    PaintRect(GetCWindowPortRect(gWind));
+    PaintRect(GetCWindowPortRect((WindowRef)gWind));
     CopyBits(GWorldContainerBits(&loadPort),
-             GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+             GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
 #ifdef MAC1010
-             &loadPort.bounds, GetCWindowPortRect(gWind), 0, 0);
+             &loadPort.bounds, GetCWindowPortRect((WindowRef)gWind), 0, 0);
 #else
              rect, GetCWindowPortRect(gWind), 0, 0);
 #endif
@@ -63,7 +63,7 @@ void HideSplashScreen(void)
 {
     SWSetPortToWindow(gSpriteWorld);
     ForeColor(blackColor);
-    PaintRect(GetCWindowPortRect(gWind));
+    PaintRect(GetCWindowPortRect((WindowRef)gWind));
 }
 #endif
 
@@ -93,7 +93,7 @@ void ShowAmbrosiaLogo(void)
     UnsetGWorldContainer(&loadPort);
     SWSetPortToWindow(gSpriteWorld);
 #ifdef MACBUILD
-    box = *GetCWindowPortRect(gWind);
+    box = *GetCWindowPortRect((WindowRef)gWind);
 #else
     rect = GetCWindowPortRect(gWind);
     box.top = rect->top;
@@ -103,7 +103,7 @@ void ShowAmbrosiaLogo(void)
 #endif
     CenterPict(pic, &box);
     ForeColor(blackColor);
-    PaintRect(GetCWindowPortRect(gWind));
+    PaintRect(GetCWindowPortRect((WindowRef)gWind));
     DrawPicHandle(pic, &box);
     if (pic != 0)
         QDReleaseResource(pic);
@@ -123,5 +123,5 @@ void HideAmbrosiaLogo(void)
     FadeScreenOut();
 #endif
     ForeColor(blackColor);
-    PaintRect(GetCWindowPortRect(gWind));
+    PaintRect(GetCWindowPortRect((WindowRef)gWind));
 }

@@ -1,4 +1,4 @@
-# The import libraries of the Carbon fragment, in the order of its library table and each one's symbols in loader order: interface facts as text, transcribed from the 1.0.10 loader. lib NAME OPTIONS (0x40 weak, 0x80 init before) STUB, sym NAME CLASS. STUB is the stub library peflink1010 --image links against: INSTALL:FILE a held CodeWarrior install's StubLibraries file, fork:NAME a container of the user's copy, gen one generated from the sym rows where no held stub gives this order (pin section 13).
+# The import libraries of the Carbon fragment, in the order of its library table and each one's symbols in loader order: interface facts as text, transcribed from the 1.0.10 loader. lib NAME OPTIONS (0x40 weak, 0x80 init before) STUB, sym NAME CLASS. STUB is the stub library peflink1010 --image links against: INSTALL:FILE a held CodeWarrior install's or Apple SDK's StubLibraries file, fork:NAME a container of the user's copy, gen one generated from the sym rows where no held stub gives this order (pin section 13).
 lib	RezLib	0x80	fork:RezLib
 sym	NewScreenRef	0x2
 sym	GetCurrentSetting	0x2
@@ -9,7 +9,7 @@ sym	FadeToColor	0x2
 sym	FadeToGamma	0x2
 sym	DisposeScreenRef	0x2
 sym	SetColorDepth	0x2
-lib	CarbonLib	0x0	gen
+lib	CarbonLib	0x0	carbonlib-sdk-1.4:CarbonLib
 sym	GetPort	0x2
 sym	PenNormal	0x2
 sym	FSClose	0x2
@@ -490,7 +490,7 @@ sym	LAutoScroll	0x2
 sym	InsertMenu	0x2
 sym	WriteResource	0x2
 sym	TestControl	0x2
-lib	CarbonLib	0x40	gen
+lib	CarbonLib	0x40	carbonlib-sdk-1.4:CarbonLib
 sym	PMSessionEndPage	0x2
 sym	GetMainEventLoop	0x2
 sym	PMBegin	0x2
@@ -594,7 +594,7 @@ sym	PMPageSetupDialog	0x2
 sym	MPWaitOnSemaphore	0x2
 sym	UnlockPortBits	0x2
 sym	QDSetDirtyRegion	0x2
-lib	Apple;Carbon;Multimedia	0x40	cw-pro7:CarbonLib
+lib	Apple;Carbon;Multimedia	0x40	carbonlib-sdk-1.4:CarbonLib
 sym	GetMovieBox	0x2
 sym	OpenMovieFile	0x2
 sym	GetMovieDuration	0x2
@@ -619,7 +619,7 @@ sym	SetTimeBaseFlags	0x2
 sym	NewMovieFromFile	0x2
 sym	IsMovieDone	0x2
 sym	GetMovieTimeBase	0x2
-lib	Apple;Carbon;Networking	0x40	cw-pro7:CarbonLib
+lib	Apple;Carbon;Networking	0x40	carbonlib-sdk-1.4:CarbonLib
 sym	OTOpenAppleTalkServicesInContext	0x2
 sym	OTInitNBPAddress	0x2
 sym	OTSetAsynchronous	0x2

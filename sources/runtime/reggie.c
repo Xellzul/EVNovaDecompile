@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,intrinsics,space -enum min -align 8 -g -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: REGGIE, Ambrosia's Windows-only client over AmbrosiaTools' network layer, a library of its own: AmbrosiaTools' compiler and intrinsics line (it shares that layer's structs) with debug information on (-g), as libpng's line:the exe opens 13 REGGIE bodies with one zero copied into two dead locals (`xor eax,eax / mov ecx,eax / mov edi,eax'), a prologue found nowhere else in AmbrosiaTools and emitted by -g and by no spelling on the plain line; -g loses MATCHes in every AmbrosiaTools file and none in REGGIE; build 335 has no -proc; Research/runtime-compiler-ceiling.md
 /* reggie.c -- Ambrosia's REGGIE client (the version check against tracker.ambrosia.net, sessions, lookups, NAT probing and peer matching). Notes: Research/notes/reggie.md */
 #include <stdarg.h>
@@ -1049,7 +1049,7 @@ void _ReggiePrivateTickle(void)
         packet->data[packet->length] = 0;
         if (!AddressCompare(&packet->from, &gReggiePrivateAddress))
             goto next;
-        e = StringCompareSafe(packet->data, product, StringGetLength(product));
+        e = StringCompareSafe(packet->data, product, StringGetLength((const unsigned char *)product));
         if (e != 0)
             goto next;
 #else
@@ -1966,7 +1966,7 @@ long _ReggieRecv_RESULT_HELLO(SessionContext *ctx, SessionEntry *entry, struct H
         AddressIsEmpty(&ctx->probe) == 0) {
 #ifdef MAC1010 /* 1.0.10 spelling */
         text = "REGGIE PROBE=UDP SIMPLE";
-        packet = IndirectInitialize(text, StringGetLength(text));
+        packet = IndirectInitialize(text, StringGetLength((const unsigned char *)text));
 #else
         packet = "REGGIE PROBE=UDP SIMPLE";
         packet = IndirectInitialize(packet, StringGetLength(packet));

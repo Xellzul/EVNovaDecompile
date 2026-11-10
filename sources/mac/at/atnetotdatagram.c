@@ -256,7 +256,7 @@ long DatagramControlOT(void *ref, void *out, ULong option, ULong value)
                     break;
                 }
                 AtomicMaskApply(&s->flags, kFlagUnique);
-                StringAppendSafe(text, name + 1, kNameBytes);
+                StringAppendSafe((unsigned char *)text, (const unsigned char *)(name + 1), kNameBytes);
                 StringCopySafe(s->name, text, kNameBytes);
             } else {
                 AtomicMaskClear(&s->flags, kFlagUnique);
@@ -460,7 +460,7 @@ long DatagramOpenOT(void *ref, NetAddress *address)
     }
     AtomicMaskApply(&s->flags, 0);
     s->local.kind = reply.addr.len;
-    if ((char)s->name[0] != 0 && s->stack == kStackAppleTalk) {
+    if (s->name[0] != 0 && s->stack == kStackAppleTalk) {
         if ((s->mapper = OTOpenMapper(OTCreateConfiguration("nbp"), 0, &status)) == 0) {
             err = kOTOpenFailed;
             goto done;
@@ -476,7 +476,7 @@ long DatagramOpenOT(void *ref, NetAddress *address)
         for (tries = 0; tries < 4; tries++) {
             MakeUniqueNBPNameOT(s->name, (char *)unique, tries);
             registerRequest.name.maxlen = sizeof(nbp);
-            registerRequest.name.len = OTInitNBPAddress(nbp, (char *)unique);
+            registerRequest.name.len = OTInitNBPAddress((NBPAddress *)nbp, (char *)unique);
             registerRequest.name.buf = nbp;
             err = OTRegisterName(s->mapper, &registerRequest, &registerReply);
             if (err != kOTNameTaken)
@@ -528,7 +528,7 @@ long DatagramOpenOT(void *ref, NetAddress *address)
         err = kNetErrConfig;
         goto done;
     }
-    if ((void *)OTUseSyncIdleEvents != 0 && OTUseSyncIdleEvents(s->endpoint, true) != 0)
+    if (OTUseSyncIdleEvents != 0 && OTUseSyncIdleEvents(s->endpoint, true) != 0)
         err = kNetErrConfig;
 done:
     if (err != 0)

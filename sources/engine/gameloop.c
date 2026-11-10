@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* gameloop.c -- the main-loop object (tu-map O3, win 0x00428340..0x0043b170). Notes: Research/notes/gameloop.md */
 #include <string.h>
 #include <math.h>
@@ -984,7 +984,7 @@ void HandleShipDisplay(ShipObj *ship)
                                         & kMissionHidden) == 0) {
                                 PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
                                 GetIndString(msg, kGameStrList, 0x11c);
-                                DisplayComm(msg, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                                DisplayComm((PStrChar *)msg, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
                                 QuickMissionFailure(ship->specialMission);
                             }
                         }
@@ -1955,7 +1955,7 @@ void HandleComm(void)
             PaintRect(&commRect);
             ForeColor(blackColor);
             SWSetPortToWindow(gSpriteWorld);
-            CopyBits((PixMapPtr)GetPortPixMapBits(
+            CopyBits(GetPortPixMapBits(
                          gSpriteWorld->backFrameP->framePort),
                      GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
                      &commRect, &commRect, 0, NULL);
@@ -3381,7 +3381,7 @@ void HandleShip(ShipObj *ship)
                 if (ship->formerEscort == 0) {
                     ship->aiType = 5;
                     GetIndString(msg, kGameStrList, 0x80);
-                    DisplayComm(msg, 0xfa, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)msg, 0xfa, 0, 0xc, &rgbWhite, 0, 0);
                     PlaySound(beepSnd[4], 8, gSoundVolume, gSoundVolume);
                 } else {
                     if (ship->formerEscort == 1)
@@ -3390,7 +3390,7 @@ void HandleShip(ShipObj *ship)
                         ship->hired = 0;
                     ship->aiType = 6;
                     GetIndString(msg, kGameStrList, 0x7f);
-                    DisplayComm(msg, 0xfa, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)msg, 0xfa, 0, 0xc, &rgbWhite, 0, 0);
                     PlaySound(beepSnd[4], 8, gSoundVolume, gSoundVolume);
                 }
             }
@@ -5152,7 +5152,7 @@ void HandleMouse(void)
     SWSetPortToWindow(gSpriteWorld);
 #ifdef MACBUILD
     GetMouse(&mouse);
-    port = GetCWindowPortRect(gWind);
+    port = GetCWindowPortRect((WindowRef)gWind);
     box = *port;
 #else
     GetGlobalMouse(&mouse);
@@ -5454,7 +5454,7 @@ void FloaterEraseCallback(void *a)
     if (commCount >= 0) {
         if (inBackground != 0 || gSpriteWorld->fastBlit == 0 ||
             AreWeFrontProcess() == 0) {
-            CopyBits((PixMapPtr)GetPortPixMapBits(
+            CopyBits(GetPortPixMapBits(
                          gSpriteWorld->backFrameP->framePort),
                      GetPortPixMapBits(
                          gSpriteWorld->workFrameP->framePort),
@@ -5467,7 +5467,7 @@ void FloaterEraseCallback(void *a)
     if (showFloatingMap >= 0) {
         if (inBackground != 0 || gSpriteWorld->fastBlit == 0 ||
             AreWeFrontProcess() == 0) {
-            CopyBits((PixMapPtr)GetPortPixMapBits(
+            CopyBits(GetPortPixMapBits(
                          gSpriteWorld->backFrameP->framePort),
                      GetPortPixMapBits(
                          gSpriteWorld->workFrameP->framePort),
@@ -5480,7 +5480,7 @@ void FloaterEraseCallback(void *a)
     if (escortMenuOnscreen >= 0) {
         if (inBackground != 0 || gSpriteWorld->fastBlit == 0 ||
             AreWeFrontProcess() == 0) {
-            CopyBits((PixMapPtr)GetPortPixMapBits(
+            CopyBits(GetPortPixMapBits(
                          gSpriteWorld->backFrameP->framePort),
                      GetPortPixMapBits(
                          gSpriteWorld->workFrameP->framePort),
@@ -5623,7 +5623,7 @@ int PostAnimateHandler(void)
         if (commCount >= 0) {
             if (inBackground != 0 || gSpriteWorld->fastBlit == 0 ||
                 AreWeFrontProcess() == 0) {
-                CopyBits((PixMapPtr)GetPortPixMapBits(
+                CopyBits(GetPortPixMapBits(
                              gSpriteWorld->workFrameP->framePort),
                          GetPortPixMapBits(
                              *(CGrafPtr *)gSpriteWorld->windowFrameP),
@@ -5636,7 +5636,7 @@ int PostAnimateHandler(void)
         if (showFloatingMap >= 0) {
             if (inBackground != 0 || gSpriteWorld->fastBlit == 0 ||
                 AreWeFrontProcess() == 0) {
-                CopyBits((PixMapPtr)GetPortPixMapBits(
+                CopyBits(GetPortPixMapBits(
                              gSpriteWorld->workFrameP->framePort),
                          GetPortPixMapBits(
                              *(CGrafPtr *)gSpriteWorld->windowFrameP),
@@ -5651,7 +5651,7 @@ int PostAnimateHandler(void)
         if (escortMenuOnscreen >= 0) {
             if (inBackground != 0 || gSpriteWorld->fastBlit == 0 ||
                 AreWeFrontProcess() == 0) {
-                CopyBits((PixMapPtr)GetPortPixMapBits(
+                CopyBits(GetPortPixMapBits(
                              gSpriteWorld->workFrameP->framePort),
                          GetPortPixMapBits(
                              *(CGrafPtr *)gSpriteWorld->windowFrameP),
@@ -5675,7 +5675,7 @@ int PostAnimateHandler(void)
         while ((short)i++ < (doubleTime ? 2 : 1))
             SetParticleScrollOffset((short)(shipData->pos.x - screenCenter.h),
                          (short)(shipData->pos.y - screenCenter.v));
-        CopyBits((PixMapPtr)GetPortPixMapBits(
+        CopyBits(GetPortPixMapBits(
                      gSpriteWorld->workFrameP->framePort),
                  GetPortPixMapBits(
                      *(CGrafPtr *)gSpriteWorld->windowFrameP),
@@ -5690,7 +5690,7 @@ int PostAnimateHandler(void)
                          &commRect, &commRect);
         } else {
             SWSetPortToWindow(gSpriteWorld);
-            CopyBits((PixMapPtr)GetPortBitMapForCopyBits(
+            CopyBits(GetPortBitMapForCopyBits(
                          gSpriteWorld->workFrameP->framePort),
                      GetPortBitMapForCopyBits(
                          *(CGrafPtr *)gSpriteWorld->windowFrameP),
@@ -5703,7 +5703,7 @@ int PostAnimateHandler(void)
             BlitPixieRectDrawProc(gSpriteWorld->workFrameP, gSpriteWorld->windowFrameP,
                          &floatingMapRect, &floatingMapRect);
         } else {
-            CopyBits((PixMapPtr)GetPortBitMapForCopyBits(
+            CopyBits(GetPortBitMapForCopyBits(
                          gSpriteWorld->workFrameP->framePort),
                      GetPortBitMapForCopyBits(
                          *(CGrafPtr *)gSpriteWorld->windowFrameP),
@@ -5718,7 +5718,7 @@ int PostAnimateHandler(void)
             BlitPixieRectDrawProc(gSpriteWorld->workFrameP, gSpriteWorld->windowFrameP,
                          &escortMenuRect, &escortMenuRect);
         } else {
-            CopyBits((PixMapPtr)GetPortBitMapForCopyBits(
+            CopyBits(GetPortBitMapForCopyBits(
                          gSpriteWorld->workFrameP->framePort),
                      GetPortBitMapForCopyBits(
                          *(CGrafPtr *)gSpriteWorld->windowFrameP),
@@ -5785,7 +5785,7 @@ void HandleReinforcements(void)
                     StrcatIndCString((char *)msg, kGameStrList, kReinforceIndexB);
                     CtoPstr((char *)msg);
                     PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
-                    DisplayComm(msg, kCommWidth, 0, kCommHold,
+                    DisplayComm((PStrChar *)msg, kCommWidth, 0, kCommHold,
                                 &rgbWhite, 0, 0);
                 }
                 systemData[sys].reinforceDaysLeft = systemData[sys].reinforceInterval;

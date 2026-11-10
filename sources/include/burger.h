@@ -2,7 +2,9 @@
 #ifndef BURGER_H
 #define BURGER_H
 
+#ifdef MACBUILD
 typedef char **Handle;
+#endif
 #include "burgertypes.h"
 
 /* C++ (BurgerLib's own build) takes stdio from MSL and its FILE by name. */
@@ -819,11 +821,13 @@ extern struct ITRect *DT_RectIntersect(struct ITRect *r, const struct ITRect *a,
                                    const struct ITRect *b);
 extern void DT_RegionDispose(void *region);
 #ifdef MAC1010
+#define DTSysRect struct Rect      /* what CopySys2DT_Rect reads */
 extern struct RGBColor DT_2SysColor(const struct ITColor *color);
 extern struct ITPoint *CopySys2DT_Point(struct ITPoint *dst, const struct Point *src);
 extern struct ITRect *CopySys2DT_Rect(struct ITRect *dst, const struct Rect *src);
 extern struct ITColor *CopySys2DT_Color(struct ITColor *color, const struct RGBColor *ref);
 #else
+#define DTSysRect struct ITRect
 extern ULong DT_2SysColor(const struct ITColor *color);
 extern struct ITPoint *CopySys2DT_Point(struct ITPoint *dst, const struct ITPoint *src);
 extern struct ITRect *CopySys2DT_Rect(struct ITRect *dst, const struct ITRect *src);

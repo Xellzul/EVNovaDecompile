@@ -13,11 +13,11 @@
         if (!settings.windowed) {
             HideTheMenuBar();
             mBarHidden = 1;
-            ShowWindow(gWind);
+            ShowWindow((WindowRef)gWind);
         }
-        SelectWindow(gWind);
+        SelectWindow((WindowRef)gWind);
         SWSetPortToWindow(gSpriteWorld);
-        InvalWindowPortRect(gWind);
+        InvalWindowPortRect((WindowRef)gWind);
         MainScreenAnimDraw();
         if (useLegacyRenderingPipeline)
             MainScreenUpdate(1);
@@ -35,6 +35,6 @@
         }
     } else if (!settings.windowed) {
         ShowTheMenuBar();
-        HideWindow(gWind);
+        HideWindow((WindowRef)gWind);
     }
 }

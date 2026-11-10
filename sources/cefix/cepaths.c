@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* cepaths.c -- EV Nova CE: data, plug-in, movie and music paths relative to the current
    directory, and unencrypted pilot files (CEFIX only). Notes: Research/cefix-plan.md */
 #ifdef CEFIX

@@ -31,7 +31,7 @@ long _FT_PathGoTo(FolderSpec **spec, long folder)
     err = 0;
     vRefNum = 0;
     dirID = 0;
-    IndirectGetSize(spec);
+    IndirectGetSize((void **)spec);
     switch (folder) {
     case kFolderDocuments:
         e = FindFolder(kOnSystemDisk, kDocumentsFolderType, kDontCreateFolder, &vRefNum, &dirID);
@@ -124,7 +124,7 @@ long _FT_PathGoToVolume(FolderSpec **spec, ULong index)
     Str255 name;
 
     err = 0;
-    IndirectGetSize(spec);
+    IndirectGetSize((void **)spec);
     MemoryClear(&pb, sizeof(HParamBlockRec));
     pb.volumeParam.ioVolIndex = index;
     pb.volumeParam.ioNamePtr = name;
@@ -171,7 +171,7 @@ long _FT_PathGoToVolumeName(FolderSpec **spec, const unsigned char *volume)
     Str255 name;
 
     err = 0;
-    IndirectGetSize(spec);
+    IndirectGetSize((void **)spec);
     BlockMoveData(volume, name, volume[0] + 1);
     FTPStrCat(name, kColon);
     MemoryClear(&pb, sizeof(HParamBlockRec));
@@ -197,8 +197,8 @@ long _FT_PathGoToParent(FolderSpec **spec, unsigned char *leaf)
     Str255 name;
 
     err = 0;
-    IndirectGetSize(spec);
-    IndirectGetSize(spec);
+    IndirectGetSize((void **)spec);
+    IndirectGetSize((void **)spec);
     if (leaf != 0)
         BlockMoveData((*spec)->spec.name, leaf, (*spec)->spec.name[0] + 1);
     if ((*spec)->spec.parID == fsRtParID) {
@@ -232,8 +232,8 @@ long _FT_PathGoToChild(FolderSpec **spec, const unsigned char *child, unsigned c
     Str255 name;
 
     err = 0;
-    IndirectGetSize(spec);
-    IndirectGetSize(spec);
+    IndirectGetSize((void **)spec);
+    IndirectGetSize((void **)spec);
     MemoryClear(&pb, sizeof(CInfoPBRec));
     pb.dirInfo.ioVRefNum = (*spec)->spec.vRefNum;
     pb.dirInfo.ioDrDirID = (*spec)->spec.parID;
@@ -273,7 +273,7 @@ long _FT_IsPathAFile(FolderSpec **spec)
     Str255 name;
 
     isFile = 0;
-    IndirectGetSize(spec);
+    IndirectGetSize((void **)spec);
     MemoryClear(&pb, sizeof(CInfoPBRec));
     pb.dirInfo.ioVRefNum = (*spec)->spec.vRefNum;
     pb.dirInfo.ioDrDirID = (*spec)->spec.parID;
@@ -296,7 +296,7 @@ long _FT_PathValidate(FolderSpec **spec)
     Str255 name;
 
     err = 0;
-    IndirectGetSize(spec);
+    IndirectGetSize((void **)spec);
     MemoryClear(&pb, sizeof(HParamBlockRec));
     if ((*spec)->spec.vRefNum != 0) {
         pb.volumeParam.ioVRefNum = (*spec)->spec.vRefNum;
@@ -338,7 +338,7 @@ long _FT_PathGoToID(FolderSpec **spec, short vRefNum, long dirID)
     HParamBlockRec vol;
 
     err = 0;
-    IndirectGetSize(spec);
+    IndirectGetSize((void **)spec);
     MemoryClear(&vol, sizeof(HParamBlockRec));
     vol.volumeParam.ioVRefNum = vRefNum;
     vol.volumeParam.ioNamePtr = name;
@@ -385,7 +385,7 @@ long _FT_FileCreate(FolderSpec **spec, FTFileInfo *info)
     err = 0;
     created = 0;
     refNum = 0;
-    IndirectGetSize(spec);
+    IndirectGetSize((void **)spec);
     MemoryClear(&pb, sizeof(CInfoPBRec));
     pb.dirInfo.ioVRefNum = (*spec)->spec.vRefNum;
     pb.dirInfo.ioDrDirID = (*spec)->spec.parID;
@@ -480,7 +480,7 @@ long _FT_FileDelete(FolderSpec **spec)
     FSSpec fs;
 
     err = 0;
-    IndirectGetSize(spec);
+    IndirectGetSize((void **)spec);
     fs = (*spec)->spec;
     e = FSpDelete(&fs);
     if (e != 0)
@@ -525,7 +525,7 @@ long _FT_FileGetFlags(FolderSpec **spec, FTFileInfo *info, unsigned char checkAr
     CInfoPBRec pb;
     HParamBlockRec vol;
 
-    IndirectGetSize(spec);
+    IndirectGetSize((void **)spec);
     if (info != 0)
         MemoryClear(info, sizeof(FTFileInfo));
     MemoryClear(&vol, sizeof(HParamBlockRec));
@@ -600,7 +600,7 @@ long _FT_FileSetFlags(FolderSpec **spec, FTFileInfo *info)
     Str255 name;
 
     err = 0;
-    IndirectGetSize(spec);
+    IndirectGetSize((void **)spec);
     MemoryClear(&pb, sizeof(CInfoPBRec));
     pb.dirInfo.ioVRefNum = (*spec)->spec.vRefNum;
     pb.dirInfo.ioDrDirID = (*spec)->spec.parID;
@@ -675,8 +675,8 @@ long _FT_FileDirEntry(FolderSpec **spec, ULong index, FTFileInfo *info, FTDirEnt
     BlockMoveData((*spec)->spec.name, name, (*spec)->spec.name[0] + 1);
     pb.dirInfo.ioNamePtr = name;
     pb.dirInfo.ioFDirIndex = 0;
-    if ((short)(e = PBGetCatInfoSync(&pb)) != 0) {
-        err = _FT_RemapError((short)e);
+    if ((e = PBGetCatInfoSync(&pb)) != 0) {
+        err = _FT_RemapError(e);
         goto done;
     }
     pb.dirInfo.ioNamePtr = name;
@@ -689,8 +689,8 @@ long _FT_FileDirEntry(FolderSpec **spec, ULong index, FTFileInfo *info, FTDirEnt
         if (index != 0) {
             pb.dirInfo.ioNamePtr = name;
             pb.dirInfo.ioFDirIndex = index;
-            if ((short)(e = PBGetCatInfoSync(&pb)) != 0) {
-                err = _FT_RemapError((short)e);
+            if ((e = PBGetCatInfoSync(&pb)) != 0) {
+                err = _FT_RemapError(e);
                 goto done;
             }
         }
@@ -734,7 +734,7 @@ FTFile *_FT_IsFileOpen(FolderSpec **spec)
     Str255 name;
 
     link = 0;
-    IndirectGetSize(spec);
+    IndirectGetSize((void **)spec);
     MemoryClear(&pb, sizeof(CInfoPBRec));
     pb.dirInfo.ioVRefNum = (*spec)->spec.vRefNum;
     pb.dirInfo.ioDrDirID = (*spec)->spec.parID;
@@ -767,7 +767,7 @@ long _FT_FileOpen(FolderSpec **spec, unsigned char write, FTFile *file)
     FSSpec fs;
 
     err = 0;
-    IndirectGetSize(spec);
+    IndirectGetSize((void **)spec);
     fs = (*spec)->spec;
     e = FSpOpenDF(&fs, write ? fsRdWrPerm : fsRdPerm, &file->refNum);
     if (e != 0) {

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* statusbar.c -- the status-bar driver pair (win link order 0x0045d0a0, 0x0045d320; mac 1.1.1 twins _RedrawStatus @0x4cac0, _DrawStatus @0x4c85d). Notes: Research/notes/statusbar.md */
 #include "macport.h"
@@ -48,9 +48,9 @@ void RedrawStatus(Boolean copyToScreen)
             GetCWindowPortRect(gWind)->top, GetCWindowPortRect(gWind)->right,
             GetCWindowPortRect(gWind)->bottom);
 #else
-    SetRect(&box, GetCWindowPortRect(gWind)->right - 0xc2,
-            GetCWindowPortRect(gWind)->top, GetCWindowPortRect(gWind)->right,
-            GetCWindowPortRect(gWind)->bottom);
+    SetRect(&box, GetCWindowPortRect((WindowRef)gWind)->right - 0xc2,
+            GetCWindowPortRect((WindowRef)gWind)->top, GetCWindowPortRect((WindowRef)gWind)->right,
+            GetCWindowPortRect((WindowRef)gWind)->bottom);
 #endif
     CopyBits(GWorldContainerPixMap(&statusOffPort), (BitMapPtr)GWorldContainerBits(&loadPort),
              &statusOffPort.bounds, &box, 0, 0);
@@ -60,7 +60,7 @@ void RedrawStatus(Boolean copyToScreen)
 #ifdef CEFIX /* F14.04 */
         OffsetRect(&box, GetCWindowPortRect(gWind)->right - ceStatusBarWidth, 0);
 #else
-        OffsetRect(&box, GetCWindowPortRect(gWind)->right - 0xc2, 0);
+        OffsetRect(&box, GetCWindowPortRect((WindowRef)gWind)->right - 0xc2, 0);
 #endif
         ForeColor(blackColor);
         PaintRect(&box2);
@@ -80,7 +80,7 @@ void RedrawStatus(Boolean copyToScreen)
     DrawStatus();
     preventStatusCopy = 0;
     if (copyToScreen) {
-        box = *GetCWindowPortRect(gWind);
+        box = *GetCWindowPortRect((WindowRef)gWind);
 #ifdef CEFIX /* F14.05 */
         box.left = box.right - ceStatusBarWidth;
 #else
@@ -88,12 +88,12 @@ void RedrawStatus(Boolean copyToScreen)
 #endif
         if (gSpriteWorld->fastBlit) {
             CopyBits(GWorldContainerBits(&loadPort),
-                     GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+                     GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                      &box, &box, 0, 0);
         } else {
             CopyBits(GWorldContainerBits(&loadPort),
-                     GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
-                     &box, &box, 0, GetCWindowVisRgn(gWind));
+                     GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
+                     &box, &box, 0, GetCWindowVisRgn((WindowRef)gWind));
         }
     }
 #if V111

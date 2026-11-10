@@ -84,11 +84,11 @@ void IT_IndexUpperNames(ITElement *root)
                          UnicodeCompare((unsigned short *)e->name, kInterfaceW) == 0 ||
                          UnicodeCompare((unsigned short *)e->name, kStringTableW) == 0)) {
             if ((v = (unsigned short *)HashLookupUnicode(e->attributes, kNameW, 0)) != 0)
-                Unicode2UpperCopySafe(v, v, (ULong)-1, (ULong)-1);
+                Unicode2UpperCopySafe(v, v, -1, -1);
             if ((v = (unsigned short *)HashLookupUnicode(e->attributes, kLanguageW, 0)) != 0)
-                Unicode2UpperCopySafe(v, v, (ULong)-1, (ULong)-1);
+                Unicode2UpperCopySafe(v, v, -1, -1);
             if ((v = (unsigned short *)HashLookupUnicode(e->attributes, kIsoW, 0)) != 0)
-                Unicode2UpperCopySafe(v, v, (ULong)-1, (ULong)-1);
+                Unicode2UpperCopySafe(v, v, -1, -1);
         }
     }
 }
@@ -117,13 +117,13 @@ long IT_IndexMakeLinks(ITElement *root, const char *prefix)
 have:
             if (*prefix != 0) {
                 C2UStringCopySafe(buffer, (const unsigned char *)prefix, sizeof(buffer), (ULong)-1);
-                C2UStringAppendSafe(buffer, "/", sizeof(buffer), (ULong)-1);
+                C2UStringAppendSafe(buffer, "/", sizeof(buffer), -1);
             } else {
                 buffer[0] = 0;
             }
             if (UnicodePoint2Char8(*v) == '#')
-                C2UStringAppendSafe(buffer, kIndexFile, sizeof(buffer), (ULong)-1);
-            UnicodeAppendSafe(buffer, v, sizeof(buffer), (ULong)-1);
+                C2UStringAppendSafe(buffer, kIndexFile, sizeof(buffer), -1);
+            UnicodeAppendSafe(buffer, v, sizeof(buffer), -1);
             while (HashRemoveUnicode(e->attributes, attr))
                 ;
             r = HashAppendUnicode(e->attributes, attr, buffer);
@@ -135,15 +135,15 @@ have:
                    UnicodeCompare((unsigned short *)e->name, kStringTableW) == 0) {
             if (*prefix != 0) {
                 C2UStringCopySafe(buffer, (const unsigned char *)prefix, sizeof(buffer), (ULong)-1);
-                C2UStringAppendSafe(buffer, "/", sizeof(buffer), (ULong)-1);
+                C2UStringAppendSafe(buffer, "/", sizeof(buffer), -1);
             } else {
                 buffer[0] = 0;
             }
-            C2UStringAppendSafe(buffer, kIndexFile, sizeof(buffer), (ULong)-1);
+            C2UStringAppendSafe(buffer, kIndexFile, sizeof(buffer), -1);
             v = (unsigned short *)HashLookupUnicode(e->attributes, kNameW, 0);
             if (v != 0) {
-                C2UStringAppendSafe(buffer, "#", sizeof(buffer), (ULong)-1);
-                UnicodeAppendSafe(buffer, v, sizeof(buffer), (ULong)-1);
+                C2UStringAppendSafe(buffer, "#", sizeof(buffer), -1);
+                UnicodeAppendSafe(buffer, v, sizeof(buffer), -1);
             }
             r = HashAppendUnicode(e->attributes, kHrefW, buffer);
             if (r != 0) {
@@ -180,7 +180,7 @@ long IT_IndexCountTag(ITElement *root, const char *tag, const char *language)
     count = 0;
     C2UStringCopySafe(wideTag, (const unsigned char *)tag, sizeof(wideTag), (ULong)-1);
     C2UStringCopySafe(wideLanguage, (const unsigned char *)language, sizeof(wideLanguage), (ULong)-1);
-    Unicode2UpperCopySafe(wideLanguage, wideLanguage, (ULong)-1, (ULong)-1);
+    Unicode2UpperCopySafe(wideLanguage, wideLanguage, -1, -1);
     for (e = root; e != 0; ) {
         found = 0;
         if (IsTag(e) && UnicodeCompare((unsigned short *)e->name, wideTag) == 0) {
@@ -220,7 +220,7 @@ long IT_IndexFindNth(ITElement *root, const char *tag, const char *language, ULo
         *d = 0;
     C2UStringCopySafe(wideTag, (const unsigned char *)tag, sizeof(wideTag), (ULong)-1);
     C2UStringCopySafe(wideLanguage, (const unsigned char *)language, sizeof(wideLanguage), (ULong)-1);
-    Unicode2UpperCopySafe(wideLanguage, wideLanguage, (ULong)-1, (ULong)-1);
+    Unicode2UpperCopySafe(wideLanguage, wideLanguage, -1, -1);
     for (e = root; e != 0; ) {
         found = 0;
         if (IsTag(e) && UnicodeCompare((unsigned short *)e->name, wideTag) == 0) {
@@ -244,22 +244,22 @@ long IT_IndexFindNth(ITElement *root, const char *tag, const char *language, ULo
         if (a != 0) {
             v = (unsigned short *)HashLookupUnicode(attrs, kHrefW, 0);
             if (v != 0 || (v = (unsigned short *)HashLookupUnicode(other, kHrefW, 0)) != 0)
-                U2CStringCopySafe(a, v, 0x100, (ULong)-1);
+                U2CStringCopySafe((unsigned char *)a, v, 0x100, (ULong)-1);
         }
         if (b != 0) {
             v = (unsigned short *)HashLookupUnicode(attrs, kLanguageW, 0);
             if (v != 0 || (v = (unsigned short *)HashLookupUnicode(other, kNameW, 0)) != 0)
-                U2CStringCopySafe(b, v, 0x100, (ULong)-1);
+                U2CStringCopySafe((unsigned char *)b, v, 0x100, (ULong)-1);
         }
         if (c != 0) {
             v = (unsigned short *)HashLookupUnicode(attrs, kIsoW, 0);
             if (v != 0 || (v = (unsigned short *)HashLookupUnicode(other, kIsoW, 0)) != 0)
-                U2CStringCopySafe(c, v, 0x100, (ULong)-1);
+                U2CStringCopySafe((unsigned char *)c, v, 0x100, (ULong)-1);
         }
         if (d != 0) {
             v = (unsigned short *)HashLookupUnicode(other, kTitleW, 0);
             if (v != 0 || (v = (unsigned short *)HashLookupUnicode(attrs, kTitleW, 0)) != 0)
-                UnicodeCopySafe(d, v, 0x100, (ULong)-1);
+                UnicodeCopySafe(d, v, 0x100, -1);
         }
     } else if (n != 0) {
         err = kNotFound;
@@ -312,9 +312,9 @@ long IT_IndexFindPath(ITElement *root, const char *tag, const char *language, co
     }
     C2UStringCopySafe(wideTag, (const unsigned char *)tag, sizeof(wideTag), (ULong)-1);
     C2UStringCopySafe(wideLanguage, (const unsigned char *)language, sizeof(wideLanguage), (ULong)-1);
-    Unicode2UpperCopySafe(wideLanguage, wideLanguage, (ULong)-1, (ULong)-1);
+    Unicode2UpperCopySafe(wideLanguage, wideLanguage, -1, -1);
     C2UStringCopySafe(widePath, (const unsigned char *)p, sizeof(widePath), (ULong)-1);
-    Unicode2UpperCopySafe(widePath, widePath, (ULong)-1, (ULong)-1);
+    Unicode2UpperCopySafe(widePath, widePath, -1, -1);
     for (e = root; e != 0; parent = PT_ParseTreeGetNext(root, e), e = parent) {    /* 1.0.10 pad: a second copy of the next element, the exe's colours of root, a and b */
         if (!IsTag(e) || UnicodeCompare((unsigned short *)e->name, wideTag) != 0)
             continue;
@@ -349,22 +349,22 @@ long IT_IndexFindPath(ITElement *root, const char *tag, const char *language, co
         if (a != 0) {
             v = (unsigned short *)HashLookupUnicode(attrs, kHrefW, 0);
             if (v != 0 || (v = (unsigned short *)HashLookupUnicode(other, kHrefW, 0)) != 0)
-                U2CStringCopySafe(a, v, 0x100, (ULong)-1);
+                U2CStringCopySafe((unsigned char *)a, v, 0x100, (ULong)-1);
         }
         if (b != 0) {
             v = (unsigned short *)HashLookupUnicode(attrs, kLanguageW, 0);
             if (v != 0 || (v = (unsigned short *)HashLookupUnicode(other, kNameW, 0)) != 0)
-                U2CStringCopySafe(b, v, 0x100, (ULong)-1);
+                U2CStringCopySafe((unsigned char *)b, v, 0x100, (ULong)-1);
         }
         if (c != 0) {
             v = (unsigned short *)HashLookupUnicode(attrs, kIsoW, 0);
             if (v != 0 || (v = (unsigned short *)HashLookupUnicode(other, kIsoW, 0)) != 0)
-                U2CStringCopySafe(c, v, 0x100, (ULong)-1);
+                U2CStringCopySafe((unsigned char *)c, v, 0x100, (ULong)-1);
         }
         if (d != 0) {
             v = (unsigned short *)HashLookupUnicode(other, kTitleW, 0);
             if (v != 0 || (v = (unsigned short *)HashLookupUnicode(attrs, kTitleW, 0)) != 0)
-                UnicodeCopySafe(d, v, 0x100, (ULong)-1);
+                UnicodeCopySafe(d, v, 0x100, -1);
         }
         if (result != 0)
             *result = e;
@@ -744,8 +744,8 @@ long IT_StringTableLoad(ITElement *root, unsigned char keepWide, struct HashTabl
                 err = kOutOfMemory;
                 goto done;
             }
-            U2CStringCopySafe(key, name, sizeof(key), -1);
-            U2CStringCopySafe(narrow, *text, -1, -1);
+            U2CStringCopySafe((unsigned char *)key, name, sizeof(key), -1);
+            U2CStringCopySafe((unsigned char *)narrow, *text, -1, -1);
             e = HashAppend(table, key, narrow);
             if (e != 0) {
                 err = e;

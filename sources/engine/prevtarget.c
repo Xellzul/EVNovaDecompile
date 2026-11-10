@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* prevtarget.c -- cycle the player's target (win 0x00461f60). Notes: Research/notes/prevtarget.md */
 #include <stddef.h>
 

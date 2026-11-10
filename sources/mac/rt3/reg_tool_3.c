@@ -110,7 +110,7 @@ static ULong _RT3_CalcLoginHash(void)
     if (pw != 0) {
         name = pw->pw_name;
         if (name != 0) {
-            hash = MemoryChecksum(name, StringGetLength(name));
+            hash = MemoryChecksum(name, StringGetLength((const unsigned char *)name));
             if (hash == 0)
                 hash = 0xffffffff;
         }
@@ -152,7 +152,7 @@ static long _RT3_LicenseRefresh(void)
     changed = 0;
     created = 0;
     StringCopySafe(fileName, gPrivateProductName, kTextSize);
-    StringAppendSafe(fileName, kLicenseSuffix, kTextSize);
+    StringAppendSafe((unsigned char *)fileName, (const unsigned char *)kLicenseSuffix, kTextSize);
     for (i = 0; i < kFolderCount; i++) {
         err = FT_FileGetFlags(gRT3_LicensePaths[i], fileName, 0, 0);
         if (err == 0) {
@@ -645,7 +645,7 @@ static long _RT3_LoadCFPrefs(void ***handle, CFStringRef appID, CFStringRef key)
     if (key == 0)
         goto badParams;
     *handle = 0;
-    dict = (CFDictionaryRef)CFPreferencesCopyValue(appID, kCFPreferencesAnyApplication, kCFPreferencesCurrentUser, kCFPreferencesCurrentHost);
+    dict = CFPreferencesCopyValue(appID, kCFPreferencesAnyApplication, kCFPreferencesCurrentUser, kCFPreferencesCurrentHost);
     if (dict != 0 && CFDictionaryGetValueIfPresent(dict, key, (const void **)&data)
         && CFDataGetBytePtr(data) != 0 && CFDataGetLength(data) != 0) {
         *handle = IndirectInitialize(CFDataGetBytePtr(data), CFDataGetLength(data));
@@ -740,7 +740,7 @@ static long _RT3_LicenseLoad(void ***license, unsigned char *created, unsigned c
         *systemWide = 0;
     productHash = RT3_HashProduct(gPrivateProductName);
     StringCopySafe(fileName, gPrivateProductName, kTextSize);
-    StringAppendSafe(fileName, kLicenseSuffix, kTextSize);
+    StringAppendSafe((unsigned char *)fileName, (const unsigned char *)kLicenseSuffix, kTextSize);
 
     for (i = 0; i < kFolderCount; i++) {
         valid = 1;
@@ -920,7 +920,7 @@ static long _RT3_LicenseSave(void **license, ULong key, ULong when, unsigned cha
     ULong stamp;
 
     StringCopySafe(fileName, gPrivateProductName, kTextSize);
-    StringAppendSafe(fileName, kLicenseSuffix, kTextSize);
+    StringAppendSafe((unsigned char *)fileName, (const unsigned char *)kLicenseSuffix, kTextSize);
     copies = ((RT3License *)*license)->copies;
     folder = systemWide ? -7 : -3;
     err = kOutOfMemory;
@@ -928,7 +928,7 @@ static long _RT3_LicenseSave(void **license, ULong key, ULong when, unsigned cha
     if (copy == 0)
         goto done;
     if (key != 0) {
-        RT3License *rec = (RT3License *)*copy;
+        RT3License *rec = *copy;
         ULong hash = 0;
         const unsigned char *p = (const unsigned char *)gPrivateProductName;
         unsigned char c;
@@ -1188,7 +1188,7 @@ static void _RT3_SaveCFPrefs(void **handle, CFStringRef appID, CFStringRef key)
 
     if (handle != 0) {
         locked = IndirectSetLock(handle, 1);
-        data = CFDataCreate(0, (const UInt8 *)*handle, IndirectGetSize(handle));
+        data = CFDataCreate(0, *handle, IndirectGetSize(handle));
         if (!locked)
             IndirectSetLock(handle, 0);
         if (data != 0) {

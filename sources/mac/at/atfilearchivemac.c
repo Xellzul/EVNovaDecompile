@@ -171,7 +171,7 @@ long _FT_ChunkOpenPath(FolderSpec **spec, unsigned char write, unsigned char toL
         }
     }
 done:
-    if (root != 0 && (ULong)saved != 0xffffffff)
+    if (root != 0 && saved != 0xffffffff)
         root->procs.proc[kFTSeek](root, saved);
     IndirectSetLock((void **)spec, locked);
     if (err != 0) {
@@ -384,7 +384,7 @@ long _FT_ChunkDirEntry(FTFile *archive, ULong index, FTFileInfo *info, FolderSpe
         memset(info, 0, sizeof(FTFileInfo));
     locked = IndirectSetLock(archive->buffer, 1);
     locked2 = IndirectSetLock(archive->buffer2, 1);
-    header = (FTArchiveHeader *)*archive->buffer;
+    header = *archive->buffer;
     count = header->entryCount;
     index++;
     for (i = 0; i < count; i++) {
@@ -429,7 +429,7 @@ unsigned char _FT_ChunkLookup(FTFile *archive, const char *name, ULong *index,
         memset(entry, 0, sizeof(FTArchiveEntry));
     locked = IndirectSetLock(archive->buffer, 1);
     locked2 = IndirectSetLock(archive->buffer2, 1);
-    header = (FTArchiveHeader *)*archive->buffer;
+    header = *archive->buffer;
     count = header->entryCount;
     for (i = 0; i < count; i++) {
         e = (FTArchiveEntry *)((char *)*archive->buffer2 + i * header->entrySize);
@@ -761,7 +761,7 @@ long _FT_ChunkCreate(FTFile *archive, FTFileInfo *info)
     slot->length = 0;
     slot->type = ATSwap32(info->type);
     e = archive->procs.proc[kFTSeek](archive,
-                                (char *)slot + h.tableOffset - (char *)*archive->buffer2);
+                                (char *)slot + h.tableOffset - *archive->buffer2);
     if (e != 0) {
         err = e;
         goto done;
@@ -915,7 +915,7 @@ long _FT_ChunkGetFlags(FTFile *archive, const char *name, const char *member, FT
         ULong n;
         unsigned char c;
 
-        n = (ULong)-1;
+        n = -1;
         q = pname;
         p = (const unsigned char *)member - 1;
         while (++n < 0xff && (c = *++p) != 0)
@@ -1077,7 +1077,7 @@ long _FT_ChunkRead(FTFile *file, ULong count, void *buffer)
         goto done;
     }
     result = parent->procs.proc[kFTSeek](parent,
-        (ULong)(file->position + ATSwap32(ArchiveEntry(parent, file->origin)->offset)));
+        (file->position + ATSwap32(ArchiveEntry(parent, file->origin)->offset)));
     if (result != 0) {
         err = result;
         goto done;
@@ -1125,7 +1125,7 @@ long _FT_ChunkWrite(FTFile *file, ULong count, const void *buffer)
         }
     }
     result = parent->procs.proc[kFTSeek](parent,
-        (ULong)(file->position + ATSwap32(ArchiveEntry(parent, file->origin)->offset)));
+        (file->position + ATSwap32(ArchiveEntry(parent, file->origin)->offset)));
     if (result != 0) {
         err = result;
         goto done;

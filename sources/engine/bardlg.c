@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic -lang c++ -bool off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 // COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* bardlg.c -- the bar and dialog-update object (tu-map O21, win 0x0047c8e0..0x0047e1e0). Notes: Research/notes/bardlg.md */
 #include <stddef.h>
@@ -408,11 +408,11 @@ void BarDialogUpdate(void)
     if (barBackgroundPic != NULL)
         DrawPicHandle(barBackgroundPic, GetDialogPortRect(barDialog));
     if (barPic != NULL) {
-        GetDialogItem(barDialog, 8, &itemType, (void **)&item, &box);
+        GetDialogItem(barDialog, 8, &itemType, &item, &box);
         ForeColor(blackColor);
         DrawPicHandle(barPic, &box);
     }
-    GetDialogItem(barDialog, 7, &itemType, (void **)&item, &box);
+    GetDialogItem(barDialog, 7, &itemType, &item, &box);
     ForeColor(blackColor);
     TextFont(smallTextFont);
     TextSize(smallTextSize);

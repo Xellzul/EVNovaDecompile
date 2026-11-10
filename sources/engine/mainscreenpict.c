@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* mainscreenpict.c -- composite the main screen's background picture and its three animated button/logo sprites into loadPort each tick (win 0x0048c3c0). Notes: Research/notes/mainscreenpict.md */
 #include <stddef.h>
 
@@ -51,7 +51,7 @@ void MainScreenAnimDraw(void)
                 slideDestRect[i].bottom = slideDestRect[i].top + (rect.bottom - rect.top);
 
                 ForeColor(blackColor);
-                CopyBits((PixMapPtr)GetPortBitMapForCopyBits(slidePort[i].world), (BitMapPtr)GWorldContainerBits(&loadPort),
+                CopyBits(GetPortBitMapForCopyBits(slidePort[i].world), (BitMapPtr)GWorldContainerBits(&loadPort),
                          &rect, &slideDestRect[i], 0, NULL);
             }
         }

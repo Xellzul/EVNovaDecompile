@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* filescan.c -- count the files of one extension in a directory, logging each (win 0x0046f690). Notes: Research/notes/filescan.md */
 #include <stdio.h>
 

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* sprite.c -- SpriteWorld's Sprite.c, tu-map object O14: sprite creation, frames, movement and collision. Notes: Research/notes/sprite.md */
 #include "macport.h"
 #include "burger.h"
@@ -1204,7 +1204,7 @@ void SWLockSprite(SpritePtr srcSpriteP)
 
         offset = 0;
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
-        tokens = (*spriteData + kRLEResourceHeaderSize
+        tokens = (TokenDataType *)(*spriteData + kRLEResourceHeaderSize
                                    - ((long)(*spriteData + kRLEResourceHeaderSize) & 3));
 #else
         tokens = (TokenDataType *)(*spriteData + kRLEResourceHeaderSize);
@@ -1510,7 +1510,7 @@ void SWStdSpriteDrawProc(FramePtr srcFrameP, FramePtr dstFrameP, Rect *srcRect, 
     if (!srcFrameP->isFrameLocked || !dstFrameP->isFrameLocked)
         SWAssertFail("Sprite.c", 1892);
 
-    CopyBits((PixMapPtr)GetPortBitMapForCopyBits(srcFrameP->framePort),
+    CopyBits(GetPortBitMapForCopyBits(srcFrameP->framePort),
              GetPortBitMapForCopyBits(dstFrameP->framePort),
              srcRect, dstRect, srcCopy, srcFrameP->maskRgn);
 }

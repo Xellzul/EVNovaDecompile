@@ -56,7 +56,7 @@ long _FT_PathModify(FolderSpec **base, void *where, FolderSpec ***result, unsign
         (**result)->dir = 0;
         goto done;
     }
-    if (_FT_PathLookup((FolderSpec **)where)) {
+    if (_FT_PathLookup(where)) {
         if (result != 0) {
             if ((*result = (FolderSpec **)IndirectDuplicate((void **)where)) == 0) {
                 err = kOutOfMemory;
@@ -69,7 +69,7 @@ long _FT_PathModify(FolderSpec **base, void *where, FolderSpec ***result, unsign
             goto done;
         }
         copy = (*base)->next;
-        size = IndirectGetSize((void **)where);
+        size = IndirectGetSize(where);
         e = IndirectSetSize((void **)base, size);
         if (e != 0) {
             err = e;
@@ -117,7 +117,7 @@ long _FT_PathModify(FolderSpec **base, void *where, FolderSpec ***result, unsign
     } else if ((ULong)where <= kVolumeIndexMax) {
         err = _FT_PathGoToVolume(copy, (ULong)where);
     } else {
-        err = _FT_PathString(copy, (const char *)where, create);
+        err = _FT_PathString(copy, where, create);
         if (err != 0) {
             if (create != 0)
                 err = FT_ReportError(err);
@@ -198,7 +198,7 @@ void _FT_PathDispose(void *ref)
     FolderSpec **spec;
     FolderSpec ***link;
 
-    spec = (FolderSpec **)ref;
+    spec = ref;
     if (IsSpecID(ref))
         return;
 

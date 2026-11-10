@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* textedit.c -- the port's TextEdit, over Win32 DrawText (win TU region 0x004bcd30-0x004bcf80). Notes: Research/notes/textedit.md */
 #include <stddef.h>
 #include <string.h>

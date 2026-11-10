@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* winmain.c -- the port's WinMain (win 0x004d2a80). Notes: Research/notes/winmain.md */
 #include <stddef.h>
 #include "macport.h"

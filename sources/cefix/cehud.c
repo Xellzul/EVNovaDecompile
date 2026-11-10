@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* cehud.c -- EV Nova CE: the scaled status bar items and the scaled pen (CEFIX only).
    Notes: Research/cefix-plan.md */
 #ifdef CEFIX

@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,speed -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: RT3's own line (rt3.c): the reminder is part of the RT3 library, one compiler and one line for the whole library; its 16-aligned run 0x004ee7a0-0x004eecdf is the speed idiom of line C; Research/runtime-compiler-ceiling.md, notes/rt3nag.md
 /* rt3nag.c -- the RT3 trial reminder: the dialog run, its page callback and text variables. Notes: Research/notes/rt3nag.md */
 

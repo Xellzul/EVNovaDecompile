@@ -57,6 +57,10 @@ typedef struct ControlRecord {
 } ControlRecord;
 typedef struct ControlRecord *ControlPtr;
 #ifndef MACBUILD
+/* the Toolbox names the port's records answer to */
+typedef ControlPtr ControlRef;
+typedef Image_t *CIconHandle;
+typedef Image_t *PixPatHandle;
 typedef void *Movie;
 typedef struct ComponentDescription {
     long componentType;
@@ -91,6 +95,9 @@ typedef struct CGrafPort {
     short txFace;
     short txSize;
 } CGrafPort, *CGrafPtr;
+/* one port record serves every port, so these are Carbon's: a GrafPtr is a CGrafPtr */
+typedef CGrafPtr GrafPtr;
+typedef CWindowPtr WindowRef;
 typedef struct BitMap *BitMapPtr;
 #endif
 
@@ -133,12 +140,12 @@ extern void DrawTextRun(const void *text, unsigned long byteCount, Rect *box,
                         Boolean clipped, int height);
 extern CGrafPtr CurrentGrafPort;
 #ifndef MACBUILD
-extern void CopyBits(PixMapPtr srcBits, BitMapPtr dstBits,
+extern void CopyBits(BitMapPtr srcBits, BitMapPtr dstBits,
                      const Rect *srcRect, const Rect *dstRect,
                      long mode, void *maskRgn);
 extern BitMapPtr GetPortBitMapForCopyBits(CGrafPtr port);
 extern void BlockMove(const void *src, void *dst, unsigned long len);
-extern void CopyMask(PixMapPtr srcBits, PixMapPtr maskBits, PixMapPtr dstBits,
+extern void CopyMask(BitMapPtr srcBits, BitMapPtr maskBits, BitMapPtr dstBits,
                      Rect *srcRect, Rect *maskRect, Rect *dstRect);
 #endif
 /* the engine's older spelling of a port's bits, (BitMap *)*GetPortPixMap; the port has one call */
@@ -151,7 +158,7 @@ extern void CopyMask(PixMapPtr srcBits, PixMapPtr maskBits, PixMapPtr dstBits,
 #ifdef MACBUILD
 #define GWorldContainerBits(gwc) GetPortBitMapForCopyBits((gwc)->world)
 #else
-#define GWorldContainerBits(gwc) GetGWCPixMap(gwc)
+#define GWorldContainerBits(gwc) ((BitMapPtr)GetGWCPixMap(gwc))
 #endif
 /* the same as a CopyBits source through the GWorld's pixmap (the status panels' spelling) */
 #ifdef MACBUILD
@@ -161,7 +168,7 @@ extern void CopyMask(PixMapPtr srcBits, PixMapPtr maskBits, PixMapPtr dstBits,
 #endif
 /* drawing into a GWorldContainer: the mac sets its GWorld's port, the win port the container */
 #ifdef MACBUILD
-#define GWorldContainerSetPort(gwc) SetPort((gwc)->world)
+#define GWorldContainerSetPort(gwc) SetPort((GrafPtr)(gwc)->world)
 #else
 #define GWorldContainerSetPort(gwc) SetGWorldContainer(gwc)
 #endif
@@ -1037,7 +1044,7 @@ extern void SetPort(CGrafPtr port);
 extern void SetPortWindowPort(CWindowPtr window);
 extern void SetRect(Rect *r, int left, int top, int right, int bottom);
 #else
-#define SetPortWindowPort(window) SetPort(GetCWindowGrafPort(window))
+#define SetPortWindowPort(window) SetPort((GrafPtr)GetCWindowGrafPort(window))
 #endif
 extern void FatalStartupError(short index);
 extern void *ST_LoadSndResourceIndirect(void **handle, long flags);
@@ -1179,8 +1186,8 @@ extern PrefsFileRec gPrefs;
 EXTERN_CPP_END
 #pragma cplusplus reset
 
-extern void SetDialogItemText(ControlPtr ctl, const unsigned char *pstr);
-extern void GetDialogItemText(ControlPtr ctl, unsigned char *pstr);
+extern void SetDialogItemText(Handle item, const unsigned char *pstr);
+extern void GetDialogItemText(Handle item, unsigned char *pstr);
 extern void DisableControl(ControlPtr ctl);
 #endif
 extern void SetDialogVisible(DialogPtr dlg, unsigned char value);
@@ -1200,7 +1207,7 @@ extern void DisposeDialog(DialogPtr dlg);
 /* the body is empty, but every caller passes an argument */
 extern void ShowMacWindow(void *arg);
 #ifndef MACBUILD
-extern void GetDialogItem(DialogPtr dlg, long item, short *type, void **handle,
+extern void GetDialogItem(DialogPtr dlg, long item, short *type, Handle *handle,
                           Rect *box);
 #endif
 void GetControlText(ControlPtr ctl, char *text);
@@ -1291,13 +1298,13 @@ static inline Boolean EV_PtInRect(short h, short v, const Rect *r)
 #endif
 static inline short EV_NewGWorld(CGrafPtr *out, int depth, const Rect *bounds, void *theGDH)
 {
-    return NewGWorld(out, depth, bounds, 0, (GDHandle)theGDH, 0);
+    return NewGWorld(out, depth, bounds, 0, theGDH, 0);
 }
 #define NewGWorld(out, depth, bounds, gdh) EV_NewGWorld(out, depth, bounds, gdh)
 #define FrontWindow(dlg) GetDialogWindow(dlg)
 #define ShowMacWindow(window) ShowWindow(window)
 #define InvalDialogRect(dlg, box) InvalWindowRect(GetDialogWindow(dlg), box)
-#define SetDialogGWorld(dlg) SetPort(GetDialogPort(dlg))
+#define SetDialogGWorld(dlg) SetPort((GrafPtr)GetDialogPort(dlg))
 extern FSRef pluginsFolder;
 extern FSRef novaFilesFolder;
 /* MoreFilesX (Apple sample code, linked into the mac build) */

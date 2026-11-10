@@ -9,7 +9,7 @@
         fprintf(f, " ");
     fprintf(f, " %8i iterations  %8i ms  %8.1f ms average",
             iterations[slot], totalMilliseconds[slot],
-            (float)totalMilliseconds[slot] / (float)iterations[slot]);
+            totalMilliseconds[slot] / (float)iterations[slot]);
     if (dependency[slot] != -1) {
         for (i = 0; i < (depth + 1) * 2; i++)
             fprintf(f, " ");

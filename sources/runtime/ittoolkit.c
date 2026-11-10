@@ -1,5 +1,5 @@
 // COMPILE: -opt level=2,intrinsics,space -enum min -align 8 -Cpp_exceptions off
-// COMPILER: mwccsym2 2.4.7 build 335
+// COMPILER: mwccsym2 2.4.7 build 335 + MSL 2001
 // COMPILE-WHY: AmbrosiaTools (the mac build imports it as AmbrosiaTools.framework) on its own compiler as one library: its platform, network, file and interface parts inline memset (rep stos in the exe), so ,intrinsics; -enum min -align 8 are the library's struct layout (jpeglib.h's structs in itjpeg.c, a double at 8); build 335 has no -proc; Research/runtime-compiler-ceiling.md
 /* ittoolkit.c -- the interface tool proper, from 0x0051a038: regions, colours and rectangles, the window records, page loading, focus, painting and the window and dialog procedures (to 0x0051c936). Notes: Research/notes/ittoolkit.md */
 
@@ -528,7 +528,7 @@ long IT_ViewCreate(void *hwnd, const ITRect *bounds, ITWindowProc proc, long ref
         if (bounds != 0)
             window->bounds = *bounds;
         else
-            CopySys2DT_Rect(&window->bounds, (ITRect *)&client);
+            CopySys2DT_Rect(&window->bounds, (DTSysRect *)&client);
     }
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     if (GetWindowKind(hwnd) != kITWindowKind) {
@@ -756,10 +756,10 @@ long _IT_ViewChange(void *windowRef, struct FolderSpec **folder, const char *fil
                 break;
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
             if (element->wide) {
-                wide = HashLookupUnicode(element->attributes, kNameW, 0);
+                wide = (unsigned short *)HashLookupUnicode(element->attributes, kNameW, 0);
                 if (wide == 0 || *wide == 0)
                     break;
-                U2CStringCopySafe(upper, wide, sizeof(upper), -1);
+                U2CStringCopySafe((unsigned char *)upper, wide, sizeof(upper), (ULong)-1);
             } else
 #endif
             {
@@ -804,7 +804,7 @@ long _IT_ViewChange(void *windowRef, struct FolderSpec **folder, const char *fil
             if (window->source.interfaceElement->wide)
                 UnicodeCopySafe(window->title, value, sizeof(window->title), -1);
             else
-                C2UStringCopySafe(window->title, value, sizeof(window->title), -1);
+                C2UStringCopySafe(window->title, (unsigned char *)value, sizeof(window->title), (ULong)-1);
         }
 #else
         if (value != 0)
@@ -820,7 +820,7 @@ long _IT_ViewChange(void *windowRef, struct FolderSpec **folder, const char *fil
         if (value != 0) {
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
             if (window->source.interfaceElement->wide)
-                U2CStringCopySafe(name, value, sizeof(name), -1);
+                U2CStringCopySafe((unsigned char *)name, (unsigned short *)value, sizeof(name), (ULong)-1);
             else
 #endif
             StringCopySafe(name, value, sizeof(name));
@@ -1022,7 +1022,7 @@ long IT_ViewDispose(WindowNode *window)
         if (_PlatformIsThreaded() && FrontWindow() != 0) {
             bounds = kOffscreenBounds;
             front = FrontWindow();
-            temp = NewWindow(0, &bounds, "", true, 0, (WindowRef)-1, false, 0);
+            temp = NewWindow(0, &bounds, (const unsigned char *)"", true, 0, (WindowRef)-1, false, 0);
             if (temp != 0) {
                 SelectWindow(front);
                 DisposeWindow(temp);
@@ -2032,7 +2032,7 @@ long _IT_ViewValidate(WindowNode *window)
         if (window->page != 0) {
             if (caption[0] != 0 && *(unsigned short *)window->page->title != 0)
                 UnicodeAppendSafe(caption, kTitleSepW, sizeof(caption), -1);
-            UnicodeAppendSafe(caption, window->page->title, sizeof(caption), -1);
+            UnicodeAppendSafe(caption, (unsigned short *)window->page->title, sizeof(caption), (ULong)-1);
         }
         title = UnicodeCreateCFString(caption, -1);
         if (title == 0) {
@@ -2091,14 +2091,14 @@ long _IT_ViewValidate(WindowNode *window)
         StringCopySafe(caption, window->title, sizeof(caption));
         if (window->page != 0) {
             if (caption[0] != 0 && window->page->title[0] != 0)
-                StringAppendSafe(caption, " / ", sizeof(caption));
-            StringAppendSafe(caption, window->page->title,
+                StringAppendSafe((unsigned char *)caption, (const unsigned char *)" / ", sizeof(caption));
+            StringAppendSafe((unsigned char *)caption, (const unsigned char *)window->page->title,
                       sizeof(caption));
         }
-        GetWTitle(hwnd, current);
-        StringP2C(current);
+        GetWTitle(hwnd, (unsigned char *)current);
+        StringP2C((unsigned char *)current);
         if (StringCompare(caption, current) != 0)
-            SetWTitle(hwnd, StringC2P(caption));
+            SetWTitle(hwnd, (unsigned char *)StringC2P(caption));
         if (window->colors == 0) {
             if ((window->colors = GetResource('wctb', 0)) == 0) {
                 ResError();
@@ -2122,7 +2122,7 @@ long _IT_ViewValidate(WindowNode *window)
             GetPort(&savedPort);
             (*(CTabHandle)window->colors)->ctTable[wTextColor].rgb = textColor;
             (*(CTabHandle)window->colors)->ctTable[wContentColor].rgb = backColor;
-            SetWinColor(window->hwnd, window->colors);
+            SetWinColor(window->hwnd, (WCTabHandle)window->colors);
             SetPort(window->hwnd);
             RGBForeColor(&textColor);
             RGBBackColor(&backColor);
@@ -2446,7 +2446,7 @@ long _IT_ViewCallback(WindowNode *window, ITPage *page, ITControl *control, long
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
             if (name != 0) {
                 if (control->element->wide)
-                    U2CStringCopySafe(buffer, name, sizeof(buffer), -1);
+                    U2CStringCopySafe((unsigned char *)buffer, (unsigned short *)name, sizeof(buffer), (ULong)-1);
                 else
                     StringCopySafe(buffer, name, sizeof(buffer));
             }
@@ -2492,7 +2492,7 @@ long _IT_ViewPreload(WindowNode *window, ITElement *root)
         if (e->wide) {
             if (*(unsigned short *)src == 0)
                 continue;
-            U2CStringCopySafe(name, src, sizeof(name), -1);
+            U2CStringCopySafe((unsigned char *)name, (unsigned short *)src, sizeof(name), (ULong)-1);
         } else {
             if (*src == 0)
                 continue;
@@ -2665,7 +2665,7 @@ long _IT_ParseTupleCreate(WindowNode *window, ITSource *source, long where, cons
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     window->tracking = (ULong)unused;
     if (unused == 0)
-        IT_IndexLoad(where, file, &window->tracking, &source->root);
+        IT_IndexLoad(where, file, (ITElement **)&window->tracking, &source->root);
     if (window->tracking != 0 && IT_IndexLookup((ITElement *)window->tracking, window->path, window->anchor, found, 0, 0, 0, 0) == 0)
         file = found;
     else if (window->tracking != 0 && window->anchor[0] != 0 && IT_IndexLookup((ITElement *)window->tracking, window->path, "", found, 0, 0, 0, 0) == 0)

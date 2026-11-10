@@ -66,7 +66,7 @@ unsigned long TimerGetElapsedSeconds(void)
 
     seconds = TimerGetMilliseconds() - gPlatformTime;
     seconds = seconds / kMillisPerSecond;
-    return (ULong)seconds;
+    return seconds;
 }
 
 #if !TARGET_API_MAC_CARBON
@@ -137,12 +137,12 @@ static ULongLong _TimerReadMicros(void)
     long delta;
 
 #if TARGET_API_MAC_CARBON
-    if ((void *)UpTime != 0) {
+    if (UpTime != 0) {
         AbsTime up;
 
         up = UpTime();
         t = AbsoluteToNanoseconds(up);
-        now = (double)*(ULongLong *)&t * gMicrosPerNano + 0.5;
+        now = *(ULongLong *)&t * gMicrosPerNano + 0.5;
     } else
 #endif
     if (gUpTimeProc != 0) {
@@ -150,15 +150,15 @@ static ULongLong _TimerReadMicros(void)
 
         a = gUpTimeProc();
         t = gAbsoluteToNanosecondsProc(a);
-        now = (double)*(ULongLong *)&t * gMicrosPerNano + 0.5;
+        now = *(ULongLong *)&t * gMicrosPerNano + 0.5;
     } else if (gHasTimeBase) {
         t = ReadTB();
-        now = (double)*(ULongLong *)&t * gMicrosPerNano + 0.5;
+        now = *(ULongLong *)&t * gMicrosPerNano + 0.5;
     } else if (gHasRTC) {
         t = ReadRTC();
-        now = ((double)t.hi * 1000000000.0 + (double)t.lo) * gMicrosPerNano + 0.5;
+        now = (t.hi * 1000000000.0 + t.lo) * gMicrosPerNano + 0.5;
     } else {
-        Microseconds((UnsignedWide *)&t);
+        Microseconds(&t);
         now = *(ULongLong *)&t;
     }
     tick = kTickCount;
@@ -180,12 +180,12 @@ static ULongLong _TimerReadMillis(void)
     long delta;
 
 #if TARGET_API_MAC_CARBON
-    if ((void *)UpTime != 0) {
+    if (UpTime != 0) {
         AbsTime up;
 
         up = UpTime();
         t = AbsoluteToNanoseconds(up);
-        now = (double)*(ULongLong *)&t * gMillisPerNano + 0.5;
+        now = *(ULongLong *)&t * gMillisPerNano + 0.5;
     } else
 #endif
     if (gUpTimeProc != 0) {
@@ -193,16 +193,16 @@ static ULongLong _TimerReadMillis(void)
 
         a = gUpTimeProc();
         t = gAbsoluteToNanosecondsProc(a);
-        now = (double)*(ULongLong *)&t * gMillisPerNano + 0.5;
+        now = *(ULongLong *)&t * gMillisPerNano + 0.5;
     } else if (gHasTimeBase) {
         t = ReadTB();
-        now = (double)*(ULongLong *)&t * gMillisPerNano + 0.5;
+        now = *(ULongLong *)&t * gMillisPerNano + 0.5;
     } else if (gHasRTC) {
         t = ReadRTC();
-        now = ((double)t.hi * 1000000000.0 + (double)t.lo) * gMillisPerNano + 0.5;
+        now = (t.hi * 1000000000.0 + t.lo) * gMillisPerNano + 0.5;
     } else {
-        Microseconds((UnsignedWide *)&t);
-        now = (500.0 + (double)*(ULongLong *)&t) / 1000.0;
+        Microseconds(&t);
+        now = (500.0 + *(ULongLong *)&t) / 1000.0;
     }
     tick = kTickCount;
     delta = tick - TICKS;

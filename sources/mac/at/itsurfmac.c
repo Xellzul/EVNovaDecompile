@@ -436,7 +436,7 @@ long _DT_SurfaceSet(ITImage *image, GWorldPtr world, GDHandle device, CGrafPtr w
 
     err = 0;
     pixels = image->pixels;
-    depth = (unsigned short)(*(*device)->gdPMap)->pixelSize;
+    depth = (*(*device)->gdPMap)->pixelSize;
 #if TARGET_API_MAC_CARBON
     GetPortBounds(world, &box);
 #else
@@ -456,7 +456,7 @@ long _DT_SurfaceSet(ITImage *image, GWorldPtr world, GDHandle device, CGrafPtr w
     pixels->window = window;
 #if TARGET_API_MAC_CARBON
     if (extra == 1) {
-        if ((CGrafPtr)(pixels->drawDC = (long)GetWindowPort((WindowRef)pixels->window)) == 0) {
+        if ((CGrafPtr)(pixels->drawDC = (long)GetWindowPort(pixels->window)) == 0) {
             err = kDibFailed;
             goto done;
         }
@@ -553,7 +553,7 @@ long DT_SurfaceCopyRects(ITImage *image, ULong count, const ITRect *src, const I
         }
     }
     if (count != 0) {
-        port = GetWindowPort((WindowRef)pixels->window);
+        port = GetWindowPort(pixels->window);
         device = GD(pixels) != 0 ? GD(pixels) : GetMainDevice();
         if (pixels->info[1] != 1) {
             e = DT_ImageLock(image->pixelsSelf, 0, 0, 0);
@@ -774,7 +774,7 @@ long DT_SurfaceCheck(ITImage *image, unsigned char *rebuilt)
         *rebuilt = 0;
 #if TARGET_API_MAC_CARBON
     if (pixels->info[1] == 1 && pixels->window != 0) {
-        if ((CGrafPtr)(pixels->drawDC = (long)GetWindowPort((WindowRef)pixels->window)) == 0) {
+        if ((CGrafPtr)(pixels->drawDC = (long)GetWindowPort(pixels->window)) == 0) {
             err = kDibFailed;
             goto done;
         }
@@ -796,9 +796,9 @@ long DT_SurfaceCheck(ITImage *image, unsigned char *rebuilt)
             changed = 1;
         if ((pixels->flags & kPixelsWholeWindow) != 0 &&
             (!EqualRect(&box, GetPortBounds((CGrafPtr)pixels->drawDC, &other)) ||
-             !EqualRect(&box, GetWindowPortBounds((WindowRef)pixels->window, &other))))
+             !EqualRect(&box, GetWindowPortBounds(pixels->window, &other))))
             changed = 1;
-        CopySys2DT_Rect(&rect, GetWindowPortBounds((WindowRef)pixels->window, &other));
+        CopySys2DT_Rect(&rect, GetWindowPortBounds(pixels->window, &other));
 #else
         if ((pixels->flags & kPixelsWholeWindow) != 0 && !EqualRect(&box, &(*PM(pixels))->bounds))
             changed = 1;
@@ -809,7 +809,7 @@ long DT_SurfaceCheck(ITImage *image, unsigned char *rebuilt)
         CopySys2DT_Rect(&rect, &((CGrafPtr)pixels->window)->portRect);
 #endif
         if (pixels->depth != (*PM(pixels))->pixelSize ||
-            GD(pixels) != DT_GetWindowDevice((CGrafPtr)pixels->window) ||
+            GD(pixels) != DT_GetWindowDevice(pixels->window) ||
             pixels->info[0] != (*(*PM(pixels))->pmTable)->ctSeed)
             stale = 1;
         depth = (*PM(pixels))->pixelSize;
@@ -832,7 +832,7 @@ long DT_SurfaceCheck(ITImage *image, unsigned char *rebuilt)
     if (changed || stale) {
 #if TARGET_API_MAC_CARBON
         if (pixels->info[1] == 1 && pixels->window != 0) {
-            pixels->unk54 = (long)DT_GetWindowDevice((CGrafPtr)pixels->window);
+            pixels->unk54 = (long)DT_GetWindowDevice(pixels->window);
             pixels->bytesPerPixel = _DT_ImageCalcFormat(depth, &pixels->formatFlag, pixels->bits,
                                                         pixels->shift, pixels->mask, pixels->scale);
             pixels->rowBytes = GetPixRowBytes(PM(pixels));
@@ -849,7 +849,7 @@ long DT_SurfaceCheck(ITImage *image, unsigned char *rebuilt)
         } else
 #endif
         if (pixels->window != 0) {
-            fresh = DT_SurfaceCreateLikeWindow((CGrafPtr)pixels->window, (pixels->flags & kPixelsWholeWindow) != 0 ? 0 : &pixels->bounds);
+            fresh = DT_SurfaceCreateLikeWindow(pixels->window, (pixels->flags & kPixelsWholeWindow) != 0 ? 0 : &pixels->bounds);
             if (fresh == 0) {
                 err = kOutOfMemory;
                 goto done;
@@ -882,13 +882,13 @@ long DT_SurfaceCheck(ITImage *image, unsigned char *rebuilt)
 done:
 #if TARGET_API_MAC_CARBON
     if (pixels->info[1] == 1 && pixels->window != 0) {
-        if ((CGrafPtr)(pixels->drawDC = (long)GetWindowPort((WindowRef)pixels->window)) == 0)
+        if ((CGrafPtr)(pixels->drawDC = (long)GetWindowPort(pixels->window)) == 0)
             err = kDibFailed;
         if ((e = UnlockPortBits((CGrafPtr)pixels->drawDC)) != 0)
             err = e;
         if ((pixels->dib = (ITDib *)GetPortPixMap((CGrafPtr)pixels->drawDC)) == 0)
             err = kDibFailed;
-        CopySys2DT_Rect(&pixels->bounds, GetWindowPortBounds((WindowRef)pixels->window, &other));
+        CopySys2DT_Rect(&pixels->bounds, GetWindowPortBounds(pixels->window, &other));
         pixels->rowBytes = GetPixRowBytes(PM(pixels));
     }
 #endif
@@ -945,7 +945,7 @@ long _DT_ImageLock(ITImage *image, ITImage *other, unsigned char *rebuilt)
         if (pixels->info[1] == 2 && pixels->window != 0)
             AtomicMaskApply(&pixels->flags, kPixelsBufferBit);
         if (pixels->info[1] == 1 && pixels->window != 0) {
-            if ((CGrafPtr)(pixels->drawDC = (long)GetWindowPort((WindowRef)pixels->window)) == 0) {
+            if ((CGrafPtr)(pixels->drawDC = (long)GetWindowPort(pixels->window)) == 0) {
                 err = kDibFailed;
                 goto done;
             }
@@ -961,7 +961,7 @@ long _DT_ImageLock(ITImage *image, ITImage *other, unsigned char *rebuilt)
         } else
 #endif
         if (changed || !LockPixels(PM(pixels))) {
-            window = (CGrafPtr)pixels->window;
+            window = pixels->window;
             world = (GWorldPtr)pixels->drawDC;
             device = GD(pixels);
             GetPixelsState(PM(pixels));
@@ -1017,7 +1017,7 @@ long _DT_ImageLock(ITImage *image, ITImage *other, unsigned char *rebuilt)
                 *rebuilt = 1;
         }
         if (otherPixels != 0 && (changed || !LockPixels(PM(otherPixels)))) {
-            otherWindow = (CGrafPtr)pixels->window;
+            otherWindow = pixels->window;
             otherWorld = (GWorldPtr)pixels->drawDC;
             otherDevice = GD(pixels);
             GetPixelsState(PM(otherPixels));
@@ -1102,7 +1102,7 @@ void _DT_ImageUnlock(ITImage *image, ITImage *other)
         AtomicMaskClear(&pixels->flags, kPixelsLockBit);
 #if TARGET_API_MAC_CARBON
         if (pixels->info[1] == 1 && pixels->window != 0) {
-            pixels->drawDC = (long)GetWindowPort((WindowRef)pixels->window);
+            pixels->drawDC = (long)GetWindowPort(pixels->window);
             UnlockPortBits((CGrafPtr)pixels->drawDC);
             pixels->dib = (ITDib *)GetPortPixMap((CGrafPtr)pixels->drawDC);
             pixels->rowBytes = GetPixRowBytes(PM(pixels));

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* cedebug.c -- EV Nova CE: the debug-mode keys and NCB prompts, signed NumToString, the
    hyperspace flash colour (CEFIX only). Notes: Research/cefix-plan.md */
 #ifdef CEFIX

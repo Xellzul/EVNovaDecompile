@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* crashlog.c -- debug logging. Notes: Research/notes/crashlog.md */
 #include <stdio.h>
 

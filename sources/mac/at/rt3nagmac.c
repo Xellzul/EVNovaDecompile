@@ -231,7 +231,7 @@ done:
 /* the word for a count: the window's language table has it wide or plain, else the English one */
 #define SET_WORD(name, plural, wide, wides, plain, plains, english, englishes, next)    \
     if (IT_ViewIsWide(window)) {                                                        \
-        const unsigned short *w = HashLookupUnicode(strings, (plural) == 1 ? wide : wides, 0); \
+        const unsigned short *w = (const unsigned short *)HashLookupUnicode(strings, (const unsigned short *)((plural) == 1 ? wide : wides), 0); \
         if (w != 0) {                                                                   \
             e = IT_ViewParamTextWide(0, name, w != 0 ? w : kEmptyW);                    \
             if (e != 0) {                                                               \
@@ -450,7 +450,7 @@ long RT3_RunReminder(unsigned char force, unsigned char *registered)
         err = kOutOfMemory;
         goto done;
     }
-    chunk = IndirectDuplicate(resource);
+    chunk = IndirectDuplicate((void **)resource);
     ReleaseResource(resource);
     if (chunk == 0) {
         err = kOutOfMemory;

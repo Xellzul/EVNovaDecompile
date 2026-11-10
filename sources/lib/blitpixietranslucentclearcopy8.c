@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* blitpixietranslucentclearcopy8.c -- BlitPixieTranslucentClearCopy8 (win 0x00473dc0). Notes: Research/notes/blitpixietranslucentclearcopy8.md */
 #include "macport.h"
 #include "shipobj.h"
