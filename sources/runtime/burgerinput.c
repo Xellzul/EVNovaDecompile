@@ -72,7 +72,7 @@ void Halt(void)
 // FUNCTION: EVNOVA 0x004d9d10
 void DebugXString(const char *string)
 {
-    struct _FILE *log;
+    evn_FILE *log;
     unsigned int length;
 
     if (Inited == kDebugLockNone) {
@@ -84,7 +84,7 @@ void DebugXString(const char *string)
         EnterCriticalSection(Semi);
     length = strlen(string);
     if (length != 0) {
-        log = (struct _FILE *)FOpenExpandedPath("LogFile.Txt", "a");
+        log = (evn_FILE *)FOpenExpandedPath("LogFile.Txt", "a");
         if (log != 0) {
             fwrite(string, 1, length, log);
             fclose(log);

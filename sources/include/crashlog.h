@@ -23,7 +23,7 @@ extern void crashlog_print_num(int num);                                  /* 0x0
 extern void crashlog_mission_bit_set(char *str, char *pstr, short num, short num2, char *setString); /* 0x00470220 */
 extern void crashlog(char *str);                                          /* 0x00470390 */
 #ifdef MAC1010
-extern struct _FILE *crashlog_get_file(void);
+extern evn_FILE *crashlog_get_file(void);
 #endif
 extern Boolean crashlog_isactive(void);                                      /* 0x004703c0 */
 

@@ -215,7 +215,7 @@ local void copy_block     OF((deflate_state *s, charf *buf, unsigned len,
   }\
 }
 
-local void tr_static_init()
+local void tr_static_init(void)
 {
 }
 

@@ -24,7 +24,7 @@ void BlitPixieVersionString( char string[BLITPIXIE_VERSION_STRINGLEN] )
 
 /* BlitPixieGetProcessorType (mac _BlitPixieGetProcessorType, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieGetProcessorType i386 0x000c02fe ppc 0x000cbf64
-void BlitPixieGetProcessorType()
+void BlitPixieGetProcessorType(void)
 {
 	OSErr		err;
 	long		response;

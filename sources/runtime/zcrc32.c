@@ -459,7 +459,7 @@ local const unsigned long FAR crc_table[TBLS][256] = {  /* 0x0057d3f8 */
 };
 
 /* not linked: dead-stripped in the exe; kept for the TU's data */
-const unsigned long FAR * ZEXPORT get_crc_table()
+const unsigned long FAR * ZEXPORT get_crc_table(void)
 {
   return (const unsigned long FAR *)crc_table;
 }

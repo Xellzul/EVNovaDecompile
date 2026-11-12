@@ -20,13 +20,13 @@ const char * const z_errmsg[10] = {
 ""};
 
 /* not linked: dead-stripped in the exe; kept for the TU's data */
-const char * ZEXPORT zlibVersion()
+const char * ZEXPORT zlibVersion(void)
 {
     return ZLIB_VERSION;
 }
 
 /* not linked: dead-stripped in the exe; kept for the TU's data */
-uLong ZEXPORT zlibCompileFlags()
+uLong ZEXPORT zlibCompileFlags(void)
 {
     uLong flags;
 

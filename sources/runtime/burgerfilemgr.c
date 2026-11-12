@@ -15,8 +15,8 @@ extern "C" {
 
 #define kFirstHardDrive 2                        /* C: */
 
-long SaveAFileFP(struct _FILE *file, const void *data, unsigned long length);
-void *LoadAFileHandleFP(struct _FILE *file);
+long SaveAFileFP(evn_FILE *file, const void *data, unsigned long length);
+void *LoadAFileHandleFP(evn_FILE *file);
 
 Handle PrefixHandles[PREFIXMAX];                /* 0x0087071c */
 static Word8 SetPfxInited;                       /* 0x00867488 */
@@ -324,7 +324,7 @@ void PopAPrefix(unsigned int num)
 /* fwritelong (BurgerLib's void signature). STATE: MATCH 100.0%, exe 10 / obj 10, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f22b0
-void fwritelong(long value, struct _FILE *stream)
+void fwritelong(long value, evn_FILE *stream)
 {
     fwrite(&value, 1, 4, stream);
 }
@@ -333,7 +333,7 @@ void fwritelong(long value, struct _FILE *stream)
 /* fwritestr (BurgerLib's void signature). STATE: MATCH 100.0%, exe 16 / obj 16, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f22e0
-void fwritestr(const char *s, struct _FILE *stream)
+void fwritestr(const char *s, evn_FILE *stream)
 {
     fwrite(s, 1, strlen(s) + 1, stream);
 }
@@ -341,7 +341,7 @@ void fwritestr(const char *s, struct _FILE *stream)
 /* fgetlong (BurgerLib fgetlong). STATE: MATCH 100.0%, exe 12 / obj 12, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f2310
-long fgetlong(struct _FILE *stream)
+long fgetlong(evn_FILE *stream)
 {
     long value;
 
@@ -388,7 +388,7 @@ long SaveAFile(const char *path, const void *data, unsigned long length)
 
 /* SaveAFileFP. STATE: MATCH 100%, exe 39 / obj 39 instrs, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f2430
-long SaveAFileFP(struct _FILE *file, const void *data, unsigned long length)
+long SaveAFileFP(evn_FILE *file, const void *data, unsigned long length)
 {
     unsigned long written;
     int closed;
@@ -500,7 +500,7 @@ void *LoadAFileHandle(const char *path)
 /* Read the whole file into a new handle and close it. */
 /* LoadAFileHandleFP. STATE: MATCH 100.0%, exe 62 / obj 62, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f2650
-void *LoadAFileHandleFP(struct _FILE *file)
+void *LoadAFileHandleFP(evn_FILE *file)
 {
     ULong size;
     ULong got;

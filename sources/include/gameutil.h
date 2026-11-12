@@ -117,7 +117,7 @@ struct _FILE;
 /* a plug-in file's type, 'Np' 0x95 'f' (MacRoman) */
 #define kPlugInFileType 0x4e709566
 #ifdef MAC1010
-extern short CountEVPlugins(short refNum, ConstStr255Param folderName, OSType type, struct _FILE *log);
+extern short CountEVPlugins(short refNum, ConstStr255Param folderName, OSType type, evn_FILE *log);
 extern OSErr GetSubfolderOfFile(short refNum, ConstStr255Param name, long *dirID, short *vRefNum);
 extern OSErr GetPluginSubfolder(short refNum, ConstStr255Param name, long *dirID, short *vRefNum);
 extern short gARef;
@@ -125,7 +125,7 @@ extern short gARef;
 extern short CountEVPlugins(FSRef folder, OSType type);
 #endif
 #else
-extern short CountEVPlugins(const char *path, const char *ext, struct _FILE *log);
+extern short CountEVPlugins(const char *path, const char *ext, evn_FILE *log);
 #endif
 extern void ResourceDetach(RezFile *rez, long index);
 extern Word ResourceGetIDFromHandle(RezFile *rez, Handle h, long *idFound,

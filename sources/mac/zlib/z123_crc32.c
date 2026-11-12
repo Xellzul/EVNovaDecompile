@@ -103,7 +103,7 @@ local void make_crc_table OF((void));
   allow for word-at-a-time CRC calculation for both big-endian and little-
   endian machines, where a word is four bytes.
 */
-local void make_crc_table()
+local void make_crc_table(void)
 {
     unsigned long c;
     int n, k;
@@ -202,7 +202,7 @@ local void write_table(out, table)
 /* =========================================================================
  * This function can be used by asm versions of crc32()
  */
-const unsigned long FAR * ZEXPORT get_crc_table()
+const unsigned long FAR * ZEXPORT get_crc_table(void)
 {
 #ifdef DYNAMIC_CRC_TABLE
     if (crc_table_empty)

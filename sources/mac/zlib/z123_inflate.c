@@ -266,7 +266,7 @@ struct inflate_state FAR *state;
 
     a.out > inffixed.h
  */
-void makefixed()
+void makefixed(void)
 {
     unsigned low, size;
     struct inflate_state state;

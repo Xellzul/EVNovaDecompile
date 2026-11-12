@@ -66,4 +66,7 @@ typedef struct Image_t {
 typedef enum {IMAGE332=4,IMAGE8ALPHA=5,IMAGE8_PAL_ALPHA_PAL=6,IMAGE8_PAL_ALPHA=7,IMAGE8_PAL=8,
     IMAGE4444=13,IMAGE1555=14,IMAGE555=15,IMAGE565=16,IMAGE888=24,IMAGE8888=32} ImageTypes_e;
 
+/* the C library's FILE by its MSL tag, the same tokens in C and C++ */
+#define evn_FILE struct _FILE
+
 #endif

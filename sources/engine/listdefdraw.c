@@ -32,9 +32,7 @@ short offeringShipIndex;
 short tempMissions[kMaxMissions];
 short nextPortMission;
 short lastPortMissionLoc;
-#ifndef MACBUILD
-DialogPtr missionDialog;
-#endif
+DialogPtr missionDialog = NULL;
 DialogPtr missionInfoDialog;
 ScrollRec **missionList;
 ScrollRec **missionInfoList;

@@ -712,12 +712,12 @@ extern void AtomicLeaveCritical(void *token);
 extern ULongLong TimerGetMilliseconds(void);
 extern void SystemIdle(void);
 extern long ST_Open(unsigned short channels, ULong device);
-extern long fgetstr(char *buf, long size, struct _FILE *stream);
-extern void fwritelong(long value, struct _FILE *stream);
-extern void fwritestr(const char *s, struct _FILE *stream);
-extern long fgetlong(struct _FILE *stream);
-extern void *LoadAFileFP(struct _FILE *fp, unsigned long *length);
-extern ULong fgetfilesize(struct _FILE *fp);     /* BurgerLib fgetfilesize */
+extern long fgetstr(char *buf, long size, evn_FILE *stream);
+extern void fwritelong(long value, evn_FILE *stream);
+extern void fwritestr(const char *s, evn_FILE *stream);
+extern long fgetlong(evn_FILE *stream);
+extern void *LoadAFileFP(evn_FILE *fp, unsigned long *length);
+extern ULong fgetfilesize(evn_FILE *fp);     /* BurgerLib fgetfilesize */
 extern long CreateDirectoryPathNative(char *path);            /* BurgerLib CreateDirectoryPathNative */
 extern char *ParseQuotedString(char *out, long outSize, const char *src);
 extern void MouseSetRange(long width, long height);   /* BurgerLib MouseSetRange */
@@ -1084,20 +1084,20 @@ static inline void BlockMoveData(const void *src, void *dst, ULong size)
 #endif
 #ifdef MACBUILD
 #ifdef MAC1010
-extern short OpenEVPlugins(short refNum, ConstStr255Param folderName, OSType type, struct _FILE *log);
+extern short OpenEVPlugins(short refNum, ConstStr255Param folderName, OSType type, evn_FILE *log);
 #else
 extern short OpenEVPlugins(FSRef folder, OSType type);
 #endif
 #else
 extern short OpenEVPlugins(const char *path, const char *ext,
-                           struct _FILE *log);
+                           evn_FILE *log);
 #endif
 #if defined(__MWERKS__) && !defined(MACBUILD) && !defined(__cplusplus)
-extern int fclose(struct _FILE *file);
+extern int fclose(evn_FILE *file);
 extern unsigned int fread(void *ptr, unsigned int size, unsigned int count,
-                          struct _FILE *stream);
+                          evn_FILE *stream);
 extern unsigned int fwrite(const void *ptr, unsigned int size, unsigned int count,
-                           struct _FILE *stream);
+                           evn_FILE *stream);
 #endif
 #if defined(__MWERKS__) && !defined(MACBUILD) && (!defined(__cplusplus) || !defined(_MSL_CSTDLIB))
 extern int atexit(void (*fn)(void));
