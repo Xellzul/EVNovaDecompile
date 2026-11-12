@@ -649,6 +649,72 @@ extern unsigned char creditsString[0x100];
 extern unsigned char legalStatusStrings[18][256];
 extern unsigned char govtTargStrings[256][256];
 #define kButtonLabelCount 61
+/* buttonLabel[] indices: STR# 150 (kButtonStrList) entry - 1 */
+#define kLeaveButtonLabel           0
+#define kBuyButtonLabel             1
+#define kSellButtonLabel            2
+#define kBuyShipButtonLabel         3
+#define kDoneButtonLabel            4
+#define kRechargeButtonLabel        5
+#define kTradeCenterButtonLabel     6
+#define kOutfitterButtonLabel       7
+#define kShipyardButtonLabel        8
+#define kBarButtonLabel             9
+#define kGambleButtonLabel          10
+#define kHolovidButtonLabel         11
+#define kHireEscortButtonLabel      12
+#define kBet1000ButtonLabel         13
+#define kBet5000ButtonLabel         14
+#define kMissionBBSButtonLabel      15
+#define kMinusButtonLabel           16      /* "-" */
+#define kPlusButtonLabel            17      /* "+" */
+#define kScrollUpButtonLabel        18      /* "^" */
+#define kScrollDownButtonLabel      19      /* "&" */
+#define kCloseChannelButtonLabel    20
+#define kGreetingsButtonLabel       21
+#define kRequestAssistButtonLabel   22
+#define kOfferBribeButtonLabel      23
+#define kBegMercyButtonLabel        24
+#define kAcceptButtonLabel          25
+#define kOkButtonLabel              26
+#define kAcceptPaymentButtonLabel   27
+#define kDemandMoreButtonLabel      28
+#define kAcceptPriceButtonLabel     29
+#define kLowerPriceButtonLabel      30
+#define kReleaseButtonLabel         31
+#define kSelectButtonLabel          32
+#define kCancelButtonLabel          33
+#define kAbortButtonLabel           34
+#define kGeneralButtonLabel         35
+#define kCargoButtonLabel           36
+#define kExtrasButtonLabel          37
+#define kHonorsButtonLabel          38
+#define kPlunderCargoButtonLabel    39      /* "Cargo", the plunder dialog's */
+#define kCreditsButtonLabel         40
+#define kAmmoButtonLabel            41
+#define kEnergyButtonLabel          42
+#define kCaptureShipButtonLabel     43
+#define kDemandTributeButtonLabel   44
+#define kUseAsEscortButtonLabel     45
+#define kUseAsMyShipButtonLabel     46
+#define kInfoButtonLabel            47
+#define kClearRouteButtonLabel      48
+#define kYesButtonLabel             49
+#define kNoButtonLabel              50
+#define kUpgradeEscortButtonLabel   51
+#define kCancelUpgradeButtonLabel   52
+#define kSellEscortButtonLabel      53
+#define kCancelSaleButtonLabel      54
+#define kShowBordersButtonLabel     55
+#define kHideBordersButtonLabel     56
+#define kHelpButtonLabel            57
+#define kBetButtonLabel             58
+#define kFindButtonLabel            59
+#define kJettisonButtonLabel        60
+/* DrawButton states */
+#define kButtonDim                  (-1)
+#define kButtonDisabled             -2
+#define kButtonPicture              (-3)
 extern unsigned char buttonLabel[kButtonLabelCount][256];
 extern char datePrefix[0x10];
 extern char dateSuffix[0x10];

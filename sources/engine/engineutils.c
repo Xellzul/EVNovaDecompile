@@ -432,12 +432,12 @@ void SystemInfoToShipStats(void)
 {
     short i;
 
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < kMaxWeapTypes; i++) {
         shipData->weap[i].count = 0;
         shipData->weap[i].ammo = 0;
     }
 
-    for (i = 0; i < 512; i++) {
+    for (i = 0; i < kMaxOutfits; i++) {
         if (shipSystems[i] <= 0)
             continue;
         if (outfitSystem[i].techLevel >= kOutfTechAbsent)
@@ -462,10 +462,10 @@ long ShipFreeMass(void)
     long mass;
 
     type = shipData[0].type;
-    if (type < 0 || type >= 768)
+    if (type < 0 || type >= kMaxShipTypes)
         return 0;
     free = shipClass[type].freeMass;
-    for (i = 0; i < 512; i++) {
+    for (i = 0; i < kMaxOutfits; i++) {
         if (shipSystems[i] > 0) {
             mass = AdjustedItemMass(&outfitSystem[i], &shipClass[shipData[0].type]);
             free -= mass * shipSystems[i];
@@ -542,7 +542,7 @@ float ShipShieldCapacity(ShipObj *ship)
         if (playerShieldCapacity >= 0.0f) {
             cap = playerShieldCapacity;
         } else {
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModShieldBoost)
@@ -560,7 +560,7 @@ float ShipShieldCapacity(ShipObj *ship)
                 cap = cap * personData[ship->persType].shieldMod;
         }
     }
-    if (ship->index != 0 && ship->aiType == 5)
+    if (ship->index != 0 && ship->aiType == kShipTypeFighter)
         cap *= 1.333;
     return cap;
 }
@@ -582,7 +582,7 @@ float ShipShieldRechargeRate(ShipObj *ship)
         if (playerShieldRechargeRate >= 0.0f) {
             cap = playerShieldRechargeRate;
         } else {
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModShieldRech)
@@ -598,7 +598,7 @@ float ShipShieldRechargeRate(ShipObj *ship)
     }
     if (cap < 0.0f)
         cap = 0.0f;
-    if (ship->index != 0 && ship->aiType == 5)
+    if (ship->index != 0 && ship->aiType == kShipTypeFighter)
         cap *= 1.333;
     return cap;
 }
@@ -626,7 +626,7 @@ float ShipArmorCapacity(ShipObj *ship)
         if (playerArmorCapacity >= 0.0f) {
             cap = playerArmorCapacity;
         } else {
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModArmor)
@@ -645,7 +645,7 @@ float ShipArmorCapacity(ShipObj *ship)
                 cap = cap * personData[pers].shieldMod;
         }
     }
-    if (ship->index != 0 && ship->aiType == 5)
+    if (ship->index != 0 && ship->aiType == kShipTypeFighter)
         cap *= 1.333;
     return cap;
 }
@@ -668,7 +668,7 @@ float ShipArmorRechargeRate(ShipObj *ship)
         if (playerArmorRechargeRate >= 0.0f) {
             cap = playerArmorRechargeRate;
         } else {
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModArmorRech)
@@ -745,7 +745,7 @@ Boolean ShipFuelGenRate(ShipObj *ship, float *rate)
             ship->fuelRegenRate = 1.0 / (float)shipClass[ship->type].fuelRegen;
         }
         if (ship->index == 0) {
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModType18) {
@@ -756,11 +756,11 @@ Boolean ShipFuelGenRate(ShipObj *ship, float *rate)
                 }
             }
         } else {
-            for (i = 0; i < 8; i++) {
+            for (i = 0; i < kDefaultOutfitSlots; i++) {
                 if (shipClass[ship->type].defOutfCount[i] > 0) {
                     short id = shipClass[ship->type].defOutfID[i];
 
-                    if (id >= 0 && id < 512) {
+                    if (id >= 0 && id < kMaxOutfits) {
                         for (j = 0; j < kOutfMods; j++) {
                             if (outfitSystem[id].modType[j] == kOutfModType18) {
                                 ship->fuelRegenState = 1;
@@ -817,7 +817,7 @@ float ShipTurnRate(ShipObj *ship)
         if (playerTurnRate >= 0.0f) {
             v = playerTurnRate;
         } else {
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModTurn)
@@ -868,7 +868,7 @@ float ShipAccelRate(ShipObj *ship)
         if (playerAccelRate >= 0.0f) {
             v = playerAccelRate;
         } else {
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModAccel)
@@ -922,7 +922,7 @@ float ShipMaxSpeed(ShipObj *ship)
         if (playerMaxSpeed >= 0.0f) {
             v = playerMaxSpeed;
         } else {
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModSpeed)
@@ -968,7 +968,7 @@ Boolean HasEscapePod(ShipObj *ship)
     short j;
 
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModBay)
@@ -1007,7 +1007,7 @@ Boolean HasEscapeShip(ShipObj *ship)
     short i;
     short type;
 
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < kMaxWeapTypes; i++) {
         if (weaponStats[i].guidance == kGuidanceBay &&
             ship->weap[i].ammo > 0) {
             type = weaponStats[i].ammoType - 128;
@@ -1026,7 +1026,7 @@ short EscapeShipType(ShipObj *ship)
     short i;
     short type;
 
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < kMaxWeapTypes; i++) {
         if (weaponStats[i].guidance == kGuidanceBay &&
             ship->weap[i].ammo > 0) {
             type = weaponStats[i].ammoType - 128;
@@ -1067,7 +1067,7 @@ Boolean KeyCarriedShipTypeOnboard(ShipObj *ship)
     escort = shipClass[ship->type].keyCarried;
     if (escort == -1)
         return 0;
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < kMaxWeapTypes; i++) {
         if (weaponStats[i].guidance == kGuidanceBay &&
             ship->weap[i].count > 0 && ship->weap[i].ammo > 0) {
             bay = (weaponStats[i].ammoType - 128);
@@ -1092,7 +1092,7 @@ Boolean HasAutoEject(ShipObj *ship)
     short j;
 
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType20)
@@ -1120,7 +1120,7 @@ Boolean HasAfterburner(ShipObj *ship)
                 return 1;
         } else {
             playerHasAfterburner = 0;
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModType15) {
@@ -1155,14 +1155,14 @@ short ShipECM(ShipObj *ship, short kind)
         return ship->jamming[kind];
 
     if (shipClass[ship->type].inherentGovtB >= 0 &&
-        shipClass[ship->type].inherentGovtB < 256)
+        shipClass[ship->type].inherentGovtB < kMaxGovts)
         ship->jamming[kind] =
             govtData[shipClass[ship->type].inherentGovtB].inhJam[kind];
     else
         ship->jamming[kind] = 0;
 
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType33 + kind)
@@ -1171,7 +1171,7 @@ short ShipECM(ShipObj *ship, short kind)
             }
         }
     } else {
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
@@ -1181,7 +1181,7 @@ short ShipECM(ShipObj *ship, short kind)
                 }
             }
         }
-        if (ship->govt >= 0 && ship->govt < 256 &&
+        if (ship->govt >= 0 && ship->govt < kMaxGovts &&
             (govtData[ship->govt].flags & kGovtFreighterHalfJam) != 0)
             ship->jamming[kind] = ship->jamming[kind] / 2;
     }
@@ -1253,7 +1253,7 @@ Boolean HasCloak(ShipObj *ship)
     short j;
 
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType17)
@@ -1266,7 +1266,7 @@ Boolean HasCloak(ShipObj *ship)
             ShipIsCloaked(&shipData[ship->parentShip]) &&
             HasAreaCloak(&shipData[ship->parentShip]))
             return 1;
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
@@ -1296,7 +1296,7 @@ Boolean HasAreaCloak(ShipObj *ship)
                 return 1;
         } else {
             playerHasAreaCloak = 0;
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModType17 &&
@@ -1309,7 +1309,7 @@ Boolean HasAreaCloak(ShipObj *ship)
             }
         }
     } else {
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
@@ -1339,7 +1339,7 @@ short CloakFuelUsage(ShipObj *ship)
     short j;
 
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModNibblePair)
@@ -1360,7 +1360,7 @@ Boolean CloakZeroesShields(ShipObj *ship)
     short j;
 
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType17) {
@@ -1372,7 +1372,7 @@ Boolean CloakZeroesShields(ShipObj *ship)
             }
         }
     } else {
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
@@ -1398,7 +1398,7 @@ Boolean ShipDecloaksWhenHit(ShipObj *ship)
     short j;
 
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType17) {
@@ -1410,7 +1410,7 @@ Boolean ShipDecloaksWhenHit(ShipObj *ship)
             }
         }
     } else {
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
@@ -1436,7 +1436,7 @@ short CloakShieldUsage(ShipObj *ship)
     short j;
 
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType17)
@@ -1445,7 +1445,7 @@ short CloakShieldUsage(ShipObj *ship)
             }
         }
     } else {
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
@@ -1475,7 +1475,7 @@ Boolean ShipCloakVisibleOnRadar(ShipObj *ship)
     short j;
 
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType17 &&
@@ -1485,7 +1485,7 @@ Boolean ShipCloakVisibleOnRadar(ShipObj *ship)
             }
         }
     } else {
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
@@ -1515,7 +1515,7 @@ Boolean ShipCanSeeCloakedShips(ShipObj *ship, short which)
     if (ship->persType == kPersTypeAlways)
         return 1;
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType30) {
@@ -1530,7 +1530,7 @@ Boolean ShipCanSeeCloakedShips(ShipObj *ship, short which)
             }
         }
     } else {
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
@@ -1565,7 +1565,7 @@ Boolean HasDensityScanner(ShipObj *ship)
                 return 1;
         } else {
             playerHasDensityScanner = 0;
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModType13) {
@@ -1595,7 +1595,7 @@ Boolean HasIFF(ShipObj *ship)
                 return 1;
         } else {
             playerHasIFF = 0;
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModType14) {
@@ -1627,7 +1627,7 @@ short ShipHyperTransitTime(ShipObj *ship)
     if (shipClass[ship->type].mass >= 200)
         count++;
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType22)
@@ -1658,7 +1658,7 @@ long ShipHyperSafeDist(ShipObj *ship)
 
     range = 1000;
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType23)
@@ -1682,25 +1682,15 @@ long ShipHyperSafeDist(ShipObj *ship)
 // MAC: _HasMaxOfItem i386 0x00004512 ppc 0x000058b4
 Boolean HasMaxOfItem(short index, short *outBound, short *outCap)
 {
-#ifdef MAC1010 /* 1.0.10 spelling */
-    short sumOwned;
     short sumFlag1;
     short sumFlag2;
     short j;
     short k;
+    short sumOwned;
     short limit;
     short ammo;
-#else
-    short limit;
-    short maxCount;
-    short j;
-    short k;
-    short sumFlag1;
-    short sumFlag2;
-    short sumOwned;
-#endif
 
-    if (index < 0 || index >= 0x200) {
+    if (index < 0 || index >= kMaxOutfits) {
         if (outBound)
             *outBound = 0;
         if (outCap)
@@ -1708,7 +1698,6 @@ Boolean HasMaxOfItem(short index, short *outBound, short *outCap)
         return 1;
     }
 
-#ifdef MAC1010 /* 1.0.10 spelling */
     limit = outfitSystem[index].maxCount;
     if (outCap)
         *outCap = limit;
@@ -1725,27 +1714,9 @@ Boolean HasMaxOfItem(short index, short *outBound, short *outCap)
             }
         }
     }
-#else
-    maxCount = outfitSystem[index].maxCount;
-    if (outCap)
-        *outCap = maxCount;
-
-    if (outfitSystem[index].modType[0] == kOutfModAmmo) {
-        if (weaponStats[outfitSystem[index].modVal[0]].maxAmmo > 0) {
-            limit = weaponStats[outfitSystem[index].modVal[0]].maxAmmo * shipData->weap[outfitSystem[index].modVal[0]].count;
-            if (outCap && limit < *outCap)
-                *outCap = limit;
-            if (shipSystems[index] >= limit) {
-                if (outBound)
-                    *outBound = limit;
-                return 1;
-            }
-        }
-    }
-#endif
 
     sumOwned = 0;
-    for (j = 0; j < 0x200; j++) {
+    for (j = 0; j < kMaxOutfits; j++) {
         if (shipSystems[j] > 0) {
             for (k = 0; k < kOutfMods; k++) {
                 if (outfitSystem[j].modType[k] == kModTypeMaxOwned &&
@@ -1766,7 +1737,7 @@ Boolean HasMaxOfItem(short index, short *outBound, short *outCap)
     }
 
     sumFlag1 = sumFlag2 = 0;
-    for (j = 0; j < 0x200; j++) {
+    for (j = 0; j < kMaxOutfits; j++) {
         if (shipSystems[j] > 0) {
             if (outfitSystem[j].flags & kOutfFixedGun)
                 sumFlag1 += shipSystems[j];
@@ -1777,7 +1748,7 @@ Boolean HasMaxOfItem(short index, short *outBound, short *outCap)
 
     if (outfitSystem[index].flags & kOutfFixedGun) {
         limit = shipClass[shipData->type].maxGuns;
-        for (j = 0; j < 0x200; j++) {
+        for (j = 0; j < kMaxOutfits; j++) {
             if (shipSystems[j] > 0) {
                 for (k = 0; k < kOutfMods; k++) {
                     if (outfitSystem[j].modType[k] == kModTypeGunLimit) {
@@ -1803,7 +1774,7 @@ Boolean HasMaxOfItem(short index, short *outBound, short *outCap)
 
     if (outfitSystem[index].flags & kOutfTurret) {
         limit = shipClass[shipData->type].maxTurrets;
-        for (j = 0; j < 0x200; j++) {
+        for (j = 0; j < kMaxOutfits; j++) {
             if (shipSystems[j] > 0) {
                 for (k = 0; k < kOutfMods; k++) {
                     if (outfitSystem[j].modType[k] == kModTypeTurretLimit) {
@@ -2113,7 +2084,7 @@ void ColorCodeSystem(short sys, RGBColor *color)
     first = FindFirstCoLocatedSystem(sys);
     sys = FindActiveCoLocatedSystem(sys);
     *color = rgbDarkGrey;
-    if (sys < 0 || sys >= 2048 || first < 0 || first >= 2048)
+    if (sys < 0 || sys >= kMaxSystems || first < 0 || first >= kMaxSystems)
         return;
     if (systemData[first].exploreLevel > 0) {
         if (SystemIsInhabited(sys)) {
@@ -2878,7 +2849,7 @@ void ShowHint(void)
     HPurge(h);
     ReleaseResource(h);
     GetIndString(hint, kHintStrList, Rand(count) + 1);
-    DisplayComm((PStrChar *)hint, 250, 0, 12, &rgbWhite, 0, 0);
+    DisplayComm((PStrChar *)hint, 250, 0, kCommTextSize, &rgbWhite, 0, 0);
 }
 #endif
 
@@ -2892,7 +2863,7 @@ void DisplayMessage(short index)
 
     if (LoadPluginString(index + kMessageStrings - 1, (StringPtr)text) == 0)
         GetIndString((StringPtr)text, kMessageStrings, index);
-    DisplayComm((PStrChar *)text, 480, 0, 12, &rgbWhite, 0, 0);
+    DisplayComm((PStrChar *)text, 480, 0, kCommTextSize, &rgbWhite, 0, 0);
 }
 
 /* Walk the gamma ramp to `percent` brightness over `duration` milliseconds. */
@@ -3132,7 +3103,7 @@ Boolean ShipCanCloak(ShipObj *ship)
     found = 0;
     idx = ship->index;
     if (idx == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType17) {
@@ -3146,7 +3117,7 @@ Boolean ShipCanCloak(ShipObj *ship)
             }
         }
     } else {
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
@@ -3196,7 +3167,7 @@ void DoShipCloak(ShipObj *ship)
         if (ship->shield > 0.0f && CloakZeroesShields(ship)) {
             ship->shield = 0;
             if (ship->index == 0)
-                statusRedraw[1] = 1;
+                statusRedraw[kRedrawShield] = 1;
         }
     }
 }
@@ -3438,7 +3409,7 @@ void DateToLongString(DateTimeRec date, char *out)
 
 /*
  * Disabled is three unrelated things at once: the government marks all its
- * ships that way, a mission of kind 5 holds this ship disabled, or the armour
+ * ships that way, a rescue mission holds this ship disabled, or the armour
  * has fallen below the threshold - a tenth for ship types carrying flag 0x10,
  * otherwise a third.
  */
@@ -3457,7 +3428,7 @@ Boolean IsDisabled(ShipObj *ship)
     if (ship->index > 0) {
         mission = ship->specialMission;
         if (mission != -1 && currentMissionObjectives[mission].active != '\0'
-                && currentMissions[mission].shipGoal == 5
+                && currentMissions[mission].shipGoal == kMissionGoalRescue
                 && currentMissionObjectives[mission].objectivesDone == '\0'
                 && ship->boarded == '\0')
             return 1;
@@ -3497,9 +3468,9 @@ Boolean CanHireEscorts(void)
     short escorts;
 
     escorts = 0;
-    for (i = 1; i < 64; i++) {
+    for (i = 1; i < kMaxShips; i++) {
         if (shipData[i].active != 0 && shipData[i].parentShip == 0 &&
-            shipData[i].aiType == 6 && shipData[i].specialMission == -1)
+            shipData[i].aiType == kShipTypeEscort && shipData[i].specialMission == -1)
             escorts++;
     }
     if (escorts < kMaxHiredEscorts)
@@ -3526,7 +3497,7 @@ Boolean WeaponHasAmmo(ShipObj *ship, short weaponIndex)
             return 0;
     } else {
         ammoType = weaponStats[weaponIndex].ammoType;
-        if (ammoType >= 0 && ammoType < 256) {
+        if (ammoType >= 0 && ammoType < kMaxWeapTypes) {
             if (ship->index == 0) {
                 if (ship->weap[ammoType].ammo <= 0)
                     return 0;
@@ -3746,7 +3717,7 @@ long PlayerShipTradeInPrice(void)
     long cost;
 
     value = (shipClass[shipData->type].cost * 0.25);
-    for (i = 0; i < 512; i++) {
+    for (i = 0; i < kMaxOutfits; i++) {
         if (shipSystems[i] > 0 && outfitSystem[i].persistent == 0) {
             cost = AdjustedItemCost(&outfitSystem[i], &shipClass[shipData->type]);
             value = value + cost * shipSystems[i] * 0.5;
@@ -3768,7 +3739,7 @@ Boolean PlayerCanUseAmmoType(short weapIndex)
 {
     short i;
 
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < kMaxWeapTypes; i++) {
         if (shipData->weap[i].count > 0) {
 #ifdef MAC1010
             long w;
@@ -3951,7 +3922,7 @@ Boolean HasMaxFightersOnBoard(short shipType)
         }
     }
     if (bay != -1) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             for (k = 0; k < kOutfMods; k++) {
                 if (outfitSystem[i].techLevel != kOutfTechAbsent && outfitSystem[i].modType[k] == 3
                         && outfitSystem[i].modVal[k] == bay) {
@@ -3969,8 +3940,6 @@ Boolean HasMaxFightersOnBoard(short shipType)
 }
 #endif
 
-#define kEscortFighter   5
-
 /* CanBuyFighter (mac _CanBuyFighter). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004694a0
 // MAC: _CanBuyFighter i386 0x00005a82 ppc 0x00007190
@@ -3982,7 +3951,7 @@ Boolean CanBuyFighter(short shipType, short outfitIndex, short weapIndex)
     short m;
 
     if (outfitIndex == -1 && weapIndex == -1) {
-        for (i = 0; i < 256; i++) {
+        for (i = 0; i < kMaxWeapTypes; i++) {
             if (shipData->weap[i].count > 0 &&
                 weaponStats[i].guidance == kGuidanceBay &&
                 weaponStats[i].ammoType - 128 == shipType) {
@@ -3991,7 +3960,7 @@ Boolean CanBuyFighter(short shipType, short outfitIndex, short weapIndex)
             }
         }
         if (weapIndex == -1) {
-            for (i = 0; i < 256; i++) {
+            for (i = 0; i < kMaxWeapTypes; i++) {
                 if (shipData->weap[i].count > 0 &&
                     weaponStats[i].guidance == kGuidanceBay &&
                     shipClass[weaponStats[i].ammoType - 128].spriteIndex ==
@@ -4003,7 +3972,7 @@ Boolean CanBuyFighter(short shipType, short outfitIndex, short weapIndex)
         }
         if (weapIndex == -1)
             return 0;
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             for (m = 0; m < kOutfMods; m++) {
                 if (outfitSystem[i].techLevel < kOutfTechAbsent &&
                     outfitSystem[i].modType[m] == kOutfModAmmo &&
@@ -4027,11 +3996,11 @@ Boolean CanBuyFighter(short shipType, short outfitIndex, short weapIndex)
     else
         limit = outfitSystem[outfitIndex].maxCount;
 
-    for (m = 1; m < 64; m++) {
+    for (m = 1; m < kMaxShips; m++) {
         if (shipData[m].active != 0 &&
             shipType == shipData[m].type &&
             shipData[m].parentShip == 0 &&
-            shipData[m].aiType == kEscortFighter &&
+            shipData[m].aiType == kShipTypeFighter &&
             shipData[m].specialMission == -1)
             count++;
     }
@@ -4051,9 +4020,9 @@ short TotalFleetHolds(void)
     long total;
 
     total = ShipTotalHolds();
-    for (i = 1; i < 64; i++) {
+    for (i = 1; i < kMaxShips; i++) {
         if (shipData[i].active != 0 && !IsDying(&shipData[i])
-                && shipData[i].parentShip == 0 && shipData[i].aiType == 6
+                && shipData[i].parentShip == 0 && shipData[i].aiType == kShipTypeEscort
                 && shipData[i].specialMission == -1
                 && shipClass[shipData[i].type].inherentAI <= 2)
             total += shipClass[shipData[i].type].cargo;
@@ -4083,16 +4052,16 @@ void DestroyPartialFleetCargo(short shipIndex)
         newShipHolds = shipClass[shipData[shipIndex].type].cargo;
     }
     fleetHolds = ShipTotalHolds();
-    for (i = 1; i < 64; i++) {
+    for (i = 1; i < kMaxShips; i++) {
         if (shipData[i].active != 0 && (!IsDying(&shipData[i]) || i == shipIndex)
                 && shipData[i].curSystem == shipData->curSystem
-                && shipData[i].parentShip == 0 && shipData[i].aiType == 6
+                && shipData[i].parentShip == 0 && shipData[i].aiType == kShipTypeEscort
                 && shipData[i].specialMission == -1
                 && shipClass[shipData[i].type].inherentAI <= 2)
             fleetHolds = shipClass[shipData[i].type].cargo + fleetHolds;
     }
     totalCargo = 0.0;
-    for (i = 0; i <= 5; i++)
+    for (i = 0; i <= kLastCommodity; i++)
         totalCargo += shipData->cargo[i];
     for (i = 0; i < kMaxJunks; i++)
         totalCargo += junkData[i].held;
@@ -4101,7 +4070,7 @@ void DestroyPartialFleetCargo(short shipIndex)
     if (ratio > 1.0)
         ratio = 1.0;
 
-    for (i = 0; i <= 5; i++) {
+    for (i = 0; i <= kLastCommodity; i++) {
         rounded = (shipData->cargo[i] * ratio);
         if (shipData->cargo[i] <= rounded) {
             shipData->cargo[i] = 0;
@@ -4122,7 +4091,7 @@ void DestroyPartialFleetCargo(short shipIndex)
         if (junkData[i].held < 0)
             junkData[i].held = 0;
     }
-    statusRedraw[2] = 1;
+    statusRedraw[kRedrawCargo] = 1;
     ResetPlayerPrecalcedValues();
 }
 
@@ -4381,9 +4350,7 @@ void SetupPortAvailableShipTypes(SpobRecord *port)
     short i;
     short j;
     short k;
-    short n;
     short best;
-    short a;
 #else
     short i;
     short j;
@@ -4464,34 +4431,6 @@ void SetupPortAvailableShipTypes(SpobRecord *port)
         }
     }
 
-#if V111 /* V111 spelling */
-    for (a = 0; a < kMaxShipTypes; a++) {
-        if (avail[a] && (shipClass[a].flags3 & kShipSupersedes)) {
-            for (k = a + 1; k < kMaxShipTypes; k++) {
-                if (shipClass[k].dispWeight == shipClass[a].dispWeight)
-                    avail[k] = 0;
-            }
-        }
-    }
-
-    k = 0;
-    do {
-        count = 0;
-        best = 0;
-        for (n = 0; n < kMaxShipTypes; n++) {
-            if (avail[n]) {
-                if (shipClass[n].dispWeight >= threshold) {
-                    dockedPortShipTypes[k++] = n;
-                    avail[n] = 0;
-                } else if (shipClass[n].dispWeight > best || count == 0) {
-                    best = shipClass[n].dispWeight;
-                }
-                count++;
-            }
-        }
-        threshold = best;
-    } while (count > 0);
-#else
     for (i = 0; i < kMaxShipTypes; i++) {
         if (avail[i] && (shipClass[i].flags3 & kShipSupersedes)) {
             for (k = i + 1; k < kMaxShipTypes; k++) {
@@ -4509,8 +4448,8 @@ void SetupPortAvailableShipTypes(SpobRecord *port)
             if (avail[i]) {
                 if (shipClass[i].dispWeight >= threshold) {
                     dockedPortShipTypes[k] = i;
-                    avail[i] = 0;
                     k++;
+                    avail[i] = 0;
                 } else if (shipClass[i].dispWeight > best || j == 0) {
                     best = shipClass[i].dispWeight;
                 }
@@ -4519,7 +4458,6 @@ void SetupPortAvailableShipTypes(SpobRecord *port)
         }
         threshold = best;
     } while (j > 0);
-#endif
 }
 
 
@@ -4621,14 +4559,9 @@ Boolean SetupPortAvailableItems(SpobRecord *port)
         for (i = 0; i < kMaxOutfits; i++) {
             if (avail[i]) {
                 if (outfitSystem[i].dispWeight >= threshold) {
-#if V111 /* V111 spelling */
-                    dockedPortItems[count++] = i;
-                    avail[i] = 0;
-#else
                     dockedPortItems[count] = i;
-                    avail[i] = 0;
                     count++;
-#endif
+                    avail[i] = 0;
                 } else {
                     n = outfitSystem[i].dispWeight;
                     if (n > best || j == 0)
@@ -4656,7 +4589,7 @@ short TotalCargo(ShipObj *ship)
     short total;
 
     total = 0;
-    for (i = 0; i <= 5; i++)
+    for (i = 0; i <= kLastCommodity; i++)
         total += ship->cargo[i];
     if (ship->index == 0) {
         for (i = 0; i < kMaxActiveMissions; i++) {
@@ -4679,7 +4612,7 @@ Boolean PlayerHasAnyCargo(void)
 {
     short i;
 
-    for (i = 0; i <= 5; i++) {
+    for (i = 0; i <= kLastCommodity; i++) {
         if (shipData[0].cargo[i] > 0)
             return 1;
     }
@@ -4704,12 +4637,12 @@ void InstantFighterRecall(void)
     short j;
 
     for (i = 1; i < kMaxShips; i++) {
-        if (shipData[i].active && shipData[i].parentShip == 0 && shipData[i].aiType == 5
+        if (shipData[i].active && shipData[i].parentShip == 0 && shipData[i].aiType == kShipTypeFighter
                 && shipData[i].specialMission == -1) {
             for (j = 0; j < kMaxWeapTypes; j++) {
                 if (weaponStats[j].ammoType == shipData[i].type + kFirstResourceID && weaponStats[j].guidance == kGuidanceBay) {
                     shipData[0].weap[j].ammo++;
-                    statusRedraw[3] = 1;
+                    statusRedraw[kRedrawWeap] = 1;
                     break;
                 }
             }
@@ -4729,7 +4662,7 @@ short ShipTotalHolds(void)
     short j;
 
     holds = shipClass[shipData->type].cargo;
-    for (i = 0; i < 512; i++) {
+    for (i = 0; i < kMaxOutfits; i++) {
         if (shipSystems[i] > 0) {
             for (j = 0; j < kOutfMods; j++) {
                 if (outfitSystem[i].modType[j] == kOutfModCargo)
@@ -4922,7 +4855,7 @@ short ShipAntiInterference(void)
 
     if (playerAntiInterference < -100) {
         total = 0;
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType24)
@@ -4994,12 +4927,12 @@ void SpawnNagShip(void)
             if (totalDaysPlayed > 30) {
             ST_PlaySound(beepSnd[4], 1, gSoundVolume);
             GetIndString(msg, kHackedStrList, Rand(3) + 5);
-            DisplayComm((PStrChar *)msg, 0x168, 0, 12, &rgbWhite, 0, 0);
+            DisplayComm((PStrChar *)msg, 0x168, 0, kCommTextSize, &rgbWhite, 0, 0);
             }
 
             shipData[slot].persType = kPersCaptainHector;
             shipData[slot].type = personData[kPersCaptainHector].shipType;
-            shipData[slot].aiType = 4;
+            shipData[slot].aiType = kShipTypeInterceptor;
 
             total = 0.0f;
             if (totalDaysPlayed >= 60)
@@ -5027,7 +4960,7 @@ void SpawnNagShip(void)
             shipData[slot].aggression = 4;
             shipData[slot].govt = -1;
 
-            for (chance = 0; chance < 256; chance++) {
+            for (chance = 0; chance < kMaxWeapTypes; chance++) {
                 shipData[slot].weap[chance].count = shipClass[shipData[slot].type].weapCount[chance];
                 shipData[slot].weap[chance].ammo = shipClass[shipData[slot].type].weapAmmo[chance];
                 shipData[slot].weap[chance].count += personData[kPersCaptainHector].weapCount[chance];
@@ -5084,7 +5017,7 @@ Boolean AIHasAfterburner(ShipObj *ship)
     short flags;
 
     if (ship->index != 0) {
-        for (i = 1; i < 64; i++) {
+        for (i = 1; i < kMaxShips; i++) {
             if (i != ship->index && shipData[i].active != 0
                     && ship->index == shipData[i].swarmLeader)
                 return 0;
@@ -5327,7 +5260,7 @@ short FindActiveCoLocatedSystem(short sys)
 {
     short next;
 
-    if (sys < 0 || sys >= 2048)
+    if (sys < 0 || sys >= kMaxSystems)
         return -1;
     if (systemData[sys].colocGroup == -1) {
         if (systemData[sys].loaded != 0)
@@ -5410,7 +5343,7 @@ short FindNearestValidShotTarget(ShotObj *shot)
     short dist;
 
     best = -1;
-    for (i = 0; i < 64; i++) {
+    for (i = 0; i < kMaxShips; i++) {
         if (shipData[i].active != 0 &&
             shipData[i].curSystem == shipData->curSystem &&
             ShotCanHitShip(shot, &shipData[i])) {
@@ -5551,8 +5484,8 @@ Boolean GovtSharedClass(short a, short b)
 
     if (a == b)
         return 1;
-    if (a >= 0 && a < 256 && b >= 0 && b < 256) {
-        for (i = 0; i < 4; i++) {
+    if (a >= 0 && a < kMaxGovts && b >= 0 && b < kMaxGovts) {
+        for (i = 0; i < kGovtClasses; i++) {
             if (govtData[a].classes[i] >= 0 &&
                 govtData[a].classes[i] == govtData[b].classes[i])
                 return 1;
@@ -5577,7 +5510,7 @@ float ShipDeionizationRate(ShipObj *ship)
         if (playerDeionizeRate >= 0.0f) {
             value = playerDeionizeRate;
         } else {
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModType39)
@@ -5608,7 +5541,7 @@ float ShipIonizationFactor(ShipObj *ship)
         if (playerIonizeMax >= 0.0f) {
             total = playerIonizeMax;
         } else {
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModType40)
@@ -5639,7 +5572,7 @@ short PlayerEffectiveMurk(void)
     level = systemData[shipData[0].curSystem].murk;
     if (level < 0)
         level = 0;
-    for (i = 0; i < 512; i++) {
+    for (i = 0; i < kMaxOutfits; i++) {
         if (shipSystems[i] > 0) {
             for (j = 0; j < kOutfMods; j++) {
                 if (outfitSystem[i].modType[j] == kOutfModType28)
@@ -5857,7 +5790,7 @@ Boolean ShipCanTargetUntargetableShips(ShipObj *ship)
                 return 1;
         } else {
             playerCanTargetUntargetableShips = 0;
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModType30 &&
@@ -5870,7 +5803,7 @@ Boolean ShipCanTargetUntargetableShips(ShipObj *ship)
             }
         }
     } else {
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
@@ -5901,7 +5834,7 @@ Boolean ShipCanTargetCloakedShips(ShipObj *ship)
                 return 1;
         } else {
             playerCanTargetCloakedShips = 0;
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModType30 &&
@@ -5914,7 +5847,7 @@ Boolean ShipCanTargetCloakedShips(ShipObj *ship)
             }
         }
     } else {
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
@@ -5940,7 +5873,7 @@ Boolean ShipCanScoop(ShipObj *ship)
     short j;
 
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType31)
@@ -5949,7 +5882,7 @@ Boolean ShipCanScoop(ShipObj *ship)
             }
         }
     } else {
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
@@ -6039,7 +5972,7 @@ short ShipJumpsPerJump(ShipObj *ship)
 
     total = 1;
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType32)
@@ -6048,7 +5981,7 @@ short ShipJumpsPerJump(ShipObj *ship)
             }
         }
     } else {
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
@@ -6110,7 +6043,7 @@ Boolean ShipCanExpiditeJumps(ShipObj *ship)
     if ((shipClass[ship->type].flags2 & kShipJumpsAtSpeed) != 0)
         return 1;
     if (ship->index == 0) {
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[i].modType[j] == kOutfModType37)
@@ -6119,7 +6052,7 @@ Boolean ShipCanExpiditeJumps(ShipObj *ship)
             }
         }
     } else {
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[ship->type].defOutfCount[i] > 0) {
                 for (j = 0; j < kOutfMods; j++) {
                     if (outfitSystem[shipClass[ship->type].defOutfID[i]].modType[j] ==
@@ -6146,11 +6079,11 @@ Boolean ShipsShareParent(ShipObj *a, ShipObj *b)
 #ifdef MAC1010
     rootA = a->index;
     while (shipData[rootA].active != 0 && (next = shipData[rootA].parentShip) >= 0
-           && next < 64 && rootA != next)
+           && next < kMaxShips && rootA != next)
         rootA = next;
     rootB = b->index;
     while (shipData[rootB].active != 0 && (next = shipData[rootB].parentShip) >= 0
-           && next < 64 && rootB != next)
+           && next < kMaxShips && rootB != next)
         rootB = next;
     return rootA == rootB;
 #else
@@ -6161,7 +6094,7 @@ Boolean ShipsShareParent(ShipObj *a, ShipObj *b)
         next = shipData[rootA].parentShip;
         if (next < 0)
             break;
-        if (next >= 64)
+        if (next >= kMaxShips)
             break;
         if (rootA == next)
             break;
@@ -6174,7 +6107,7 @@ Boolean ShipsShareParent(ShipObj *a, ShipObj *b)
         next = shipData[rootB].parentShip;
         if (next < 0)
             break;
-        if (next >= 64)
+        if (next >= kMaxShips)
             break;
         if (rootB == next)
             break;
@@ -6319,7 +6252,7 @@ void ResetPlayerPrecalcedValues(void)
         }
     }
 
-    for (i = 0; i < 0x80; i++) {
+    for (i = 0; i < kMaxJunks; i++) {
         if (junkData[i].held > 0) {
             if (junkData[i].scanMask != 0)
                 playerHasIllegalJunk = 1;
@@ -6330,14 +6263,14 @@ void ResetPlayerPrecalcedValues(void)
         }
     }
 
-    for (i = 0; i < 0x200; i++) {
+    for (i = 0; i < kMaxOutfits; i++) {
         if (shipSystems[i] > 0 && outfitSystem[i].scanMask != 0) {
             playerHasIllegalOutfits = 1;
             break;
         }
     }
 
-    for (i = 0; i < 0x200; i++) {
+    for (i = 0; i < kMaxOutfits; i++) {
         if (shipSystems[i] > 0) {
             for (j = 0; j < kOutfMods; j++) {
                 if (outfitSystem[i].modType[j] == kModScan2F) {
@@ -6353,8 +6286,8 @@ void ResetPlayerPrecalcedValues(void)
                     if (outfitSystem[i].modVal[j] == -1) {
                         allReinforcementsInhibited = 1;
                     } else {
-                        for (k = 0; k < 0x100; k++) {
-                            for (m = 0; m < 4; m++) {
+                        for (k = 0; k < kMaxGovts; k++) {
+                            for (m = 0; m < kGovtClasses; m++) {
                                 if (govtData[k].classes[m] ==
                                         outfitSystem[i].modVal[j] &&
                                     govtData[k].classes[m] != -1) {
@@ -6366,8 +6299,8 @@ void ResetPlayerPrecalcedValues(void)
                     }
                 }
                 if (outfitSystem[i].modType[j] == kModJam30) {
-                    for (k = 0; k < 0x100; k++) {
-                        for (m = 0; m < 4; m++) {
+                    for (k = 0; k < kMaxGovts; k++) {
+                        for (m = 0; m < kGovtClasses; m++) {
                             if (govtData[k].classes[m] ==
                                     outfitSystem[i].modVal[j] &&
                                 govtData[k].classes[m] != -1) {
@@ -6394,35 +6327,35 @@ void ResetPlayerPrecalcedValues(void)
     holds = TotalFleetHolds();
     cargo = TotalCargo(shipData);
     if (cargo > holds) {
-        for (i = 0; i <= 5; i++)
+        for (i = 0; i <= kLastCommodity; i++)
             shipData->cargo[i] *= holds / (float)cargo;
-        statusRedraw[2] = 1;
+        statusRedraw[kRedrawCargo] = 1;
     }
-    for (i = 0; i <= 5; i++) {
+    for (i = 0; i <= kLastCommodity; i++) {
         if (shipData->cargo[i] < 0) {
             shipData->cargo[i] = 0;
-            statusRedraw[2] = 1;
+            statusRedraw[kRedrawCargo] = 1;
         }
     }
-    for (i = 0; i < 0x80; i++) {
+    for (i = 0; i < kMaxJunks; i++) {
         if (junkData[i].held < 0) {
             junkData[i].held = 0;
-            statusRedraw[2] = 1;
+            statusRedraw[kRedrawCargo] = 1;
         }
     }
     shipData->seesCloaked[0] = -1;
     shipData->seesCloaked[1] = -1;
     shipData->decloaksWhenHit = -1;
 
-    for (j = 0; j < 0x100; j++) {
+    for (j = 0; j < kMaxGovts; j++) {
         govtData[j].blessesPlayer[0] = 0;
         govtData[j].blessesPlayer[1] = 0;
     }
-    for (i = 0; i < 0x80; i++) {
+    for (i = 0; i < kMaxRanks; i++) {
         if (rankData[i].active != 0 && rankData[i].loaded != 0 &&
             (rankData[i].flags & (kRankNotAttacked | kRankCanAlwaysLand)) != 0 &&
             rankData[i].govt != -1) {
-            for (j = 0; j < 0x100; j++) {
+            for (j = 0; j < kMaxGovts; j++) {
                 if (GovtAllies(j, rankData[i].govt) != 0) {
                     if ((rankData[i].flags & kRankNotAttacked) != 0)
                         govtData[j].blessesPlayer[0] = 1;
@@ -6456,7 +6389,7 @@ Boolean ShipIsInertialess(ShipObj *ship)
                 return 1;
         } else {
             playerHasInertialDamper = 0;
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModType38) {
@@ -6487,7 +6420,7 @@ float ShipAfterburnerFuelUsage(ShipObj *ship)
     if (ship->index == 0) {
         if (playerABFuelUsage < 0.0) {
             playerABFuelUsage = 0.0f;
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModType15) {
@@ -6523,7 +6456,7 @@ short ShipResistsGravity(ShipObj *ship)
                 return 1;
         } else {
             playerResistsGravity = 0;
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModType41) {
@@ -6557,7 +6490,7 @@ short ShipResistsDeadlyStellars(ShipObj *ship)
                 return 1;
         } else {
             playerResistsDeadlyStellars = 0;
-            for (i = 0; i < 512; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 if (shipSystems[i] > 0) {
                     for (j = 0; j < kOutfMods; j++) {
                         if (outfitSystem[i].modType[j] == kOutfModType42) {
@@ -6891,7 +6824,7 @@ void CheckLoMem(void)
 // MAC: _PlayerBlessedByGovt i386 0x00002732 ppc 0x00003188
 unsigned char PlayerBlessedByGovt(short govt, short which)
 {
-    if (govt < 0 || govt >= 256)
+    if (govt < 0 || govt >= kMaxGovts)
         return 0;
     if (which < 0 || which > 1)
         return 0;
@@ -7031,7 +6964,7 @@ short PickEmergeStellar(ShipObj *ship)
     pick = Rand(3) == 0 ? 1 : 0;
     spob = SelectRandomStellarDest(ship, pick, 0);
 #endif
-    if (spob >= 0 && spob < 2048 && SpobIsHyperOrWorm(&stellarData[spob]))
+    if (spob >= 0 && spob < kMaxStellars && SpobIsHyperOrWorm(&stellarData[spob]))
         return spob;
     return -1;
 }
@@ -7050,7 +6983,7 @@ short PlayerHasFightersOfOutfitType(short outfitIndex)
     for (i = 0; i < kOutfMods; i++) {
         if (outfitSystem[outfitIndex].modType[i] == kOutfModAmmo) {
             weapon = outfitSystem[outfitIndex].modVal[i];
-            if (weapon >= 0 && weapon < 256) {
+            if (weapon >= 0 && weapon < kMaxWeapTypes) {
                 if (weaponStats[weapon].guidance == kGuidanceBay)
                     bayType = weaponStats[weapon].ammoType - 128;
             }
@@ -7062,12 +6995,12 @@ short PlayerHasFightersOfOutfitType(short outfitIndex)
         return 0;
 
     count = 0;
-    for (k = 1; k < 64; k++) {
+    for (k = 1; k < kMaxShips; k++) {
         if (shipData[k].active == 0)
             continue;
         if (shipData[k].parentShip != 0)
             continue;
-        if (shipData[k].aiType != 5)
+        if (shipData[k].aiType != kShipTypeFighter)
             continue;
         if (bayType != shipData[k].type)
             continue;
@@ -7078,7 +7011,7 @@ short PlayerHasFightersOfOutfitType(short outfitIndex)
     if (count > 0)
         return count;
 
-    for (k = 0; k < 256; k++) {
+    for (k = 0; k < kMaxWeapTypes; k++) {
         if (weaponStats[k].guidance != kGuidanceBay)
             continue;
         if (shipData[0].weap[k].count <= 0)
@@ -7103,7 +7036,7 @@ short StellarNumHyperLinks(SpobRecord *spob)
         return 0;
     count = 0;
     for (i = 0; i < kSpobHyperLinks; i++) {
-        if (spob->hyperLinks[i] >= 0 && spob->hyperLinks[i] < 2048)
+        if (spob->hyperLinks[i] >= 0 && spob->hyperLinks[i] < kMaxStellars)
             count = count + 1;
     }
     return count;
@@ -7268,7 +7201,7 @@ Boolean ShipIsDerelict(ShipObj *ship)
     short govt;
 
     govt = ship->govt;
-    if (govt >= 0 && govt < 256 && (govtData[govt].flags & kGovtAlwaysDisabled) != 0)
+    if (govt >= 0 && govt < kMaxGovts && (govtData[govt].flags & kGovtAlwaysDisabled) != 0)
         return 1;
     return 0;
 }
@@ -7280,7 +7213,7 @@ Boolean PlayerHasJettisonableCargo(void)
 {
     short i;
 
-    for (i = 0; i < 6; i++) {
+    for (i = 0; i < kCargoTypes; i++) {
         if (shipData[0].cargo[i] > 0)
             return 1;
     }
@@ -7342,7 +7275,7 @@ short WeaponMaxSimultShots(ShipObj *ship, short w)
                     count = ammo;
             } else {
                 type = weaponStats[w].ammoType;
-                if (type >= 0 && type < 256) {
+                if (type >= 0 && type < kMaxWeapTypes) {
                     ammo = ship->weap[type].ammo;
                     if (ammo < count)
                         count = ammo;

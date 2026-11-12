@@ -5,9 +5,7 @@
 
 #include "burgertypes.h"
 #include "burger.h"
-#ifndef MAC1010
 #include "win32.h"
-#endif
 
 ULong gPlatLockOwnerThread;                              /* 0x008705d0 owning thread */
 static long gAtomicCount;                        /* 0x0086b6b8 lock depth */

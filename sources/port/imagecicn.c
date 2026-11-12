@@ -1,7 +1,7 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* imagecicn.c -- BurgerLib's ImageParseCicn (win 0x004d2bd0), the cicn decoder GetCIcon feeds a raw resource. Notes: Research/notes/imagecicn.md */
 #include "macport.h"
-/* Image_t is pinned by vendor/burgerlib/Burger_2004_period.h: ImagePtr +0, PalettePtr
+/* Image_t is pinned by vendor-obsolete/burgerlib/Burger_2004_period.h: ImagePtr +0, PalettePtr
    +4, AlphaPtr +8, Width +0xc, Height +0x10, RowBytes +0x14, DataType +0x18. Index 0's
    colour is relocated to a free slot so 0 can mean black/transparent. */
 

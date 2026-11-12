@@ -68,11 +68,7 @@ void BlitPixieRLEAddOver(unsigned char *rleTokens, unsigned char *dstPixel,
         case 2:
             BlitPixieAddOverCopy(dstPixel, rleTokens, count);
             rleTokens += count;
-#if defined(MACBUILD) && V111
-            (long)rleTokens += (-rleTokens) & 3;
-#else
             rleTokens += (-(long)rleTokens) & 3;
-#endif
             dstPixel += count;
             break;
 

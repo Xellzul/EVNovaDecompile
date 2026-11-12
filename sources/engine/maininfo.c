@@ -25,7 +25,6 @@
 #ifdef MACBUILD
 #include "../mac/include/rt3_ev_nova.h"
 
-#define kStrListMainInfo    140
 #define kStrDepth256         17
 #define kStrDepthThousands   18
 #define kStrResolution       19
@@ -479,7 +478,6 @@ void MainScreenUpdate(short which)
 #endif
 
 #define kShippingVer    "1.0.A"
-#define kVersionStrList 0x8c
 #define kUpgradePrompt  0x33
 #define kUrlStrList     0x82
 #define kUrlIndex       6
@@ -525,7 +523,7 @@ void MainScreenIdle(void)
                 reggieSuccess = 1;
                 reggieStarted = 0;
                 if (strcmp(reggieVersion, kShippingVer) > 0) {
-                    GetIndString(text, kVersionStrList, kUpgradePrompt);
+                    GetIndString(text, kAlertStrList, kUpgradePrompt);
                     wanted = EVYesNoDialog(text);
                     MainScreenUpdate(1);
                     if (wanted) {
@@ -602,7 +600,7 @@ void MainScreenIdle(void)
                 reggieStarted = 0;
                 if (memcmp(reggieVersion, kShippingVer,
                            sizeof(kShippingVer)) > 0) {
-                    GetIndString(text, kVersionStrList, kUpgradePrompt);
+                    GetIndString(text, kAlertStrList, kUpgradePrompt);
                     wanted = EVYesNoDialog(text);
                     MainScreenUpdate(1);
                     if (wanted) {
@@ -730,8 +728,10 @@ void SetupInterfaceBackground(void)
 
 
 #define kPlainStrIdx  0x118
-#define kItem3StrList 0x8c
+#define kItemMemoryText 0x13
 #define kItem3StrIdx  0x10
+#define kBytesPerMB   1000000
+#define kMemorySlack  (10 * kBytesPerMB)
 
 /* PrefsDialogUpdate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004884f0
@@ -742,7 +742,7 @@ void PrefsDialogUpdate(void)
     Rect box;
 
     SetDialogGWorld(prefsDialog);
-    GetDialogItem(prefsDialog, 0x13, NULL, NULL, &box);
+    GetDialogItem(prefsDialog, kItemMemoryText, NULL, NULL, &box);
     RGBForeColor(&rgbBlack);
     EraseRect(&box);
     MoveTo(box.left, (box.bottom - 10));
@@ -763,7 +763,7 @@ void PrefsDialogUpdate(void)
         GetDialogItem(prefsDialog, 3, NULL, NULL, &box);
         EraseRect(&box);
         MoveTo(box.left, (box.bottom - 5));
-        DrawIndString(kItem3StrList, kItem3StrIdx);
+        DrawIndString(kAlertStrList, kItem3StrIdx);
     }
 }
 #endif
@@ -964,14 +964,14 @@ void DoPrefsDialog(void)
         }
 
         SetDialogGWorld(prefsDialog);
-        GetDialogItem(prefsDialog, 0x13, &itemType, (Handle *)&item, &box);
+        GetDialogItem(prefsDialog, kItemMemoryText, &itemType, (Handle *)&item, &box);
         ForeColor(blackColor);
         EraseRect(&box);
         MoveTo(box.left, box.bottom - 10);
         if (gameLoaded != 0 || gWind == NULL) {
             TextFont(0);
             TextSize(12);
-            DrawIndString(kGameStrList, 0x118);
+            DrawIndString(kGameStrList, kPlainStrIdx);
         } else {
             TextFont(smallTextFont);
             TextSize(smallTextSize);
@@ -983,25 +983,25 @@ void DoPrefsDialog(void)
                 size += engineGlowSize;
             if (settings.weaponGlows != 0)
                 size += weaponGlowSize;
-            needed = size + 10000000;
+            needed = size + kMemorySlack;
             if ((unsigned long)needed > startupMemoryFree) {
                 needed -= startupMemoryFree;
-                needed = needed / 1000000 + 1;
+                needed = needed / kBytesPerMB + 1;
                 NumToString(needed, volText);
-                DrawIndString(kItem3StrList, 0xb);
+                DrawIndString(kAlertStrList, 0xb);
                 DrawString("\p ");
                 DrawString(volText);
                 DrawString("\p ");
                 if (needed == 1)
-                    DrawIndString(kItem3StrList, 0xc);
+                    DrawIndString(kAlertStrList, 0xc);
                 else
-                    DrawIndString(kItem3StrList, 0xd);
+                    DrawIndString(kAlertStrList, 0xd);
                 DrawString("\p ");
-                DrawIndString(kItem3StrList, 0xe);
+                DrawIndString(kAlertStrList, 0xe);
             } else {
-                DrawIndString(kItem3StrList, 0xf);
+                DrawIndString(kAlertStrList, 0xf);
                 DrawString("\p ");
-                DrawIndString(kItem3StrList, 0xe);
+                DrawIndString(kAlertStrList, 0xe);
             }
 #endif
         }
@@ -1014,7 +1014,7 @@ void DoPrefsDialog(void)
             GetDialogItem(prefsDialog, 3, &itemType, (Handle *)&item, &box);
             EraseRect(&box);
             MoveTo(box.left, box.bottom - 5);
-            DrawIndString(kItem3StrList, kItem3StrIdx);
+            DrawIndString(kAlertStrList, kItem3StrIdx);
         }
 
         ModalDialog(NULL, &itemHit);
@@ -1441,9 +1441,9 @@ void EnterGameFromMainScreen(void)
         if (device != NULL) {
             if ((*(*device)->gdPMap)->pixelSize != gSpriteWorld->pixelDepth) {
                 if (gSpriteWorld->pixelDepth == 8)
-                    GetIndString(msg, kStrListMainInfo, kStrDepth256);
+                    GetIndString(msg, kAlertStrList, kStrDepth256);
                 else
-                    GetIndString(msg, kStrListMainInfo, kStrDepthThousands);
+                    GetIndString(msg, kAlertStrList, kStrDepthThousands);
                 EVNoteAlert(msg);
                 return;
             }
@@ -1455,7 +1455,7 @@ void EnterGameFromMainScreen(void)
 #else
                 msg[0] = 0;
 #endif
-                StrcatIndCString((char *)msg, kStrListMainInfo, kStrResolution);
+                StrcatIndCString((char *)msg, kAlertStrList, kStrResolution);
                 strcat((char *)msg, " ");
                 NumToString(mainDeviceInitBounds.right - mainDeviceInitBounds.left, num);
                 PtoCstr(num);
@@ -1465,7 +1465,7 @@ void EnterGameFromMainScreen(void)
                 PtoCstr(num);
                 strcat((char *)msg, (char *)num);
                 strcat((char *)msg, " ");
-                StrcatIndCString((char *)msg, kStrListMainInfo, kStrResolutionTail);
+                StrcatIndCString((char *)msg, kAlertStrList, kStrResolutionTail);
                 CtoPstr((char *)msg);
                 EVNoteAlert(msg);
                 return;
@@ -1744,7 +1744,7 @@ void EnterGameFromMainScreen(void)
     SWUpdateSpriteWorld(gSpriteWorld, 1);
     RedrawComm(0);
 #endif
-    statusRedraw[2] = 1;
+    statusRedraw[kRedrawCargo] = 1;
     escortMenuOnscreen = 0;
     mBarHidden = 1;
     gPause = 0;
@@ -2062,7 +2062,7 @@ void EnterGameFromMainScreen(void)
     RefreshSAT();
     SWUpdateSpriteWorld(gSpriteWorld, 1);
     RedrawComm(0);
-    statusRedraw[2] = 1;
+    statusRedraw[kRedrawCargo] = 1;
     escortMenuOnscreen = 0;
     mBarHidden = 1;
     gPause = 0;
@@ -2142,7 +2142,6 @@ void EnterGameFromMainScreen(void)
 #endif
 
 #define kNewNameStrList  128
-#define kOverwriteList   140
 
 /* DoNewPilot (mac _DoNewPilot). STATE: MATCH 100.0%, 416 exact / 208 reloc-equivalent /
    0 mismatched, exe 624 / obj 624, relocregcheck 0 of 208; byte-identical yes (2669 bytes,
@@ -2203,7 +2202,7 @@ void DoNewPilot(void)
         SWSetPortToWindow(gSpriteWorld);
         MainScreenAnimDraw();
         MainScreenUpdate(1);
-        GetIndString(prompt, kOverwriteList, 9);
+        GetIndString(prompt, kAlertStrList, 9);
         ok = EVYesNoDialog(prompt);
         if (!ok)
             return;
@@ -2241,19 +2240,19 @@ void DoNewPilot(void)
     ResetPlayer(1);
     ResetPlayerRecord(1);
     ResetGameData();
-    for (i = 0; i < 512; i++)
+    for (i = 0; i < kMaxOutfits; i++)
         shipSystems[i] = 0;
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < kMaxWeapTypes; i++) {
         shipData->weap[i].count = 0;
         shipData->weap[i].ammo = 0;
     }
     ActivateCharResource(newPilotPopupChoice[0], 1);
-    for (i = 0; i < 2048; i++)
+    for (i = 0; i < kMaxSystems; i++)
         systemData[i].exploreLevel = 0;
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < kMaxWeapTypes; i++) {
         shipData->weap[i].count = shipClass[shipData->type].weapCount[i];
         if (shipClass[shipData->type].weapAmmo[i] > 0) {
-            if (weaponStats[i].ammoType >= 0 && weaponStats[i].ammoType < 256)
+            if (weaponStats[i].ammoType >= 0 && weaponStats[i].ammoType < kMaxWeapTypes)
                 shipData->weap[weaponStats[i].ammoType].ammo =
                     shipClass[shipData->type].weapAmmo[i];
             else
@@ -2270,12 +2269,12 @@ void DoNewPilot(void)
         if (systemData[shipData->curSystem].links[i] != -1
             && systemData[systemData[shipData->curSystem].links[i]].loaded != 0) {
             sys = FindFirstCoLocatedSystem(systemData[shipData->curSystem].links[i]);
-            if (sys >= 0 && sys < 2048)
+            if (sys >= 0 && sys < kMaxSystems)
                 systemData[sys].exploreLevel = 1;
         }
     }
     sys = FindFirstCoLocatedSystem(shipData->curSystem);
-    if (sys >= 0 && sys < 2048)
+    if (sys >= 0 && sys < kMaxSystems)
         systemData[sys].exploreLevel = 1;
     mapScroll.h = systemData[shipData->curSystem].pos.h;
     mapScroll.v = systemData[shipData->curSystem].pos.v;
@@ -2327,7 +2326,7 @@ void DoNewPilot(void)
             }
         }
     }
-    for (i = 0; i < 2048; i++) {
+    for (i = 0; i < kMaxStellars; i++) {
         if ((stellarData[i].flags2 & kSpobAlwaysDominated) != 0)
             stellarData[i].dominated = 1;
         else

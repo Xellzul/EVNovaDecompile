@@ -232,10 +232,8 @@ void DrawStatusShield(void)
         CopyBits(GWorldContainerPixMap(&statusOffPort), (BitMapPtr)GWorldContainerBits(&loadPort),
                  &srcRect, &dstRect, 0, 0);
         if (shipData[0].shield > 0.0f) {
-#if !V111
             float cap;
             float level;
-#endif
             CopyRect(&barRect, &dstRect);
             cap = ShipShieldCapacity(shipData);
             level = shipData[0].shield;
@@ -722,7 +720,7 @@ void DrawStatusTarg(void)
                     mission = shipData[shipData[0].targetShip].specialMission;
                     if (mission != -1) {
                         if (currentMissionObjectives[mission].active != 0 &&
-                            currentMissions[mission].shipGoal == 5 &&
+                            currentMissions[mission].shipGoal == kMissionGoalRescue &&
                             currentMissionObjectives[mission].objectivesDone == 0 &&
                             shipData[shipData[0].targetShip].boarded == 0) {
                             if ((shipClass[shipData[shipData[0].targetShip].type].flags & kShipArmorDisableTenth) != 0) {

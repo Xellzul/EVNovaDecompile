@@ -1,7 +1,7 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* portbuttons.c -- the spaceport's button pair, TrackPlanetButtons and DrawPlanetButtons. Notes: Research/notes/portbuttons.md, Research/notes/trackplanetbuttons.md */
 /*
- * A disabled button draws with state -2, the selected one with the hilite
+ * A disabled button draws kButtonDisabled, the selected one with the hilite
  * flag, and everything else plain.
  */
 #include <stddef.h>
@@ -17,7 +17,6 @@
 #include "stellar.h"
 
 #define kLabelSlot      0x100
-#define kButtonDisabled    -2
 
 
 /* button slots: the index into the spaceport's Rect array */
@@ -179,13 +178,13 @@ void DrawPlanetButtons(short selected)
     else
         live[6] = 0;
 
-    planetButtonTable[0] = 0;
-    planetButtonTable[1] = 5;
-    planetButtonTable[2] = 6;
-    planetButtonTable[3] = 7;
-    planetButtonTable[4] = 8;
-    planetButtonTable[5] = 0xf;
-    planetButtonTable[6] = 9;
+    planetButtonTable[0] = kLeaveButtonLabel;
+    planetButtonTable[1] = kRechargeButtonLabel;
+    planetButtonTable[2] = kTradeCenterButtonLabel;
+    planetButtonTable[3] = kOutfitterButtonLabel;
+    planetButtonTable[4] = kShipyardButtonLabel;
+    planetButtonTable[5] = kMissionBBSButtonLabel;
+    planetButtonTable[6] = kBarButtonLabel;
 
     for (i = 0; i <= kPortButtons - 1; i++) {
         if (live[i] != 0) {

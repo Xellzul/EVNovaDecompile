@@ -1003,10 +1003,6 @@ void _StringFormatNumber(char *buf, ULongLong value, ULong base, const char *dig
                   ULong flags, ULong width, ULong precision)
 {
     ULongLong v;
-#ifdef MAC1010 /* 1.0.10 spelling: base held in two 64-bit copies */
-    ULongLong scan;
-    ULongLong radix;
-#endif
     ULong n;
     long err;
 
@@ -1016,19 +1012,10 @@ void _StringFormatNumber(char *buf, ULongLong value, ULong base, const char *dig
         buf++;
     n = 1;
     v = value;
-#ifdef MAC1010 /* 1.0.10 spelling */
-    radix = base;
-    scan = base;
-    while ((LongLong)(v - scan) >= 0) {
-        n++;
-        v /= scan;
-    }
-#else
     while ((LongLong)(v - base) >= 0) {
         n++;
         v /= base;
     }
-#endif
     if (n < precision)
         n = precision;
     if (width == kNoWidth)
@@ -1042,15 +1029,9 @@ void _StringFormatNumber(char *buf, ULongLong value, ULong base, const char *dig
     }
     buf[n] = 0;
     while (n--) {
-#ifdef MAC1010 /* 1.0.10 spelling */
-        v = value % radix;
-        buf[--width] = digits[v];
-        value /= radix;
-#else
         v = value % base;
         buf[--width] = digits[v];
         value /= base;
-#endif
     }
     while (width != 0)
         buf[--width] = (flags & kFlagZero) != 0 ? '0' : ' ';

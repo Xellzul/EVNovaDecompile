@@ -32,8 +32,9 @@
 #define kLastRow       7
 #define kBuyItem       13
 #define kSellItem      14
+#define kPictCacheSlots 128
 
-PictCacheSlot iconCache[128];
+PictCacheSlot iconCache[kPictCacheSlots];
 DialogPtr alertDialog;
 DialogPtr depthDialog;
 DialogPtr loadingDialog;
@@ -89,9 +90,9 @@ Boolean canScrollTextUp;
 Boolean canScrollTextDown;
 Boolean portBuysNoOutfits;
 unsigned char textInputString[256];
-Rect listPicOffRect[128];
-Rect listScreenRect[20];
-Rect listPicScreenRect[20];
+Rect listPicOffRect[kPictCacheSlots];
+Rect listScreenRect[kGridCells];
+Rect listPicScreenRect[kGridCells];
 void *loopingMovie = NULL;
 TEHandle textDialogTextHandle;
 unsigned long lastTextScrollTime;
@@ -141,7 +142,6 @@ EXTERN_C_BEGIN
 #define kHoldsItem     3
 #define kCargoItem     0xc
 #define kNewsItem      0xf
-#define kLastCommodity 5
 
 /* port price-status codes read off portDemand[]; the STR# 2002 index each
    selects (0xc9/0xca/0xcb) is read straight from the exe, name TBC */
@@ -149,7 +149,7 @@ EXTERN_C_BEGIN
 #define kPortSurplus  2
 #define kPortEmbargo  4
 
-
+#define kOutfModRaiseMax 0x1b   /* outfit ModType 27: raises another outfit's maximum */
 /* the mac engine invalidates a dialog item through the caller's own GetDialogItem locals */
 #ifdef MACBUILD
 #define InvalDialogItem(dlg, n)     (GetDialogItem(dlg, n, &itemType, &item, &box), InvalWindowRect(GetDialogWindow(dlg), &box))
@@ -160,36 +160,23 @@ EXTERN_C_BEGIN
 // MAC: _DoTradeDialog i386 0x0005dbe1 ppc 0x000657f4
 void DoTradeDialog(void)
 {
-#ifdef MACBUILD
     short i;
     short savedStellar;
     short savedRoute;
     short itemHit;
+#ifdef MACBUILD
     short itemType;
     Handle item;
     Rect box;
-    short mods;
-    double mult;
-    short j;
-    short space;
-    short maxSell;
-    long afford;
-    long qty;
-    Boolean done;
-#else
-    Boolean done;
-    short savedStellar;
-    short savedRoute;
-    short mods;
-    double mult;
-    short itemHit;
-    short i;
-    short j;
-    short space;
-    short maxSell;
-    long afford;
-    long qty;
 #endif
+    short mods;
+    double mult;
+    short j;
+    short space;
+    short maxSell;
+    long afford;
+    long qty;
+    Boolean done;
 
     done = 0;
     savedStellar = shipData->targetStellar;
@@ -216,7 +203,7 @@ void DoTradeDialog(void)
                 tradePrice[i] = 5;
         }
     }
-    for (i = 0; i < 0x100; i++) {
+    for (i = 0; i < kMaxDisasters; i++) {
         if (disasterData[i].loaded != 0 && disasterData[i].countdown > 0
             && disasterData[i].stellarID == shipData->targetStellar) {
             tradePrice[disasterData[i].commodity] =
@@ -229,7 +216,7 @@ void DoTradeDialog(void)
     junkType[0] = -1;
     junkType[1] = -1;
     tradePrice[6] = tradePrice[7] = 0;
-    for (i = 0; i < 0x80; i++) {
+    for (i = 0; i < kMaxJunks; i++) {
         for (j = 0; j < 8; j++) {
             if (junkData[i].boughtAt[j] == shipData->targetStellar) {
                 if (EvalMissionBitTestString(junkData[i].buyOn) != 0) {
@@ -240,7 +227,7 @@ void DoTradeDialog(void)
             }
         }
     }
-    for (i = 0; i < 0x80; i++) {
+    for (i = 0; i < kMaxJunks; i++) {
         for (j = 0; j < 8; j++) {
             if (junkData[i].soldAt[j] == shipData->targetStellar) {
                 if (EvalMissionBitTestString(junkData[i].sellOn) != 0) {
@@ -351,7 +338,7 @@ void DoTradeDialog(void)
 #else
                 RedrawDialog(tradeDialog);
 #endif
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
                 DrawStatus();
                 SetDialogGWorld(tradeDialog);
             }
@@ -403,7 +390,7 @@ void DoTradeDialog(void)
 #else
                 RedrawDialog(tradeDialog);
 #endif
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
                 DrawStatus();
                 SetDialogGWorld(tradeDialog);
             }
@@ -427,7 +414,7 @@ void DoTradeDialog(void)
 #endif
     shipData->targetStellar = savedStellar;
     shipData->navTargetKind = savedRoute;
-    statusRedraw[0] = 1;
+    statusRedraw[kRedrawNav] = 1;
     ResetMissionOfferVenue();
 }
 
@@ -662,14 +649,14 @@ void TradeDialogUpdate(void)
 
 #ifdef MAC1010
     Rect box;
-    Boolean seen[256];
+    Boolean seen[kMaxCargo];
     Handle item;
     short itemType;
     short available;
     short missionTons;
     short junkTons;
     short missionSlots;
-    Boolean junkSeen[0x80];
+    Boolean junkSeen[kMaxJunks];
     short junkSlots;
     short k;
     long row;
@@ -689,13 +676,13 @@ void TradeDialogUpdate(void)
 #elif defined(MACBUILD)
     Rect box;
     char message[255];
-    Boolean seen[256];
+    Boolean seen[kMaxCargo];
     Handle item;
     short itemType;
     short missionTons;
     short junkTons;
     short missionSlots;
-    Boolean junkSeen[0x80];
+    Boolean junkSeen[kMaxJunks];
     short junkSlots;
     short k;
     long row;
@@ -719,7 +706,7 @@ void TradeDialogUpdate(void)
     short missionTons;
     short junkTons;
     short missionSlots;
-    Boolean seen[256];
+    Boolean seen[kMaxCargo];
     short junkSlots;
     short k;
     long row;
@@ -878,7 +865,7 @@ void TradeDialogUpdate(void)
                 MoveTo((box.right - 0x46), (box.top + 10));
 #endif
                 found = 0;
-                for (k = 0; k < 0x100; k++) {
+                for (k = 0; k < kMaxDisasters; k++) {
                     if (disasterData[k].loaded != 0 && disasterData[k].countdown > 0 &&
                         disasterData[k].stellarID == shipData->targetStellar &&
                         i == disasterData[k].commodity) {
@@ -949,10 +936,10 @@ void TradeDialogUpdate(void)
         missionSlots = 0;
         junkSlots = 0;
 
-        for (i = 0; i < 0x100; i++)
+        for (i = 0; i < kMaxCargo; i++)
             seen[i] = 0;
 #ifdef MAC1010 /* 1.0.10 spelling */
-        for (i = 0; i < 0x80; i++)
+        for (i = 0; i < kMaxJunks; i++)
 #else
         for (i = 0; i < sizeof(junkSeen); i++)
 #endif
@@ -960,7 +947,7 @@ void TradeDialogUpdate(void)
         for (i = 0; i <= 1; i++)
             if (junkType[i] != -1)
                 junkSeen[junkType[i]] = 1;
-        for (j = 0; j < 16; j++) {
+        for (j = 0; j < kMaxActiveMissions; j++) {
             if (currentMissionObjectives[j].active && currentMissions[j].hasCargo &&
                 currentMissions[j].cargoType != -1 && currentMissions[j].cargoQty >= 0) {
                 available++;
@@ -972,7 +959,7 @@ void TradeDialogUpdate(void)
                 }
             }
         }
-        for (p = 0; p < 0x80; p++) {
+        for (p = 0; p < kMaxJunks; p++) {
             if (junkData[p].held > 0 && p != junkType[0] && p != junkType[1]) {
                 available++;
                 junkTons += junkData[p].held;
@@ -989,9 +976,9 @@ void TradeDialogUpdate(void)
         missionSlots = 0;
         junkSlots = 0;
 
-        for (i = 0; i < 0x100; i++)
+        for (i = 0; i < kMaxCargo; i++)
             seen[i] = 0;
-        for (j = 0; j < 16; j++) {
+        for (j = 0; j < kMaxActiveMissions; j++) {
             if (currentMissionObjectives[j].active && currentMissions[j].hasCargo &&
                 currentMissions[j].cargoType != -1 && currentMissions[j].cargoQty >= 0) {
                 missionCargo++;
@@ -1003,7 +990,7 @@ void TradeDialogUpdate(void)
                 }
             }
         }
-        for (j = 0; j < 0x80; j++) {
+        for (j = 0; j < kMaxJunks; j++) {
             if (junkData[j].held > 0 && j != junkType[0] && j != junkType[1]) {
                 missionCargo++;
                 junkTons += junkData[j].held;
@@ -1116,7 +1103,7 @@ void TradeDialogUpdate(void)
 
     GetDialogItem(tradeDialog, kNewsItem, &itemType, (Handle *)&item, &box);
     if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(tradeDialog)))) {
-        for (p = 0; p < 0x100; p++) {
+        for (p = 0; p < kMaxDisasters; p++) {
             if (disasterData[p].loaded != 0 && disasterData[p].countdown > 0 &&
                 disasterData[p].stellarID == shipData->targetStellar) {
                 if (cheatsActive) {
@@ -1176,7 +1163,7 @@ void PreloadPortDialog(SpobRecord *spob, short stellar)
     portBackgroundPic = GetPicture(kStellarBackdropPictID);
     planetPicContainer.world = NULL;
 
-    if (spob->customPict >= 128)
+    if (spob->customPict >= kFirstResourceID)
         planetPicId = spob->customPict;
     else
         planetPicId = spob->type + 10000;
@@ -1365,10 +1352,10 @@ void DoOutfitDialog(void)
                                             &shipClass[shipData->type]);
                     if (cost > 0) {
                         qtyLimit = shipData->credits / cost;
-                        if (qtyLimit > 32000)
-                            qtyLimit = 32000;
+                        if (qtyLimit > kMaxTradeQty)
+                            qtyLimit = kMaxTradeQty;
                     } else
-                        qtyLimit = 32000;
+                        qtyLimit = kMaxTradeQty;
                     if (outfitSystem[selOutfitItem].maxCount
                         > shipSystems[selOutfitItem]) {
                         if (qtyLimit > outfitSystem[selOutfitItem].maxCount
@@ -1446,7 +1433,7 @@ void DoOutfitDialog(void)
                         canSell = 1;
                 } else
                     canSell = 0;
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
                 DrawStatus();
                 SetDialogGWorld(outfitDialog);
                 DrawOutfitButtons(-1);
@@ -1456,8 +1443,8 @@ void DoOutfitDialog(void)
             count = 1;
             if ((filterKey & optionKey) != 0) {
                 qtyLimit = shipSystems[selOutfitItem];
-                if (qtyLimit > 32000)
-                    qtyLimit = 32000;
+                if (qtyLimit > kMaxTradeQty)
+                    qtyLimit = kMaxTradeQty;
                 if (qtyLimit > 1) {
                     count = DoQuantityDialog(qtyLimit, 1);
                     OutfitDialogUpdate();
@@ -1481,7 +1468,7 @@ void DoOutfitDialog(void)
                 }
                 if (canSell) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (outfitSystem[selOutfitItem].modType[j] == 0x1b
+                        if (outfitSystem[selOutfitItem].modType[j] == kOutfModRaiseMax
                             && outfitSystem[selOutfitItem].modVal[j] >= kFirstResourceID
                             && outfitSystem[selOutfitItem].modVal[j] < kFirstResourceID + kMaxOutfits) {
                             k = (shipSystems[selOutfitItem] - count)
@@ -1526,14 +1513,14 @@ void DoOutfitDialog(void)
                     }
                     weapID = -1;
                     for (j = 0; j < kOutfMods; j++) {
-                        if (outfitSystem[selOutfitItem].modType[j] == 1) {
+                        if (outfitSystem[selOutfitItem].modType[j] == kOutfModWeapon) {
                             weapID = outfitSystem[selOutfitItem].modVal[j];
                             break;
                         }
                     }
                     if (weapID != -1 && weaponStats[weapID].maxAmmo > 0) {
                         if (weaponStats[weapID].ammoType >= 0
-                            && weaponStats[weapID].ammoType < 256
+                            && weaponStats[weapID].ammoType < kMaxWeapTypes
                             && weaponStats[weapID].guidance != kGuidanceBay)
                             ammo = shipData->weap[weaponStats[weapID].ammoType].ammo;
                         else
@@ -1542,7 +1529,7 @@ void DoOutfitDialog(void)
                             for (j = 1; j < kMaxShips; j++) {
                                 if (shipData[j].active != 0
                                     && shipData[j].parentShip == 0
-                                    && shipData[j].aiType == 5
+                                    && shipData[j].aiType == kShipTypeFighter
                                     && shipData[j].type
                                        == weaponStats[weapID].ammoType - kFirstResourceID
                                     && !IsDisabled(&shipData[j]))
@@ -1566,7 +1553,7 @@ void DoOutfitDialog(void)
                                 k = -1;
                                 for (j = 0; j < kMaxOutfits; j++) {
                                     for (m = 0; m < kOutfMods; m++) {
-                                        if (outfitSystem[j].modType[m] == 3
+                                        if (outfitSystem[j].modType[m] == kOutfModAmmo
                                             && outfitSystem[j].modVal[m] == weapID) {
                                             k = j;
                                             break;
@@ -1628,11 +1615,11 @@ void DoOutfitDialog(void)
                         shipData->credits += cost;
                         for (j = 0; j < kOutfMods; j++) {
                             if (shipSystems[selOutfitItem] <= 0) {
-                                if (outfitSystem[selOutfitItem].modType[j] == 1
+                                if (outfitSystem[selOutfitItem].modType[j] == kOutfModWeapon
                                     && shipData->selectedWeapon
                                        == outfitSystem[selOutfitItem].modVal[j]) {
                                     shipData->selectedWeapon = -1;
-                                    statusRedraw[3] = 1;
+                                    statusRedraw[kRedrawWeap] = 1;
                                     break;
                                 }
                             }
@@ -1681,7 +1668,7 @@ void DoOutfitDialog(void)
             InvalDialogItem(outfitDialog, 7);
             InvalDialogItem(outfitDialog, 9);
             didOutfit = 1;
-            statusRedraw[2] = 1;
+            statusRedraw[kRedrawCargo] = 1;
             DrawStatus();
             SetDialogGWorld(outfitDialog);
             DrawOutfitButtons(-1);
@@ -1742,17 +1729,17 @@ void DoOutfitDialog(void)
     k = ShipFuelCapacity(shipData);
     if (shipData->fuel > k) {
         shipData->fuel = k;
-        statusRedraw[4] = 1;
+        statusRedraw[kRedrawFuel] = 1;
     }
     count = ShipShieldCapacity(shipData);
     if (shipData->shield > count) {
         shipData->shield = count;
-        statusRedraw[1] = 1;
+        statusRedraw[kRedrawShield] = 1;
     }
     count = ShipArmorCapacity(shipData);
     if (shipData->armor > count) {
         shipData->armor = count;
-        statusRedraw[1] = 1;
+        statusRedraw[kRedrawShield] = 1;
     }
     for (i = 0; i < kMaxOutfits; i++) {
         if (shipSystems[i] > 0 && (outfitSystem[i].flags & kOutfRemoveAfterBuy) != 0)
@@ -1781,7 +1768,7 @@ void DoOutfitDialog(void)
     RefreshSAT();
     shipData->targetStellar = savedUnk6C;
     shipData->navTargetKind = savedUnk6A;
-    statusRedraw[0] = 1;
+    statusRedraw[kRedrawNav] = 1;
     ResetMissionOfferVenue();
 }
 #else
@@ -1969,11 +1956,11 @@ void DoOutfitDialog(void)
                     cost = AdjustedItemCost(&outfitSystem[selOutfitItem],
                                             &shipClass[shipData->type]);
                     if (cost <= 0)
-                        qtyLimit = 32000;
+                        qtyLimit = kMaxTradeQty;
                     else {
                         qtyLimit = shipData->credits / cost;
-                        if (qtyLimit > 32000)
-                            qtyLimit = 32000;
+                        if (qtyLimit > kMaxTradeQty)
+                            qtyLimit = kMaxTradeQty;
                     }
                     if (outfitSystem[selOutfitItem].maxCount
                         > shipSystems[selOutfitItem]) {
@@ -2062,7 +2049,7 @@ void DoOutfitDialog(void)
                         canSell = 1;
                 } else
                     canSell = 0;
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
                 DrawStatus();
                 SetDialogGWorld(outfitDialog);
                 DrawOutfitButtons(-1);
@@ -2072,8 +2059,8 @@ void DoOutfitDialog(void)
             n = 1;
             if ((filterKey & optionKey) != 0) {
                 qtyLimit = shipSystems[selOutfitItem];
-                if (qtyLimit > 32000)
-                    qtyLimit = 32000;
+                if (qtyLimit > kMaxTradeQty)
+                    qtyLimit = kMaxTradeQty;
                 if (qtyLimit > 1) {
                     n = DoQuantityDialog(qtyLimit, 1);
                     OutfitDialogUpdate();
@@ -2097,7 +2084,7 @@ void DoOutfitDialog(void)
                 }
                 if (canSell) {
                     for (i = 0; i < kOutfMods; i++) {
-                        if (outfitSystem[selOutfitItem].modType[i] == 0x1b
+                        if (outfitSystem[selOutfitItem].modType[i] == kOutfModRaiseMax
                             && outfitSystem[selOutfitItem].modVal[i] >= kFirstResourceID
                             && outfitSystem[selOutfitItem].modVal[i] < kFirstResourceID + kMaxOutfits) {
                             shortfall = shipSystems[outfitSystem[selOutfitItem].modVal[i] - kFirstResourceID]
@@ -2142,14 +2129,14 @@ void DoOutfitDialog(void)
                     }
                     weapID = -1;
                     for (i = 0; i < kOutfMods; i++) {
-                        if (outfitSystem[selOutfitItem].modType[i] == 1) {
+                        if (outfitSystem[selOutfitItem].modType[i] == kOutfModWeapon) {
                             weapID = outfitSystem[selOutfitItem].modVal[i];
                             break;
                         }
                     }
                     if (weapID != -1 && weaponStats[weapID].maxAmmo > 0) {
                         if (weaponStats[weapID].ammoType >= 0
-                            && weaponStats[weapID].ammoType < 256
+                            && weaponStats[weapID].ammoType < kMaxWeapTypes
                             && weaponStats[weapID].guidance != kGuidanceBay)
                             ammo = shipData->weap[weaponStats[weapID].ammoType].ammo;
                         else
@@ -2158,7 +2145,7 @@ void DoOutfitDialog(void)
                             for (m = 1; m < kMaxShips; m++) {
                                 if (shipData[m].active != 0
                                     && shipData[m].parentShip == 0
-                                    && shipData[m].aiType == 5
+                                    && shipData[m].aiType == kShipTypeFighter
                                     && shipData[m].type
                                        == weaponStats[weapID].ammoType - kFirstResourceID
                                     && !IsDisabled(&shipData[m]))
@@ -2182,7 +2169,7 @@ void DoOutfitDialog(void)
                                 k = -1;
                                 for (m = 0; m < kMaxOutfits; m++) {
                                     for (j = 0; j < kOutfMods; j++) {
-                                        if (outfitSystem[m].modType[j] == 3
+                                        if (outfitSystem[m].modType[j] == kOutfModAmmo
                                             && outfitSystem[m].modVal[j] == weapID) {
                                             k = m;
                                             break;
@@ -2246,11 +2233,11 @@ void DoOutfitDialog(void)
                         shipData->credits += cost;
                         for (j = 0; j < kOutfMods; j++) {
                             if (shipSystems[selOutfitItem] <= 0) {
-                                if (outfitSystem[selOutfitItem].modType[j] == 1
+                                if (outfitSystem[selOutfitItem].modType[j] == kOutfModWeapon
                                     && shipData->selectedWeapon
                                        == outfitSystem[selOutfitItem].modVal[j]) {
                                     shipData->selectedWeapon = -1;
-                                    statusRedraw[3] = 1;
+                                    statusRedraw[kRedrawWeap] = 1;
                                     break;
                                 }
                             }
@@ -2307,7 +2294,7 @@ void DoOutfitDialog(void)
             RedrawDialog(outfitDialog);
 #endif
             didOutfit = 1;
-            statusRedraw[2] = 1;
+            statusRedraw[kRedrawCargo] = 1;
             DrawStatus();
             SetDialogGWorld(outfitDialog);
             DrawOutfitButtons(-1);
@@ -2376,17 +2363,17 @@ void DoOutfitDialog(void)
     k = ShipFuelCapacity(shipData);
     if (shipData->fuel > k) {
         shipData->fuel = k;
-        statusRedraw[4] = 1;
+        statusRedraw[kRedrawFuel] = 1;
     }
     i = ShipShieldCapacity(shipData);
     if (shipData->shield > i) {
         shipData->shield = i;
-        statusRedraw[1] = 1;
+        statusRedraw[kRedrawShield] = 1;
     }
     j = ShipArmorCapacity(shipData);
     if (shipData->armor > j) {
         shipData->armor = j;
-        statusRedraw[1] = 1;
+        statusRedraw[kRedrawShield] = 1;
     }
     for (i = 0; i < kMaxOutfits; i++) {
         if (shipSystems[i] > 0 && (outfitSystem[i].flags & kOutfRemoveAfterBuy) != 0)
@@ -2419,7 +2406,7 @@ void DoOutfitDialog(void)
 #endif
     shipData->targetStellar = savedUnk6C;
     shipData->navTargetKind = savedUnk6A;
-    statusRedraw[0] = 1;
+    statusRedraw[kRedrawNav] = 1;
     ResetMissionOfferVenue();
 }
 #endif
@@ -2550,7 +2537,7 @@ Boolean OutfitFilter(long unused, EventRecord *ev, short *itemHit)
             old = selOutfitItem;
             if (selOutfitListItem != -1) {
                 count = 0;
-                for (i = 0; i < 512; i++) {
+                for (i = 0; i < kMaxOutfits; i++) {
                     if (dockedPortItems[i] != -1)
                         count++;
                 }
@@ -2755,7 +2742,6 @@ Boolean OutfitFilter(long unused, EventRecord *ev, short *itemHit)
 // MAC: _OutfitDialogUpdate i386 0x000572cb ppc 0x0005f680
 void OutfitDialogUpdate(void)
 {
-#ifdef MACBUILD
     int c;
     short skipped;
     Handle item;
@@ -2767,19 +2753,6 @@ void OutfitDialogUpdate(void)
     short drawn;
     long mass;
     long freeMass;
-#else
-    int c;
-    short drawn;
-    short skipped;
-    Handle item;
-    short itemType;
-    unsigned char line1[256];
-    Rect box;
-    unsigned char line2[256];
-    short i;
-    long mass;
-    long freeMass;
-#endif
 
     SetGWorldContainer(&loadPort);
     ForeColor(blackColor);
@@ -2794,7 +2767,7 @@ void OutfitDialogUpdate(void)
         TextSize(smallTextSize);
         ForeColor(blackColor);
         drawn = 0;
-        for (i = outfitScroll; i < 512; i++) {
+        for (i = outfitScroll; i < kMaxOutfits; i++) {
             if (drawn < kGridCells && (i >= 0 && dockedPortItems[i] != -1)) {
                 if (skipped < 3) {
                     if (i - outfitScroll >= 0 &&
@@ -3324,8 +3297,8 @@ void DoPortDialog(SpobRecord *spob, short stellar)
     OfferMissionFromPort(kPortVenue);
 #if V111
     if (!useLegacyRenderingPipeline) {
-        statusRedraw[4] = 1;
-        statusRedraw[2] = 1;
+        statusRedraw[kRedrawFuel] = 1;
+        statusRedraw[kRedrawCargo] = 1;
         gSpriteWorld->fastBlit = 1;
         DrawStatus();
         gSpriteWorld->fastBlit = 0;
@@ -3365,8 +3338,8 @@ void DoPortDialog(SpobRecord *spob, short stellar)
                     shipData->credits -= n;
                 }
                 shipData->fuel += n;
-                statusRedraw[4] = 1;
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawFuel] = 1;
+                statusRedraw[kRedrawCargo] = 1;
                 gSpriteWorld->fastBlit = 1;
                 DrawStatus();
                 gSpriteWorld->fastBlit = 0;
@@ -3383,7 +3356,7 @@ void DoPortDialog(SpobRecord *spob, short stellar)
                 SetDialogGWorld(portDialog);
                 DrawPlanetButtons(kAllButtonsOff);
                 DoTradeDialog();
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
                 DrawStatus();
                 SetDialogGWorld(portDialog);
                 RedrawDialog(portDialog);
@@ -3393,7 +3366,7 @@ void DoPortDialog(SpobRecord *spob, short stellar)
                 InvalDialogItem(portDialog, 8);
                 UpdateAllPortDialogs();
                 DoOutfitDialog();
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
                 DrawStatus();
                 SetDialogGWorld(portDialog);
                 RedrawDialog(portDialog);
@@ -3404,7 +3377,7 @@ void DoPortDialog(SpobRecord *spob, short stellar)
                 UpdateAllPortDialogs();
                 shipBuyMode = 0;
                 DoShipyardDialog();
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
                 SetDialogGWorld(portDialog);
 #ifndef MACBUILD
                 RedrawDialog(portDialog);
@@ -3424,16 +3397,16 @@ void DoPortDialog(SpobRecord *spob, short stellar)
                 reenterMissionDialog = 0;
                 do {
                     DoMissionDialog();
-                    statusRedraw[2] = 1;
-                    statusRedraw[0] = 1;
+                    statusRedraw[kRedrawCargo] = 1;
+                    statusRedraw[kRedrawNav] = 1;
                     DrawStatus();
                 } while (reenterMissionDialog != 0);
                 SetDialogGWorld(portDialog);
                 RedrawDialog(portDialog);
                 shipData->targetStellar = savedStellar;
                 shipData->navTargetKind = savedRoute;
-                statusRedraw[2] = 1;
-                statusRedraw[0] = 1;
+                statusRedraw[kRedrawCargo] = 1;
+                statusRedraw[kRedrawNav] = 1;
                 DrawStatus();
             }
         } else if (itemHit == 11) {
@@ -3488,7 +3461,7 @@ void DoPortDialog(SpobRecord *spob, short stellar)
     }
     if (didOutfit != 0 || didBuyShip != 0) {
         shipData->targetShip = -1;
-        statusRedraw[3] = 1;
+        statusRedraw[kRedrawWeap] = 1;
     }
     DisposeDialogNoFlash(portDialog);
     portDialog = NULL;
@@ -3817,7 +3790,7 @@ void MyModalDialog(DialogPtr dlg, void *eventProc, short *itemHit,
                 r = *GetCWindowPortRect((WindowRef)gWind);
                 r.top -= 30;
                 InvalWindowRect((WindowRef)gWind, &r);
-                if (gSystemVersion < 0x1000 && mBarHidden && SWIsWindowInForeground(gSpriteWorld))
+                if (gSystemVersion < kMacOSXSystemVersion && mBarHidden && SWIsWindowInForeground(gSpriteWorld))
                     KeepMenuBarHidden((GrafPtr)gSpriteWorld->windowFrameP->framePort);
             }
             SwitchedIn(&ev);
@@ -4016,7 +3989,7 @@ void DoShipyardDialog(void)
 
     SetupPortAvailableShipTypes(dockedPort);
     done = 1;
-    for (weap = 0; weap < 768; weap++) {
+    for (weap = 0; weap < kMaxShipTypes; weap++) {
         if (dockedPortShipTypes[weap] != -1) {
             done = 0;
             break;
@@ -4126,16 +4099,16 @@ void DoShipyardDialog(void)
                             shipData->credits -= cost;
                             pstrcpy(shipName, textInputString);
                             CullNameString(shipName);
-                            for (weap = 1; weap < 0x40; weap++) {
+                            for (weap = 1; weap < kMaxShips; weap++) {
                                 if (shipData[weap].active != 0 &&
                                     shipData[weap].parentShip == 0 &&
-                                    shipData[weap].aiType == 5)
+                                    shipData[weap].aiType == kShipTypeFighter)
                                     shipData[weap].active = 0;
                             }
-                            for (weap = 0; weap < 256; weap++) {
+                            for (weap = 0; weap < kMaxWeapTypes; weap++) {
                                 weapHasSlot = 0;
-                                for (outf = 0; outf < 512; outf++) {
-                                    if (outfitSystem[outf].modType[0] == 1 &&
+                                for (outf = 0; outf < kMaxOutfits; outf++) {
+                                    if (outfitSystem[outf].modType[0] == kOutfModWeapon &&
                                         outfitSystem[outf].modVal[0] == weap &&
                                         outfitSystem[outf].persistent != 0) {
                                         weapHasSlot = 1;
@@ -4147,23 +4120,23 @@ void DoShipyardDialog(void)
                                     shipData->weap[weap].ammo = 0;
                                 }
                             }
-                            for (weap = 0; weap < 512; weap++) {
+                            for (weap = 0; weap < kMaxOutfits; weap++) {
                                 if (outfitSystem[weap].persistent == 0)
                                     shipSystems[weap] = 0;
                             }
-                            for (outf = 0; outf < 8; outf++) {
+                            for (outf = 0; outf < kDefaultOutfitSlots; outf++) {
                                 if (shipClass[shipData->type].defOutfCount[outf] > 0)
                                     shipSystems[shipClass[shipData->type].defOutfID[outf]] +=
                                         shipClass[shipData->type].defOutfCount[outf];
                             }
                             SystemInfoToShipStats();
-                            for (weap = 0; weap < 256; weap++) {
+                            for (weap = 0; weap < kMaxWeapTypes; weap++) {
                                 if (shipClass[shipData->type].weapCount[weap] >
                                     shipData->weap[weap].count)
                                     shipData->weap[weap].count =
                                         shipClass[shipData->type].weapCount[weap];
                                 if (shipClass[shipData->type].weapAmmo[weap] > 0) {
-                                    if (weaponStats[weap].ammoType >= 0 && weaponStats[weap].ammoType < 0x100
+                                    if (weaponStats[weap].ammoType >= 0 && weaponStats[weap].ammoType < kMaxWeapTypes
                                         && weaponStats[weap].guidance != kGuidanceBay)
                                         i = weaponStats[weap].ammoType;
                                     else
@@ -4184,16 +4157,16 @@ void DoShipyardDialog(void)
                             shipData->selectedWeapon = -1;
                             playerPaint.red = playerPaint.green =
                                 playerPaint.blue = 0;
-                            statusRedraw[3] = 1;
-                            statusRedraw[0] = 1;
-                            statusRedraw[6] = 1;
-                            statusRedraw[2] = 1;
+                            statusRedraw[kRedrawWeap] = 1;
+                            statusRedraw[kRedrawNav] = 1;
+                            statusRedraw[kRedrawTarg] = 1;
+                            statusRedraw[kRedrawCargo] = 1;
                             shipData->shield = ShipShieldCapacity(shipData);
                             shipData->armor = ShipArmorCapacity(shipData);
                             shipData->fuel = ShipFuelCapacity(shipData);
                             shipData->pos.x = dockedPort->pos.h;
                             shipData->pos.y = dockedPort->pos.v;
-                            statusRedraw[2] = 1;
+                            statusRedraw[kRedrawCargo] = 1;
                             LoadIntfResource();
                             DrawStatus();
                             SetDialogGWorld(shipyardDialog);
@@ -4208,7 +4181,7 @@ void DoShipyardDialog(void)
                                                    shipClass[selShipyardItem].techLevel,
                                                    stellarData[shipData->targetStellar].techLevel);
                         shipData->credits -= hireCost * 0.1;
-                        statusRedraw[2] = 1;
+                        statusRedraw[kRedrawCargo] = 1;
                         SpawnEscort(selShipyardItem, shipData->targetStellar);
                         shipClass[selShipyardItem].dailyHireRoll = Rand(100) + 1;
                         done = 1;
@@ -4257,7 +4230,7 @@ void DoShipyardDialog(void)
         }
         if (itemHit == 0xb) {
             n = 0;
-            for (weap = 0; weap < 16; weap++) {
+            for (weap = 0; weap < kMaxActiveMissions; weap++) {
                 if (currentMissionObjectives[weap].active != 0 &&
                     (currentMissionObjectives[weap].flags & kMissionHidden) == 0)
                     n++;
@@ -4277,8 +4250,8 @@ void DoShipyardDialog(void)
             SetDialogGWorld(shipyardDialog);
             RedrawDialog(shipyardDialog);
         }
-        if (itemHit == 0xc && shipyardScroll >= 4) {
-            shipyardScroll -= 4;
+        if (itemHit == 0xc && shipyardScroll >= kGridCols) {
+            shipyardScroll -= kGridCols;
             selShipyardItem = selShipListItem = -1;
             strncpy(dialogDescTextPtr, "", 3);
             EndLoopingMovie();
@@ -4286,12 +4259,12 @@ void DoShipyardDialog(void)
         }
         if (itemHit == 0xd) {
             n = 0;
-            for (weap = 0; weap < 768; weap++) {
+            for (weap = 0; weap < kMaxShipTypes; weap++) {
                 if (dockedPortShipTypes[weap] != -1)
                     n++;
             }
-            if (shipyardScroll < n - 20) {
-                shipyardScroll += 4;
+            if (shipyardScroll < n - kGridCells) {
+                shipyardScroll += kGridCols;
                 selShipyardItem = selShipListItem = -1;
                 strncpy(dialogDescTextPtr, "", 3);
                 EndLoopingMovie();
@@ -4346,7 +4319,7 @@ void DoShipyardDialog(void)
 #endif
     shipData->targetStellar = savedTargetStellar;
     shipData->navTargetKind = savedUnk6A;
-    statusRedraw[0] = 1;
+    statusRedraw[kRedrawNav] = 1;
     ResetMissionOfferVenue();
 }
 
@@ -4647,7 +4620,6 @@ Boolean ShipyardFilter(long unused, EventRecord *ev, short *itemHit)
 // MAC: _ShipyardDialogUpdate i386 0x00058a10 ppc 0x00060d04
 void ShipyardDialogUpdate(void)
 {
-#ifdef MACBUILD
     int c;
     short i;
     Handle item;
@@ -4660,20 +4632,6 @@ void ShipyardDialogUpdate(void)
     long price;
     long tradeIn;
     long net;
-#else
-    int c;
-    short drawn;
-    short skipped;
-    Handle item;
-    short itemType;
-    unsigned char line1[256];
-    Rect box;
-    unsigned char line2[256];
-    short i;
-    long price;
-    long tradeIn;
-    long net;
-#endif
 
     SetGWorldContainer(&loadPort);
     ForeColor(blackColor);
@@ -4689,7 +4647,7 @@ void ShipyardDialogUpdate(void)
         TextSize(smallTextSize);
         ForeColor(blackColor);
         drawn = 0;
-        for (i = shipyardScroll; i < 768; i++) {
+        for (i = shipyardScroll; i < kMaxShipTypes; i++) {
                 if (RectInRgn(&listScreenRect[i - shipyardScroll],
                               GetWindowVisRgn(FrontWindow(shipyardDialog))) &&
                     drawn < kGridCells && (i >= 0 &&
@@ -5169,7 +5127,7 @@ void ShipDescDialogUpdate(void)
     PaintRect(GetDialogPortRect(shipDescDialog));
     if (shipDescBackgroundPic != NULL)
         DrawPicHandle(shipDescBackgroundPic, GetDialogPortRect(shipDescDialog));
-    if (descResourcePictId >= 128)
+    if (descResourcePictId >= kFirstResourceID)
         hasPict = 1;
     else
         hasPict = 0;
@@ -5305,10 +5263,10 @@ void ShipDescDialogUpdate(void)
             DrawIndString(kGameStrList, 335);
 
         freeMass = shipClass[sel].freeMass;
-        for (i = 0; i < 256; i++) {
+        for (i = 0; i < kMaxWeapTypes; i++) {
             if (shipClass[sel].weapCount[i] > 0) {
-                for (j = 0; j < 512; j++) {
-                    if (outfitSystem[j].modType[0] == 1
+                for (j = 0; j < kMaxOutfits; j++) {
+                    if (outfitSystem[j].modType[0] == kOutfModWeapon
                         && i == outfitSystem[j].modVal[0]
                         && outfitSystem[j].techLevel < kOutfTechAbsent) {
                         mass = AdjustedItemMass(&outfitSystem[j], &shipClass[sel]);
@@ -5322,8 +5280,8 @@ void ShipDescDialogUpdate(void)
                 }
             }
             if (shipClass[sel].weapAmmo[i] > 0) {
-                for (j = 0; j < 512; j++) {
-                    if (outfitSystem[j].modType[0] == 3
+                for (j = 0; j < kMaxOutfits; j++) {
+                    if (outfitSystem[j].modType[0] == kOutfModAmmo
                         && i == outfitSystem[j].modVal[0]
                         && outfitSystem[j].techLevel < kOutfTechAbsent) {
                         mass = AdjustedItemMass(&outfitSystem[j], &shipClass[sel]);
@@ -5337,7 +5295,7 @@ void ShipDescDialogUpdate(void)
                 }
             }
         }
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[sel].defOutfID[i] != -1
                 && shipClass[sel].defOutfCount[i] > 0
                 && outfitSystem[shipClass[sel].defOutfID[i]].techLevel < kOutfTechAbsent) {
@@ -5404,7 +5362,7 @@ void ShipDescDialogUpdate(void)
         }
 
         numWeapTypes = 0;
-        for (i = 0; i < 256; i++) {
+        for (i = 0; i < kMaxWeapTypes; i++) {
             if (shipClass[sel].weapCount[i] > 0)
                 numWeapTypes++;
         }
@@ -5429,7 +5387,7 @@ void ShipDescDialogUpdate(void)
                 MoveTo(box.left, (box.top + 108));
             }
             DrawIndString(kGameStrList, 241);
-            for (i = 0; i < 256; i++) {
+            for (i = 0; i < kMaxWeapTypes; i++) {
                 if (shipClass[sel].weapCount[i] > 0) {
                     if (!hasPict)
                         MoveTo(box.left + 8, box.top + 120 + drawn * 12);
@@ -5443,8 +5401,8 @@ void ShipDescDialogUpdate(void)
                             DrawString(buf);
                             DrawString("\p ");
                         }
-                        for (j = 0; j < 512; j++) {
-                            if (outfitSystem[j].modType[0] == 1
+                        for (j = 0; j < kMaxOutfits; j++) {
+                            if (outfitSystem[j].modType[0] == kOutfModWeapon
                                 && i == outfitSystem[j].modVal[0]) {
                                 if (hasPict) {
                                     pstrcpy(buf, outfitSystem[j].name);
@@ -5487,8 +5445,8 @@ void ShipDescDialogUpdate(void)
                             DrawString(buf);
                             DrawString("\p ");
                         }
-                        for (j = 0; j < 512; j++) {
-                            if (outfitSystem[j].modType[0] == 3
+                        for (j = 0; j < kMaxOutfits; j++) {
+                            if (outfitSystem[j].modType[0] == kOutfModAmmo
                                 && i == outfitSystem[j].modVal[0]) {
                                 if (hasPict) {
                                     pstrcpy(buf, outfitSystem[j].name);
@@ -5772,7 +5730,7 @@ void IterateInGameEventLoop(short tickCount)
                     InitCursor();
                     cursorHidden = 0;
                     ShowTheCursor();
-                    if (gSystemVersion < 0x1000 && mBarHidden && SWIsWindowInForeground(gSpriteWorld))
+                    if (gSystemVersion < kMacOSXSystemVersion && mBarHidden && SWIsWindowInForeground(gSpriteWorld))
                         KeepMenuBarHidden((GrafPtr)gSpriteWorld->windowFrameP->framePort);
                     SwitchedIn(&ev);
                     if (gameLoaded) {
@@ -5791,7 +5749,7 @@ void IterateInGameEventLoop(short tickCount)
             }
             break;
         case nullEvent:
-            if (gSystemVersion < 0x1000 && mBarHidden && SWIsWindowInForeground(gSpriteWorld))
+            if (gSystemVersion < kMacOSXSystemVersion && mBarHidden && SWIsWindowInForeground(gSpriteWorld))
                 KeepMenuBarHidden((GrafPtr)gSpriteWorld->windowFrameP->framePort);
             exitLoop = true;
             break;
@@ -6035,8 +5993,6 @@ Boolean EVTextInputDialog(unsigned char *prompt, unsigned char *initial, short m
     SWSetPortToWindow(gSpriteWorld);
     return result;
 }
-
-#define kPictCacheSlots 128
 
 
 /* RetrieveMenuIcon. STATE: MATCH 100.0%, exe 122 / obj 122, byte-identical yes (376 bytes),
@@ -7871,7 +7827,7 @@ void PlayerInfoDialogUpdate(void)
         /* --- net worth: escort resale value + known-system tribute + rank bonus --- */
         stellarWorth = 0;
         escortWorth = 0;
-        for (i = 1; i < 0x40; i++) {
+        for (i = 1; i < kMaxShips; i++) {
             if (shipData[i].active == 0)
                 continue;
             if (shipData[i].parentShip != 0)
@@ -7879,7 +7835,7 @@ void PlayerInfoDialogUpdate(void)
             onMission = 0;
             if (shipData[i].specialMission != -1 &&
                 currentMissionObjectives[shipData[i].specialMission].active != 0 &&
-                currentMissions[shipData[i].specialMission].shipBehav == 1)
+                currentMissions[shipData[i].specialMission].shipBehav == kMissionModeEscort)
                 onMission = 1;
             if (onMission)
                 continue;
@@ -7888,18 +7844,18 @@ void PlayerInfoDialogUpdate(void)
             escortWorth += shipClass[shipData[i].type].cost * 0.01;
         }
 
-        for (i = 0; i < 0x800; i++) {
+        for (i = 0; i < kMaxStellars; i++) {
             if (stellarData[i].loaded == 0 || stellarData[i].dominated == 0)
                 continue;
             sys = stellarData[i].system;
-            if (sys < 0 || sys >= 0x800)
+            if (sys < 0 || sys >= kMaxSystems)
                 continue;
             if (systemData[sys].loaded == 0 || systemData[sys].prepared == 0)
                 continue;
             stellarWorth += stellarData[i].tribute;
         }
 
-        for (i = 0; i < 0x80; i++) {
+        for (i = 0; i < kMaxRanks; i++) {
             if (rankData[i].active == 0 || rankData[i].loaded == 0)
                 continue;
             if (rankData[i].salary == 0)
@@ -7963,7 +7919,7 @@ void PlayerInfoDialogUpdate(void)
         }
     } else if (selPlayerInfoMode == 3) {
         count = 0;
-        for (i = 0; i < 0x200; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0 && lcOutfitName[i][0] != 0 &&
                     (outfitSystem[i].flags & kOutfShowInRanks) == 0) {
                 count++;
@@ -7990,13 +7946,13 @@ void PlayerInfoDialogUpdate(void)
         }
     } else if (selPlayerInfoMode == 4) {
         count = 0;
-        for (i = 0; i < 0x80; i++) {
+        for (i = 0; i < kMaxRanks; i++) {
             if (rankData[i].active != 0 && rankData[i].loaded != 0) {
                 count++;
                 break;
             }
         }
-        for (i = 0; i < 0x200; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             if (shipSystems[i] > 0 && lcOutfitName[i][0] != 0 &&
                     (outfitSystem[i].flags & kOutfShowInRanks) != 0)
                 count++;
@@ -8053,7 +8009,7 @@ blit_back:
 void SetupPlayerInfoText(void)
 #ifdef MAC1010
 {
-    Boolean rankShown[128];
+    Boolean rankShown[kMaxRanks];
     short i;
     short shown;
     short count;
@@ -8067,10 +8023,10 @@ void SetupPlayerInfoText(void)
     short j;
     short weight;
     char c;
-    short cargoQty[256];
-    short outfitQty[512];
+    short cargoQty[kMaxCargo];
+    short outfitQty[kMaxOutfits];
     unsigned char str[256];
-    Boolean seen[256];
+    Boolean seen[kMaxCargo];
     short missionTons;
     short missionCount;
     short junkTons;
@@ -8090,7 +8046,7 @@ void SetupPlayerInfoText(void)
         cargoQty[i] = -1;
     }
 
-    for (i = 0; i <= 5; i++) {
+    for (i = 0; i <= kLastCommodity; i++) {
         if (shipData->cargo[i] > 0) {
             if (cargoQty[i] < 0)
                 cargoQty[i] = 0;
@@ -8481,7 +8437,7 @@ void SetupPlayerInfoText(void)
 #else
 {
 #ifdef MACBUILD
-    Boolean rankShown[128];
+    Boolean rankShown[kMaxRanks];
     long credits;
     char c;
     short shown;
@@ -8500,11 +8456,11 @@ void SetupPlayerInfoText(void)
     short qty;
     short i;
     Boolean starred;
-    short cargoQty[256];
-    short outfitQty[512];
+    short cargoQty[kMaxCargo];
+    short outfitQty[kMaxOutfits];
     unsigned char str[256];
 #else
-    Boolean rankShown[128];
+    Boolean rankShown[kMaxRanks];
     long credits;
     char c;
     Boolean starred;
@@ -8523,8 +8479,8 @@ void SetupPlayerInfoText(void)
     short type;
     short qty;
     short i;
-    short cargoQty[256];
-    short outfitQty[512];
+    short cargoQty[kMaxCargo];
+    short outfitQty[kMaxOutfits];
     unsigned char str[256];
 #endif
 
@@ -8536,7 +8492,7 @@ void SetupPlayerInfoText(void)
     for (j = 0; j < kMaxCargo; j++)
         cargoQty[j] = -1;
 
-    for (j = 0; j <= 5; j++) {
+    for (j = 0; j <= kLastCommodity; j++) {
         if (shipData->cargo[j] > 0) {
             if (cargoQty[j] < 0)
                 cargoQty[j] = 0;
@@ -8547,7 +8503,7 @@ void SetupPlayerInfoText(void)
     for (qty = 0; qty < kMaxCargo; qty++)
         cargoQty[qty] = -1;
 
-    for (qty = 0; qty <= 5; qty++) {
+    for (qty = 0; qty <= kLastCommodity; qty++) {
         if (shipData->cargo[qty] > 0) {
             if (cargoQty[qty] < 0)
                 cargoQty[qty] = 0;
@@ -9049,7 +9005,7 @@ void FrameDefaultButton(void *dlg, short flag)
     Handle item;
     Rect box;
 
-    if (gSystemVersion < 0x1000) {
+    if (gSystemVersion < kMacOSXSystemVersion) {
         SetPort((GrafPtr)GetDialogPort(dlg));
         GetDialogItem(dlg, flag, &itemType, &item, &box);
         PenSize(3, 3);
@@ -9877,7 +9833,7 @@ void DrawEscortMenuInFrame()
 #endif
     DrawString(str);
 
-    for (i = 1; i < 64; i++) {
+    for (i = 1; i < kMaxShips; i++) {
         if (!shipData[i].active)
             continue;
         if (shipData[i].parentShip != 0)
@@ -10114,11 +10070,11 @@ long DoQuantityDialog(long maxCount, short mode)
 
     GetDialogItem(qtyDialog, kQtyPromptItem, &itemType, &item, &box);
     if (mode == 1)
-        SetControlTitle((ControlRef)item,buttonLabel[2]);
+        SetControlTitle((ControlRef)item,buttonLabel[kSellButtonLabel]);
     else if (mode == 2)
-        SetControlTitle((ControlRef)item,buttonLabel[0x3a]);
+        SetControlTitle((ControlRef)item,buttonLabel[kBetButtonLabel]);
     else
-        SetControlTitle((ControlRef)item,buttonLabel[1]);
+        SetControlTitle((ControlRef)item,buttonLabel[kBuyButtonLabel]);
     if (mode == 2)
         GetIndString(text, kGameStrList, 0x174);
     else
@@ -10217,7 +10173,7 @@ void SetupDialogs(void)
     plunderDialog = NULL;
     mapDialog = NULL;
     captureDialog = NULL;
-    for (i = 0; i < 128; i++) {
+    for (i = 0; i < kPictCacheSlots; i++) {
         iconCache[i].picID = -1;
         iconCache[i].stamp = 0;
     }

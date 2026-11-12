@@ -57,6 +57,7 @@ extern int CGSSetWindowDepth(int cid, int window, int depth);
 #define kShanTypeName "sh\x8an"
 #endif
 
+#define kMaxRoidTypes    16
 
 #ifdef MACBUILD
 /* SetupToolbox (mac _SetupToolbox, mac-only). STATE: mac MATCH i386 and ppc. OPEN: none */
@@ -103,7 +104,7 @@ void DestroySpriteWorld(void)
     DisposeButtons();
     ShowTheMenuBar();
 
-    for (i = 0; i < 0x40; i++) {
+    for (i = 0; i < kMaxShips; i++) {
         if (shipData[i].sprite)
             DisposeClonedSprite(&shipData[i].sprite);
         if (shipData[i].altSprite)
@@ -117,11 +118,11 @@ void DestroySpriteWorld(void)
         if (shipData[i].shieldSprite)
             DisposeClonedSprite(&shipData[i].shieldSprite);
     }
-    for (i = 0; i < 0x20; i++) {
+    for (i = 0; i < kMaxPods; i++) {
         if (podData[i].sprite)
             DisposeClonedSprite(&podData[i].sprite);
     }
-    for (i = 0; i < 0x300; i++) {
+    for (i = 0; i < kMaxShipTypes; i++) {
         if (masterShipSprite[i])
             SWDisposeSprite(&masterShipSprite[i]);
         if (masterShipGlowSprite[i])
@@ -137,11 +138,11 @@ void DestroySpriteWorld(void)
         if (shipClass[i].frameAngles != NULL)
             DeallocAPointer(shipClass[i].frameAngles);
     }
-    for (i = 0; i < 0x10; i++) {
+    for (i = 0; i < kStellarSprites; i++) {
         if (stellarSprite[i] != NULL)
             DeallocAPointer(stellarSprite[i]);
     }
-    for (i = 0; i < 0x100; i++) {
+    for (i = 0; i < kMasterStellarSprites; i++) {
         if (masterStellarSprite[i] != NULL) {
             if (masterStellarSprite[i]->frameArray != NULL) {
                 for (j = 0; j < masterStellarSprite[i]->numFrames; j++) {
@@ -155,23 +156,23 @@ void DestroySpriteWorld(void)
             SWDisposeSprite(&masterStellarSprite[i]);
         }
     }
-    for (i = 0; i < 0x20; i++) {
+    for (i = 0; i < kMaxExplods; i++) {
         if (explodData[i].sprite)
             DisposeClonedSprite(&explodData[i].sprite);
     }
-    for (i = 0; i < 0x40; i++) {
+    for (i = 0; i < kMaxExplodTypes; i++) {
         if (masterExplodSprite[i])
             SWDisposeSprite(&masterExplodSprite[i]);
     }
-    for (i = 0; i < 0x80; i++) {
+    for (i = 0; i < kMaxShots; i++) {
         if (shotData[i].sprite)
             DisposeClonedSprite(&shotData[i].sprite);
     }
-    for (i = 0; i < 0x100; i++) {
+    for (i = 0; i < kMaxWeapTypes; i++) {
         if (masterShotSprite[i])
             SWDisposeSprite(&masterShotSprite[i]);
     }
-    for (i = 0; i < 0x40; i++) {
+    for (i = 0; i < kMaxDebris; i++) {
         if (smokeData[i].sprite)
             DisposeClonedSprite(&smokeData[i].sprite);
     }
@@ -179,21 +180,21 @@ void DestroySpriteWorld(void)
         if (masterSmokeSprite[i])
             SWDisposeSprite(&masterSmokeSprite[i]);
     }
-    for (i = 0; i < 0x10; i++) {
+    for (i = 0; i < kMaxAsteroids; i++) {
         if (asteroidData[i].sprite)
             DisposeClonedSprite(&asteroidData[i].sprite);
     }
-    for (i = 0; i < 0x10; i++) {
+    for (i = 0; i < kMaxRoidTypes; i++) {
         if (masterAsteroidSprite[i])
             SWDisposeSprite(&masterAsteroidSprite[i]);
     }
-    for (i = 0; i < 6; i++) {
+    for (i = 0; i < kMainButtons; i++) {
         if (menuButtonSprite[i])
             SWDisposeSprite(&menuButtonSprite[i]);
     }
     if (menuRolloverSprite != NULL)
         SWDisposeSprite(&menuRolloverSprite);
-    for (i = 0; i < 0x40; i++) {
+    for (i = 0; i < kMaxBoxes; i++) {
         if (boxData[i].sprite)
             DisposeClonedSprite(&boxData[i].sprite);
     }
@@ -217,7 +218,7 @@ void DestroySpriteWorld(void)
         if (navTargetSprite[i])
             DisposeClonedSprite(&navTargetSprite[i]);
     }
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < kMaxNavTargets; i++) {
         if (weapTargetSprite[i])
             DisposeClonedSprite(&weapTargetSprite[i]);
     }
@@ -240,7 +241,7 @@ void DestroySpriteWorld(void)
         if (staticPat[i] != NULL)
             DisposePixPat((Image_t *)staticPat[i]);
     }
-    for (i = 0; i < 0x300; i++) {
+    for (i = 0; i < kMaxShipTypes; i++) {
         if (targetInfoPic[i] != NULL) {
             QDReleaseResource((PicHandle)targetInfoPic[i]);
             targetInfoPic[i] = NULL;
@@ -359,7 +360,7 @@ void SetupSpriteWorld(void)
 #ifdef CEFIX /* F14.18 */
     windRect.right -= ceStatusBarWidth;
 #else
-    windRect.right -= 194;
+    windRect.right -= kTargPanelInset;
 #endif
     SetPortWindowPort((WindowRef)gWind);
     err = SWCreateSpriteWorldFromWindow(&gSpriteWorld, gWind, &windRect, &windRect, 0);
@@ -474,7 +475,7 @@ void SetupSpriteWorld(void)
     spriteClipRect.top -= 75;
     spriteClipRect.left -= 75;
 
-    for (i = 0; i < 768; i++) {
+    for (i = 0; i < kMaxShipTypes; i++) {
         masterShipSprite[i] = 0;
         masterShipGlowSprite[i] = 0;
         masterShipLightSprite[i] = 0;
@@ -482,11 +483,11 @@ void SetupSpriteWorld(void)
         masterShipAltSprite[i] = 0;
         masterShipShieldSprite[i] = 0;
     }
-    for (i = 0; i < 256; i++)
+    for (i = 0; i < kMasterStellarSprites; i++)
         masterStellarSprite[i] = 0;
-    for (i = 0; i < 64; i++)
+    for (i = 0; i < kMaxExplodTypes; i++)
         masterExplodSprite[i] = 0;
-    for (i = 0; i < 256; i++)
+    for (i = 0; i < kMaxWeapTypes; i++)
         masterShotSprite[i] = 0;
 
 #if V111
@@ -598,7 +599,7 @@ void SetupWind(void)
         mBarHidden = 1;
     }
     screenCenter.h = ((GetCWindowPortRect((WindowRef)gWind)->right
-                             - GetCWindowPortRect((WindowRef)gWind)->left - 194) * 0.5);
+                             - GetCWindowPortRect((WindowRef)gWind)->left - kTargPanelInset) * 0.5);
     screenCenter.v = ((GetCWindowPortRect((WindowRef)gWind)->bottom
                              - GetCWindowPortRect((WindowRef)gWind)->top) * 0.5);
 #else
@@ -635,7 +636,7 @@ void SetupWind(void)
                              - GetCWindowPortRect(gWind)->left - ceStatusBarWidth) * 0.5);
 #else
     screenCenter.h = ((GetCWindowPortRect(gWind)->right
-                             - GetCWindowPortRect(gWind)->left - 194) * 0.5);
+                             - GetCWindowPortRect(gWind)->left - kTargPanelInset) * 0.5);
 #endif
     screenCenter.v = ((GetCWindowPortRect(gWind)->bottom
                              - GetCWindowPortRect(gWind)->top) * 0.5);
@@ -706,7 +707,7 @@ void InitArrays(void)
         EV_ASSERT_FAIL("Setup.c", 0x1cc, 769);
     if (AllocFailed(starData, (StarSlot *)AllocAPointer(sizeof(StarSlot) * kMaxStars)))
         EV_ASSERT_FAIL("Setup.c", 0x1cd, 770);
-    if (AllocFailed(missionBit, (Boolean *)AllocAPointer(0x2710)))
+    if (AllocFailed(missionBit, (Boolean *)AllocAPointer(sizeof(Boolean) * kMaxMissionBits)))
         EV_ASSERT_FAIL("Setup.c", 0x1ce, 771);
     if (AllocFailed(currentMissions, (MissionRecord *)AllocAPointer(sizeof(MissionRecord) * kMaxActiveMissions)))
         EV_ASSERT_FAIL("Setup.c", 0x1cf, 772);
@@ -751,7 +752,7 @@ void InitOffscreen(void)
 #ifdef CEFIX /* F14.21 */
     r.right = r.left + ceStatusBarWidth;
 #else
-    r.right = r.left + 0xc2;
+    r.right = r.left + kTargPanelInset;
 #endif
     CreateGWorldContainer(&statusOffPort, GetMainDevice(), 0, &r);
     if (statusOffPort.world == NULL) {
@@ -767,6 +768,20 @@ void InitOffscreen(void)
     SWSetPortToWindow(gSpriteWorld);
 }
 
+#define kVoiceClipsMax           9
+#define kVoiceSetStride       0x64
+#define kVoiceMsgStride        0xa
+#define kFirstVoiceID        0x3e8
+#define kLoopSounds              2
+#define kDefaultLoopTicks    0x15e
+#define kTicksPerSecond         60
+#define kFirstEngineID        0x96
+#define kEngineSounds            5
+#define kFirstShotID          0xc8
+#define kShotSounds          0x100
+#define kFirstExplodID       0x12c
+#define kExplodSounds         0x40
+#define kHighPriority        32000
 
 /* 1.1.1 logs no shutdown steps */
 #if V111
@@ -800,15 +815,15 @@ void Bye(void)
         ST_DisposeSound(snd);
     if (warpOutSnd != NULL)
         ST_DisposeSound(warpOutSnd);
-    for (i = 0; i <= 4; i++) {
+    for (i = 0; i <= kEngineSounds - 1; i++) {
         if (beepSnd[i] != NULL)
             ST_DisposeSound(beepSnd[i]);
     }
-    for (i = 0; i < 0x100; i++) {
+    for (i = 0; i < kShotSounds; i++) {
         if (shotSnd[i] != NULL)
             ST_DisposeSound(shotSnd[i]);
     }
-    for (i = 0; i < 0x40; i++) {
+    for (i = 0; i < kExplodSounds; i++) {
         if (explodSnd[i] != NULL)
             ST_DisposeSound(explodSnd[i]);
     }
@@ -838,7 +853,7 @@ void Bye(void)
     ShowTheMenuBar();
 
     ByeLog("disposing sprites");
-    for (i = 0; i < 0x40; i++) {
+    for (i = 0; i < kMaxShips; i++) {
         if (shipData[i].sprite)
             DisposeClonedSprite(&shipData[i].sprite);
         if (shipData[i].altSprite)
@@ -852,11 +867,11 @@ void Bye(void)
         if (shipData[i].shieldSprite)
             DisposeClonedSprite(&shipData[i].shieldSprite);
     }
-    for (i = 0; i < 0x20; i++) {
+    for (i = 0; i < kMaxPods; i++) {
         if (podData[i].sprite)
             DisposeClonedSprite(&podData[i].sprite);
     }
-    for (i = 0; i < 0x300; i++) {
+    for (i = 0; i < kMaxShipTypes; i++) {
         if (masterShipSprite[i])
             SWDisposeSprite(&masterShipSprite[i]);
         if (masterShipGlowSprite[i])
@@ -872,11 +887,11 @@ void Bye(void)
         if (shipClass[i].frameAngles != NULL)
             DeallocAPointer(shipClass[i].frameAngles);
     }
-    for (i = 0; i < 0x10; i++) {
+    for (i = 0; i < kStellarSprites; i++) {
         if (stellarSprite[i] != NULL)
             DeallocAPointer(stellarSprite[i]);
     }
-    for (i = 0; i < 0x100; i++) {
+    for (i = 0; i < kMasterStellarSprites; i++) {
         if (masterStellarSprite[i] != NULL) {
             if (masterStellarSprite[i]->frameArray != NULL) {
                 for (j = 0; j < masterStellarSprite[i]->numFrames; j++) {
@@ -890,23 +905,23 @@ void Bye(void)
             SWDisposeSprite(&masterStellarSprite[i]);
         }
     }
-    for (i = 0; i < 0x20; i++) {
+    for (i = 0; i < kMaxExplods; i++) {
         if (explodData[i].sprite)
             DisposeClonedSprite(&explodData[i].sprite);
     }
-    for (i = 0; i < 0x40; i++) {
+    for (i = 0; i < kMaxExplodTypes; i++) {
         if (masterExplodSprite[i])
             SWDisposeSprite(&masterExplodSprite[i]);
     }
-    for (i = 0; i < 0x80; i++) {
+    for (i = 0; i < kMaxShots; i++) {
         if (shotData[i].sprite)
             DisposeClonedSprite(&shotData[i].sprite);
     }
-    for (i = 0; i < 0x100; i++) {
+    for (i = 0; i < kMaxWeapTypes; i++) {
         if (masterShotSprite[i])
             SWDisposeSprite(&masterShotSprite[i]);
     }
-    for (i = 0; i < 0x40; i++) {
+    for (i = 0; i < kMaxDebris; i++) {
         if (smokeData[i].sprite)
             DisposeClonedSprite(&smokeData[i].sprite);
     }
@@ -914,21 +929,21 @@ void Bye(void)
         if (masterSmokeSprite[i])
             SWDisposeSprite(&masterSmokeSprite[i]);
     }
-    for (i = 0; i < 0x10; i++) {
+    for (i = 0; i < kMaxAsteroids; i++) {
         if (asteroidData[i].sprite)
             DisposeClonedSprite(&asteroidData[i].sprite);
     }
-    for (i = 0; i < 0x10; i++) {
+    for (i = 0; i < kMaxRoidTypes; i++) {
         if (masterAsteroidSprite[i])
             SWDisposeSprite(&masterAsteroidSprite[i]);
     }
-    for (i = 0; i < 6; i++) {
+    for (i = 0; i < kMainButtons; i++) {
         if (menuButtonSprite[i])
             SWDisposeSprite(&menuButtonSprite[i]);
     }
     if (menuRolloverSprite != NULL)
         SWDisposeSprite(&menuRolloverSprite);
-    for (i = 0; i < 0x40; i++) {
+    for (i = 0; i < kMaxBoxes; i++) {
         if (boxData[i].sprite)
             DisposeClonedSprite(&boxData[i].sprite);
     }
@@ -952,7 +967,7 @@ void Bye(void)
         if (navTargetSprite[i])
             DisposeClonedSprite(&navTargetSprite[i]);
     }
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < kMaxNavTargets; i++) {
         if (weapTargetSprite[i])
             DisposeClonedSprite(&weapTargetSprite[i]);
     }
@@ -977,7 +992,7 @@ void Bye(void)
         if (staticPat[i] != NULL)
             DisposePixPat((PixPatHandle)staticPat[i]);
     }
-    for (i = 0; i < 0x300; i++) {
+    for (i = 0; i < kMaxShipTypes; i++) {
         if (targetInfoPic[i] != NULL) {
             QDReleaseResource((PicHandle)targetInfoPic[i]);
             targetInfoPic[i] = NULL;
@@ -1176,7 +1191,6 @@ void LoadSprites(void)
     short i;
     long resID;
 #else
-    SpritePtr *p;
     short xTiles, yTiles;
     short i;
     long resID;
@@ -1184,18 +1198,10 @@ void LoadSprites(void)
     short err;
 #endif
 
-#ifdef MAC1010
-    for (i = 0; i < 256; i++) {
-#else
-    for (i = 0, p = masterShotSprite; i < 256; i++, p++) {
-#endif
+    for (i = 0; i < kMaxWeapTypes; i++) {
         if (GetSpriteInfo(i + 3000, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
             if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
-#ifdef MAC1010
                 err = SWCreateSpriteFromRLEResource(&masterShotSprite[i], NULL, spriteID, xTiles * yTiles, 0);
-#else
-                err = SWCreateSpriteFromRLEResource(p,NULL, spriteID, xTiles * yTiles, 0);
-#endif
                 if ((long)err != 0) {
                     crashlog_print("error loading sprite from RLE resource, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 3000);
@@ -1203,13 +1209,8 @@ void LoadSprites(void)
                     ReportSpriteLoadError(2, i + 3000, err);
                 }
             } else {
-#ifdef MAC1010
                 err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &masterShotSprite[i], NULL, spriteID, maskID, xSize,
                                    ySize, 0, 0, 0, 1);
-#else
-                err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, p,NULL, spriteID, maskID, xSize,
-                                   ySize, 0, 0, 0, 1);
-#endif
                 if ((long)err != 0) {
                     crashlog_print("error loading sprite from PICT resource, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 3000);
@@ -1230,7 +1231,7 @@ void LoadSprites(void)
         }
     }
 
-    for (i = 0; i < 64; i++) {
+    for (i = 0; i < kMaxExplodTypes; i++) {
         if (GetSpriteInfo(i + 400, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
             if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
                 err = SWCreateSpriteFromRLEResource(&masterExplodSprite[i], NULL, spriteID, xTiles * yTiles, 0);
@@ -1302,7 +1303,7 @@ void LoadSprites(void)
         }
     }
 
-    for (i = 0; i < 16; i++) {
+    for (i = 0; i < kMaxRoidTypes; i++) {
         masterAsteroidSprite[i] = 0;
         if (GetSpriteInfo(i + 800, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
             if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
@@ -1344,7 +1345,7 @@ void LoadSprites(void)
         }
     }
 
-    for (i = 0; i < 6; i++) {
+    for (i = 0; i < kMainButtons; i++) {
         menuButtonSprite[i] = 0;
         if (GetSpriteInfo(i + 600, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
             if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
@@ -1532,7 +1533,7 @@ void LoadSprites(void)
     }
     IterateInGameEventLoop(1);
 
-    for (i = 0; i < 768; i++) {
+    for (i = 0; i < kMaxShipTypes; i++) {
         targetInfoPic[i] = GetPicture(i + 3000);
 #ifdef MACBUILD
         if (targetInfoPic[i] != NULL)
@@ -1648,7 +1649,7 @@ void LoadShipSprites(void)
                             crashlog_print("warning: ");
                             crashlog_print_pstr(shipClass[shipType].name);
                             crashlog_print(" (");
-                            crashlog_print_num(shipType + 128);
+                            crashlog_print_num(shipType + kFirstResourceID);
                             crashlog_print(") lacks target picture\n");
                         }
                     }
@@ -1665,7 +1666,7 @@ void LoadShipSprites(void)
                             crashlog_print("warning: ");
                             crashlog_print_pstr(shipClass[shipType].name);
                             crashlog_print(" (");
-                            crashlog_print_num(shipType + 128);
+                            crashlog_print_num(shipType + kFirstResourceID);
                             crashlog_print(") lacks shipyard picture\n");
                         }
                     }
@@ -2125,21 +2126,6 @@ void InitSprites(void)
 #endif
 }
 
-#define kVoiceClipsMax           9
-#define kVoiceSetStride       0x64
-#define kVoiceMsgStride        0xa
-#define kFirstVoiceID        0x3e8
-#define kLoopSounds              2
-#define kDefaultLoopTicks    0x15e
-#define kTicksPerSecond         60
-#define kFirstEngineID        0x96
-#define kEngineSounds            5
-#define kFirstShotID          0xc8
-#define kShotSounds          0x100
-#define kFirstExplodID       0x12c
-#define kExplodSounds         0x40
-#define kHighPriority        32000
-
 
 
 /* LoadSounds. STATE: MATCH 100%, exe 182 / obj 182 instrs. The census computes each
@@ -2291,7 +2277,6 @@ void LoadMasterStellarSprite(short type)
 }
 
 
-#define kMaxRoidTypes    16
 #define kEscortCount     4
 
 #define kBasePriceStringID 9300     /* plugin string, else STR# 4004 item i+1 */
@@ -2509,7 +2494,7 @@ void InitObjects(void)
 
     for (i = 0; i < kMaxDudes; i++) {
         dudeData[i].loaded = 0;
-        for (j = 0; j < 16; j++)
+        for (j = 0; j < kDudeShipSlots; j++)
             dudeData[i].shipTypes[j] = -1;
     }
 
@@ -2605,13 +2590,13 @@ void InitObjects(void)
             weaponStats[i].jamVuln[j] = 0;
     }
 
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < kEscortCount; i++)
         playerEscortOrders[i] = -1;
 
     for (i = 0; i < kMaxHyperRoute; i++)
         hyperRoute[i] = -1;
 
-    for (i = 0; i <= 5; i++) {
+    for (i = 0; i <= kCargoTypes - 1; i++) {
         if (!LoadPluginString(i + kBasePriceStringID, buf))
             GetIndString(buf, kBasePriceListID, i + 1);
         StringToNum(buf, &value);
@@ -2619,7 +2604,7 @@ void InitObjects(void)
     }
 
     for (i = 0; i < kMaxMissions; i++)
-        missionRandom[i] = Rand(100) + 1;
+        missionRandom[i] = Rand(kDailyRollRange) + 1;
 
     for (i = 0; i < kMaxCrons; i++)
         cronEvent[i].loaded = 0;
@@ -2873,7 +2858,7 @@ void ResetPlayer(Boolean newPilot)
         shipData->credits = kStartingCredits;
         for (i = 0; i < kMaxSystems; i++) {
             systemData[i].exploreLevel = 0;
-            if (systemData[i].govt >= 0 && systemData[i].govt < 256)
+            if (systemData[i].govt >= 0 && systemData[i].govt < kMaxGovts)
                 playerRecord[i] = govtData[systemData[i].govt].initialRec;
             else
                 playerRecord[i] = 0;
@@ -2893,7 +2878,7 @@ void ResetPlayer(Boolean newPilot)
             nebulaData[i].explored = 0;
         for (i = 0; i < kMaxPersons; i++)
             personData[i].grudge = 0;
-        for (i = 0; i < 4; i++)
+        for (i = 0; i < kEscortCount; i++)
             playerEscortOrders[i] = -1;
     }
     mapScroll.h = systemData[shipData->curSystem].pos.h;
@@ -2917,7 +2902,7 @@ void ResetPlayerRecord(Boolean newPilot)
     if (newPilot != 0)
         playerKills = 0;
 
-    for (i = 0; i < 2048; i++) {
+    for (i = 0; i < kMaxSystems; i++) {
         short minStatus;
 
         if (systemData[i].govt >= 0)
@@ -2927,7 +2912,7 @@ void ResetPlayerRecord(Boolean newPilot)
         if (playerRecord[i] < minStatus)
             playerRecord[i] = minStatus;
     }
-    for (i = 0; i < 2048; i++) {
+    for (i = 0; i < kMaxStellars; i++) {
         if ((stellarData[i].flags2 & kSpobAlwaysDominated) != 0)
             stellarData[i].dominated = 1;
         else
@@ -2937,6 +2922,10 @@ void ResetPlayerRecord(Boolean newPilot)
 }
 
 #ifdef MACBUILD
+#define kMinSystemVersion    0x810       /* Mac OS 8.1 */
+#define kMinCarbonVersion    0x131       /* CarbonLib 1.3.1, before Mac OS X */
+#define kMinQuickTimeVersion 0x3000000   /* QuickTime 3.0 */
+
 /* CheckSystem (mac _CheckSystem, mac-only). STATE: mac MATCH i386 and ppc. OPEN: none */
 // MAC: _CheckSystem i386 0x0001dc00 ppc 0x000223e8
 void CheckSystem(void)
@@ -2950,7 +2939,7 @@ void CheckSystem(void)
     sprintf((char *)msg, "%04X", gSystemVersion);
     crashlog_print((char *)msg);
     crashlog_print("\n");
-    if (gSystemVersion < 0x810 || err != noErr) {
+    if (gSystemVersion < kMinSystemVersion || err != noErr) {
         FadeScreenIn();
         GetIndString(msg, kAlertStrList, 40);
         EVNoteAlert(msg);
@@ -2959,9 +2948,9 @@ void CheckSystem(void)
         ExitToShell();
     }
 #if TARGET_API_MAC_CARBON
-    if (gSystemVersion < 0x1000) {
+    if (gSystemVersion < kMacOSXSystemVersion) {
         Gestalt(gestaltCarbonVersion, &response);
-        if (response < 0x131) {
+        if (response < kMinCarbonVersion) {
             FadeScreenIn();
             GetIndString(msg, kAlertStrList, 41);
             EVNoteAlert(msg);
@@ -2973,7 +2962,7 @@ void CheckSystem(void)
 #endif
     oldDepth = 8;
     err = Gestalt(gestaltQuickTimeVersion, &response);
-    if (response < 0x3000000 || err != noErr) {
+    if (response < kMinQuickTimeVersion || err != noErr) {
         FadeScreenIn();
         GetIndString(msg, kAlertStrList, 42);
         EVNoteAlert(msg);
@@ -3983,7 +3972,7 @@ short LoadExtendedShipSprites(short shipType)
     short j;
 
     total = 0;
-    shipSpriteInfoHand = (ShanRec **)GetResource(kShanType, shipType + 128);
+    shipSpriteInfoHand = (ShanRec **)GetResource(kShanType, shipType + kFirstResourceID);
     if (shipSpriteInfoHand != NULL) {
         LockAHandle((Handle)shipSpriteInfoHand);
 
@@ -4017,9 +4006,9 @@ short LoadExtendedShipSprites(short shipType)
                                                     spinID, count, 0);
                 if ((long)err != 0) {
                     crashlog_print("error loading ship base sprite from RLE, " kShanTypeName " ID ");
-                    crashlog_print_num(shipType + 128);
+                    crashlog_print_num(shipType + kFirstResourceID);
                     crashlog_print("\n");
-                    ReportSpriteLoadError(2, shipType + 128, err);
+                    ReportSpriteLoadError(2, shipType + kFirstResourceID, err);
                 }
                 SWLockSprite(masterShipSprite[shipType]);
             } else {
@@ -4028,17 +4017,17 @@ short LoadExtendedShipSprites(short shipType)
                                                      shipClass[shipType].framesPer * setCount, 1);
                 if ((long)err != 0) {
                     crashlog_print("error loading ship base sprite from PICT, " kShanTypeName " ID ");
-                    crashlog_print_num(shipType + 128);
+                    crashlog_print_num(shipType + kFirstResourceID);
                     crashlog_print("\n");
-                    ReportSpriteLoadError(3, shipType + 128, err);
+                    ReportSpriteLoadError(3, shipType + kFirstResourceID, err);
                 }
                 SWLockSprite(masterShipSprite[shipType]);
                 err = ConvertSpriteToRLE(masterShipSprite[shipType]);
                 if ((long)err != 0) {
                     crashlog_print("error converting ship base sprite to RLE, " kShanTypeName " ID ");
-                    crashlog_print_num(shipType + 128);
+                    crashlog_print_num(shipType + kFirstResourceID);
                     crashlog_print("\n");
-                    ReportSpriteLoadError(4, shipType + 128, err);
+                    ReportSpriteLoadError(4, shipType + kFirstResourceID, err);
                 }
                 masterShipSprite[shipType]->numFrames =
                     shipClass[shipType].framesPer * setCount;
@@ -4077,9 +4066,9 @@ short LoadExtendedShipSprites(short shipType)
                                                             shipClass[shipType].framesPer, 0);
                     if ((long)err != 0) {
                         crashlog_print("error loading ship alt sprite from RLE, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(2, shipType + 128, err);
+                        ReportSpriteLoadError(2, shipType + kFirstResourceID, err);
                     }
                     SWLockSprite(masterShipAltSprite[shipType]);
                 } else {
@@ -4090,9 +4079,9 @@ short LoadExtendedShipSprites(short shipType)
                                                              shipClass[shipType].altSets, 1);
                     if ((long)err != 0) {
                         crashlog_print("error loading ship alt sprite from PICT, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(3, shipType + 128, err);
+                        ReportSpriteLoadError(3, shipType + kFirstResourceID, err);
                     }
                     masterShipAltSprite[shipType]->numFrames =
                         shipClass[shipType].framesPer * shipClass[shipType].altSets;
@@ -4100,9 +4089,9 @@ short LoadExtendedShipSprites(short shipType)
                     err = ConvertSpriteToRLE(masterShipAltSprite[shipType]);
                     if ((long)err != 0) {
                         crashlog_print("error converting ship alt sprite to RLE, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(4, shipType + 128, err);
+                        ReportSpriteLoadError(4, shipType + kFirstResourceID, err);
                     }
                 }
             }
@@ -4126,9 +4115,9 @@ short LoadExtendedShipSprites(short shipType)
                                                         spinID, count, 0);
                     if ((long)err != 0) {
                         crashlog_print("error loading ship glow sprite from RLE, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(2, shipType + 128, err);
+                        ReportSpriteLoadError(2, shipType + kFirstResourceID, err);
                     }
                     SWLockSprite(masterShipGlowSprite[shipType]);
                 } else {
@@ -4138,9 +4127,9 @@ short LoadExtendedShipSprites(short shipType)
                                                          shipClass[shipType].framesPer * setCount, 1);
                     if ((long)err != 0) {
                         crashlog_print("error loading ship glow sprite from PICT, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(3, shipType + 128, err);
+                        ReportSpriteLoadError(3, shipType + kFirstResourceID, err);
                     }
                     masterShipGlowSprite[shipType]->numFrames =
                         shipClass[shipType].framesPer * setCount;
@@ -4148,9 +4137,9 @@ short LoadExtendedShipSprites(short shipType)
                     err = ConvertSpriteToRLE(masterShipGlowSprite[shipType]);
                     if ((long)err != 0) {
                         crashlog_print("error converting ship glow sprite to RLE, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(4, shipType + 128, err);
+                        ReportSpriteLoadError(4, shipType + kFirstResourceID, err);
                     }
                 }
             }
@@ -4174,9 +4163,9 @@ short LoadExtendedShipSprites(short shipType)
                                                         lightID, count, 0);
                     if ((long)err != 0) {
                         crashlog_print("error loading ship light sprite from RLE, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(2, shipType + 128, err);
+                        ReportSpriteLoadError(2, shipType + kFirstResourceID, err);
                     }
                     SWLockSprite(masterShipLightSprite[shipType]);
                 } else {
@@ -4186,9 +4175,9 @@ short LoadExtendedShipSprites(short shipType)
                                                          shipClass[shipType].framesPer * setCount, 1);
                     if ((long)err != 0) {
                         crashlog_print("error loading ship light sprite from PICT, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(3, shipType + 128, err);
+                        ReportSpriteLoadError(3, shipType + kFirstResourceID, err);
                     }
                     masterShipLightSprite[shipType]->numFrames =
                         shipClass[shipType].framesPer * setCount;
@@ -4196,9 +4185,9 @@ short LoadExtendedShipSprites(short shipType)
                     err = ConvertSpriteToRLE(masterShipLightSprite[shipType]);
                     if ((long)err != 0) {
                         crashlog_print("error converting ship light sprite to RLE, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(4, shipType + 128, err);
+                        ReportSpriteLoadError(4, shipType + kFirstResourceID, err);
                     }
                 }
             }
@@ -4232,9 +4221,9 @@ short LoadExtendedShipSprites(short shipType)
                                                         spinID, count, 0);
                     if ((long)err != 0) {
                         crashlog_print("error loading ship weapon sprite from RLE, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(2, shipType + 128, err);
+                        ReportSpriteLoadError(2, shipType + kFirstResourceID, err);
                     }
                     SWLockSprite(masterShipWeaponSprite[shipType]);
                 } else {
@@ -4244,9 +4233,9 @@ short LoadExtendedShipSprites(short shipType)
                                                          shipClass[shipType].framesPer * setCount, 1);
                     if ((long)err != 0) {
                         crashlog_print("error loading ship weapon sprite from PICT, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(3, shipType + 128, err);
+                        ReportSpriteLoadError(3, shipType + kFirstResourceID, err);
                     }
                     masterShipWeaponSprite[shipType]->numFrames =
                         shipClass[shipType].framesPer * setCount;
@@ -4254,9 +4243,9 @@ short LoadExtendedShipSprites(short shipType)
                     err = ConvertSpriteToRLE(masterShipWeaponSprite[shipType]);
                     if ((long)err != 0) {
                         crashlog_print("error converting ship weapon sprite to RLE, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(4, shipType + 128, err);
+                        ReportSpriteLoadError(4, shipType + kFirstResourceID, err);
                     }
                 }
             }
@@ -4281,9 +4270,9 @@ short LoadExtendedShipSprites(short shipType)
                                                         spinID, count, 0);
                     if ((long)err != 0) {
                         crashlog_print("error loading ship shield sprite from RLE, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(2, shipType + 128, err);
+                        ReportSpriteLoadError(2, shipType + kFirstResourceID, err);
                     }
                     SWLockSprite(masterShipShieldSprite[shipType]);
                 } else {
@@ -4292,17 +4281,17 @@ short LoadExtendedShipSprites(short shipType)
                                                          spinID, maskID, xSize, ySize, 0, 0, 0, 1);
                     if ((long)err != 0) {
                         crashlog_print("error loading ship shield sprite from PICT, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(3, shipType + 128, err);
+                        ReportSpriteLoadError(3, shipType + kFirstResourceID, err);
                     }
                     SWLockSprite(masterShipShieldSprite[shipType]);
                     err = ConvertSpriteToRLE(masterShipShieldSprite[shipType]);
                     if ((long)err != 0) {
                         crashlog_print("error converting ship shield sprite to RLE, " kShanTypeName " ID ");
-                        crashlog_print_num(shipType + 128);
+                        crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
-                        ReportSpriteLoadError(4, shipType + 128, err);
+                        ReportSpriteLoadError(4, shipType + kFirstResourceID, err);
                     }
                 }
             }
@@ -4601,7 +4590,7 @@ void PreflightMemoryUsage(long *base, long *engineGlow, long *runningLights, lon
     *base = *engineGlow = *runningLights = *weaponGlow = 0;
     for (i = 0; i < kMaxShipTypes; i++) {
         shipSpriteInfoHand = NULL;
-        shipSpriteInfoHand = (ShanRec **)GetResource(kShanType, i + 128);
+        shipSpriteInfoHand = (ShanRec **)GetResource(kShanType, i + kFirstResourceID);
         if (shipSpriteInfoHand == NULL)
             continue;
         baseSets = (*shipSpriteInfoHand)->baseSetCount;

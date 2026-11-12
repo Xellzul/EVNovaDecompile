@@ -49,25 +49,15 @@ unsigned char DT_BmpUnpack4(unsigned char *dst, const unsigned char *src, ULong 
    obj 350, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005124d2
 long _BMP_DecodePixels(ITStream *stream, ITImage *image, unsigned char *buf, unsigned char *row,
-#ifdef MAC1010 /* 1.0.10 spelling */
-                  long inWidth, long height, unsigned char rle4, ULong rows)
-#else
                   long width, long height, unsigned char rle4, ULong rows)
-#endif
 {
     long err;
     long e;
     ULong x;
-#ifdef MAC1010 /* 1.0.10 spelling */
-    ULong width;
-#endif
     ULong y;
     ULong count;
     unsigned char odd;
 
-#ifdef MAC1010 /* 1.0.10 spelling */
-    width = inWidth;
-#endif
     err = 0;
     x = 0;
     y = 0;

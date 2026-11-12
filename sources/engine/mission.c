@@ -70,11 +70,11 @@ void InitMissions(void)
         return;
 
     if (!EVBugResourceFieldTest(9)) {
-        for (j = 0; j < 16; j++) {
+        for (j = 0; j < kMaxActiveMissions; j++) {
             currentMissionObjectives[j].active = 0;
             currentMissionObjectives[j].failed = 0;
         }
-        for (i = 0; i < 10000; i++)
+        for (i = 0; i < kMaxMissionBits; i++)
             missionBit[i] = 0;
         for (i = 0; i < kMaxMissions; i++) {
             missionAvailData[i].availStel = -32000;
@@ -97,7 +97,7 @@ void InitMissions(void)
     numMisns = CountResources(kMisnType);
     for (i = 0; i < kMaxMissions; i++) {
         missionFileHand = NULL;
-        missionFileHand = GetResource(kMisnType, i + 128);
+        missionFileHand = GetResource(kMisnType, i + kFirstResourceID);
         if (missionFileHand != NULL) {
             numLoaded++;
             rec = (MisnRes *)*missionFileHand;
@@ -120,57 +120,57 @@ void InitMissions(void)
             missionAvailData[i].dispWeight = MisnFileRec->dispWeight;
             if (missionAvailData[i].availStel < -1) {
                 crashlog_print("warning: mission ");
-                crashlog_print_num(i + 128);
+                crashlog_print_num(i + kFirstResourceID);
                 crashlog_print(" has invalid AvailStel value\n");
                 missionAvailData[i].availStel = -1;
             }
-            if (((MisnRes *)*missionFileHand)->shipDude >= 128
-                    && ((MisnRes *)*missionFileHand)->shipDude < 640) {
-                if (dudeData[((MisnRes *)*missionFileHand)->shipDude - 128].loaded == 0) {
+            if (((MisnRes *)*missionFileHand)->shipDude >= kFirstResourceID
+                    && ((MisnRes *)*missionFileHand)->shipDude < kFirstResourceID + kMaxDudes) {
+                if (dudeData[((MisnRes *)*missionFileHand)->shipDude - kFirstResourceID].loaded == 0) {
                     crashlog_print("warning: mission ");
-                    crashlog_print_num(i + 128);
+                    crashlog_print_num(i + kFirstResourceID);
                     crashlog_print(" makes reference to nonexistent " kDudeResName " resource ");
                     crashlog_print_num(((MisnRes *)*missionFileHand)->shipDude);
                     crashlog_print("\n");
                 }
             } else if (((MisnRes *)*missionFileHand)->shipCount > 0) {
                 crashlog_print("warning: mission ");
-                crashlog_print_num(i + 128);
+                crashlog_print_num(i + kFirstResourceID);
                 crashlog_print(" makes reference to nonexistent " kDudeResName " resource ");
                 crashlog_print_num(((MisnRes *)*missionFileHand)->shipDude);
                 crashlog_print("\n");
             }
-            if (((MisnRes *)*missionFileHand)->auxShipDude >= 128
-                    && ((MisnRes *)*missionFileHand)->auxShipDude < 640) {
-                if (dudeData[((MisnRes *)*missionFileHand)->auxShipDude - 128].loaded == 0) {
+            if (((MisnRes *)*missionFileHand)->auxShipDude >= kFirstResourceID
+                    && ((MisnRes *)*missionFileHand)->auxShipDude < kFirstResourceID + kMaxDudes) {
+                if (dudeData[((MisnRes *)*missionFileHand)->auxShipDude - kFirstResourceID].loaded == 0) {
                     crashlog_print("warning: mission ");
-                    crashlog_print_num(i + 128);
+                    crashlog_print_num(i + kFirstResourceID);
                     crashlog_print(" makes reference to nonexistent " kDudeResName " resource ");
                     crashlog_print_num(((MisnRes *)*missionFileHand)->auxShipDude);
                     crashlog_print("\n");
                 }
             } else if (*(short *)(*missionFileHand + 0x48) > 0) {
                 crashlog_print("warning: mission ");
-                crashlog_print_num(i + 128);
+                crashlog_print_num(i + kFirstResourceID);
                 crashlog_print(" makes reference to nonexistent " kDudeResName " resource ");
                 crashlog_print_num(((MisnRes *)*missionFileHand)->auxShipDude);
                 crashlog_print("\n");
             }
-            if (((MisnRes *)*missionFileHand)->travelStel >= 128
-                    && ((MisnRes *)*missionFileHand)->travelStel < 2176) {
-                if (stellarData[((MisnRes *)*missionFileHand)->travelStel - 128].prepared == 0) {
+            if (((MisnRes *)*missionFileHand)->travelStel >= kFirstResourceID
+                    && ((MisnRes *)*missionFileHand)->travelStel < kFirstResourceID + kMaxStellars) {
+                if (stellarData[((MisnRes *)*missionFileHand)->travelStel - kFirstResourceID].prepared == 0) {
                     crashlog_print("warning: mission ");
-                    crashlog_print_num(i + 128);
+                    crashlog_print_num(i + kFirstResourceID);
                     crashlog_print(" makes reference to nonexistent " kSpobResName " resource ");
                     crashlog_print_num(((MisnRes *)*missionFileHand)->travelStel);
                     crashlog_print("\n");
                 }
             }
-            if (((MisnRes *)*missionFileHand)->returnStel >= 128
-                    && ((MisnRes *)*missionFileHand)->returnStel < 2176) {
-                if (stellarData[((MisnRes *)*missionFileHand)->returnStel - 128].prepared == 0) {
+            if (((MisnRes *)*missionFileHand)->returnStel >= kFirstResourceID
+                    && ((MisnRes *)*missionFileHand)->returnStel < kFirstResourceID + kMaxStellars) {
+                if (stellarData[((MisnRes *)*missionFileHand)->returnStel - kFirstResourceID].prepared == 0) {
                     crashlog_print("warning: mission ");
-                    crashlog_print_num(i + 128);
+                    crashlog_print_num(i + kFirstResourceID);
                     crashlog_print(" makes reference to nonexistent " kSpobResName " resource ");
                     crashlog_print_num(((MisnRes *)*missionFileHand)->returnStel);
                     crashlog_print("\n");
@@ -386,7 +386,7 @@ void DoMissionDialog(void)
             greenMissionSyst = -1;
             shipData->targetStellar = savedTarget;
             shipData->navTargetKind = savedRoute;
-            statusRedraw[0] = 1;
+            statusRedraw[kRedrawNav] = 1;
             DrawStatus();
             SetDialogGWorld(portDialog);
             RedrawDialog(portDialog);
@@ -626,9 +626,7 @@ void RandomizeMissionData(void)
     short v;
     Boolean hit;
     short p;
-#ifdef MACBUILD
     short k;
-#endif
 
     PropagateMissionBitEffects();
     saved = missionsOutside;
@@ -676,11 +674,7 @@ void RandomizeMissionData(void)
                 n++;
             }
         }
-#ifdef MACBUILD
         k = 0;
-#else
-        count = 0;
-#endif
         do {
             n = 0;
             for (i = 0; i < kMaxMissions; i++) {
@@ -688,13 +682,8 @@ void RandomizeMissionData(void)
                 if (v != -1) {
                     p = missionAvailData[v].dispWeight;
                     if (p >= best) {
-#ifdef MACBUILD
                         dockedPortMissions[venue][k] = v;
                         k++;
-#else
-                        dockedPortMissions[venue][count] = v;
-                        count++;
-#endif
                         tempMissions[i] = -1;
                     } else if (p > next || n == 0) {
                         next = p;
@@ -810,7 +799,7 @@ short SelectMissionCargoType(short choice)
     if (choice >= 0 && choice < 1000)
         return choice;
     if (choice == 1000)
-        return Rand(6);
+        return Rand(kCargoTypes);
     return -1;
 }
 
@@ -883,7 +872,7 @@ short SelectMissionStellar(short sel, short loc, short avoid, short mission)
             }
             if (count <= 0) {
                 crashlog_print("warning: mission ");
-                crashlog_print_num(mission + 128);
+                crashlog_print_num(mission + kFirstResourceID);
                 crashlog_print(" failed to find a valid nontransient random stellar");
                 if (loc != kStellarNone) {
                     crashlog_print(", using ");
@@ -921,7 +910,7 @@ short SelectMissionStellar(short sel, short loc, short avoid, short mission)
             }
             if (count <= 0) {
                 crashlog_print("warning: mission ");
-                crashlog_print_num(mission + 128);
+                crashlog_print_num(mission + kFirstResourceID);
                 crashlog_print(" failed to find a valid nontransient random uninhabited stellar");
                 if (loc != kStellarNone) {
                     crashlog_print(", using ");
@@ -944,7 +933,7 @@ short SelectMissionStellar(short sel, short loc, short avoid, short mission)
         }
         if (sel > 0 && sel < kFirstResourceID) {
             crashlog_print("warning: mission ");
-            crashlog_print_num(mission + 128);
+            crashlog_print_num(mission + kFirstResourceID);
             crashlog_print(" failed to find stellar with ID of ");
             crashlog_print_num(sel);
             crashlog_print("\n");
@@ -975,9 +964,9 @@ short SelectMissionStellar(short sel, short loc, short avoid, short mission)
             }
             if (count <= 0) {
                 crashlog_print("warning: mission ");
-                crashlog_print_num(mission + 128);
+                crashlog_print_num(mission + kFirstResourceID);
                 crashlog_print(" failed to find a valid nontransient random stellar of govt ");
-                crashlog_print_num(sel - kStellarGovt + 128);
+                crashlog_print_num(sel - kStellarGovt + kFirstResourceID);
                 if (loc != kStellarNone) {
                     crashlog_print(", using ");
                     crashlog_print_pstr(stellarData[loc].name);
@@ -1021,9 +1010,9 @@ short SelectMissionStellar(short sel, short loc, short avoid, short mission)
             }
             if (count <= 0) {
                 crashlog_print("warning: mission ");
-                crashlog_print_num(mission + 128);
+                crashlog_print_num(mission + kFirstResourceID);
                 crashlog_print(" failed to find a valid nontransient random stellar allied with govt ");
-                crashlog_print_num(sel - kStellarAllied + 128);
+                crashlog_print_num(sel - kStellarAllied + kFirstResourceID);
                 if (loc != kStellarNone) {
                     crashlog_print(", using ");
                     crashlog_print_pstr(stellarData[loc].name);
@@ -1067,9 +1056,9 @@ short SelectMissionStellar(short sel, short loc, short avoid, short mission)
             }
             if (count <= 0) {
                 crashlog_print("warning: mission ");
-                crashlog_print_num(mission + 128);
+                crashlog_print_num(mission + kFirstResourceID);
                 crashlog_print(" failed to find a valid nontransient random stellar not of govt ");
-                crashlog_print_num(sel - kStellarNotGovt + 128);
+                crashlog_print_num(sel - kStellarNotGovt + kFirstResourceID);
                 if (loc != kStellarNone) {
                     crashlog_print(", using ");
                     crashlog_print_pstr(stellarData[loc].name);
@@ -1110,9 +1099,9 @@ short SelectMissionStellar(short sel, short loc, short avoid, short mission)
             }
             if (count <= 0) {
                 crashlog_print("warning: mission ");
-                crashlog_print_num(mission + 128);
+                crashlog_print_num(mission + kFirstResourceID);
                 crashlog_print(" failed to find a valid nontransient random stellar that is enemy of govt ");
-                crashlog_print_num(sel - kStellarEnemy + 128);
+                crashlog_print_num(sel - kStellarEnemy + kFirstResourceID);
                 if (loc != kStellarNone) {
                     crashlog_print(", using ");
                     crashlog_print_pstr(stellarData[loc].name);
@@ -1161,9 +1150,9 @@ short SelectMissionStellar(short sel, short loc, short avoid, short mission)
             }
             if (count <= 0) {
                 crashlog_print("warning: mission ");
-                crashlog_print_num(mission + 128);
+                crashlog_print_num(mission + kFirstResourceID);
                 crashlog_print(" failed to find a valid nontransient random stellar of govt ");
-                crashlog_print_num(sel - kStellarClass + 128);
+                crashlog_print_num(sel - kStellarClass + kFirstResourceID);
                 crashlog_print(" or a govt of same class");
                 if (loc != kStellarNone) {
                     crashlog_print(", using ");
@@ -1212,9 +1201,9 @@ short SelectMissionStellar(short sel, short loc, short avoid, short mission)
             }
             if (count <= 0) {
                 crashlog_print("warning: mission ");
-                crashlog_print_num(mission + 128);
+                crashlog_print_num(mission + kFirstResourceID);
                 crashlog_print(" failed to find a valid nontransient random stellar not of govt ");
-                crashlog_print_num(sel - kStellarNotClass + 128);
+                crashlog_print_num(sel - kStellarNotClass + kFirstResourceID);
                 crashlog_print(" or a govt of same class");
                 if (loc != kStellarNone) {
                     crashlog_print(", using ");
@@ -1291,29 +1280,16 @@ short SelectMissionSystem(short sel, short loc)
     } else if (sel >= kSystemGovt - 1 && sel < kSystemAllied) {
         /* BUG: off by one, 9999 enters the govt band as if it were one */
         count = 0;
-#ifdef MAC1010 /* 1.0.10 spelling */
-        for (sys = 0; sys < kMaxSystems; sys++) {
-            if (systemData[sys].loaded
-                    && SystemVisible(sys)
-                    && systemData[sys].govt == sel - kSystemGovt
-                    && FindFirstCoLocatedSystem(sys)
+        for (i = 0; i < kMaxSystems; i++) {
+            if (systemData[i].loaded
+                    && SystemVisible(i)
+                    && systemData[i].govt == sel - kSystemGovt
+                    && FindFirstCoLocatedSystem(i)
                         != FindFirstCoLocatedSystem(shipData->curSystem))
                 count++;
             if (count >= 1)
                 break;
         }
-#else
-        for (link = 0; link < kMaxSystems; link++) {
-            if (systemData[link].loaded
-                    && SystemVisible(link)
-                    && systemData[link].govt == sel - kSystemGovt
-                    && FindFirstCoLocatedSystem(link)
-                        != FindFirstCoLocatedSystem(shipData->curSystem))
-                count++;
-            if (count >= 1)
-                break;
-        }
-#endif
         if (count <= 0) {
             return -1;
         } else {
@@ -1559,14 +1535,14 @@ Boolean DoMissionAccept(short mission)
         SetMissionDeadline(&currentMissionObjectives[slot].dueDate, currentMissions[slot].timeLimit);
     currentMissionObjectives[slot].flags = currentMissions[slot].flags;
     crashlog_mission_bit_set("beginning mission", currentMissions[slot].name, 1,
-                             currentMissions[slot].misnIndex + 128,
+                             currentMissions[slot].misnIndex + kFirstResourceID,
                              currentMissions[slot].beginSetString);
     EvalCurrentMissionBitSetString(currentMissions[slot].beginSetString, slot);
     if (currentMissions[slot].payment < kMissionCostFloor) {
         shipData->credits -= kMissionCostFloor - currentMissions[slot].payment;
         if (shipData->credits < 0)
             shipData->credits = 0;
-        statusRedraw[2] = 1;
+        statusRedraw[kRedrawCargo] = 1;
     }
     if (missionDialog != NULL)
         SetDialogVisible(missionDialog, 0);
@@ -1621,7 +1597,7 @@ Boolean DoMissionAccept(short mission)
                         n++;
                     } else {
                         crashlog_print("suppressing previously available mission ");
-                        crashlog_print_num(dockedPortMissions[missionsOutside][i] + 128);
+                        crashlog_print_num(dockedPortMissions[missionsOutside][i] + kFirstResourceID);
                         crashlog_print("\n");
                     }
                 }
@@ -1657,7 +1633,7 @@ void LoadCurrentMissionData(short mission, short slot)
     currentMissions[slot].cargoType = briefMissionInfo[mission].cargoType;
     currentMissions[slot].cargoQty = briefMissionInfo[mission].cargoUnits;
 
-    missionFileHand = GetResource(kMisnType, mission + 128);
+    missionFileHand = GetResource(kMisnType, mission + kFirstResourceID);
     if (missionFileHand != NULL) {
         LockAHandle(missionFileHand);
         currentMissions[slot].flags = ((MisnRes *)*missionFileHand)->flags;
@@ -1670,7 +1646,7 @@ void LoadCurrentMissionData(short mission, short slot)
         currentMissions[slot].initialShipCount = currentMissions[slot].shipCount;
         currentMissions[slot].shipDude = ((MisnRes *)*missionFileHand)->shipDude;
         if (currentMissions[slot].shipDude > 0)
-            currentMissions[slot].shipDude -= 128;
+            currentMissions[slot].shipDude -= kFirstResourceID;
         currentMissions[slot].shipGoal = ((MisnRes *)*missionFileHand)->shipGoal;
         currentMissions[slot].shipBehav = ((MisnRes *)*missionFileHand)->shipBehav;
         currentMissions[slot].shipStart = ((MisnRes *)*missionFileHand)->shipStart;
@@ -1684,11 +1660,11 @@ void LoadCurrentMissionData(short mission, short slot)
         }
         currentMissions[slot].compGovt = ((MisnRes *)*missionFileHand)->compGovt;
         currentMissions[slot].compReward = ((MisnRes *)*missionFileHand)->compReward;
-        if (currentMissions[slot].compGovt >= 128 && currentMissions[slot].compGovt < 384)
-            currentMissions[slot].compGovt -= 128;
+        if (currentMissions[slot].compGovt >= kFirstResourceID && currentMissions[slot].compGovt < kFirstResourceID + kMaxGovts)
+            currentMissions[slot].compGovt -= kFirstResourceID;
         else
             currentMissions[slot].compGovt = -1;
-        if (currentMissions[slot].compGovt < 0 || currentMissions[slot].compGovt >= 256)
+        if (currentMissions[slot].compGovt < 0 || currentMissions[slot].compGovt >= kMaxGovts)
             currentMissions[slot].compReward = 0;
         currentMissions[slot].briefDesc = ((MisnRes *)*missionFileHand)->briefText;
         currentMissions[slot].quickBriefDesc = ((MisnRes *)*missionFileHand)->quickBrief;
@@ -1721,8 +1697,8 @@ void LoadCurrentMissionData(short mission, short slot)
         currentMissions[slot].auxShipSyst = ((MisnRes *)*missionFileHand)->auxShipSyst;
         currentMissions[slot].auxShipDelay = Rand(70) + 70;
         currentMissions[slot].auxShipsLeft = currentMissions[slot].auxShipCount;
-        if (currentMissions[slot].auxShipDude >= 128 && currentMissions[slot].auxShipDude < 640) {
-            currentMissions[slot].auxShipDude -= 128;
+        if (currentMissions[slot].auxShipDude >= kFirstResourceID && currentMissions[slot].auxShipDude < kFirstResourceID + kMaxDudes) {
+            currentMissions[slot].auxShipDude -= kFirstResourceID;
         } else {
             currentMissions[slot].auxShipDude = -1;
             currentMissions[slot].auxShipCount = 0;
@@ -1732,7 +1708,7 @@ void LoadCurrentMissionData(short mission, short slot)
             currentMissions[slot].auxShipsLeft = -1;
         }
         if (currentMissions[slot].shipStart > 0) {
-            if (currentMissions[slot].shipBehav == 1 && currentMissions[slot].shipGoal == 3)
+            if (currentMissions[slot].shipBehav == kMissionModeEscort && currentMissions[slot].shipGoal == kMissionGoalEscort)
                 currentMissions[slot].shipDelay = 30;
             else
                 currentMissions[slot].shipDelay = Rand(100) + 100;
@@ -1752,44 +1728,44 @@ void LoadCurrentMissionData(short mission, short slot)
         n = ((MisnRes *)*missionFileHand)->shipSyst;
         if (n == -1) {
             currentMissions[slot].shipSyst = shipData->curSystem;
-        } else if (n == -2) {
+        } else if (n == kSystemRandom) {
             currentMissions[slot].shipSyst = SelectMissionSystem(n, shipData->curSystem);
         } else if (n == -3) {
             if (briefMissionInfo[mission].destStellar >= 0
-                    && briefMissionInfo[mission].destStellar < 2048) {
+                    && briefMissionInfo[mission].destStellar < kMaxStellars) {
                 currentMissions[slot].shipSyst =
                     stellarData[briefMissionInfo[mission].destStellar].system;
             } else if (briefMissionInfo[mission].returnStellar >= 0
-                    && briefMissionInfo[mission].returnStellar < 2048) {
+                    && briefMissionInfo[mission].returnStellar < kMaxStellars) {
                 currentMissions[slot].shipSyst =
                     stellarData[briefMissionInfo[mission].returnStellar].system;
             } else {
                 currentMissions[slot].shipSyst = -1;
                 crashlog_print("warning: mission ");
-                crashlog_print_num(mission + 128);
+                crashlog_print_num(mission + kFirstResourceID);
                 crashlog_print(" failed to find a suitable system for special ships (TravelStel doesn't exist!)\n");
             }
         } else if (n == -4) {
             if (briefMissionInfo[mission].returnStellar >= 0
-                    && briefMissionInfo[mission].returnStellar < 2048) {
+                    && briefMissionInfo[mission].returnStellar < kMaxStellars) {
                 currentMissions[slot].shipSyst =
                     stellarData[briefMissionInfo[mission].returnStellar].system;
             } else {
                 currentMissions[slot].shipSyst = -1;
                 crashlog_print("warning: mission ");
-                crashlog_print_num(mission + 128);
+                crashlog_print_num(mission + kFirstResourceID);
                 crashlog_print(" failed to find a suitable system for special ships (ReturnStel doesn't exist!)\n");
             }
         } else if (n == -6) {
             currentMissions[slot].shipSyst = -6;
-        } else if (n == -5 || n >= 9999) {
+        } else if (n == kSystemAdjacent || n >= kSystemGovt - 1) {
             currentMissions[slot].shipSyst = SelectMissionSystem(n, shipData->curSystem);
-        } else if (n >= 128) {
-            currentMissions[slot].shipSyst = n - 128;
+        } else if (n >= kFirstResourceID) {
+            currentMissions[slot].shipSyst = n - kFirstResourceID;
         } else {
             if (currentMissions[slot].shipCount > 0) {
                 crashlog_print("warning: mission ");
-                crashlog_print_num(mission + 128);
+                crashlog_print_num(mission + kFirstResourceID);
                 crashlog_print(" contained invalid special ship system reference\n");
             }
             currentMissions[slot].shipSyst = -1;
@@ -1891,7 +1867,7 @@ Boolean DoMissionCargoPickup(short unused, short needed)
             return 0;
         }
     }
-    statusRedraw[2] = 1;
+    statusRedraw[kRedrawCargo] = 1;
     ResetPlayerPrecalcedValues();
     return 1;
 }
@@ -1908,7 +1884,7 @@ void DoMissionSuccess(short mission)
         strncpy(briefingTextPtr, "", 3);
         LoadDescription(briefingTextPtr, currentMissions[mission].compDesc);
         MungeBriefing(0, mission);
-        strncpy(textShowString, briefingTextPtr, 0x1ffe);
+        strncpy(textShowString, briefingTextPtr, kBriefingTextMax);
         ShowTextDialog(0, 0, 1);
 #ifdef MACBUILD
         RefreshSAT();
@@ -1916,7 +1892,7 @@ void DoMissionSuccess(short mission)
     }
     currentMissionObjectives[mission].active = 0;
     crashlog_mission_bit_set("mission success", currentMissions[mission].name, 1,
-                             currentMissions[mission].misnIndex + 128,
+                             currentMissions[mission].misnIndex + kFirstResourceID,
                              currentMissions[mission].succSetString);
     EvalCurrentMissionBitSetString(currentMissions[mission].succSetString, mission);
     if (currentMissions[mission].datePostIncrement > 0) {
@@ -1924,12 +1900,12 @@ void DoMissionSuccess(short mission)
         crashlog_print(": incrementing date ");
         crashlog_print_num(currentMissions[mission].datePostIncrement);
         crashlog_print(" days for mission ");
-        crashlog_print_num(currentMissions[mission].misnIndex + 128);
+        crashlog_print_num(currentMissions[mission].misnIndex + kFirstResourceID);
         crashlog_print(" completion post increment\n");
         for (i = 0; i < currentMissions[mission].datePostIncrement; i++)
             IncrementGameTime();
     }
-    if (currentMissions[mission].compGovt >= 0 && currentMissions[mission].compGovt < 256) {
+    if (currentMissions[mission].compGovt >= 0 && currentMissions[mission].compGovt < kMaxGovts) {
         for (i = 0; i < kMaxSystems; i++) {
             if (systemData[i].govt == currentMissions[mission].compGovt)
                 playerRecord[i] += currentMissions[mission].compReward;
@@ -1944,6 +1920,11 @@ void DoMissionSuccess(short mission)
     ApplyMissionPay(currentMissions[mission].payment);
     lastMissionStellar = -1;
 }
+
+#define kPayClearGovt   10000   /* pay -(10000 + id): clear the record with govt id */
+#define kPayClearAllies 20000
+#define kPayClearClass  30000
+#define kPctOfCashBase  40000   /* pay -40001..-40099 is N% of the player's cash */
 
 /* The mission payment field doubles as a command channel. Positive values are
    cash; four negative bands instead clear the player's criminal record -- with
@@ -1960,31 +1941,31 @@ void ApplyMissionPay(long amount)
 
     if (amount > 0) {
         shipData[0].credits += amount;
-        statusRedraw[2] = 1;
-    } else if (amount <= -10000 && amount > -20000) {
-        govt = abs(amount) - 10128;
+        statusRedraw[kRedrawCargo] = 1;
+    } else if (amount <= -kPayClearGovt && amount > -kPayClearAllies) {
+        govt = abs(amount) - (kPayClearGovt + kFirstResourceID);
         for (i = 0; i < kMaxSystems; i++) {
             if (govt == systemData[i].govt && playerRecord[i] < 0)
                 playerRecord[i] = 0;
         }
-    } else if (amount <= -20000 && amount > -30000) {
-        govt = abs(amount) - 20128;
+    } else if (amount <= -kPayClearAllies && amount > -kPayClearClass) {
+        govt = abs(amount) - (kPayClearAllies + kFirstResourceID);
         for (i = 0; i < kMaxSystems; i++) {
             if (GovtAllies(systemData[i].govt, govt) && playerRecord[i] < 0)
                 playerRecord[i] = 0;
         }
-    } else if (amount <= -30000 && amount > -40000) {
-        govt = abs(amount) - 30128;
+    } else if (amount <= -kPayClearClass && amount > -kPctOfCashBase) {
+        govt = abs(amount) - (kPayClearClass + kFirstResourceID);
         for (i = 0; i < kMaxSystems; i++) {
             if (GovtSharedClass(systemData[i].govt, govt) && playerRecord[i] < 0)
                 playerRecord[i] = 0;
         }
-    } else if (amount <= -40001 && amount > -40100) {
+    } else if (amount <= -(kPctOfCashBase + 1) && amount > -(kPctOfCashBase + 100)) {
 #ifdef MACBUILD
-        i = abs(amount) - 40000;
+        i = abs(amount) - kPctOfCashBase;
 #else
         i = abs(amount);
-        i -= 40000;
+        i -= kPctOfCashBase;
 #endif
         shipData[0].credits -= shipData[0].credits * ((float)i * 0.01);
     }
@@ -2000,7 +1981,7 @@ void DoMissionFailure(short mission)
     short i;
 
     crashlog_mission_bit_set("mission failure", currentMissions[mission].name, 1,
-                             currentMissions[mission].misnIndex + 128,
+                             currentMissions[mission].misnIndex + kFirstResourceID,
                              currentMissions[mission].failSetString);
     EvalCurrentMissionBitSetString(currentMissions[mission].failSetString, mission);
     if (currentMissions[mission].compGovt != -1) {
@@ -2015,7 +1996,7 @@ void DoMissionFailure(short mission)
         strncpy(briefingTextPtr, "", 3);
         LoadDescription(briefingTextPtr, currentMissions[mission].failDesc);
         MungeBriefing(0, mission);
-        strncpy(textShowString, briefingTextPtr, 0x1ffe);
+        strncpy(textShowString, briefingTextPtr, kBriefingTextMax);
         ShowTextDialog(0, 0, 1);
 #ifdef MACBUILD
         RefreshSAT();
@@ -2049,7 +2030,7 @@ void AbortMission(short mission, Boolean evalBits)
     }
     if (evalBits != 0) {
         crashlog_mission_bit_set("aborting mission", currentMissions[mission].name, 1,
-                                 currentMissions[mission].misnIndex + 128,
+                                 currentMissions[mission].misnIndex + kFirstResourceID,
                                  currentMissions[mission].abortSetString);
         EvalCurrentMissionBitSetString(currentMissions[mission].abortSetString, mission);
     }
@@ -2064,7 +2045,7 @@ void AbortMission(short mission, Boolean evalBits)
 void QuickMissionFailure(short mission)
 {
     crashlog_mission_bit_set("quick mission failure", currentMissions[mission].name, 1,
-                             currentMissions[mission].misnIndex + 128,
+                             currentMissions[mission].misnIndex + kFirstResourceID,
                              currentMissions[mission].failSetString);
     EvalCurrentMissionBitSetString(currentMissions[mission].failSetString, mission);
     currentMissionObjectives[mission].failed = 1;
@@ -2102,36 +2083,36 @@ Boolean MissionFilter(long unused, EventRecord *ev, short *itemHit)
 
     if (absquatulateStr[0] != 0) {
         ev->what = kMouseDown;
-        *itemHit = 7;
+        *itemHit = kItemDone;
         return 1;
     }
     if ((int)ev->what == kKeyDown || (int)ev->what == kAutoKey) {
         QuickKeyCheckHandler();
         if (QuickKeyCheck(keyPrefs.map) && mapDialog == NULL) {
-            *itemHit = 6;
+            *itemHit = kItemMap;
             return 1;
         }
         if (QuickKeyCheck(keyPrefs.playerInfo) && infoDialog == NULL) {
-            *itemHit = 9;
+            *itemHit = kItemPlayerInfo;
             return 1;
         }
         if (QuickKeyCheck(keyPrefs.missions) && missionInfoDialog == NULL) {
-            *itemHit = 10;
+            *itemHit = kItemMissionInfo;
             return 1;
         }
 #if V111
         key = (ev->message & kKeyCodeMask) >> 8;
         if ((int)ev->what == kKeyDown) {
             if (key == kReturnKeyCode || key == kEnterKeyCode || key == kEscapeKeyCode) {
-                *itemHit = 7;
+                *itemHit = kItemDone;
                 return 1;
             }
             if (key == kLKeyCode) {
-                *itemHit = 7;
+                *itemHit = kItemDone;
                 return 1;
             }
             if (key == kAKeyCode && selMissionListItem != -1) {
-                *itemHit = 1;
+                *itemHit = kItemAccept;
                 return 1;
             }
         }
@@ -2141,15 +2122,15 @@ Boolean MissionFilter(long unused, EventRecord *ev, short *itemHit)
         key = tolower(key);
         if ((int)ev->what == kKeyDown) {
             if (IsReturnChar(key) || key == kEscapeChar) {
-                *itemHit = 7;
+                *itemHit = kItemDone;
                 return 1;
             }
             if (key == 'l') {
-                *itemHit = 7;
+                *itemHit = kItemDone;
                 return 1;
             }
             if (key == 'a' && selMissionListItem != -1) {
-                *itemHit = 1;
+                *itemHit = kItemAccept;
                 return 1;
             }
         }
@@ -2349,11 +2330,11 @@ Boolean MissionFilter(long unused, EventRecord *ev, short *itemHit)
         MissionDialogUpdate();
         button = TrackMissionButtons(where);
         if (button == 0) {
-            *itemHit = 1;
+            *itemHit = kItemAccept;
             return 1;
         }
         if (button == 1) {
-            *itemHit = 7;
+            *itemHit = kItemDone;
             return 1;
         }
         *itemHit = -1;
@@ -2425,11 +2406,11 @@ void MissionDialogUpdate(void)
             TruncString(box.right - box.left - 1, text, smTruncEnd);
 #endif
             PtoCstr((unsigned char *)text);
-            strncpy(savedBriefing, briefingTextPtr, 0x1ffe);
+            strncpy(savedBriefing, briefingTextPtr, kBriefingTextMax);
             strncpy(briefingTextPtr, (char *)text, 0xfa);
             MungeBriefing(1, dockedPortMissions[missionsOutside][selMissionListItem]);
             strncpy((char *)text, briefingTextPtr, 0xfa);
-            strncpy(briefingTextPtr, savedBriefing, 0x1ffe);
+            strncpy(briefingTextPtr, savedBriefing, kBriefingTextMax);
 #ifdef CEFIX /* F23.02-03 */
             CE_SetPen(box.left, box.top + CurrentGrafPort->txSize);
             DrawTextRun(text, strlen(text), NULL, 0, 0);
@@ -2662,7 +2643,7 @@ Boolean IsMissionAvailable(short mission, Boolean offer)
     else if (playerKills >= missionAvailData[mission].availRating)
         cond[3] = 1;
 
-    if (missionAvailData[mission].availRandom >= 100)
+    if (missionAvailData[mission].availRandom >= kDailyRollRange)
         cond[4] = 1;
     else if (missionRandom[mission] <= missionAvailData[mission].availRandom)
         cond[4] = 1;
@@ -2832,7 +2813,7 @@ void MissionLandCheck(void)
                 if (currentMissionObjectives[i].failed != 0) {
                     DoMissionFailure(i);
                 } else {
-                    if (currentMissions[i].shipGoal == 3 && currentMissions[i].specialShipsKilled <= 0)
+                    if (currentMissions[i].shipGoal == kMissionGoalEscort && currentMissions[i].specialShipsKilled <= 0)
                         currentMissionObjectives[i].objectivesDone = 1;
                     if (currentMissionObjectives[i].returnDone != 0
                             && currentMissionObjectives[i].objectivesDone != 0) {
@@ -2861,13 +2842,13 @@ void MissionLandCargoCheck(short slot, short stel)
                 currentMissionObjectives[slot].returnDone = 1;
                 crashlog_mission_bit_set("doing mission cargo pickup",
                                          currentMissions[slot].name, 1,
-                                         currentMissions[slot].misnIndex + 128, "");
+                                         currentMissions[slot].misnIndex + kFirstResourceID, "");
                 if (currentMissions[slot].loadCargoDesc != -1) {
                     ShowTheCursor();
                     strncpy(briefingTextPtr, "", 3);
                     LoadDescription(briefingTextPtr, currentMissions[slot].loadCargoDesc);
                     MungeBriefing(0, slot);
-                    strncpy(textShowString, briefingTextPtr, 0x1ffe);
+                    strncpy(textShowString, briefingTextPtr, kBriefingTextMax);
                     ShowTextDialog(0, 0, 1);
 #ifdef MACBUILD
                     RefreshSAT();
@@ -2881,42 +2862,42 @@ void MissionLandCargoCheck(short slot, short stel)
             currentMissions[slot].hasCargo = 0;
             crashlog_mission_bit_set("doing mission cargo dropoff",
                                      currentMissions[slot].name, 1,
-                                     currentMissions[slot].misnIndex + 128, "");
+                                     currentMissions[slot].misnIndex + kFirstResourceID, "");
             if (currentMissions[slot].dropCargoDesc != -1) {
                 ShowTheCursor();
                 strncpy(briefingTextPtr, "", 3);
                 LoadDescription(briefingTextPtr, currentMissions[slot].dropCargoDesc);
                 MungeBriefing(0, slot);
-                strncpy(textShowString, briefingTextPtr, 0x1ffe);
+                strncpy(textShowString, briefingTextPtr, kBriefingTextMax);
                 ShowTextDialog(0, 0, 1);
                 ResetPlayerPrecalcedValues();
 #ifdef MACBUILD
                 RefreshSAT();
 #endif
             }
-            statusRedraw[2] = 1;
+            statusRedraw[kRedrawCargo] = 1;
         }
     }
     if (StellarsAreIdentical(currentMissions[slot].returnStellar, stel)) {
         if (currentMissions[slot].dropoffMode == 1 && currentMissions[slot].hasCargo != 0) {
-            if (currentMissionObjectives[slot].objectivesDone != 0 || currentMissions[slot].shipGoal == -1
-                    || (currentMissions[slot].shipGoal == 3 && currentMissions[slot].specialShipsKilled <= 0)) {
+            if (currentMissionObjectives[slot].objectivesDone != 0 || currentMissions[slot].shipGoal == kMissionGoalNone
+                    || (currentMissions[slot].shipGoal == kMissionGoalEscort && currentMissions[slot].specialShipsKilled <= 0)) {
                 currentMissions[slot].hasCargo = 0;
                 crashlog_mission_bit_set("doing mission cargo dropoff",
                                          currentMissions[slot].name, 1,
-                                         currentMissions[slot].misnIndex + 128, "");
+                                         currentMissions[slot].misnIndex + kFirstResourceID, "");
                 if (currentMissions[slot].dropCargoDesc != -1) {
                     ShowTheCursor();
                     strncpy(briefingTextPtr, "", 3);
                     LoadDescription(briefingTextPtr, currentMissions[slot].dropCargoDesc);
                     MungeBriefing(0, slot);
-                    strncpy(textShowString, briefingTextPtr, 0x1ffe);
+                    strncpy(textShowString, briefingTextPtr, kBriefingTextMax);
                     ShowTextDialog(0, 0, 1);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
                 }
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
             }
         }
     }
@@ -2945,15 +2926,15 @@ void MissionObjectivesCheck(short slot)
 
     if (currentMissionObjectives[slot].active == 0)
         return;
-    if (currentMissions[slot].shipGoal == -1 && currentMissions[slot].shipCount > 0
+    if (currentMissions[slot].shipGoal == kMissionGoalNone && currentMissions[slot].shipCount > 0
             && currentMissions[slot].specialShipsJumpedIn <= 0
             && (currentMissions[slot].flags & kMissionAutoAbort) != 0)
         currentMissionObjectives[slot].objectivesDone = 0;
     prevDone = currentMissionObjectives[slot].objectivesDone;
-    if (currentMissions[slot].shipGoal == -1 && currentMissions[slot].initialShipCount <= 0) {
+    if (currentMissions[slot].shipGoal == kMissionGoalNone && currentMissions[slot].initialShipCount <= 0) {
         currentMissionObjectives[slot].objectivesDone = 1;
     } else if (currentMissions[slot].initialShipCount > 0) {
-        if (currentMissions[slot].shipGoal == -1) {
+        if (currentMissions[slot].shipGoal == kMissionGoalNone) {
             if ((currentMissions[slot].flags & kMissionAutoAbort) != 0) {
                 if (currentMissions[slot].specialShipsJumpedIn > 0
                         || currentMissions[slot].shipStart != 1)
@@ -2963,25 +2944,25 @@ void MissionObjectivesCheck(short slot)
             }
         } else if (currentMissions[slot].specialShipsJumpedIn >= currentMissions[slot].initialShipCount
                 || currentMissions[slot].shipCount == 0) {
-            if (currentMissions[slot].shipGoal == 0
+            if (currentMissions[slot].shipGoal == kMissionGoalDestroy
                     && currentMissions[slot].specialShipsKilled >= currentMissions[slot].initialShipCount)
                 currentMissionObjectives[slot].objectivesDone = 1;
-            if (currentMissions[slot].shipGoal == 1) {
+            if (currentMissions[slot].shipGoal == kMissionGoalDisable) {
                 if (currentMissions[slot].specialShipsKilled > 0)
                     currentMissionObjectives[slot].failed = 1;
                 else if (currentMissions[slot].specialShipsDisabled >= currentMissions[slot].initialShipCount)
                     currentMissionObjectives[slot].objectivesDone = 1;
             }
-            if ((currentMissions[slot].shipGoal == 2 || currentMissions[slot].shipGoal == 5)
+            if ((currentMissions[slot].shipGoal == kMissionGoalBoard || currentMissions[slot].shipGoal == kMissionGoalRescue)
                     && currentMissions[slot].specialShipsBoarded >= currentMissions[slot].initialShipCount)
                 currentMissionObjectives[slot].objectivesDone = 1;
-            if (currentMissions[slot].shipGoal == 3) {
+            if (currentMissions[slot].shipGoal == kMissionGoalEscort) {
                 if (currentMissions[slot].specialShipsKilled > 0
                         || currentMissions[slot].specialShipsDisabled > 0) {
                     currentMissionObjectives[slot].failed = 1;
                 } else {
                     count = 0;
-                    for (i = 1; i < 0x40; i++) {
+                    for (i = 1; i < kMaxShips; i++) {
                         if (slot == shipData[i].specialMission
                                 && shipData[i].active != 0)
                             count++;
@@ -2992,18 +2973,18 @@ void MissionObjectivesCheck(short slot)
                         currentMissionObjectives[slot].objectivesDone = 1;
                 }
             }
-            if (currentMissions[slot].shipGoal == 4
+            if (currentMissions[slot].shipGoal == kMissionGoalObserve
                     && currentMissionObjectives[slot].objectivesDone == 0
                     && gPause == 0) {
                 syst = currentMissions[slot].shipSyst;
-                if (syst >= 0 && syst < 0x800)
+                if (syst >= 0 && syst < kMaxSystems)
                     syst = FindActiveCoLocatedSystem(syst);
                 else
                     syst = -1;
                 if ((syst == shipData[0].curSystem
                         || currentMissions[slot].shipSyst == -6)
                         && currentMissions[slot].specialShipsJumpedIn >= currentMissions[slot].shipCount) {
-                    for (i = 1; i < 0x40; i++) {
+                    for (i = 1; i < kMaxShips; i++) {
                         if (shipData[i].active != 0
                                 && slot == shipData[i].specialMission
                                 && shipData[i].sprite != 0
@@ -3050,7 +3031,7 @@ void MissionObjectivesCheck(short slot)
                     }
                 }
             }
-            if (currentMissions[slot].shipGoal == 6) {
+            if (currentMissions[slot].shipGoal == kMissionGoalChaseOff) {
                 if (currentMissions[slot].specialShipsKilled + currentMissions[slot].specialShipsJumpedOut
                         >= currentMissions[slot].initialShipCount)
                     currentMissionObjectives[slot].objectivesDone = 1;
@@ -3069,7 +3050,7 @@ void MissionObjectivesCheck(short slot)
         if ((currentMissionObjectives[slot].flags & kMissionHidden) == 0) {
             PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
             GetIndString(buf, kGameStrList, 285);
-            DisplayComm((PStrChar *)buf, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+            DisplayComm((PStrChar *)buf, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
         }
         QuickMissionFailure(slot);
     }
@@ -3081,16 +3062,16 @@ void MissionObjectivesCheck(short slot)
             strncpy(briefingTextPtr, "", 3);
             LoadDescription(briefingTextPtr, currentMissions[slot].shipDoneDesc);
             MungeBriefing(0, slot);
-            strncpy(textShowString, briefingTextPtr, 0x1ffe);
+            strncpy(textShowString, briefingTextPtr, kBriefingTextMax);
             ShowTextDialog(0, 0, 1);
 #ifdef MACBUILD
             RefreshSAT();
 #endif
         }
-        if (currentMissions[slot].shipGoal != -1) {
+        if (currentMissions[slot].shipGoal != kMissionGoalNone) {
             crashlog_mission_bit_set("mission ship goal complete",
                                      currentMissions[slot].name, 1,
-                                     currentMissions[slot].misnIndex + 128,
+                                     currentMissions[slot].misnIndex + kFirstResourceID,
                                      currentMissions[slot].shipDoneSetString);
             EvalCurrentMissionBitSetString(currentMissions[slot].shipDoneSetString, slot);
         }
@@ -3109,7 +3090,6 @@ void MissionObjectivesCheck(short slot)
 #define kBriefingSize   0x2000
 #define kNameLen        0x3f    /* strncpy budget for a 64-byte token buffer */
 #define kNoRankIndex    341
-#define kPctOfCashBase  40000   /* pay -40001..-40099 is N% of the player's cash */
 #define kOwedBase       50000   /* pay below -50000 is a debt of the excess */
 
 /* MungeBriefing (mac _MungeBriefing). STATE: MATCH 100.0%, exe 1523 / obj 1523 instrs,
@@ -4228,15 +4208,15 @@ Boolean SingleMissionFilter(long unused, EventRecord *ev, short *itemHit)
 
     QuickKeyCheckHandler();
     if (QuickKeyCheck(keyPrefs.map) && mapDialog == NULL) {
-        *itemHit = 4;
+        *itemHit = kBriefItemMap;
         return 1;
     }
     if (QuickKeyCheck(keyPrefs.playerInfo) && infoDialog == NULL) {
-        *itemHit = 5;
+        *itemHit = kBriefItemPlayerInfo;
         return 1;
     }
     if (QuickKeyCheck(keyPrefs.missions) && missionInfoDialog == NULL) {
-        *itemHit = 7;
+        *itemHit = kBriefItemMissionInfo;
         return 1;
     }
 #if V111
@@ -4244,16 +4224,16 @@ Boolean SingleMissionFilter(long unused, EventRecord *ev, short *itemHit)
         c = tolower((char)EventCharOf(ev));
         if (ev->what == kKeyDown) {
             if (c == kReturnChar || c == kEnterChar) {
-                *itemHit = 1;
+                *itemHit = kItemAccept;
                 return 1;
             }
             if (tolower(missionButtonLabel[0][1]) != tolower(missionButtonLabel[1][1])) {
                 if (c == tolower(missionButtonLabel[0][1])) {
-                    *itemHit = 1;
+                    *itemHit = kItemAccept;
                     return 1;
                 }
                 if (canRefuseMission != 0 && c == tolower(missionButtonLabel[1][1])) {
-                    *itemHit = 2;
+                    *itemHit = kItemRefuse;
                     return 1;
                 }
             }
@@ -4271,7 +4251,7 @@ Boolean SingleMissionFilter(long unused, EventRecord *ev, short *itemHit)
         if (what == kKeyDown) {
 #endif
             if (IsReturnChar(c)) {
-                *itemHit = 1;
+                *itemHit = kItemAccept;
                 return 1;
             }
             refuseKey = missionButtonLabel[1][1];
@@ -4282,11 +4262,11 @@ Boolean SingleMissionFilter(long unused, EventRecord *ev, short *itemHit)
             if (tolower(acceptKey) != tolower(refuseKey)) {
 #endif
                 if (c == tolower(acceptKey)) {
-                    *itemHit = 1;
+                    *itemHit = kItemAccept;
                     return 1;
                 }
                 if (canRefuseMission != 0 && c == tolower(refuseKey)) {
-                    *itemHit = 2;
+                    *itemHit = kItemRefuse;
                     return 1;
                 }
             }
@@ -4294,34 +4274,34 @@ Boolean SingleMissionFilter(long unused, EventRecord *ev, short *itemHit)
 #endif
         if (canScrollTextUp != 0) {
             if (c == kUpArrowChar) {
-                *itemHit = 9;
+                *itemHit = kItemScrollUp;
                 return 1;
             }
             if (c == kHomeChar) {
-                ScrollDialogText(missionDialog, 3, offerTextHandle, kScrollToEnd, 1);
+                ScrollDialogText(missionDialog, kItemBriefText, offerTextHandle, kScrollToEnd, 1);
                 *itemHit = -1;
                 canScrollTextUp = 0;
                 return 1;
             }
             if (c == kPageUpChar) {
-                ScrollDialogText(missionDialog, 3, offerTextHandle, kScrollStep, 1);
+                ScrollDialogText(missionDialog, kItemBriefText, offerTextHandle, kScrollStep, 1);
                 *itemHit = -1;
                 return 1;
             }
         }
         if (canScrollTextDown != 0) {
             if (c == kDownArrowChar) {
-                *itemHit = 10;
+                *itemHit = kItemScrollDown;
                 return 1;
             }
             if (c == kEndChar) {
-                ScrollDialogText(missionDialog, 3, offerTextHandle, -kScrollToEnd, 1);
+                ScrollDialogText(missionDialog, kItemBriefText, offerTextHandle, -kScrollToEnd, 1);
                 *itemHit = -1;
                 canScrollTextDown = 0;
                 return 1;
             }
             if (c == kPageDownChar) {
-                ScrollDialogText(missionDialog, 3, offerTextHandle, -kScrollStep, 1);
+                ScrollDialogText(missionDialog, kItemBriefText, offerTextHandle, -kScrollStep, 1);
                 *itemHit = -1;
                 return 1;
             }
@@ -4347,7 +4327,7 @@ Boolean SingleMissionFilter(long unused, EventRecord *ev, short *itemHit)
         GlobalToLocal(&where);
 #endif
         if (canScrollTextUp != 0) {
-            GetDialogItem(missionDialog, 9, &itemType, (Handle *)&item, &box);
+            GetDialogItem(missionDialog, kItemScrollUp, &itemType, (Handle *)&item, &box);
 #ifdef MACBUILD
             if ((PtInRect)(where, &box) && canScrollTextUp != 0) {
 #else
@@ -4356,7 +4336,7 @@ Boolean SingleMissionFilter(long unused, EventRecord *ev, short *itemHit)
                 lastTextScrollTime = ReadTick();
                 while (StillDown()) {
                     BusyIdle();
-                    ScrollDialogText(missionDialog, 3, offerTextHandle, 1, 1);
+                    ScrollDialogText(missionDialog, kItemBriefText, offerTextHandle, 1, 1);
                     SetDialogGWorld(missionDialog);
                     DrawSingleMissionButtons(2);
                     while (lastTextScrollTime == ReadTick() && StillDown())
@@ -4369,7 +4349,7 @@ Boolean SingleMissionFilter(long unused, EventRecord *ev, short *itemHit)
             }
         }
         if (canScrollTextDown != 0) {
-            GetDialogItem(missionDialog, 10, &itemType, (Handle *)&item, &box);
+            GetDialogItem(missionDialog, kItemScrollDown, &itemType, (Handle *)&item, &box);
 #ifdef MACBUILD
             if ((PtInRect)(where, &box) && canScrollTextDown != 0) {
 #else
@@ -4378,7 +4358,7 @@ Boolean SingleMissionFilter(long unused, EventRecord *ev, short *itemHit)
                 lastTextScrollTime = ReadTick();
                 while (StillDown()) {
                     BusyIdle();
-                    ScrollDialogText(missionDialog, 3, offerTextHandle, -1, 1);
+                    ScrollDialogText(missionDialog, kItemBriefText, offerTextHandle, -1, 1);
                     SetDialogGWorld(missionDialog);
                     DrawSingleMissionButtons(3);
                     while (lastTextScrollTime == ReadTick() && StillDown())
@@ -4393,11 +4373,11 @@ Boolean SingleMissionFilter(long unused, EventRecord *ev, short *itemHit)
         SingleMissionDialogUpdate();
         button = TrackSingleMissionButtons(where);
         if (button == 0) {
-            *itemHit = 1;
+            *itemHit = kItemAccept;
             return 1;
         }
         if (button == 1) {
-            *itemHit = 2;
+            *itemHit = kItemRefuse;
             return 1;
         }
         *itemHit = -1;
@@ -4501,7 +4481,7 @@ void SingleMissionDialogUpdate(void)
         }
     }
     (*offerTextHandle)->inPort = (GrafPtr)loadPort.world;
-    GetDialogItem(missionDialog, 3, &itemType, (Handle *)&item, &r);
+    GetDialogItem(missionDialog, kItemBriefText, &itemType, (Handle *)&item, &r);
     ForeColor(whiteColor);
     BackColor(blackColor);
     TEUpdate(&r, offerTextHandle);
@@ -4547,52 +4527,52 @@ Boolean ValidAuxShipSystem(short sys, short mission)
             if (sys == stellarData[currentMissions[mission].returnStellar].system)
                 return 1;
         }
-    } else if (spec >= 128 && spec < 2176) {
-        if (sys == spec - 128)
+    } else if (spec >= kFirstResourceID && spec < kFirstResourceID + kMaxSystems) {
+        if (sys == spec - kFirstResourceID)
             return 1;
-        if (sys == FindActiveCoLocatedSystem(spec - 128))
+        if (sys == FindActiveCoLocatedSystem(spec - kFirstResourceID))
             return 1;
-    } else if (spec >= 5000 && spec < 9999) {
-        if (sys == spec - 5000)
+    } else if (spec >= kAvailLinkBase && spec < kSystemGovt - 1) {
+        if (sys == spec - kAvailLinkBase)
             return 1;
         for (i = 0; i < kNavSlots; i++) {
-            if (sys == systemData[spec - 5000].links[i])
+            if (sys == systemData[spec - kAvailLinkBase].links[i])
                 return 1;
         }
-    } else if (spec >= 9999 && spec < 15000) {
-        if (systemData[sys].govt == spec - 10000)
+    } else if (spec >= kSystemGovt - 1 && spec < kSystemAllied) {
+        if (systemData[sys].govt == spec - kSystemGovt)
             return 1;
-    } else if (spec >= 15000 && spec < 20000) {
+    } else if (spec >= kSystemAllied && spec < kSystemNotGovt) {
         if (systemData[sys].govt >= 0) {
-            if (systemData[sys].govt == spec - 15000)
+            if (systemData[sys].govt == spec - kSystemAllied)
                 return 1;
-            if (GovtAllies(systemData[sys].govt, spec - 15000))
+            if (GovtAllies(systemData[sys].govt, spec - kSystemAllied))
                 return 1;
         }
-    } else if (spec >= 20000 && spec < 25000) {
-        if (systemData[sys].govt != spec - 20000)
+    } else if (spec >= kSystemNotGovt && spec < kSystemEnemy) {
+        if (systemData[sys].govt != spec - kSystemNotGovt)
             return 1;
-    } else if (spec >= 25000 && spec < 30000) {
+    } else if (spec >= kSystemEnemy && spec < kSystemClass) {
         if (systemData[sys].govt >= 0) {
 #ifdef MAC1010 /* 1.0.10 spelling */
-            if ((govtData[spec - 25000].flags & kGovtXenophobic) && systemData[sys].govt != spec - 25000 &&
+            if ((govtData[spec - kSystemEnemy].flags & kGovtXenophobic) && systemData[sys].govt != spec - kSystemEnemy &&
 #else
-            xenophobic = govtData[spec - 25000].flags & kGovtXenophobic;
-            if (xenophobic && systemData[sys].govt != spec - 25000 &&
+            xenophobic = govtData[spec - kSystemEnemy].flags & kGovtXenophobic;
+            if (xenophobic && systemData[sys].govt != spec - kSystemEnemy &&
 #endif
-                !GovtAllies(systemData[sys].govt, spec - 25000))
+                !GovtAllies(systemData[sys].govt, spec - kSystemEnemy))
                 return 1;
-            if (GovtEnemies(systemData[sys].govt, spec - 25000))
-                return 1;
-        }
-    } else if (spec >= 30000 && spec < 31000) {
-        if (systemData[sys].govt >= 0) {
-            if (GovtSharedClass(systemData[sys].govt, spec - 30000))
+            if (GovtEnemies(systemData[sys].govt, spec - kSystemEnemy))
                 return 1;
         }
-    } else if (spec >= 31000 && spec < 32000) {
+    } else if (spec >= kSystemClass && spec < kSystemNotClass) {
         if (systemData[sys].govt >= 0) {
-            if (!GovtSharedClass(systemData[sys].govt, spec - 31000))
+            if (GovtSharedClass(systemData[sys].govt, spec - kSystemClass))
+                return 1;
+        }
+    } else if (spec >= kSystemNotClass && spec < kSystemBandLimit) {
+        if (systemData[sys].govt >= 0) {
+            if (!GovtSharedClass(systemData[sys].govt, spec - kSystemNotClass))
                 return 1;
         }
     }
@@ -4607,7 +4587,7 @@ void AutoAbortMission(short mission)
     short i;
 
     crashlog_mission_bit_set("auto-aborting mission", currentMissions[mission].name, 1,
-                             currentMissions[mission].misnIndex + 128,
+                             currentMissions[mission].misnIndex + kFirstResourceID,
                              currentMissions[mission].abortSetString);
     EvalCurrentMissionBitSetString(currentMissions[mission].abortSetString, mission);
     if (currentMissions[mission].datePostIncrement > 0) {
@@ -4615,14 +4595,14 @@ void AutoAbortMission(short mission)
         crashlog_print(": incrementing date ");
         crashlog_print_num(currentMissions[mission].datePostIncrement);
         crashlog_print(" days for mission ");
-        crashlog_print_num(currentMissions[mission].misnIndex + 128);
+        crashlog_print_num(currentMissions[mission].misnIndex + kFirstResourceID);
         crashlog_print(" auto-abort post increment\n");
         for (i = 0; i < currentMissions[mission].datePostIncrement; i++)
             IncrementGameTime();
     }
     if (currentMissions[mission].flags & kMissionTakesFuel) {
         shipData[0].fuel -= 100.0f;
-        statusRedraw[4] = 1;
+        statusRedraw[kRedrawFuel] = 1;
     }
     if (currentMissions[mission].flags2 & kMissionPaysOnAbort)
         ApplyMissionPay(currentMissions[mission].payment);

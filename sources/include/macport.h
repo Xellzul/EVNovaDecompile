@@ -397,6 +397,9 @@ typedef struct RLEPixelData {
 #define memFullErr      (-108)
 #define resNotFound     (-192)
 #define srcCopy         0
+#define addOver         34              /* QuickDraw arithmetic transfer modes */
+#define adMax           37
+#define kControlInactivePart 255
 #define noNewDevice     2               /* QuickTime GWorldFlags */
 #define k16BE555PixelFormat 0x00000010  /* QuickTime pixel formats */
 #define k16LE555PixelFormat 0x4c353535  /* 'L555' */

@@ -181,6 +181,7 @@ typedef struct ShipRec {
 #define kSpobType 0x73709a62   /* 'spöb' */
 #define kSystType 0x73d87374   /* 'sÿst' */
 #define kWeapType 0x77916170   /* 'wëap' */
+#define kYearType 0x79918aa8   /* 'yëä®' */
 
 #define kResAbsent          (-9999)
 #define kResUnloaded        9999
@@ -1292,8 +1293,18 @@ EXTERN_CPP_END
                               && (id) < ResClassBase(cls) + kMaxGovts)
 #define kGovtClasses    4
 #define kMissionDescBase     0x0fa0
-#define kMissionKindDisable     3       /* mïsn +0x0a: disable the ship */
+/* mïsn ShipGoal (+0x0a, currentMissions[].shipGoal) */
+#define kMissionGoalNone        (-1)
+#define kMissionGoalDestroy     0
+#define kMissionGoalDisable     1
+#define kMissionGoalBoard       2
+#define kMissionGoalEscort      3
+#define kMissionGoalObserve     4
+#define kMissionGoalRescue      5
+#define kMissionGoalChaseOff    6
+#define kMissionModeAttackPlayer 0      /* mïsn ShipBehav: always attack the player */
 #define kMissionModeEscort     1
+#define kMissionModeDestroyStellar 2    /* mïsn ShipBehav: attack the system's stellars */
 #define kModTypeFakeID     21
 #define kModTypeMap        16
 #define kModeFlagOwned        1
@@ -1311,7 +1322,15 @@ EXTERN_CPP_END
 #define kRankFlags                  0x1c
 #define kRankGovt                   6
 #define kRankInUse                  1
+#define kShipTypeWimpyTrader    1       /* aiType: shïp inherentAI 1..4 */
+#define kShipTypeBraveTrader    2
+#define kShipTypeWarship        3
+#define kShipTypeInterceptor    4
+#define kShipTypeFighter        5       /* aiType: launched from a bay */
 #define kShipTypeEscort         6       /* aiType: a hired escort */
+#define kNavTargetStellar       2       /* navTargetKind: targetStellar is a stellar */
+#define kNavTargetLink          3       /* navTargetKind: targetStellar is the destination system */
+#define kNavTargetGate          4       /* navTargetKind: targetStellar is a hypergate's destination system */
 #define kShipTypeSpecial    0x2ff
 #define kWeapAmmoFuelBase   1000
 #define kWeapTypeTop            0x100

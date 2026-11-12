@@ -17,7 +17,6 @@
 #define kCommMsgMax     0xff
 #define kCommTextMax    0xfe
 #define kTextFaceBold   2
-#define kCommTextSize   12
 
 /* DisplayComm (mac _DisplayComm). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047e2d0

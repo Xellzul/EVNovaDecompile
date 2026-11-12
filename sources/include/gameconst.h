@@ -84,13 +84,12 @@ enum {
 #define kBracketInset       0x10
 #define kCargoRect  7
 #define kCargoTypes         6       /* the standard commodities */
+#define kLastCommodity      5       /* cargo[0..kLastCommodity], the standard commodities */
 #define kMaxCargo           256     /* cargo name slots, junk included */
-#define kCommHold           0xc
-#define kCommWidth          0xf0
+#define kCommFrames         240     /* frames a comm message stays up */
+#define kCommTextSize       12      /* comm strip point size */
 #define kDailyRollRange   100       /* every daily 1..100 reroll in the game */
-#define kDepartureRoutePicked 3
 #define kDudeShipSlots   16
-#define kEscortAI             6
 #define kExpandRate         60.0     /* units per second, a pooled double */
 #define kGameYearOffset 250     /* the game opens this far after the host clock */
 #define kMaxGovts               256     /* govtData entries */
@@ -113,6 +112,7 @@ enum {
 #define kMaxAsteroids           16
 #define kMaxBeams               64
 #define kMaxExplods       0x20
+#define kMaxExplodTypes   64      /* explodType[] entries: bööm 128..191 */
 #define kMaxCrons            512
 #define kMaxDebris        0x40
 #define kMaxDudes         512
@@ -186,5 +186,11 @@ enum {
 #define kFullCircle         360     /* degrees; the float form is kFullCircleF */
 #define kFullCircleF        360.0f
 #define kSpawnReserve       8       /* ship slots a spawner leaves free */
+#define kDefaultOutfitSlots 8       /* shipClass[].defOutfID / defOutfCount entries */
+#define kInfluenceGridSize  256     /* the influence grid's width and height */
+#define kInfluenceLayers    4       /* the influence grid's last dimension */
+#define kMaxMissionSysts    32      /* missionSyst[] entries */
+#define kNebulaPicFrames    7       /* nebulaPic[][] pictures per nebula */
+#define kMacOSXSystemVersion 0x1000 /* gSystemVersion at or above: Mac OS X */
 
 #endif /* GAMECONST_H */

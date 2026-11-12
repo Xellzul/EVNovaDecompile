@@ -810,13 +810,10 @@ unsigned char IT_ItemCallbackGetAlign(long *align)
 {
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     unsigned char wide;
-    char *value;
 #endif
+    char *value;
     ITElement *root;
     ITElement *center;
-#if !(defined(MAC1010) && TARGET_API_MAC_CARBON)
-    char *value;
-#endif
     ITElement *element;
     long err;
     unsigned char result;

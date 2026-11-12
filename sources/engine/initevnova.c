@@ -184,22 +184,22 @@ SpriteRec *weapTargetSprite[4];
 SpriteRec *doubleTimeSprite;
 SpriteRec *alertSprite;
 SpriteRec *cursorSprite;
-SpriteRec *masterShipSprite[768];
-SpriteRec *masterShipGlowSprite[768];
-SpriteRec *masterShipShieldSprite[768];
+SpriteRec *masterShipSprite[kMaxShipTypes];
+SpriteRec *masterShipGlowSprite[kMaxShipTypes];
+SpriteRec *masterShipShieldSprite[kMaxShipTypes];
 SpriteRec *masterStarSprite;
-SpriteRec *masterShipLightSprite[768];
-SpriteRec *masterShipWeaponSprite[768];
-SpriteRec *masterShipAltSprite[768];
-SpriteRec *masterStellarSprite[256];
-SpriteRec *masterExplodSprite[64];
+SpriteRec *masterShipLightSprite[kMaxShipTypes];
+SpriteRec *masterShipWeaponSprite[kMaxShipTypes];
+SpriteRec *masterShipAltSprite[kMaxShipTypes];
+SpriteRec *masterStellarSprite[kMasterStellarSprites];
+SpriteRec *masterExplodSprite[kMaxExplodTypes];
 SpriteRec *masterShotSprite[256];
 SpriteRec *masterAsteroidSprite[16];
 SpriteRec *masterSmokeSprite[8];
 SpriteRec *menuRolloverSprite;
 SpriteRec *stellarSprite[kStellarSprites];
 SpriteRec *masterBoxSprite[5];
-SpriteRec *menuButtonSprite[6];
+SpriteRec *menuButtonSprite[kMainButtons];
 SpriteRec *masterWeapTargetSprite;
 SpriteRec *masterNavTargetSprite;
 SpriteLayerRec *shipLayer;
@@ -220,7 +220,7 @@ SpriteWorldPtr gSpriteWorld;
 SWFrameRec *floatingMapFrame;
 SWFrameRec *floatingEscortMenuFrame;
 CWindowPtr gWind;
-Boolean statusRedraw[7];
+Boolean statusRedraw[kStatusRedrawCount];
 Boolean gameLoaded;
 Boolean gameInProgress;
 Boolean killShots;
@@ -245,7 +245,7 @@ Boolean ignoreKeys;
 Boolean updateSmokeThisFrame;
 Boolean closeRequested;
 unsigned char DAT_00596d40[4];
-void *targetInfoPic[768];
+void *targetInfoPic[kMaxShipTypes];
 GWorldContainer statusOffPort;
 GWorldContainer loadPort;
 unsigned char DAT_0059795c[16];
@@ -271,7 +271,7 @@ short totalDaysPlayed;
 short cursorHidden;
 unsigned char DAT_005979a2[2];
 short selTradeItem;
-short portDemand[6];
+short portDemand[kCargoTypes];
 short basePrice[kCargoTypes];
 unsigned char DAT_005979be[8];
 short tradePrice[10];
@@ -283,7 +283,7 @@ short commCount;
 short dockedPortItems[kMaxOutfits];
 short dockedPortShipTypes[kMaxShipTypes];
 short dockedPortMissions[kMissionVenues][kMaxMissions];
-short shipSystems[512];
+short shipSystems[kMaxOutfits];
 MapScroll mapScroll;
 ShortPoint screenCenter;
 FloatPoint playerMaxVel;
@@ -292,25 +292,25 @@ unsigned char playerName[256];
 unsigned char lastPlayerName[256];
 unsigned char playerNickname[256];
 unsigned char shipName[256];
-unsigned char weapName[256][256];
-unsigned char shipyardLongNames[768][256];
+unsigned char weapName[kMaxWeapTypes][256];
+unsigned char shipyardLongNames[kMaxShipTypes][256];
 unsigned char shipHelpRequests[20][256];
 unsigned char legalStatusStrings[18][256];
-unsigned char outfitShortNames[512][256];
-unsigned char shipyardShortNames[768][256];
+unsigned char outfitShortNames[kMaxOutfits][256];
+unsigned char shipyardShortNames[kMaxShipTypes][256];
 unsigned char ratingStrings[11][256];
-unsigned char govtTargStrings[256][256];
-unsigned char lcOutfitName[512][256];
-unsigned char lcPluralOutfitName[512][256];
-unsigned char cargoName[256][0x100];
-unsigned char statusCargoName[6][0x100];
-unsigned char cargoAbbrev[256][0x100];
-unsigned char lcCargoName[256][0x100];
-unsigned char govtShortNames[256][256];
-unsigned char shipCommNames[768][256];
-unsigned char shipMovieFilenames[768][256];
+unsigned char govtTargStrings[kMaxGovts][256];
+unsigned char lcOutfitName[kMaxOutfits][256];
+unsigned char lcPluralOutfitName[kMaxOutfits][256];
+unsigned char cargoName[kMaxCargo][0x100];
+unsigned char statusCargoName[kCargoTypes][0x100];
+unsigned char cargoAbbrev[kMaxCargo][0x100];
+unsigned char lcCargoName[kMaxCargo][0x100];
+unsigned char govtShortNames[kMaxGovts][256];
+unsigned char shipCommNames[kMaxShipTypes][256];
+unsigned char shipMovieFilenames[kMaxShipTypes][256];
 unsigned char descMovieName[256];
-unsigned char govtMediumNames[256][256];
+unsigned char govtMediumNames[kMaxGovts][256];
 unsigned char tonString[0x100];
 unsigned char tonsString[0x100];
 unsigned char fuelString[8][0x100];
@@ -2031,6 +2031,29 @@ void InitEVNova(void)
 
 #define kEscapePodType  0x2ff
 
+/* MyProfile bracket ids, registered by name in PlayGame */
+#define kProfGameLoop     0
+#define kProfPreDraw      1
+#define kProfDrawing      2
+#define kProfPostDraw     3
+#define kProfShip         4
+#define kProfShipDisp     5
+#define kProfAI           6
+#define kProfShots        7
+#define kProfSprites      8     /* "misc handlers" */
+#define kProfCollide      9
+#define kProfPlayer      10
+#define kProfHandlers    11     /* "misc handlers2" */
+#define kProfStatus      12
+#define kProfProcessSW   13
+#define kProfAnimateSW   14
+#define kProfPostAnimate 15
+#define kProfLocking     16
+#define kProfErase       17
+#define kProfDraw        18
+#define kProfUpdate      19
+#define kProfOdds        20
+
 
 /* PlayGame (mac _PlayGame). STATE: win MATCH, exe 1105 / obj 1105, byte-identical yes (relocs
    masked); mac MATCH on both slices.
@@ -2083,27 +2106,27 @@ void PlayGame(void)
 #endif
     AdjustSoundVolume();
     MyProfileInit();
-    MyProfileSetName(0, "game loop");
-    MyProfileSetName(1, "pre draw tasks");
-    MyProfileSetName(2, "drawing");
-    MyProfileSetName(3, "post draw tasks");
-    MyProfileSetName(4, "HandleShip");
-    MyProfileSetName(5, "HandleShipDisplay");
-    MyProfileSetName(6, "AI routines");
-    MyProfileSetName(7, "HandleShot");
-    MyProfileSetName(8, "misc handlers");
-    MyProfileSetName(9, "collisions");
-    MyProfileSetName(10, "player");
-    MyProfileSetName(11, "misc handlers2");
-    MyProfileSetName(12, "DrawStatus");
-    MyProfileSetName(13, "ProcessSpriteWorld");
-    MyProfileSetName(14, "AnimateSpriteWorld");
-    MyProfileSetName(15, "PostAnimate");
-    MyProfileSetName(16, "locking");
-    MyProfileSetName(17, "erase");
-    MyProfileSetName(18, "draw");
-    MyProfileSetName(19, "update");
-    MyProfileSetName(20, "calc AI odds");
+    MyProfileSetName(kProfGameLoop, "game loop");
+    MyProfileSetName(kProfPreDraw, "pre draw tasks");
+    MyProfileSetName(kProfDrawing, "drawing");
+    MyProfileSetName(kProfPostDraw, "post draw tasks");
+    MyProfileSetName(kProfShip, "HandleShip");
+    MyProfileSetName(kProfShipDisp, "HandleShipDisplay");
+    MyProfileSetName(kProfAI, "AI routines");
+    MyProfileSetName(kProfShots, "HandleShot");
+    MyProfileSetName(kProfSprites, "misc handlers");
+    MyProfileSetName(kProfCollide, "collisions");
+    MyProfileSetName(kProfPlayer, "player");
+    MyProfileSetName(kProfHandlers, "misc handlers2");
+    MyProfileSetName(kProfStatus, "DrawStatus");
+    MyProfileSetName(kProfProcessSW, "ProcessSpriteWorld");
+    MyProfileSetName(kProfAnimateSW, "AnimateSpriteWorld");
+    MyProfileSetName(kProfPostAnimate, "PostAnimate");
+    MyProfileSetName(kProfLocking, "locking");
+    MyProfileSetName(kProfErase, "erase");
+    MyProfileSetName(kProfDraw, "draw");
+    MyProfileSetName(kProfUpdate, "update");
+    MyProfileSetName(kProfOdds, "calc AI odds");
     gSpriteWorld->fastBlit = 1;
     inBackground = 0;
     gPause = 0;
@@ -2111,7 +2134,7 @@ void PlayGame(void)
     FlushEvents(0xf, 0);
 
     while (gQuit == 0 && gPause == 0) {
-        MyProfileEnter(0);
+        MyProfileEnter(kProfGameLoop);
 #if V111
         if (useLegacyRenderingPipeline)
 #endif
@@ -2134,7 +2157,7 @@ void PlayGame(void)
         keyPressedThisFrame = 0;
         if (inBackground == 0) {
             if (gSpriteWorld->fastBlit != 0) {
-                MyProfileEnter(1);
+                MyProfileEnter(kProfPreDraw);
                 lastFramePlayerPos.x = shipData[0].pos.x;
                 lastFramePlayerPos.y = shipData[0].pos.y;
                 if (frameCounter % 3 == 0) {
@@ -2149,7 +2172,7 @@ void PlayGame(void)
                     if (ReadTick() > lastFPSUpdateTime + 120) {
                         if ((unsigned long)lastFPSUpdateTime == 0) {
                             GetIndString(str, kGameStrList, 282);
-                            DisplayComm((PStrChar *)str, 100, 0, 12, &rgbWhite, 0, 0);
+                            DisplayComm((PStrChar *)str, 100, 0, kCommTextSize, &rgbWhite, 0, 0);
                         } else {
                             NumToString((fpsCounter * 60.0 /
                                     (float)(ReadTick() - lastFPSUpdateTime)),
@@ -2159,7 +2182,7 @@ void PlayGame(void)
                             strcat((char *)str, " ");
                             StrcatIndCString((char *)str, kGameStrList, 283);
                             CtoPstr((char *)str);
-                            DisplayComm((PStrChar *)str, 999, 0, 12, &rgbWhite, 0, 0);
+                            DisplayComm((PStrChar *)str, 999, 0, kCommTextSize, &rgbWhite, 0, 0);
                         }
                         lastFPSUpdateTime = ReadTick();
                         fpsCounter = 0;
@@ -2175,30 +2198,30 @@ void PlayGame(void)
                 }
                 ScrollStarfield(dx, dy);
                 HandleMouse();
-                MyProfileExit(1);
-                MyProfileEnter(2);
+                MyProfileExit(kProfPreDraw);
+                MyProfileEnter(kProfDrawing);
 #if TARGET_API_MAC_CARBON
-                MyProfileEnter(16);
+                MyProfileEnter(kProfLocking);
                 LockPortBits(GetCWindowGrafPort(gWind));
-                MyProfileExit(16);
+                MyProfileExit(kProfLocking);
 #endif
-                MyProfileEnter(13);
+                MyProfileEnter(kProfProcessSW);
                 SWProcessSpriteWorld(gSpriteWorld);
-                MyProfileExit(13);
-                MyProfileEnter(14);
+                MyProfileExit(kProfProcessSW);
+                MyProfileEnter(kProfAnimateSW);
                 SWAnimateSpriteWorld(gSpriteWorld);
-                MyProfileExit(14);
-                MyProfileEnter(15);
+                MyProfileExit(kProfAnimateSW);
+                MyProfileEnter(kProfPostAnimate);
                 PostAnimateHandler();
-                MyProfileExit(15);
+                MyProfileExit(kProfPostAnimate);
 #if TARGET_API_MAC_CARBON
-                MyProfileEnter(16);
+                MyProfileEnter(kProfLocking);
                 UnlockPortBits(GetCWindowGrafPort(gWind));
                 QDFlushPortBuffer(GetCWindowGrafPort(gWind), 0);
-                MyProfileExit(16);
+                MyProfileExit(kProfLocking);
 #endif
-                MyProfileExit(2);
-                MyProfileEnter(3);
+                MyProfileExit(kProfDrawing);
+                MyProfileEnter(kProfPostDraw);
                 if (KeyCheck(keyPrefs.pause)) {
                     if (pauseKeyFlag == 0 && gPause == 0) {
                         pauseKeyFlag = 1;
@@ -2418,7 +2441,7 @@ void PlayGame(void)
                     } while (0);
                     if (doIt) {
                         shipData[0].credits *= 0.1;
-                        statusRedraw[2] = 1;
+                        statusRedraw[kRedrawCargo] = 1;
                     }
                 }
                 if (missionSoundID != -1 && missionSnd == 0) {
@@ -2458,7 +2481,7 @@ void PlayGame(void)
 #if !TARGET_API_MAC_CARBON
                 if (shipData[0].jumpTimer <= 0.0f || shipData[0].active == 0) {
                     if (Button() || (QuickKeyCheck(4) && QuickKeyCheck(0x3f))) {
-                        IterateInGameEventLoop(10);
+                        IterateInGameEventLoop(kEventLoopTicks);
                         lastEventLoopTime = ReadTick();
                     } else if (settings.windowed != 0) {
                         if (settings.yieldEvents != 0) {
@@ -2475,7 +2498,7 @@ void PlayGame(void)
                     if (ReadTick() > lastEventLoopTime + 30
                             || (QuickKeyCheck(MacKey(0xc)) && QuickKeyCheck(MacKey(0x37)))) {
                         if (QuickKeyCheck(MacKey(0xc)) && QuickKeyCheck(MacKey(0x37)))
-                            IterateInGameEventLoop(10);
+                            IterateInGameEventLoop(kEventLoopTicks);
                         else
                             IterateInGameEventLoop(1);
                         lastEventLoopTime = ReadTick();
@@ -2484,7 +2507,7 @@ void PlayGame(void)
                     BusyIdle();
                 }
 #endif
-                MyProfileExit(3);
+                MyProfileExit(kProfPostDraw);
             } else {
                 SWUpdateSpriteWorld(gSpriteWorld, 0);
                 IterateInGameEventLoop(3);
@@ -2500,11 +2523,11 @@ void PlayGame(void)
         }
         if (absquatulateStr[0] != 0) {
             PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
-            DisplayComm((PStrChar *)absquatulateStr, 500, 0, 12, &rgbWhite, 0, 0);
+            DisplayComm((PStrChar *)absquatulateStr, 500, 0, kCommTextSize, &rgbWhite, 0, 0);
             RedrawComm(1);
             absquatulateStr[0] = 0;
         }
-        MyProfileExit(0);
+        MyProfileExit(kProfGameLoop);
     }
 
     MyProfileDump("profile.txt");
@@ -2550,27 +2573,27 @@ void PlayGame(void)
     lastKeypressTime = ReadTick();
     AdjustSoundVolume();
     MyProfileInit();
-    MyProfileSetName(0, "game loop");
-    MyProfileSetName(1, "pre draw tasks");
-    MyProfileSetName(2, "drawing");
-    MyProfileSetName(3, "post draw tasks");
-    MyProfileSetName(4, "HandleShip");
-    MyProfileSetName(5, "HandleShipDisplay");
-    MyProfileSetName(6, "AI routines");
-    MyProfileSetName(7, "HandleShot");
-    MyProfileSetName(8, "misc handlers");
-    MyProfileSetName(9, "collisions");
-    MyProfileSetName(10, "player");
-    MyProfileSetName(11, "misc handlers2");
-    MyProfileSetName(12, "DrawStatus");
-    MyProfileSetName(13, "ProcessSpriteWorld");
-    MyProfileSetName(14, "AnimateSpriteWorld");
-    MyProfileSetName(15, "PostAnimate");
-    MyProfileSetName(16, "locking");
-    MyProfileSetName(17, "erase");
-    MyProfileSetName(18, "draw");
-    MyProfileSetName(19, "update");
-    MyProfileSetName(20, "calc AI odds");
+    MyProfileSetName(kProfGameLoop, "game loop");
+    MyProfileSetName(kProfPreDraw, "pre draw tasks");
+    MyProfileSetName(kProfDrawing, "drawing");
+    MyProfileSetName(kProfPostDraw, "post draw tasks");
+    MyProfileSetName(kProfShip, "HandleShip");
+    MyProfileSetName(kProfShipDisp, "HandleShipDisplay");
+    MyProfileSetName(kProfAI, "AI routines");
+    MyProfileSetName(kProfShots, "HandleShot");
+    MyProfileSetName(kProfSprites, "misc handlers");
+    MyProfileSetName(kProfCollide, "collisions");
+    MyProfileSetName(kProfPlayer, "player");
+    MyProfileSetName(kProfHandlers, "misc handlers2");
+    MyProfileSetName(kProfStatus, "DrawStatus");
+    MyProfileSetName(kProfProcessSW, "ProcessSpriteWorld");
+    MyProfileSetName(kProfAnimateSW, "AnimateSpriteWorld");
+    MyProfileSetName(kProfPostAnimate, "PostAnimate");
+    MyProfileSetName(kProfLocking, "locking");
+    MyProfileSetName(kProfErase, "erase");
+    MyProfileSetName(kProfDraw, "draw");
+    MyProfileSetName(kProfUpdate, "update");
+    MyProfileSetName(kProfOdds, "calc AI odds");
     gSpriteWorld->fastBlit = 1;
     inBackground = 0;
     gPause = 0;
@@ -2580,12 +2603,12 @@ void PlayGame(void)
     for (;;) {
         if (gQuit != 0 || gPause != 0)
             break;
-        MyProfileEnter(0);
+        MyProfileEnter(kProfGameLoop);
         HandleTimeAdjustment();
         keyPressedThisFrame = 0;
         if (inBackground == 0) {
             if (gSpriteWorld->fastBlit != 0) {
-                MyProfileEnter(1);
+                MyProfileEnter(kProfPreDraw);
                 lastFramePlayerPos.x = shipData[0].pos.x;
                 lastFramePlayerPos.y = shipData[0].pos.y;
                 if (frameCounter % 3 != 0) {
@@ -2600,7 +2623,7 @@ void PlayGame(void)
                     if (ReadTick() > lastFPSUpdateTime + 120) {
                         if (lastFPSUpdateTime == 0) {
                             GetIndString(str, kGameStrList, 282);
-                            DisplayComm(str, 100, 0, 12, &rgbWhite, 0, 0);
+                            DisplayComm(str, 100, 0, kCommTextSize, &rgbWhite, 0, 0);
                         } else {
                             NumToString((fpsCounter * 60.0 /
                                     (ReadTick() - lastFPSUpdateTime)),
@@ -2610,7 +2633,7 @@ void PlayGame(void)
                             strcat((char *)str, " ");
                             StrcatIndCString((char *)str, kGameStrList, 283);
                             CtoPstr((char *)str);
-                            DisplayComm(str, 999, 0, 12, &rgbWhite, 0, 0);
+                            DisplayComm(str, 999, 0, kCommTextSize, &rgbWhite, 0, 0);
                         }
                         lastFPSUpdateTime = ReadTick();
                         fpsCounter = 0;
@@ -2626,20 +2649,20 @@ void PlayGame(void)
                 }
                 ScrollStarfield(dx, dy);
                 HandleMouse();
-                MyProfileExit(1);
-                MyProfileEnter(2);
-                MyProfileEnter(13);
+                MyProfileExit(kProfPreDraw);
+                MyProfileEnter(kProfDrawing);
+                MyProfileEnter(kProfProcessSW);
                 SWProcessSpriteWorld(gSpriteWorld);
-                MyProfileExit(13);
-                MyProfileEnter(14);
+                MyProfileExit(kProfProcessSW);
+                MyProfileEnter(kProfAnimateSW);
                 SWAnimateSpriteWorld(gSpriteWorld);
-                MyProfileExit(14);
-                MyProfileEnter(15);
+                MyProfileExit(kProfAnimateSW);
+                MyProfileEnter(kProfPostAnimate);
                 PostAnimateHandler();
-                MyProfileExit(15);
+                MyProfileExit(kProfPostAnimate);
                 ScreenEndScene();
-                MyProfileExit(2);
-                MyProfileEnter(3);
+                MyProfileExit(kProfDrawing);
+                MyProfileEnter(kProfPostDraw);
                 if (KeyCheck(keyPrefs.pause)) {
                     if (pauseKeyFlag == 0 && gPause == 0) {
                         pauseKeyFlag = 1;
@@ -2842,7 +2865,7 @@ void PlayGame(void)
                                 && ok == 0 ? (unsigned char)1 : (unsigned char)0);
                         if (doIt) {
                             shipData[0].credits *= 0.1;
-                            statusRedraw[2] = 1;
+                            statusRedraw[kRedrawCargo] = 1;
                         }
                     }
                 }
@@ -2890,7 +2913,7 @@ void PlayGame(void)
                 } else {
                     BusyIdle();
                 }
-                MyProfileExit(3);
+                MyProfileExit(kProfPostDraw);
             } else {
                 SWUpdateSpriteWorld(gSpriteWorld, 0);
                 IterateInGameEventLoop(3);
@@ -2906,11 +2929,11 @@ void PlayGame(void)
         }
         if (absquatulateStr[0] != 0) {
             PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
-            DisplayComm((unsigned char *)absquatulateStr, 500, 0, 12, &rgbWhite, 0, 0);
+            DisplayComm((unsigned char *)absquatulateStr, 500, 0, kCommTextSize, &rgbWhite, 0, 0);
             RedrawComm(1);
             absquatulateStr[0] = 0;
         }
-        MyProfileExit(0);
+        MyProfileExit(kProfGameLoop);
     }
 
     MyProfileDump("profile.txt");
@@ -2925,18 +2948,6 @@ void PlayGame(void)
 #endif
 
 #define kMaxNavDefaults 0x10
-
-/* MyProfile bracket ids, registered by name in PlayGame 0x00417600 (the table: notes) */
-#define kProfPlayer     10      /* "player" */
-#define kProfCollide     9      /* "collisions" */
-#define kProfStatus     12      /* "DrawStatus" */
-#define kProfAI          6      /* "AI routines" */
-#define kProfHandlers   11      /* "misc handlers2" */
-#define kProfOdds       20      /* "calc AI odds" */
-#define kProfShots       7      /* "HandleShot" */
-#define kProfShip        4      /* "HandleShip" */
-#define kProfShipDisp    5      /* "HandleShipDisplay" */
-#define kProfSprites     8      /* "misc handlers" */
 
 /* DoPlayGameWork (mac _DoPlayGameWork). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004186b0
@@ -2989,7 +3000,7 @@ void DoPlayGameWork(unsigned char advance)
         for (i = 1; i < kMaxShips; i++)
             prevParent[i] = shipData[i].parentShip;
         for (i = 1; i < kMaxShips; i++) {
-            if (shipData[i].active != 0 && shipData[i].aiType >= 5 &&
+            if (shipData[i].active != 0 && shipData[i].aiType >= kShipTypeFighter &&
                     shipData[i].curSystem == shipData[0].curSystem) {
                 if (shipData[i].parentShip > 0) {
                     AICheckParentExists(&shipData[i]);
@@ -3000,7 +3011,7 @@ void DoPlayGameWork(unsigned char advance)
                 }
                 if (shipData[i].swarmLeader > i && shipData[i].swarmLeader < kMaxShips)
                     shipData[shipData[i].swarmLeader].hasSwarm = 1;
-                if (shipData[i].aiType >= 5) {
+                if (shipData[i].aiType >= kShipTypeFighter) {
                     shipData[i].formLeader = -1;
                     if (shipData[i].targetShip != -1 && IsShipAttacking(&shipData[i]) != 0)
                         shipData[i].formLeader = shipData[i].swarmLeader;
@@ -3137,7 +3148,6 @@ void PrepareAllSprites(void)
     gameFrozen = wasFrozen;
 }
 
-#define kShipTypeFighter        5       /* aiType: launched from a bay */
 #define kGovtLegalScale         2       /* govt crimeTol is halved legal status */
 
 #define kStrMissionFailed       0x11c
@@ -3147,9 +3157,7 @@ void PrepareAllSprites(void)
 #define kHectorTauntBase        8
 #define kHectorTauntCount       6
 
-#define kCommTicks              0xf0
-#define kHectorCommTicks        5000
-#define kCommFontSize           12
+#define kHectorCommFrames        5000
 
 #define kImpactCancelRange      50.0f
 #define kEscortDefendRange      320.0f
@@ -3301,11 +3309,11 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
             if (currentMissionObjectives[ship->specialMission].active != 0) {
                 if (currentMissionObjectives[ship->specialMission].failed == 0
                         && currentMissions[ship->specialMission].specialShipsDisabled == 0
-                        && currentMissions[ship->specialMission].shipGoal == kMissionKindDisable
+                        && currentMissions[ship->specialMission].shipGoal == kMissionGoalEscort
                         && (currentMissions[ship->specialMission].flags & kMissionHidden) == 0) {
                     PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
                     GetIndString((unsigned char *)msg, kGameStrList, kStrMissionFailed);
-                    DisplayComm((PStrChar *)msg, kCommTicks, 0, kCommFontSize,
+                    DisplayComm((PStrChar *)msg, kCommFrames, 0, kCommTextSize,
                                 &rgbWhite, 0, 0);
                     QuickMissionFailure(ship->specialMission);
                 }
@@ -3321,9 +3329,9 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                 ship->formerEscort = 2;
             ship->parentShip = -1;
             if (ship->aiType == kShipTypeEscort
-                    && shipClass[ship->type].inherentAI <= 2) {
+                    && shipClass[ship->type].inherentAI <= kShipTypeBraveTrader) {
                 DestroyPartialFleetCargo(ship->index);
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
                 DrawStatusCargo();
             }
             ship->aiType = shipClass[ship->type].inherentAI;
@@ -3331,7 +3339,7 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
         if (ship->index == 0 && wasDisabled == 0) {
             PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
             GetIndString((unsigned char *)msg, kGameStrList, kStrShipDestroyed);
-            DisplayComm((PStrChar *)msg, kCommTicks, 0, kCommFontSize,
+            DisplayComm((PStrChar *)msg, kCommFrames, 0, kCommTextSize,
                         &rgbWhite, 0, 0);
             playerRepairInhibit = 300.0f;
             ship->armor = (long)ship->armor;
@@ -3341,7 +3349,7 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                     PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
                     QuickMissionFailure(i);
                     GetIndString((unsigned char *)msg, kGameStrList, kStrMissionFailed);
-                    DisplayComm((PStrChar *)msg, kCommTicks, 0, kCommFontSize,
+                    DisplayComm((PStrChar *)msg, kCommFrames, 0, kCommTextSize,
                                 &rgbWhite, 0, 0);
                     break;
                 }
@@ -3356,13 +3364,13 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                 && shipData[attacker].persType == kPersCaptainHector) {
             GetIndString((unsigned char *)msg, kHectorStrList,
                          Rand(kHectorTauntCount) + kHectorTauntBase);
-            DisplayComm((PStrChar *)msg, kHectorCommTicks, 0, kCommFontSize,
+            DisplayComm((PStrChar *)msg, kHectorCommFrames, 0, kCommTextSize,
                         &rgbWhite, 0, 0);
             playerKilledByHector = 1;
         }
         if (playerKilledByHector == 0) {
             GetIndString((unsigned char *)msg, kGameStrList, kStrPlayerKilled);
-            DisplayComm((PStrChar *)msg, kCommTicks, 0, kCommFontSize,
+            DisplayComm((PStrChar *)msg, kCommFrames, 0, kCommTextSize,
                         &rgbWhite, 0, 0);
         }
         for (i = 0; i < kMaxActiveMissions; i++) {
@@ -3371,7 +3379,7 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
                 PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
                 QuickMissionFailure(i);
                 GetIndString((unsigned char *)msg, kGameStrList, kStrMissionFailed);
-                DisplayComm((PStrChar *)msg, kCommTicks, 0, kCommFontSize,
+                DisplayComm((PStrChar *)msg, kCommFrames, 0, kCommTextSize,
                             &rgbWhite, 0, 0);
                 break;
             }
@@ -3598,7 +3606,7 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
     if (armorOnly == 0)
         ship->shieldGlow = kFullCloak;
     if (ship->index == 0)
-        statusRedraw[1] = 1;
+        statusRedraw[kRedrawShield] = 1;
     if (fromAttack != 0 && ship->decloaksWhenHit == 1
             && (ship->cloak == kFullCloak || ship->cloakDir >= 1))
         DoShipUncloak(ship);
@@ -3614,7 +3622,7 @@ void DeleteAllComputerShips(Boolean force, Boolean keepPlayer)
 
     for (i = 1; i < kMaxShips; i++) {
         remove = 1;
-        if (shipData[i].aiType >= 5 && shipData[i].parentShip == 0
+        if (shipData[i].aiType >= kShipTypeFighter && shipData[i].parentShip == 0
                 && shipData[i].defenseStellar == -1 && shipData[i].specialMission == -1) {
             if (IsDisabled(&shipData[i]))
                 remove = 1;
@@ -3651,8 +3659,6 @@ void DeleteAllComputerShips(Boolean force, Boolean keepPlayer)
 
 #define kSystemPersSlots        8
 #define kMissionShipSystemHere  (-6)    /* mïsn +0x10: spawn in the player's system */
-#define kMissionKindDestroy     5       /* mïsn +0x0a */
-#define kMissionShipEscort      1       /* mïsn +0x0c: they join the player */
 #define kMissionShipCloaked     2       /* mïsn +0x0e */
 #define kNavStelFirst           (-1)    /* mïsn +0x0e: -1..-16 index navDefault */
 #define kNavStelLast            (-16)
@@ -3700,7 +3706,7 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
                 if (shipData[i].parentShip == 0
                         && shipData[i].aiType == kShipTypeEscort
                         && shipData[i].specialMission == -1
-                        && shipClass[shipData[i].type].inherentAI <= 2)
+                        && shipClass[shipData[i].type].inherentAI <= kShipTypeBraveTrader)
                     DestroyPartialFleetCargo(i);
             } else {
                 if (shipData[i].specialMission == -1) {
@@ -3749,7 +3755,7 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
                     && currentMissions[m].shipDelay < 0) {
                 count = currentMissions[m].shipCount;
                 if (currentMissions[m].shipSyst == kMissionShipSystemHere
-                        && currentMissions[m].shipBehav == kMissionShipEscort) {
+                        && currentMissions[m].shipBehav == kMissionModeEscort) {
                     for (j = 1; j < kMaxShips; j++) {
                         if (shipData[j].active != 0 && m == shipData[j].specialMission)
                             count--;
@@ -3760,11 +3766,11 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
                         n = MissionDudeSpawn(currentMissions[m].shipDude, -1, sys, m);
                         if (n != -1) {
                             k++;
-                            if (currentMissions[m].shipGoal == kMissionKindDisable) {
+                            if (currentMissions[m].shipGoal == kMissionGoalEscort) {
                                 shipData[n].pos.x = Rand(0x200) - 0x100;
                                 shipData[n].pos.y = Rand(0x200) - 0x100;
                             }
-                            if (currentMissions[m].shipGoal == kMissionKindDestroy) {
+                            if (currentMissions[m].shipGoal == kMissionGoalRescue) {
                                 shipData[n].heading = Rand(kFullCircle);
                                 shipData[n].vel.x = shipData[n].vel.y = 0.0f;
                                 shipData[n].accelMag = 0.0f;
@@ -3790,7 +3796,7 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
                                         systemData[sys].navDefault[navIndex]].pos.v;
                                 }
                             }
-                            if (currentMissions[m].shipBehav == kMissionShipEscort) {
+                            if (currentMissions[m].shipBehav == kMissionModeEscort) {
                                 shipData[n].aiType = kShipTypeEscort;
                                 shipData[n].parentShip = 0;
                                 shipData[n].formLeader = 0;
@@ -3887,7 +3893,7 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
                 if (shipData[i].parentShip == 0
                         && shipData[i].aiType == kShipTypeEscort
                         && shipData[i].specialMission == -1
-                        && shipClass[shipData[i].type].inherentAI <= 2)
+                        && shipClass[shipData[i].type].inherentAI <= kShipTypeBraveTrader)
                     DestroyPartialFleetCargo(i);
             } else {
                 if (shipData[i].specialMission == -1) {
@@ -3934,7 +3940,7 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
                     && (shipsLeft = currentMissions[i].shipCount) > 0
                     && currentMissions[i].shipDelay < 0) {
                 if (currentMissions[i].shipSyst == kMissionShipSystemHere
-                        && currentMissions[i].shipBehav == kMissionShipEscort) {
+                        && currentMissions[i].shipBehav == kMissionModeEscort) {
                     for (j = 1; j < kMaxShips; j++) {
                         if (shipData[j].active != 0 && i == shipData[j].specialMission)
                             shipsLeft--;
@@ -3944,11 +3950,11 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
                     for (shipNum = 0; (short)shipNum < shipsLeft; shipNum++) {
                         slot = MissionDudeSpawn(currentMissions[i].shipDude, -1, sys, i);
                         if (slot != -1) {
-                            if (currentMissions[i].shipGoal == kMissionKindDisable) {
+                            if (currentMissions[i].shipGoal == kMissionGoalEscort) {
                                 shipData[slot].pos.x = Rand(0x200) - 0x100;
                                 shipData[slot].pos.y = Rand(0x200) - 0x100;
                             }
-                            if (currentMissions[i].shipGoal == kMissionKindDestroy) {
+                            if (currentMissions[i].shipGoal == kMissionGoalRescue) {
                                 shipData[slot].heading = Rand(kFullCircle);
                                 shipData[slot].vel.x = shipData[slot].vel.y = 0.0f;
                                 shipData[slot].accelMag = 0.0f;
@@ -3974,7 +3980,7 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
                                         systemData[sys].navDefault[navIndex]].pos.v;
                                 }
                             }
-                            if (currentMissions[i].shipBehav == kMissionShipEscort) {
+                            if (currentMissions[i].shipBehav == kMissionModeEscort) {
                                 shipData[slot].aiType = kShipTypeEscort;
                                 shipData[slot].parentShip = 0;
                                 shipData[slot].formLeader = 0;
@@ -4230,7 +4236,7 @@ short HyperShipSpawn(short sys)
             speed -= 1.165;
         }
         shipData[slot].pos.x = shipData[slot].pos.y = 0;
-        Accel(Rand(360), dist + 1000.0f, &shipData[slot].pos);
+        Accel(Rand(kFullCircle), dist + 1000.0f, &shipData[slot].pos);
         pt.x = pt.y = 0;
         shipData[slot].heading =
             CalcInterceptAngle(&shipData[slot].pos, &pt);
@@ -4368,7 +4374,7 @@ short MissionDudeSpawn(short dude, short wantType, short sys, short mission)
     if (shipClass[shipData[slot].type].animDelay > 0)
         shipData[slot].animTimer =
             Rand(shipClass[shipData[slot].type].animDelay);
-    if (currentMissions[mission].shipBehav == 0)
+    if (currentMissions[mission].shipBehav == kMissionModeAttackPlayer)
         AIMakeShipAttackPlayer(&shipData[slot]);
     return slot;
 
@@ -4619,8 +4625,8 @@ void EnterMoreShips(short sys)
         cargo = 0;
         for (n = 1; n < kMaxShips; n++)
             if (shipData[n].active && shipData[n].parentShip == 0
-                && shipData[n].aiType == 6 && shipData[n].specialMission == -1
-                && shipClass[shipData[n].type].inherentAI <= 2)
+                && shipData[n].aiType == kShipTypeEscort && shipData[n].specialMission == -1
+                && shipClass[shipData[n].type].inherentAI <= kShipTypeBraveTrader)
                 cargo += shipClass[shipData[n].type].cargo;
         if (cargo >= kEscortCargoHeavy)
             HyperSpawnFleet(shipData[0].curSystem, kEscortFleetHeavy,
@@ -4673,7 +4679,7 @@ void RespawnEscort(ShipObj *ship, unsigned char full)
     ship->vel.x = ship->vel.y = 0;
     ship->accelMag = 0;
     if (full) {
-        for (i = 0; i < 256; i++) {
+        for (i = 0; i < kMaxWeapTypes; i++) {
             ship->weap[i].count = shipClass[ship->type].weapCount[i];
             ship->weap[i].ammo = shipClass[ship->type].weapAmmo[i];
         }
@@ -4699,7 +4705,7 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
     short n;
     short inacc;
 
-    if (fighterType < 0 || fighterType > 256)
+    if (fighterType < 0 || fighterType > kMaxWeapTypes)
         return 0;
     slot = GenericRandomShipSpawn(parent->curSystem, kSpawnReserve);
     if (slot == -1)
@@ -4711,7 +4717,7 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
     shipData[slot].vel.x = parent->vel.x;
     shipData[slot].vel.y = parent->vel.y;
     shipData[slot].accelMag = parent->accelMag;
-    shipData[slot].type = weaponStats[fighterType].ammoType - 128;
+    shipData[slot].type = weaponStats[fighterType].ammoType - kFirstResourceID;
     shipData[slot].defenseStellar = -1;
     shipData[slot].tractorShip = -1;
     shipData[slot].hailed = 0;
@@ -4719,7 +4725,7 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
     shipData[slot].canScoop = ShipCanScoop(&shipData[slot]);
     shipData[slot].hired = 0;
     shipData[slot].auxMission = -1;
-    shipData[slot].aiType = 5;
+    shipData[slot].aiType = kShipTypeFighter;
     shipData[slot].govt = parent->govt;
     shipData[slot].navTargetKind = -1;
     shipData[slot].jumpTimer = 0;
@@ -4869,7 +4875,7 @@ void JettisonCargo(unsigned char withMissions)
 
     toldMission = 0;
     total = 0;
-    for (i = 0; i <= 5; i++)
+    for (i = 0; i <= kLastCommodity; i++)
         total += shipData[0].cargo[i];
     for (i = 0; i < kMaxJunks; i++) {
         if (junkData[i].held > 0) {
@@ -4889,7 +4895,7 @@ void JettisonCargo(unsigned char withMissions)
                 if ((currentMissions[k].flags & kMissionHidden) == 0
                     && playerIsLanded == 0) {
                     GetIndString(text, kGameStrList, kMsgMissionAborted);
-                    DisplayComm((PStrChar *)text, kCommWidth, 0, kCommHold, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)text, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
                     toldMission = 1;
                 }
                 QuickMissionFailure(k);
@@ -4903,8 +4909,8 @@ void JettisonCargo(unsigned char withMissions)
     fleetHolds = TotalFleetHolds();
     for (i = 0; i < kMaxShips; i++) {
         if ((shipData[i].active != 0 && shipData[i].parentShip == 0
-             && shipData[i].aiType == 6 && shipData[i].specialMission == -1
-             && shipClass[shipData[i].type].inherentAI <= 2)
+             && shipData[i].aiType == kShipTypeEscort && shipData[i].specialMission == -1
+             && shipClass[shipData[i].type].inherentAI <= kShipTypeBraveTrader)
             || i == 0) {
             if (i == 0)
                 holds = ShipTotalHolds();
@@ -4922,11 +4928,11 @@ void JettisonCargo(unsigned char withMissions)
                     for (j = 0; j < boxes; j++)
                         SpawnBox(i);
                 }
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
             }
         }
     }
-    for (i = 0; i <= 5; i++)
+    for (i = 0; i <= kLastCommodity; i++)
         shipData[0].cargo[i] = 0;
     if (total > 0 && playerIsLanded == 0) {
         PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
@@ -4935,7 +4941,7 @@ void JettisonCargo(unsigned char withMissions)
                 GetIndString(text, kGameStrList, kMsgJettisonMission);
             else
                 GetIndString(text, kGameStrList, kMsgJettisonPlain);
-            DisplayComm((PStrChar *)text, kCommWidth, 0, kCommHold, &rgbWhite, 0, 0);
+            DisplayComm((PStrChar *)text, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
         }
     }
     ResetPlayerPrecalcedValues();
@@ -5026,7 +5032,7 @@ void SpawnScoopableBox(FloatPoint *pos, short cargoType, short pict)
         if (r == 3)
             boxData[slot].spin = 1;
         boxData[slot].vel.x = boxData[slot].vel.y = 0;
-        Accel(Rand(360), (Rand(81) + 60) * 0.2 * 0.01, &boxData[slot].vel);
+        Accel(Rand(kFullCircle), (Rand(81) + 60) * 0.2 * 0.01, &boxData[slot].vel);
         return;
     }
 }
@@ -5233,10 +5239,10 @@ short SpawnShot(short ship, short target, short weapType, Boolean flag)
         shotData[slot].angle += Rand(weaponStats[shotData[slot].weapType].inaccuracy * 2)
                     - weaponStats[shotData[slot].weapType].inaccuracy;
         if (shotData[slot].angle < 0.0f) {
-            shotData[slot].angle += 360.0f;
+            shotData[slot].angle += kFullCircleF;
         }
-        if (shotData[slot].angle >= 360.0f) {
-            shotData[slot].angle = shotData[slot].angle - 360.0f;
+        if (shotData[slot].angle >= kFullCircleF) {
+            shotData[slot].angle = shotData[slot].angle - kFullCircleF;
         }
     }
 
@@ -5274,10 +5280,10 @@ short SpawnShot(short ship, short target, short weapType, Boolean flag)
         shotData[slot].angle += Rand(weaponStats[shotData[slot].weapType].inaccuracy * 2)
                     - weaponStats[shotData[slot].weapType].inaccuracy;
         if (shotData[slot].angle < 0.0f) {
-            shotData[slot].angle += 360.0f;
+            shotData[slot].angle += kFullCircleF;
         }
-        if (shotData[slot].angle >= 360.0f) {
-            shotData[slot].angle = shotData[slot].angle - 360.0f;
+        if (shotData[slot].angle >= kFullCircleF) {
+            shotData[slot].angle = shotData[slot].angle - kFullCircleF;
         }
     }
 
@@ -5291,7 +5297,7 @@ short SpawnShot(short ship, short target, short weapType, Boolean flag)
         0 <= ship && ship < kMaxShips && flag == 0) {
         shipData[ship].shield = 0;
         shipData[ship].armor = 0;
-        statusRedraw[6] = 1;
+        statusRedraw[kRedrawTarg] = 1;
     }
 
     /* the four glow rolls */
@@ -5408,9 +5414,9 @@ void SpawnShotSubmunitions(ShotObj *shot, short ship)
             shotData[slot].angle += abs(weaponStats[shot->weapType].subTheta) * n;
         }
         if (shotData[slot].angle < 0.0f)
-            shotData[slot].angle += 360.0f;
-        if (shotData[slot].angle >= 360.0f)
-            shotData[slot].angle -= 360.0f;
+            shotData[slot].angle += kFullCircleF;
+        if (shotData[slot].angle >= kFullCircleF)
+            shotData[slot].angle -= kFullCircleF;
 
         if (weaponStats[shotData[slot].weapType].guidance == kGuidanceRocket) {
             shotData[slot].vel = shot->vel;
@@ -5719,7 +5725,7 @@ short SpawnStellarDefenseShip(short stellar)
             shipData[ship].govt = stellarData[stellar].govt;
             shipData[ship].pos.x = stellarData[stellar].pos.h;
             shipData[ship].pos.y = stellarData[stellar].pos.v;
-            shipData[ship].heading = Rand(360);
+            shipData[ship].heading = Rand(kFullCircle);
             shipData[ship].vel.x = shipData[ship].vel.y = 0;
             shipData[ship].accelMag = 0;
             Accel(shipData[ship].heading, ShipMaxSpeed(&shipData[ship]),
@@ -5773,7 +5779,7 @@ void MakeEscortsHyperWithParent(ShipObj *ship)
 {
     short i;
 
-    for (i = 1; i < 64; i++) {
+    for (i = 1; i < kMaxShips; i++) {
         if (shipData[i].active != 0 && shipData[i].parentShip == ship->index &&
             shipData[i].defenseStellar == -1) {
             shipData[i].jumpTimer = shipData[shipData[i].parentShip].jumpTimer;
@@ -5792,7 +5798,7 @@ void MakeEscortsCancelJump(ShipObj *ship)
 {
     short i;
 
-    for (i = 1; i < 64; i++) {
+    for (i = 1; i < kMaxShips; i++) {
         if (shipData[i].active != 0 && shipData[i].parentShip == ship->index &&
             shipData[i].defenseStellar == -1) {
             shipData[i].jumpTimer = 0;
@@ -5816,7 +5822,7 @@ short SpawnEscort(short shipType, short fromSpob)
     if (slot != -1 && shipType > -1) {
 
         shipData[slot].type = shipType;
-        shipData[slot].aiType = 6;
+        shipData[slot].aiType = kShipTypeEscort;
         shipData[slot].parentShip = 0;
         shipData[slot].govt = -1;
         shipData[slot].aggression = 2;
@@ -5859,8 +5865,6 @@ short SpawnEscort(short shipType, short fromSpob)
     }
     return -1;
 }
-
-#define kHiredEscort         6           /* ShipObj.aiType */
 
 #define kStrEscortOne      298
 #define kStrEscortMany     299
@@ -5905,14 +5909,14 @@ void DoEscortLand(void)
             if (shipData[i].active
                 && shipData[i].parentShip == 0
                 && !IsDisabled(&shipData[i])
-                && shipData[i].aiType == kHiredEscort
+                && shipData[i].aiType == kShipTypeEscort
                 && shipData[i].sellOnLanding
                 && shipData[i].specialMission == -1) {
                 shipData[0].credits += shipClass[shipData[i].type].tradeIn;
                 saleValue += shipClass[shipData[i].type].tradeIn;
                 shipData[i].active = 0;
                 shipData[i].parentShip = -1;
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
                 numSold++;
             }
         }
@@ -5920,7 +5924,7 @@ void DoEscortLand(void)
         for (i = 1; i < kMaxShips; i++) {
             if (shipData[i].active
                 && shipData[i].parentShip == 0
-                && shipData[i].aiType == kHiredEscort
+                && shipData[i].aiType == kShipTypeEscort
                 && shipData[i].upgradeOnLanding) {
                 if (shipClass[shipData[i].type].upgradeTo != -1
                     && shipData[i].specialMission == -1
@@ -5928,7 +5932,7 @@ void DoEscortLand(void)
                     numUpgraded++;
                     upgradeCost += shipClass[shipData[i].type].escUpgradeCost;
                     shipData[0].credits -= shipClass[shipData[i].type].escUpgradeCost;
-                    statusRedraw[2] = 1;
+                    statusRedraw[kRedrawCargo] = 1;
                     shipData[i].type = shipClass[shipData[i].type].upgradeTo;
                     for (j = 0; j < kMaxWeapTypes; j++) {
                         shipData[i].weap[j].count = 0;
@@ -5943,7 +5947,7 @@ void DoEscortLand(void)
                 shipData[i].weap[j].ammo = shipClass[shipData[i].type].weapAmmo[j];
             type = shipData[i].specialMission;
             if (type != -1 && currentMissionObjectives[type].active != 0
-                && currentMissions[type].shipBehav == 1)
+                && currentMissions[type].shipBehav == kMissionModeEscort)
                 j = 0;
         }
 
@@ -6025,16 +6029,16 @@ void DoEscortPayment(short days)
     checked = 0;
     numDismissed = 0;
     for (day = 0; day < days; day++) {
-        for (i = 1; i < 64; i++) {
+        for (i = 1; i < kMaxShips; i++) {
             if (shipData[i].active == 0) continue;
             if (shipData[i].parentShip != 0) continue;
-            if (shipData[i].aiType != 6) continue;
+            if (shipData[i].aiType != kShipTypeEscort) continue;
             if (IsDisabled(&shipData[i])) continue;
 
             skip = 0;
             if (shipData[i].specialMission != -1) {
                 if (currentMissionObjectives[shipData[i].specialMission].active != 0) {
-                    if (currentMissions[shipData[i].specialMission].shipBehav == 1) {
+                    if (currentMissions[shipData[i].specialMission].shipBehav == kMissionModeEscort) {
                         skip = 1;
                     }
                 }
@@ -6044,13 +6048,13 @@ void DoEscortPayment(short days)
 
             if (shipData[0].credits >= cost) {
                 shipData[0].credits -= cost;
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
             } else {
                 numDismissed++;
-                if (shipData[i].aiType == 6 && shipData[i].specialMission == -1 && shipClass[shipData[i].type].inherentAI <= 2) {
+                if (shipData[i].aiType == kShipTypeEscort && shipData[i].specialMission == -1 && shipClass[shipData[i].type].inherentAI <= kShipTypeBraveTrader) {
                     DestroyPartialFleetCargo(i);
                 }
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
                 shipData[i].active = 0;
                 shipData[i].parentShip = -1;
                 shipData[i].aiType = 1;
@@ -6080,7 +6084,7 @@ void DoEscortPayment(short days)
         } else {
             StrcatIndCString(textShowString, kGameStrList, 303);
         }
-        statusRedraw[2] = 1;
+        statusRedraw[kRedrawCargo] = 1;
         ShowTextDialog(0, 0, 0);
 #ifdef MACBUILD
         RefreshSAT();
@@ -6096,12 +6100,12 @@ void DoStellarTimePassage(void)
 {
     short i;
 
-    for (i = 0; i < 0x800; i++) {
+    for (i = 0; i < kMaxStellars; i++) {
         if (stellarData[i].loaded != 0 && stellarData[i].dominated != 0) {
             if ((stellarData[shipData[0].targetStellar].flags2 & kSpobAlwaysDominated) == 0)
                 stellarData[i].daysDominated += 1;
             shipData[0].credits += stellarData[i].tribute;
-            statusRedraw[2] = 1;
+            statusRedraw[kRedrawCargo] = 1;
         }
     }
 }
@@ -6135,8 +6139,8 @@ short SpawnPerson(short sys, unsigned char noDisabled, short person)
                     eligible[i] = 1;
                 if (personData[i].linkSyst == sys)
                     eligible[i] = 1;
-                if (personData[i].linkSyst >= 0x80 && personData[i].linkSyst < 0x2710
-                    && personData[i].linkSyst - 0x80 == sys)
+                if (personData[i].linkSyst >= kFirstResourceID && personData[i].linkSyst < 0x2710
+                    && personData[i].linkSyst - kFirstResourceID == sys)
                     eligible[i] = 1;
                 if (personData[i].linkSyst >= 0x270f && personData[i].linkSyst < 0x3a98
                     && personData[i].linkSyst - 0x2710 == systemData[sys].govt)
@@ -6245,7 +6249,7 @@ short SpawnPerson(short sys, unsigned char noDisabled, short person)
                     RandomizeOneMission(personData[shipData[slot].persType].linkMission);
                 if (personData[pick].govt >= 0
                     && (govtData[personData[pick].govt].flags & kGovtAlwaysDisabled) != 0) {
-                    shipData[slot].heading = Rand(360);
+                    shipData[slot].heading = Rand(kFullCircle);
                     /* BUG: vel.x is cleared twice and vel.y keeps whatever the slot held */
                     shipData[slot].vel.x = 0;
                     shipData[slot].vel.x = 0;
@@ -6327,9 +6331,9 @@ void DoShipCapture(ShipObj *me, Boolean asEscort)
             if (val != -1)
                 shipData[slotI].voiceClass = val;
         }
-        for (i = 0; i <= 5; i++)
+        for (i = 0; i <= kLastCommodity; i++)
             shipData[slotL].cargo[i] = shipData[0].cargo[i];
-        for (i = 1; i < 0x40; i++) {
+        for (i = 1; i < kMaxShips; i++) {
             if (shipData[i].active != 0 && i != me->index && i != slot
                     && me->index == shipData[i].parentShip) {
                 shipData[i].targetShip = shipData[i].targetStellar = -1;
@@ -6347,14 +6351,14 @@ void DoShipCapture(ShipObj *me, Boolean asEscort)
             shipData[slotR].hired = 0;
             shipData[slotR].hailed = 0;
             shipData[slotR].parentShip = 0;
-            shipData[slotR].aiType = 6;
+            shipData[slotR].aiType = kShipTypeEscort;
             DestroyPartialFleetCargo(slot);
             shipData[slotR].parentShip = -1;
             shipData[slotR].aiType = -1;
         } else {
             shipData[slotR].deathTimer = 0;
             shipData[slotR].parentShip = 0;
-            shipData[slotR].aiType = 6;
+            shipData[slotR].aiType = kShipTypeEscort;
             shipData[slotR].defenseStellar = -1;
             shipData[slotR].grudge = 0;
             shipData[slotR].fuel = ShipFuelCapacity(&shipData[slotR]);
@@ -6370,10 +6374,10 @@ void DoShipCapture(ShipObj *me, Boolean asEscort)
             AISetup(&shipData[slotI]);
             AIMakeEscortFlyInForm(&shipData[slotI]);
         }
-        statusRedraw[2] = 1;
-        statusRedraw[6] = 1;
-        statusRedraw[3] = 1;
-        for (i = 0; i < 0x100; i++) {
+        statusRedraw[kRedrawCargo] = 1;
+        statusRedraw[kRedrawTarg] = 1;
+        statusRedraw[kRedrawWeap] = 1;
+        for (i = 0; i < kMaxWeapTypes; i++) {
             shipData[slotL].weap[i].count =
                 shipClass[shipData[slotL].type].weapCount[i];
             shipData[slotL].weap[i].ammo =
@@ -6384,7 +6388,7 @@ void DoShipCapture(ShipObj *me, Boolean asEscort)
             ShipRec *rec = &shipClass[t];
 
             crashlog_mission_bit_set("retiring", (char *)rec->name, 1,
-                                     t + 128, rec->onRetire);
+                                     t + kFirstResourceID, rec->onRetire);
         }
         EvalMissionBitSetString(shipClass[shipData[0].type].onRetire);
         {
@@ -6392,7 +6396,7 @@ void DoShipCapture(ShipObj *me, Boolean asEscort)
             ShipRec *rec = &shipClass[t];
 
             crashlog_mission_bit_set("capturing", (char *)rec->name, 1,
-                                     t + 128, rec->onCapture);
+                                     t + kFirstResourceID, rec->onCapture);
         }
         EvalMissionBitSetString(shipClass[me->type].onCapture);
         shipData[0].type = me->type;
@@ -6405,7 +6409,7 @@ void DoShipCapture(ShipObj *me, Boolean asEscort)
         shipData[0].selectedWeapon = -1;
         GetShipPaintColor(me, &playerPaint.red, &playerPaint.green,
                      &playerPaint.blue);
-        for (i = 0; i <= 5; i++)
+        for (i = 0; i <= kLastCommodity; i++)
             shipData[0].cargo[i] = me->cargo[i];
         if (ShipFuelCapacity(shipData) > 0)
             shipData[0].fuel = Rand(ShipFuelCapacity(shipData));
@@ -6419,11 +6423,11 @@ void DoShipCapture(ShipObj *me, Boolean asEscort)
             shipData[0].armor = shipClass[shipData[0].type].armor * 0.1 + 2.0;
         else
             shipData[0].armor = shipClass[shipData[0].type].armor * 0.3333 + 2.0;
-        for (w = 0; w < 0x100; w++) {
+        for (w = 0; w < kMaxWeapTypes; w++) {
             Boolean keep;
 
             keep = 0;
-            for (i = 0; i < 0x200; i++) {
+            for (i = 0; i < kMaxOutfits; i++) {
                 for (m = 0; m < kOutfMods; m++) {
                     if (outfitSystem[i].modType[m] == 1 && w == outfitSystem[i].modVal[m]
                             && outfitSystem[i].persistent != 0) {
@@ -6437,23 +6441,23 @@ void DoShipCapture(ShipObj *me, Boolean asEscort)
                 shipData[0].weap[w].ammo = 0;
             }
         }
-        for (w = 0; w < 0x100; w++) {
+        for (w = 0; w < kMaxWeapTypes; w++) {
             if (me->weap[w].count > 0 && shipData[0].weap[w].count <= 0)
                 shipData[0].weap[w].count = me->weap[w].count;
             if (me->weap[w].ammo > 0 && shipData[0].weap[w].ammo <= 0) {
                 if (weaponStats[w].guidance == kGuidanceBay) {
                     shipData[0].weap[w].ammo = me->weap[w].ammo;
-                } else if (weaponStats[w].ammoType >= 0 && weaponStats[w].ammoType < 0x100) {
+                } else if (weaponStats[w].ammoType >= 0 && weaponStats[w].ammoType < kMaxWeapTypes) {
                     shipData[0].weap[weaponStats[w].ammoType].ammo = me->weap[w].ammo;
                 }
             }
         }
-        for (w = 0; w < 0x200; w++) {
+        for (w = 0; w < kMaxOutfits; w++) {
             if (outfitSystem[w].persistent == 0)
                 shipSystems[w] = 0;
         }
         ShipStatsToSystemInfo();
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < kDefaultOutfitSlots; i++) {
             if (shipClass[shipData[0].type].defOutfCount[i] > 0)
                 shipSystems[shipClass[shipData[0].type].defOutfID[i]] +=
                     shipClass[shipData[0].type].defOutfCount[i];
@@ -6461,11 +6465,11 @@ void DoShipCapture(ShipObj *me, Boolean asEscort)
         SystemInfoToShipStats();
         me->active = 0;
         GetIndString(buf, kGameStrList, 0x130);
-        DisplayComm((PStrChar *)buf, 360, 0, 0xc, &rgbWhite, 0, 0);
+        DisplayComm((PStrChar *)buf, 360, 0, kCommTextSize, &rgbWhite, 0, 0);
 
     } else {
         GetIndString(buf, kGameStrList, 0x131);
-        DisplayComm((PStrChar *)buf, 360, 0, 0xc, &rgbWhite, 0, 0);
+        DisplayComm((PStrChar *)buf, 360, 0, kCommTextSize, &rgbWhite, 0, 0);
     }
 }
 #undef slotL
@@ -6499,17 +6503,17 @@ void DisasterHandler(void)
                 continue;
 
             target = disasterData[i].stellar;
-            if (target >= 0x80) {
+            if (target >= kFirstResourceID) {
                 if (disasterData[i].unk20D) {
-                    disasterData[i].stellarID = disasterData[i].stellar - 0x80;
+                    disasterData[i].stellarID = disasterData[i].stellar - kFirstResourceID;
                     disasterData[i].countdown = disasterData[i].duration;
                 } else {
-                    disasterData[i].stellarID = disasterData[i].stellar - 0x80;
+                    disasterData[i].stellarID = disasterData[i].stellar - kFirstResourceID;
                     disasterData[i].countdown = disasterData[i].duration;
                 }
             } else if (target == -1) {
                 do {
-                    target = Rand(0x800);
+                    target = Rand(kMaxStellars);
                 } while (!stellarData[target].loaded ||
                          (stellarData[target].flags & kSpobUninhabited) != 0);
                 if (disasterData[i].unk20D) {
@@ -6561,8 +6565,8 @@ void DoAutoRefuel(void)
                 amount = shipData->credits;
             shipData->credits -= amount;
             shipData->fuel += amount;
-            statusRedraw[4] = 1;
-            statusRedraw[2] = 1;
+            statusRedraw[kRedrawFuel] = 1;
+            statusRedraw[kRedrawCargo] = 1;
         }
     }
 }
@@ -6588,8 +6592,8 @@ void SpawnFleet(short sys, unsigned char arriving)
                 ok[i] = 1;
             if (sys == fleetData[i].linkSyst)
                 ok[i] = 1;
-            if (fleetData[i].linkSyst >= 128 && fleetData[i].linkSyst < 10000 &&
-                fleetData[i].linkSyst - 128 == sys)
+            if (fleetData[i].linkSyst >= kFirstResourceID && fleetData[i].linkSyst < 10000 &&
+                fleetData[i].linkSyst - kFirstResourceID == sys)
                 ok[i] = 1;
             if (fleetData[i].linkSyst >= 10000 && fleetData[i].linkSyst < 15000 &&
                 fleetData[i].linkSyst - 10000 == systemData[sys].govt)
@@ -6713,10 +6717,10 @@ short GenericRandomShipSpawn(short sys, short reserve)
             shipData[slot].animSet = Rand(shipClass[shipData[slot].type].baseSets);
         if (shipClass[shipData[slot].type].animDelay > 0)
             shipData[slot].animTimer = Rand(shipClass[shipData[slot].type].animDelay);
-        for (n = 0; n < 6; n++)
+        for (n = 0; n < kCargoTypes; n++)
             shipData[slot].cargo[n] = 0;
-        shipData[slot].pos.x = Rand(1500) - 750;
-        shipData[slot].pos.y = Rand(1500) - 750;
+        shipData[slot].pos.x = Rand(kSpawnSpread) - kSpawnOrigin;
+        shipData[slot].pos.y = Rand(kSpawnSpread) - kSpawnOrigin;
     }
     return slot;
 }
@@ -6779,8 +6783,8 @@ void HyperSpawnFleet(short sys, short fleet, short escortOf,
         shipData[slot].canScoop = ShipCanScoop(&shipData[slot]);
         AISetup(&shipData[slot]);
         if ((fleetData[f].flags & kFleetFlagRandomCargo) &&
-            shipClass[shipData[slot].type].inherentAI <= 2)
-            shipData[slot].cargo[Rand(6)] =
+            shipClass[shipData[slot].type].inherentAI <= kShipTypeBraveTrader)
+            shipData[slot].cargo[Rand(kCargoTypes)] =
                 Rand(shipClass[shipData[slot].type].cargo) + 1;
         shipData[slot].lastStellar = -2;
         shipData[slot].prevSystem = -1;
@@ -6801,7 +6805,7 @@ void HyperSpawnFleet(short sys, short fleet, short escortOf,
                 speed -= 1.165;
             }
             shipData[slot].pos.x = shipData[slot].pos.y = 0;
-            Accel(Rand(360), dist + 1000.0f,
+            Accel(Rand(kFullCircle), dist + 1000.0f,
                   &shipData[slot].pos);
             pt.x = pt.y = 0;
             shipData[slot].heading =
@@ -6830,7 +6834,7 @@ void HyperSpawnFleet(short sys, short fleet, short escortOf,
                 for (k = 0; k < count; k++) {
                     esc = GenericRandomShipSpawn(sys, kSpawnReserve);
                     if (esc != -1) {
-                        shipData[esc].aiType = kEscortAI;
+                        shipData[esc].aiType = kShipTypeEscort;
                         shipData[esc].parentShip = slot;
                         shipData[esc].type = fleetData[idx].escortTypes[j];
                         shipData[esc].dude = -1;
@@ -6861,8 +6865,8 @@ void HyperSpawnFleet(short sys, short fleet, short escortOf,
                         shipData[esc].formLeader = slot;
                         shipData[slot].hasFormation = 1;
                         if ((fleetData[f].flags & kFleetFlagRandomCargo) &&
-                            shipClass[shipData[esc].type].inherentAI <= 2)
-                            shipData[esc].cargo[Rand(6)] =
+                            shipClass[shipData[esc].type].inherentAI <= kShipTypeBraveTrader)
+                            shipData[esc].cargo[Rand(kCargoTypes)] =
                                 Rand(shipClass[shipData[esc].type].cargo) + 1;
                         if (stellar != -1) {
                             AIMakeShipEmergeFromHyperGate(&shipData[esc],
@@ -6904,7 +6908,7 @@ void HyperSpawnFleet(short sys, short fleet, short escortOf,
                     digit = 0;
             }
             PlaySound(beepSnd[4], 1, gSoundVolume, gSoundVolume);
-            DisplayComm((PStrChar *)buf, 360, 0, 12, &rgbWhite, 0, 0);
+            DisplayComm((PStrChar *)buf, 360, 0, kCommTextSize, &rgbWhite, 0, 0);
         }
     }
 }
@@ -6926,8 +6930,7 @@ void SpeakVoiceMessage(short a, short b, short c)
 
 #define kHailQuoteResBase 0x1387 /* 4999; the plugin override, ID + persID */
 #define kHailQuoteStrList 0x1bbd /* 7101; the built-in STR# */
-#define kHailCommWidth    0x1a4
-#define kHailTextSize     12
+#define kHailCommFrames   420
 
 /* ShowPersonHailQuote (mac _ShowPersonHailQuote). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00426d10
@@ -6942,7 +6945,7 @@ void ShowPersonHailQuote(short persID)
     strcpy(briefingTextPtr, parseBuffer);
     MungeBriefing(0, -1);
     CtoPstr(briefingTextPtr);
-    DisplayComm((PStrChar *)briefingTextPtr, kHailCommWidth, 0, kHailTextSize,
+    DisplayComm((PStrChar *)briefingTextPtr, kHailCommFrames, 0, kCommTextSize,
                 &rgbWhite, 0, 0);
 }
 
@@ -7407,7 +7410,7 @@ void SpawnEscapePod(ShipObj *ship)
             podData[i].vel.x = ship->vel.x;
             podData[i].vel.y = ship->vel.y;
 
-            angle = Rand(360);
+            angle = Rand(kFullCircle);
             SWSetSpriteVisible(podData[i].sprite, 1);
             Accel(angle, (Rand(10) + 10) * 0.1, &podData[i].vel);
 

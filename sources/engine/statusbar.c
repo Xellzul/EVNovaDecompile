@@ -48,7 +48,7 @@ void RedrawStatus(Boolean copyToScreen)
             GetCWindowPortRect(gWind)->top, GetCWindowPortRect(gWind)->right,
             GetCWindowPortRect(gWind)->bottom);
 #else
-    SetRect(&box, GetCWindowPortRect((WindowRef)gWind)->right - 0xc2,
+    SetRect(&box, GetCWindowPortRect((WindowRef)gWind)->right - kTargPanelInset,
             GetCWindowPortRect((WindowRef)gWind)->top, GetCWindowPortRect((WindowRef)gWind)->right,
             GetCWindowPortRect((WindowRef)gWind)->bottom);
 #endif
@@ -60,19 +60,19 @@ void RedrawStatus(Boolean copyToScreen)
 #ifdef CEFIX /* F14.04 */
         OffsetRect(&box, GetCWindowPortRect(gWind)->right - ceStatusBarWidth, 0);
 #else
-        OffsetRect(&box, GetCWindowPortRect((WindowRef)gWind)->right - 0xc2, 0);
+        OffsetRect(&box, GetCWindowPortRect((WindowRef)gWind)->right - kTargPanelInset, 0);
 #endif
         ForeColor(blackColor);
         PaintRect(&box2);
         SWSetPortToWindow(gSpriteWorld);
     }
-    statusRedraw[0] = 1;
-    statusRedraw[1] = 1;
-    statusRedraw[2] = 1;
-    statusRedraw[3] = 1;
-    statusRedraw[4] = 1;
-    statusRedraw[5] = 1;
-    statusRedraw[6] = 1;
+    statusRedraw[kRedrawNav] = 1;
+    statusRedraw[kRedrawShield] = 1;
+    statusRedraw[kRedrawCargo] = 1;
+    statusRedraw[kRedrawWeap] = 1;
+    statusRedraw[kRedrawFuel] = 1;
+    statusRedraw[kRedrawRadar] = 1;
+    statusRedraw[kRedrawTarg] = 1;
     lastTargetedShipClass = 0x8001;
     lastTargetedShipShields = 0x8001;
     lastDebugTargInfoState = 0;
@@ -84,7 +84,7 @@ void RedrawStatus(Boolean copyToScreen)
 #ifdef CEFIX /* F14.05 */
         box.left = box.right - ceStatusBarWidth;
 #else
-        box.left = box.right - 0xc2;
+        box.left = box.right - kTargPanelInset;
 #endif
         if (gSpriteWorld->fastBlit) {
             CopyBits(GWorldContainerBits(&loadPort),
@@ -117,10 +117,10 @@ void DrawStatus(void)
     if (fadePending[0] || fadePending[1] || creatingPilotFile)
         return;
     if (shipData[0].navTargetKind != -1 && ReadTick() % 30 == 0)
-        statusRedraw[0] = 1;
+        statusRedraw[kRedrawNav] = 1;
     if (shipData[0].targetShip != -1) {
         if (ReadTick() % 45 == 0)
-            statusRedraw[6] = statusRedraw[2] = 1;
+            statusRedraw[kRedrawTarg] = statusRedraw[kRedrawCargo] = 1;
     }
 #ifdef MACBUILD
     if (QuickKeyCheck(kScanControl))
@@ -137,72 +137,67 @@ void DrawStatus(void)
         lastRadarUpdateTime = ReadTick();
         radarCount = (radarCount + 1) % 2;
         if (shipData[0].targetShip != -1) {
-#ifdef MACBUILD
             if (shipData[shipData[0].targetShip].shield != lastTargetedShipShields ||
-                shipData[shipData[0].targetShip].type != lastTargetedShipClass)
-#else
-            if (lastTargetedShipShields != shipData[shipData[0].targetShip].shield ||
-                lastTargetedShipClass != (unsigned short)shipData[shipData[0].targetShip].type)
-#endif
-                statusRedraw[6] = 1;
+                (ShipClassID)shipData[shipData[0].targetShip].type != lastTargetedShipClass)
+                statusRedraw[kRedrawTarg] = 1;
             if (lastDebugTargInfoState != targKeyOnNow || targKeyOnNow)
-                statusRedraw[6] = 1;
+                statusRedraw[kRedrawTarg] = 1;
         } else {
             lastTargetedShipClass = lastTargetedShipShields = 0x8001;
         }
-        statusRedraw[5] = 1;
+        statusRedraw[kRedrawRadar] = 1;
 #ifdef MACBUILD
         drew = 1;
 #endif
     }
-    if (statusRedraw[6]) {
+    if (statusRedraw[kRedrawTarg]) {
         DrawStatusTarg();
-        statusRedraw[6] = 0;
+        statusRedraw[kRedrawTarg] = 0;
 #ifdef MACBUILD
         drew = 1;
 #endif
     }
-    if (statusRedraw[5]) {
+    if (statusRedraw[kRedrawRadar]) {
         if (!onPlanet && !playerIsLanded)
             DrawStatusRadar(0);
         else
             DrawStatusRadar(1);
-        statusRedraw[5] = 0;
+        statusRedraw[kRedrawRadar] = 0;
 #ifdef MACBUILD
         drew = 1;
 #endif
     }
-    if (statusRedraw[3]) {
+    if (statusRedraw[kRedrawWeap]) {
         DrawStatusWeap();
-        statusRedraw[3] = 0;
+        statusRedraw[kRedrawWeap] = 0;
 #ifdef MACBUILD
         drew = 1;
 #endif
     }
-    if (statusRedraw[0]) {
+    if (statusRedraw[kRedrawNav]) {
         DrawStatusNav();
-        statusRedraw[0] = 0;
+        statusRedraw[kRedrawNav] = 0;
 #ifdef MACBUILD
         drew = 1;
 #endif
     }
-    if (statusRedraw[1]) {
+    if (statusRedraw[kRedrawShield]) {
         DrawStatusShield();
-        statusRedraw[1] = 0;
+        statusRedraw[kRedrawShield] = 0;
 #ifdef MACBUILD
         drew = 1;
 #endif
     }
-    if (statusRedraw[4]) {
+    if (statusRedraw[kRedrawFuel]) {
         DrawStatusFuel();
-        statusRedraw[4] = 0;
+        statusRedraw[kRedrawFuel] = 0;
 #ifdef MACBUILD
         drew = 1;
 #endif
     }
-    if (statusRedraw[2]) {
+    if (statusRedraw[kRedrawCargo]) {
         DrawStatusCargo();
-        statusRedraw[2] = 0;
+        statusRedraw[kRedrawCargo] = 0;
 #ifdef MACBUILD
         drew = 1;
 #endif

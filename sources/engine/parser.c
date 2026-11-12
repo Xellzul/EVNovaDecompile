@@ -346,33 +346,18 @@ void EvalSetExp(void)
 
     short max;
     unsigned char str[256];
-#if V111 /* V111 spelling */
     char op;
+    void *saved;
     short i;
-    short seen;
-    short pick;
-    char c;
-    Boolean armed;
-    unsigned char out[256];
-    short num;
+    short k;
     short n;
-    int j;
-    void *saved;
-    short k;
-#else
-    char op;
-    void *saved;
-    short i;
-    short k;
+    short seen;
     short pick;
     int j;
     Boolean armed;
     char c;
     unsigned char out[256];
-    short n;
-    short seen;
     short num;
-#endif
     Boolean wasSet;
     short m;
 

@@ -65,7 +65,7 @@
             stellarData[i].explodType = ResRec(SpobRes, stellarFileHand)->explodType;
             if (stellarData[i].explodType < 0)
                 stellarData[i].explodType = -1;
-            if (stellarData[i].deadType < 0 || stellarData[i].deadType >= 256)
+            if (stellarData[i].deadType < 0 || stellarData[i].deadType >= kMasterStellarSprites)
                 stellarData[i].deadType = stellarData[i].type;
             strcpy(stellarData[i].onDestroy, ResRec(SpobRes, stellarFileHand)->onDestroy);
             strcpy(stellarData[i].onRegen, ResRec(SpobRes, stellarFileHand)->onRegen);
@@ -197,8 +197,8 @@
                     systemData[i].asteroidCount *=
                         (GetCWindowPortRect((WindowRef)gWind)->right -
                                  GetCWindowPortRect((WindowRef)gWind)->left) / 640.0;
-                    if (systemData[i].asteroidCount > 16)
-                        systemData[i].asteroidCount = 16;
+                    if (systemData[i].asteroidCount > kMaxAsteroids)
+                        systemData[i].asteroidCount = kMaxAsteroids;
                 } else {
                     systemData[i].asteroidCount = 0;
                 }
@@ -233,11 +233,11 @@
                 systemData[i].fleetCount = 0;
                 systemData[i].fleetProbTotal = 0;
                 for (j = 0; j < 8; j++) {
-                    if (systemData[i].dudeTypes[j] >= kFirstResourceID && systemData[i].dudeTypes[j] < 640) {
+                    if (systemData[i].dudeTypes[j] >= kFirstResourceID && systemData[i].dudeTypes[j] < kFirstResourceID + kMaxDudes) {
                         systemData[i].dudeTypes[j] -= kFirstResourceID;
                         k += systemData[i].dudeProbs[j];
                     } else {
-                        if (systemData[i].dudeTypes[j] <= -128 && systemData[i].dudeTypes[j] > -384) {
+                        if (systemData[i].dudeTypes[j] <= -kFirstResourceID && systemData[i].dudeTypes[j] > -(kFirstResourceID + kMaxFleets)) {
                             /* negative systemData[i].dudeTypes[j] entries reference fleets */
                             systemData[i].fleets[systemData[i].fleetCount] = abs(systemData[i].dudeTypes[j]) - kFirstResourceID;
                             systemData[i].fleetProbs[systemData[i].fleetCount] = systemData[i].dudeProbs[j];
@@ -279,7 +279,7 @@
                 for (j = 0; j < 8; j++) {
                     systemData[i].persons[j] = ResRec(SystRes, systemFileHand)->person[j];
                     systemData[i].persProbs[j] = ResRec(SystRes, systemFileHand)->personProb[j];
-                    if (systemData[i].persons[j] >= kFirstResourceID && systemData[i].persons[j] < 1151)
+                    if (systemData[i].persons[j] >= kFirstResourceID && systemData[i].persons[j] < kFirstResourceID + kMaxPersons - 1)
                         systemData[i].persons[j] -= kFirstResourceID;
                     else
                         systemData[i].persons[j] = -1;
@@ -501,8 +501,8 @@
                 outfitSystem[i].modType[3] = ResRec(OutfRes, outfitSystemFileHand)->modType4;
                 outfitSystem[i].modVal[3] = ResRec(OutfRes, outfitSystemFileHand)->modVal4;
                 for (j = 0; j < kOutfMods; j++) {
-                    if ((outfitSystem[i].modType[j] == 1 || outfitSystem[i].modType[j] == 3 ||
-                         outfitSystem[i].modType[j] == 0x15) && outfitSystem[i].modVal[j] >= kFirstResourceID)
+                    if ((outfitSystem[i].modType[j] == kOutfModWeapon || outfitSystem[i].modType[j] == kOutfModAmmo ||
+                         outfitSystem[i].modType[j] == kModTypeFakeID) && outfitSystem[i].modVal[j] >= kFirstResourceID)
                         outfitSystem[i].modVal[j] -= kFirstResourceID;
                 }
                 outfitSystem[i].contributes[0] = ResRec(OutfRes, outfitSystemFileHand)->contribute1;
@@ -768,7 +768,7 @@
             for (i = 0; i < kMaxOutfits; i++) {
                 if (outfitSystem[i].techLevel < kOutfTechAbsent) {
                     for (j = 0; j < kOutfMods; j++) {
-                        if (outfitSystem[i].modType[j] == 3) {
+                        if (outfitSystem[i].modType[j] == kOutfModAmmo) {
                             k = outfitSystem[i].modVal[j];
                             g = weaponStats[k].guidance;
                             if (g != kResAbsent) {
@@ -982,7 +982,7 @@
                 shipClass[i].defOutfCount[5] = ResRec(ShipRes, shipClassFileHand)->itemCount2[1];
                 shipClass[i].defOutfCount[6] = ResRec(ShipRes, shipClassFileHand)->itemCount2[2];
                 shipClass[i].defOutfCount[7] = ResRec(ShipRes, shipClassFileHand)->itemCount2[3];
-                for (j = 0; j < 8; j++) {
+                for (j = 0; j < kDefaultOutfitSlots; j++) {
                     if (shipClass[i].defOutfID[j] >= kFirstResourceID && shipClass[i].defOutfID[j] < kFirstResourceID + kMaxOutfits) {
                         shipClass[i].defOutfID[j] -= kFirstResourceID;
                         if (shipClass[i].defOutfCount[j] < 0)
@@ -1011,7 +1011,7 @@
                         shipClass[i].weapAmmo[mountID[j] - kFirstResourceID] = mountAmmo[j];
                         if (mountCount[j] > 0) {
                             for (n = 0; n < kMaxOutfits; n++) {
-                                if (outfitSystem[n].modType[0] == 1 &&
+                                if (outfitSystem[n].modType[0] == kOutfModWeapon &&
                                     outfitSystem[n].modVal[0] == mountID[j] - kFirstResourceID &&
                                     outfitSystem[n].techLevel < kOutfTechAbsent) {
                                     mass = AdjustedItemMass(&outfitSystem[n], &shipClass[i]) * mountCount[j];
@@ -1038,7 +1038,7 @@
                             }
                             if (k != -1) {
                                 for (n = 0; n < kMaxOutfits; n++) {
-                                    if (outfitSystem[n].modType[0] == 3 &&
+                                    if (outfitSystem[n].modType[0] == kOutfModAmmo &&
                                         outfitSystem[n].modVal[0] == k &&
                                         outfitSystem[n].techLevel < kOutfTechAbsent) {
                                     mass = AdjustedItemMass(&outfitSystem[n], &shipClass[i]) * mountAmmo[j];
@@ -1055,7 +1055,7 @@
                 }
                 m = shipClass[i].maxGuns;
                 k = shipClass[i].maxTurrets;
-                for (j = 0; j < 8; j++) {
+                for (j = 0; j < kDefaultOutfitSlots; j++) {
                     if (shipClass[i].defOutfID[j] != -1 && shipClass[i].defOutfCount[j] > 0 &&
                         outfitSystem[shipClass[i].defOutfID[j]].techLevel < kOutfTechAbsent) {
                         mass = AdjustedItemMass(&outfitSystem[shipClass[i].defOutfID[j]], &shipClass[i]);
@@ -1229,7 +1229,7 @@
     {
         found = 0;
         count = CountResources(kDudeType);
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxDudes; i++) {
             dudeFileHand = GetResource(kDudeType, i + kFirstResourceID);
             if (dudeFileHand != NULL) {
                 found++;
@@ -1243,7 +1243,7 @@
                     dudeData[i].govt -= kFirstResourceID;
                 else
                     dudeData[i].govt = -1;
-                for (j = 0; j < 16; j++) {
+                for (j = 0; j < kDudeShipSlots; j++) {
                     dudeData[i].shipTypes[j] = ResRec(DudeRes, dudeFileHand)->shipTypes[j];
                     dudeData[i].shipProbs[j] = ResRec(DudeRes, dudeFileHand)->probs[j];
                     if (dudeData[i].shipTypes[j] >= kFirstResourceID && dudeData[i].shipTypes[j] < kFirstResourceID + kMaxShipTypes) {
@@ -1294,12 +1294,12 @@
                 govtData[i].scanFine = ResRec(GovtRes, govtFileHand)->scanFine;
                 govtData[i].initialRec = ResRec(GovtRes, govtFileHand)->initialRec;
                 govtData[i].voiceType = ResRec(GovtRes, govtFileHand)->voiceType;
-                if (govtData[i].voiceType >= 0 && govtData[i].voiceType < 8) {
+                if (govtData[i].voiceType >= 0 && govtData[i].voiceType < kVoiceSets) {
                     govtData[i].voiceClass = -1;
-                } else if (govtData[i].voiceType >= 1000 && govtData[i].voiceType < 1008) {
+                } else if (govtData[i].voiceType >= 1000 && govtData[i].voiceType < 1000 + kVoiceSets) {
                     govtData[i].voiceType -= 1000;
                     govtData[i].voiceClass = 1;
-                } else if (govtData[i].voiceType >= 2000 && govtData[i].voiceType < 2008) {
+                } else if (govtData[i].voiceType >= 2000 && govtData[i].voiceType < 2000 + kVoiceSets) {
                     govtData[i].voiceType -= 2000;
                     govtData[i].voiceClass = 0;
                 } else {
@@ -1688,7 +1688,7 @@
     }
 
     /* ---------------- bööm: explosions ---------------- */
-    for (i = 0; i < 64; i++) {
+    for (i = 0; i < kMaxExplodTypes; i++) {
         explodType[i].frameRate = 0.25f;
         explodType[i].sound = -1;
         explodType[i].graphic = i;
@@ -1955,7 +1955,7 @@
                 }
                 if (asteroidType[i].yieldType < 0 ||
                     (asteroidType[i].yieldType > 6 && asteroidType[i].yieldType < 1000) ||
-                    asteroidType[i].yieldType >= 1128) {
+                    asteroidType[i].yieldType >= 1000 + kMaxJunks) {
                     asteroidType[i].yieldType = -1;
                     asteroidType[i].yieldQty = 0;
                 }
@@ -1978,15 +1978,15 @@
                     asteroidType[i].fragCount = 0;
                 for (j = 0; j < 2; j++) {
                     asteroidType[i].fragType[j] = ResRec(RoidRes, asteroidFileHand)->fragType[j];
-                    if (asteroidType[i].fragType[j] >= kFirstResourceID && asteroidType[i].fragType[j] < 144)
+                    if (asteroidType[i].fragType[j] >= kFirstResourceID && asteroidType[i].fragType[j] < kFirstResourceID + kMaxAsteroids)
                         asteroidType[i].fragType[j] -= kFirstResourceID;
-                    else if (asteroidType[i].fragType[j] < 0 || asteroidType[i].fragType[j] >= 16)
+                    else if (asteroidType[i].fragType[j] < 0 || asteroidType[i].fragType[j] >= kMaxAsteroids)
                         asteroidType[i].fragType[j] = -1;
                 }
                 asteroidType[i].explodType = ResRec(RoidRes, asteroidFileHand)->explodType;
                 if (asteroidType[i].explodType < 0 ||
-                    (asteroidType[i].explodType >= 64 && asteroidType[i].explodType < 1000) ||
-                    asteroidType[i].explodType >= 1064)
+                    (asteroidType[i].explodType >= kMaxExplodTypes && asteroidType[i].explodType < 1000) ||
+                    asteroidType[i].explodType >= 1000 + kMaxExplodTypes)
                     asteroidType[i].explodType = -1;
                 asteroidType[i].mass = ResRec(RoidRes, asteroidFileHand)->mass;
                 UnlockAHandle(asteroidFileHand);
@@ -2022,7 +2022,7 @@
             buttonColor[i].green = ((ResRec(ColrRes, colorFileHand)->buttonColor[i] >> 8) & 0xff) * 256;
             buttonColor[i].red = ((ResRec(ColrRes, colorFileHand)->buttonColor[i] >> 16) & 0xff) * 256;
         }
-        for (i = 0; i < 6; i++) {
+        for (i = 0; i < kMainButtons; i++) {
             menuButtonPos[i].h = ResRec(ColrRes, colorFileHand)->buttonPos[i * 2];
             menuButtonPos[i].v = ResRec(ColrRes, colorFileHand)->buttonPos[i * 2 + 1];
         }

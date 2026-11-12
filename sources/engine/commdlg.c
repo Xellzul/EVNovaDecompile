@@ -120,12 +120,12 @@ void DoCommDialog(short shipIndex)
     done = 0;
     if (screenFaded)
         return;
-    if (shipIndex < 0 || shipIndex >= 64)
+    if (shipIndex < 0 || shipIndex >= kMaxShips)
         return;
     if (!shipData[shipIndex].active)
         return;
     commShip = &shipData[shipIndex];
-    if (commShip->aiType == 6 && commShip->parentShip == 0
+    if (commShip->aiType == kShipTypeEscort && commShip->parentShip == 0
         && commShip->specialMission == -1) {
         DoEscortDialog(commShip);
         return;
@@ -139,10 +139,10 @@ void DoCommDialog(short shipIndex)
     if (commShip->govt == -1)
         willTakeBribe = 1;
     else {
-        if (commShip->aiType <= 2
+        if (commShip->aiType <= kShipTypeBraveTrader
             && (govtData[commShip->govt].flags & kGovtFreightersBribable) != 0)
             willTakeBribe = 1;
-        if (commShip->aiType >= 3
+        if (commShip->aiType >= kShipTypeWarship
             && (govtData[commShip->govt].flags & kGovtWarshipsBribable) != 0)
             willTakeBribe = 1;
         if ((govtData[commShip->govt].flags2 & kGovtNotTalkative) != 0)
@@ -152,7 +152,7 @@ void DoCommDialog(short shipIndex)
         if (shipClass[commShip->type].inherentGovtB != -1
             && (govtData[shipClass[commShip->type].inherentGovtB].flags2 & kGovtSilent) != 0)
             cantTalk = 1;
-        if (commShip->aiType >= 3
+        if (commShip->aiType >= kShipTypeWarship
             && (govtData[commShip->govt].flags & kGovtPlunders) != 0)
             noBribe = 1;
     }
@@ -187,7 +187,7 @@ void DoCommDialog(short shipIndex)
         commShipXeno = 1;
     n = shipClass[commShip->type].shipyardPictID;
     if (commShip->persType != -1
-        && personData[commShip->persType].hailPict >= 128)
+        && personData[commShip->persType].hailPict >= kFirstResourceID)
         n = personData[commShip->persType].hailPict;
     commShipPic = GetPicture(n);
     if (commShip->govt != -1)
@@ -200,16 +200,16 @@ void DoCommDialog(short shipIndex)
     hasMission = 0;
     if (commShip->specialMission != -1
         && currentMissionObjectives[commShip->specialMission].active != 0
-        && currentMissions[commShip->specialMission].shipBehav == 1)
+        && currentMissions[commShip->specialMission].shipBehav == kMissionModeEscort)
         hasMission = 1;
     LoadAdvice();
     LoadResponse(0);
     if (commShip->specialMission != -1 && !IsDisabled(commShip) && !isMissionShip) {
         if (currentMissionObjectives[commShip->specialMission].active != 0) {
             n = currentMissions[commShip->specialMission].shipGoal;
-            if (n == 0)
+            if (n == kMissionGoalDestroy)
                 LoadResponse(2);
-            else if (n == 3) {
+            else if (n == kMissionGoalEscort) {
                 LoadResponse(8);
                 PtoCstr(commResponseString);
                 pstrcpy(buf, shipName);
@@ -218,18 +218,18 @@ void DoCommDialog(short shipIndex)
                 strcat((char *)commResponseString, ".");
                 CtoPstr((char *)commResponseString);
             }
-            if (currentMissions[commShip->specialMission].shipBehav == 0)
+            if (currentMissions[commShip->specialMission].shipBehav == kMissionModeAttackPlayer)
                 LoadResponse(2);
-            if (currentMissions[commShip->specialMission].shipBehav == 1)
+            if (currentMissions[commShip->specialMission].shipBehav == kMissionModeEscort)
                 LoadResponse(4);
         }
     } else if (!IsDisabled(commShip) && !isMissionShip) {
         if (ExtendedIsThreatToPlayer(commShip))
             LoadResponse(2);
         else if (commShip->parentShip == 0) {
-            if (commShip->aiType == 5)
+            if (commShip->aiType == kShipTypeFighter)
                 LoadResponse(5);
-            if (commShip->aiType == 6)
+            if (commShip->aiType == kShipTypeEscort)
                 LoadResponse(4);
         } else if (AIDoesShipLikePlayer(commShip))
             LoadResponse(0);
@@ -242,7 +242,7 @@ void DoCommDialog(short shipIndex)
         return;
     canAskEscort = 0;
     canAskHelp = 0;
-    for (i = 0; i < 128; i++) {
+    for (i = 0; i < kMaxRanks; i++) {
         if (rankData[i].active != 0 && rankData[i].loaded != 0
             && GovtAllies(commShip->govt, rankData[i].govt)) {
             if ((rankData[i].flags & kRankCallsAssistance) != 0)
@@ -281,7 +281,7 @@ void DoCommDialog(short shipIndex)
         if (itemHit == 2) {
             PlaySound(beepSnd[1], 1, gSoundVolume, gSoundVolume);
             if (!IsDisabled(commShip)) {
-                if (commShip->parentShip == 0 && commShip->aiType == 6
+                if (commShip->parentShip == 0 && commShip->aiType == kShipTypeEscort
                            && !hasMission) {
                     releaseCommEscort = 1;
                     LoadResponse(0x26);
@@ -293,7 +293,7 @@ void DoCommDialog(short shipIndex)
                         missionPending = 0;
                         if (commShip->specialMission != -1
                             && currentMissionObjectives[commShip->specialMission].active != 0
-                            && currentMissions[commShip->specialMission].shipBehav == 0)
+                            && currentMissions[commShip->specialMission].shipBehav == kMissionModeAttackPlayer)
                             missionPending = 1;
                         if (!missionPending) {
                             if (commShip->defenseStellar != -1)
@@ -313,7 +313,7 @@ void DoCommDialog(short shipIndex)
                                 if (r == 1) {
                                     LoadResponse(0x14);
                                     AIMakeShipLeave(commShip);
-                                    commShip->aiType = 1;
+                                    commShip->aiType = kShipTypeWimpyTrader;
                                 } else if (r == 0) {
                                     LoadResponse(0x1e);
                                     AIMakeShipAttackPlayer(commShip);
@@ -329,7 +329,7 @@ void DoCommDialog(short shipIndex)
                         if (IsShipThreatened(commShip) || AIIsShipBusy(commShip)) {
                             if (IsRefuellingPlayer(commShip) || IsRepairingPlayer(commShip))
                                 LoadResponse(0x1d);
-                            else if (commShip->aiType <= 4)
+                            else if (commShip->aiType <= kShipTypeInterceptor)
                                 LoadResponse(0x10);
                             else
                                 LoadResponse(0x16);
@@ -341,9 +341,9 @@ void DoCommDialog(short shipIndex)
                                     AICallForReinforcements(commShip, 1);
                                 } else if (commShipXeno)
                                     LoadResponse(0x13);
-                                else if (commShip->aiType == 1)
+                                else if (commShip->aiType == kShipTypeWimpyTrader)
                                     LoadResponse(0x11);
-                                else if (commShip->aiType == 2) {
+                                else if (commShip->aiType == kShipTypeBraveTrader) {
                                     if (commShip->index % 3 == 0
                                         && commShip->govt == -1) {
                                         if (bribeFlux < 0.8)
@@ -364,8 +364,8 @@ void DoCommDialog(short shipIndex)
                                             LoadResponse(0xc);
                                     } else
                                         LoadResponse(0x11);
-                                } else if (commShip->aiType == 3
-                                           || commShip->aiType == 4) {
+                                } else if (commShip->aiType == kShipTypeWarship
+                                           || commShip->aiType == kShipTypeInterceptor) {
                                     if (bribeFlux < 0.8)
                                         LoadResponse(0x17);
                                     else if (bribeFlux > 1.2)
@@ -393,7 +393,7 @@ void DoCommDialog(short shipIndex)
                                 || IsDisabled(shipData)) {
                                 if (commShipXeno)
                                     LoadResponse(0x13);
-                                else if (commShip->aiType <= 4) {
+                                else if (commShip->aiType <= kShipTypeInterceptor) {
                                     if (bribeFlux < 0.8)
                                         LoadResponse(0x17);
                                     else if (bribeFlux > 1.2)
@@ -470,7 +470,7 @@ void DoCommDialog(short shipIndex)
         commShip->formerEscort = -1;
         AISetup(commShip);
         AIMakeShipLeave(commShip);
-        statusRedraw[2] = 1;
+        statusRedraw[kRedrawCargo] = 1;
     }
     halfW = (GetDialogPortRect(commDialog)->right - GetDialogPortRect(commDialog)->left) / 2;
     halfH = (GetDialogPortRect(commDialog)->bottom - GetDialogPortRect(commDialog)->top) / 2;
@@ -503,7 +503,7 @@ short DoShipCommPayment(void)
     if (shipData->credits >= haggleVal) {
         if (answer == 1) {
             shipData->credits -= haggleVal;
-            statusRedraw[2] = 1;
+            statusRedraw[kRedrawCargo] = 1;
             return 1;
         }
         initialHaggleVal += 1000;
@@ -602,11 +602,7 @@ Boolean CommFilter(long unused, EventRecord *ev, short *itemHit)
 void CommDialogUpdate(void)
 {
     Handle item;
-#if V111
-    unsigned char text[255]; /* POTENTIAL BUG: commResponseString can fill 256 */
-#else
-    unsigned char text[256];
-#endif
+    unsigned char text[255]; /* BUG: a 255-character commResponseString overruns text by one */
     short itemType;
     Rect box;
     Rect textBox;
@@ -846,17 +842,17 @@ void DoPlanetCommDialog(short stellar)
                             PtoCstr(text);
                             strcat((char *)text, ", ");
                             if ((stellarData[shipData->targetStellar].flags
-                                 & 0x10) != 0)
+                                 & kSpobIsStation) != 0)
                                 StrcatIndCString((char *)text, kGameStrList, 0x5f);
                             else
                                 StrcatIndCString((char *)text, kGameStrList, 0x62);
                             strcat((char *)text, " ");
                             StrcatIndCString((char *)text, kGameStrList, 0x64);
                             CtoPstr((char *)text);
-                            DisplayComm((PStrChar *)text, 0xfa, 0, 12,
+                            DisplayComm((PStrChar *)text, 0xfa, 0, kCommTextSize,
                                         &rgbWhite, 0, 0);
                             shipData->credits -= haggleVal;
-                            statusRedraw[2] = 1;
+                            statusRedraw[kRedrawCargo] = 1;
                             willTakeBribe = 0;
                             done = 1;
                         } else {
@@ -910,7 +906,7 @@ void DoPlanetCommDialog(short stellar)
                                 stellarData[shipData->targetStellar].minStatus - 1;
                         crashlog_mission_bit_set(
                             "releasing stellar",
-                            (char *)stellarData[shipData->targetStellar].name, 1, shipData->targetStellar + 128,
+                            (char *)stellarData[shipData->targetStellar].name, 1, shipData->targetStellar + kFirstResourceID,
                             stellarData[shipData->targetStellar].onRelease);
                         EvalMissionBitSetString(stellarData[shipData->targetStellar].onRelease);
                         RedrawDialog(commDialog);
@@ -968,7 +964,7 @@ void DoPlanetCommDialog(short stellar)
                             stellarData[shipData->targetStellar].daysDominated = 0;
                             crashlog_mission_bit_set(
                                 "dominating stellar",
-                                (char *)stellarData[shipData->targetStellar].name, 1, shipData->targetStellar + 128,
+                                (char *)stellarData[shipData->targetStellar].name, 1, shipData->targetStellar + kFirstResourceID,
                                 stellarData[shipData->targetStellar].onDominate);
                             EvalMissionBitSetString(stellarData[shipData->targetStellar].onDominate);
                             SetDialogGWorld(commDialog);
@@ -1128,11 +1124,7 @@ void PlanetCommDialogUpdate(void)
 #ifndef MAC1010 /* 1.0.10 spelling */
     RGBColor rgbGold;
 #endif
-#if V111
-    unsigned char text[255]; /* POTENTIAL BUG: commResponseString can fill 256 */
-#else
-    unsigned char text[256];
-#endif
+    unsigned char text[255]; /* BUG: a 255-character commResponseString overruns text by one */
     Rect box;
     Rect textBox;
 #ifdef MAC1010
@@ -1463,7 +1455,7 @@ void LoadAdvice(void)
     }
 
     if (which == 3) {
-        if (commShip->aiType <= 2) {
+        if (commShip->aiType <= kShipTypeBraveTrader) {
             if (!LoadPluginString((commShip->govt * kGovtStride
                                           + kGovtPluginLow + responseRandom),
                                   (char *)adviceString))
@@ -1728,9 +1720,7 @@ void HaggleDialogUpdate(void)
 
 #define kHaggleStride       5
 #define kHaggleSplit        0x25
-#define kHaggleGreetLow     0xbb8
-#define kHaggleGreetHigh    0xbb9
-#define kHaggleReplies      0xbba
+#define kHaggleGreetHigh    (kResponseStrings + 1)
 #define kHaggleHighBias     -0xbd
 
 /* LoadResponse. STATE: MATCH, byte-identical. OPEN: none */
@@ -1739,7 +1729,7 @@ void HaggleDialogUpdate(void)
 void LoadResponse(short which)
 {
     if (which <= kHaggleSplit)
-        GetIndString(commResponseString, kHaggleGreetLow,
+        GetIndString(commResponseString, kResponseStrings,
                      which * kHaggleStride + responseRandom + 1);
     else
         GetIndString(commResponseString, kHaggleGreetHigh,
@@ -1751,7 +1741,7 @@ void LoadResponse(short which)
 // MAC: _LoadStellarResponse i386 0x00090a65 ppc 0x0009c5ec
 void LoadStellarResponse(short which)
 {
-    GetIndString(commResponseString, kHaggleReplies,
+    GetIndString(commResponseString, kTributeList,
                  which * kHaggleStride + responseRandom + 1);
 }
 
@@ -1769,9 +1759,6 @@ void LoadStellarResponse(short which)
 #define kMaxCaptureOdds        75
 #define kOddsJitter            11
 #define kOddsJitterMid          5
-#define kEscortSlots         0x40
-#define kWeaponTypes        0x100
-#define kWarshipAI              3   /* inherentAI at or above this is a warship */
 
 /* only the plunder-class word is read here; stride from the mac's dudeData */
 
@@ -1864,7 +1851,7 @@ void DoPlunderDialog(void)
                 StrcatIndCString((char *)text, kGameStrList, 0x6c);
                 CtoPstr((char *)text);
                 PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
-                DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                DisplayComm((PStrChar *)text, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                 RefreshSAT();
 #endif
@@ -1903,7 +1890,7 @@ void DoPlunderDialog(void)
             shipData[shipData->targetShip].deathTimer = 0;
             PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
             GetIndString(text, kGameStrList, 0x71);
-            DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+            DisplayComm((PStrChar *)text, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
             SetDialogGWorld(plunderDialog);
             break;
         }
@@ -1916,7 +1903,7 @@ void DoPlunderDialog(void)
                 if (salvageQty <= 0) {
                     PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
                     GetIndString(text, kGameStrList, 0x72);
-                    DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)text, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
@@ -1942,12 +1929,12 @@ void DoPlunderDialog(void)
                     StrcatIndCString((char *)text, kGameStrList, 0x6c);
                     CtoPstr((char *)text);
                     PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
-                    DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)text, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
                     shipData->cargo[salvageType] += salvageQty;
-                    statusRedraw[2] = 1;
+                    statusRedraw[kRedrawCargo] = 1;
                     salvageQty = 0;
                     salvageType = -1;
                     SetDialogGWorld(plunderDialog);
@@ -1972,14 +1959,14 @@ void DoPlunderDialog(void)
                 strcat((char *)text, " ");
                 StrcatIndCString((char *)text, kGameStrList, 0x6c);
                 CtoPstr((char *)text);
-                DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                DisplayComm((PStrChar *)text, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                 RefreshSAT();
 #endif
                 shipData->credits += salvageCredits;
                 risk *= 1.25;
                 risky = 1;
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
                 DrawStatus();
                 salvageCredits = 0;
                 SetDialogGWorld(plunderDialog);
@@ -2028,19 +2015,19 @@ void DoPlunderDialog(void)
                     StrcatIndCString((char *)text, kGameStrList, 0x6c);
                     CtoPstr((char *)text);
                     PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
-                    DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)text, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
                 } else {
                     PlaySound(beepSnd[2], 1, gSoundVolume, gSoundVolume);
                     GetIndString(text, kGameStrList, 0x75);
-                    DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)text, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
                 }
-                statusRedraw[3] = 1;
+                statusRedraw[kRedrawWeap] = 1;
                 risk *= 2.0;
                 risky = 1;
                 salvageAmmoQty = 0;
@@ -2062,19 +2049,19 @@ void DoPlunderDialog(void)
                 if (space > 0) {
                     shipData->fuel = shipData->fuel + space;
                     if (shipData->fuel >= ShipFuelCapacity(shipData))
-                        DisplayComm((PStrChar *)fuelString[1], 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                        DisplayComm((PStrChar *)fuelString[1], kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
                     else
-                        DisplayComm((PStrChar *)fuelString[2], 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                        DisplayComm((PStrChar *)fuelString[2], kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
                 } else {
-                    DisplayComm((PStrChar *)fuelString[3], 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)fuelString[3], kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
                 }
-                statusRedraw[4] = 1;
+                statusRedraw[kRedrawFuel] = 1;
                 DrawStatus();
                 risk *= 1.5;
                 risky = 1;
@@ -2098,7 +2085,7 @@ void DoPlunderDialog(void)
                     shipData[shipData->targetShip].armor = 0;
                     shipData[shipData->targetShip].deathTimer = 0;
                     GetIndString(text, kGameStrList, 0x71);
-                    DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                    DisplayComm((PStrChar *)text, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                     RefreshSAT();
 #endif
@@ -2130,7 +2117,7 @@ void DoPlunderDialog(void)
                                 LoadIntfResource();
                             } else {
                                 GetIndString(text, kGameStrList, 0x7a);
-                                DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                                DisplayComm((PStrChar *)text, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
                                 SetDialogGWorld(plunderDialog);
                             }
                         } else {
@@ -2138,9 +2125,9 @@ void DoPlunderDialog(void)
                             type = shipData[shipData->targetShip].type;
                             crashlog_mission_bit_set("capturing",
                                                      (char *)shipClass[type].name, 1,
-                                                     type + 128, shipClass[type].onCapture);
+                                                     type + kFirstResourceID, shipClass[type].onCapture);
                             EvalMissionBitSetString(shipClass[shipData[shipData->targetShip].type].onCapture);
-                            shipData[shipData->targetShip].aiType = 6;
+                            shipData[shipData->targetShip].aiType = kShipTypeEscort;
                             shipData[shipData->targetShip].parentShip = 0;
                             shipData[shipData->targetShip].hired = 0;
                             shipData[shipData->targetShip].armor =
@@ -2162,17 +2149,17 @@ void DoPlunderDialog(void)
                             for (i = 0; i < 4; i++)
                                 shipData[shipData->targetShip].jamming[i] = -1;
                             GetIndString(text, kGameStrList, 0x7b);
-                            DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                            DisplayComm((PStrChar *)text, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                             RefreshSAT();
 #endif
                             SetDialogGWorld(plunderDialog);
-                            statusRedraw[2] = 1;
+                            statusRedraw[kRedrawCargo] = 1;
                         }
                     } else {
                         PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
                         GetIndString(text, kGameStrList, 0x7c);
-                        DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                        DisplayComm((PStrChar *)text, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                         RefreshSAT();
 #endif
@@ -2183,7 +2170,7 @@ void DoPlunderDialog(void)
                 done = 1;
                 PlaySound(beepSnd[3], 1, gSoundVolume, gSoundVolume);
                 GetIndString(text, kGameStrList, 0x7d);
-                DisplayComm((PStrChar *)text, 0xf0, 0, 0xc, &rgbWhite, 0, 0);
+                DisplayComm((PStrChar *)text, kCommFrames, 0, kCommTextSize, &rgbWhite, 0, 0);
 #ifdef MACBUILD
                 RefreshSAT();
 #endif
@@ -2321,7 +2308,7 @@ void SetPlunderValues(void)
         salvageQty = 0;
 
     count = 0;
-    for (i = 0; i < kWeaponTypes; i++) {
+    for (i = 0; i < kMaxWeapTypes; i++) {
         if (shipData[shipData->targetShip].weap[i].ammo > 0
             && weaponStats[i].guidance != kGuidanceBay
             && PlayerCanUseAmmoType(i) != 0)
@@ -2329,7 +2316,7 @@ void SetPlunderValues(void)
     }
     if (count > 0) {
         do {
-            n = Rand(kWeaponTypes);
+            n = Rand(kMaxWeapTypes);
         } while (shipData[shipData->targetShip].weap[n].ammo <= 0
                  || weaponStats[n].guidance == kGuidanceBay
                  || PlayerCanUseAmmoType(n) == 0);
@@ -2348,10 +2335,10 @@ void SetPlunderValues(void)
 
     crew = shipClass[shipData->type].strength;
     mass = shipClass[shipData->type].crew;
-    for (i = 1; i < kEscortSlots; i++) {
+    for (i = 1; i < kMaxShips; i++) {
         if (shipData[i].active != 0 && shipData[i].parentShip == 0
-            && shipData[i].aiType == 6 && shipData[i].specialMission == -1
-            && shipClass[shipData[i].type].inherentAI >= kWarshipAI) {
+            && shipData[i].aiType == kShipTypeEscort && shipData[i].specialMission == -1
+            && shipClass[shipData[i].type].inherentAI >= kShipTypeWarship) {
             crew += shipClass[shipData[i].type].strength * 0.1;
             mass += shipClass[shipData[i].type].crew * 0.1;
         }
@@ -2532,7 +2519,7 @@ void PlunderDialogUpdate(void)
         DrawString(text);
         DrawString("\p ");
         found = 0;
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxOutfits; i++) {
             for (j = 0; j < kOutfMods; j++) {
                 if (outfitSystem[i].modType[j] == kOutfModAmmo &&
                     salvageAmmoType == (SalvageAmmo)outfitSystem[i].modVal[j]) {
@@ -2593,6 +2580,7 @@ void PlunderDialogUpdate(void)
  */
 
 #define kEscortDialogID 0x3fe
+#define kEscortPictID   0x2141
 
 /* DoEscortDialog (mac _DoEscortDialog). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004853a0
@@ -2616,7 +2604,7 @@ void DoEscortDialog(ShipObj *ship)
     if (commDialog == NULL)
         return;
 
-    commBackgroundPic = GetPicture(0x2141);
+    commBackgroundPic = GetPicture(kEscortPictID);
     CenterWindow(FrontWindow(commDialog), gWind);
 
     canUpgradeEscort = 0;
@@ -2624,7 +2612,7 @@ void DoEscortDialog(ShipObj *ship)
     if (commShip->hired == 0)
         canSellEscort = 1;
 
-    if (shipClass[commShip->type].upgradeTo >= 0 && shipClass[commShip->type].upgradeTo < 0x300) {
+    if (shipClass[commShip->type].upgradeTo >= 0 && shipClass[commShip->type].upgradeTo < kMaxShipTypes) {
         if (EvalMissionBitTestString(shipClass[shipClass[commShip->type].upgradeTo].availability))
             canUpgradeEscort = 1;
     }
@@ -2662,7 +2650,7 @@ void DoEscortDialog(ShipObj *ship)
             commShip->aiType = shipClass[commShip->type].inherentAI;
             AISetup(commShip);
             AIMakeShipLeave(commShip);
-            statusRedraw[2] = 1;
+            statusRedraw[kRedrawCargo] = 1;
             done = 1;
         } else if (itemHit == 3) {
             if (canUpgradeEscort) {
@@ -2697,7 +2685,7 @@ void DoEscortDialog(ShipObj *ship)
         commShip->aiType = shipClass[commShip->type].inherentAI;
         AIMakeShipLeave(commShip);
         AIDispatch(commShip, 1);
-        statusRedraw[2] = 1;
+        statusRedraw[kRedrawCargo] = 1;
     }
 
     DisposeDialogNoFlash(commDialog);

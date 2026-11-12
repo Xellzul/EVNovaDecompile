@@ -256,18 +256,13 @@ long isLegalUTF8(const UTF8 *source, long length)
 long ConvertUTF8toUTF16(const UTF8 **sourceStart, const UTF8 *sourceEnd,
                   UTF16 **targetStart, UTF16 *targetEnd, UTFBudget *budget, UTFFlags flags)
 {
-#ifdef MAC1010      /* 1.0.10 spelling */
     long length;
-#endif
     long result = kSourceExhausted;
     const UTF8 *source = *sourceStart;
     UTF16 *target = *targetStart;
     long writing = *targetStart ? true : false;
     UTF32 ch;
     unsigned short extraBytesToRead;
-#ifndef MAC1010     /* 1.0.10 spelling */
-    long length;
-#endif
 
     while (source < sourceEnd) {
         if (*budget == 0) {

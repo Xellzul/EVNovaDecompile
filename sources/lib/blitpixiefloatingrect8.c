@@ -18,9 +18,7 @@ void BlitPixieFloatingRect8(unsigned char *srcPixels, unsigned char *dstPixels,
 #endif
         unsigned short numRows, unsigned short backgroundValue)
 {
-#ifndef MACBUILD
     long unused;
-#endif
 
     while (numRows--) {
         BlitPixieTranslucentClearCopy8(dstPixels, srcPixels, byteWidth,

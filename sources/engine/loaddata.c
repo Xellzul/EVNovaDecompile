@@ -558,7 +558,7 @@ void LoadObjectData(void)
             stellarData[i].explodType = ResRec(SpobRes, stellarFileHand)->explodType;
             if (stellarData[i].explodType < 0)
                 stellarData[i].explodType = -1;
-            if (stellarData[i].deadType < 0 || stellarData[i].deadType >= 256)
+            if (stellarData[i].deadType < 0 || stellarData[i].deadType >= kMasterStellarSprites)
                 stellarData[i].deadType = stellarData[i].type;
             strcpy(stellarData[i].onDestroy, ResRec(SpobRes, stellarFileHand)->onDestroy);
             strcpy(stellarData[i].onRegen, ResRec(SpobRes, stellarFileHand)->onRegen);
@@ -690,8 +690,8 @@ void LoadObjectData(void)
                     systemData[i].asteroidCount *=
                         (GetCWindowPortRect(gWind)->right -
                                  GetCWindowPortRect(gWind)->left) / 640.0;
-                    if (systemData[i].asteroidCount > 16)
-                        systemData[i].asteroidCount = 16;
+                    if (systemData[i].asteroidCount > kMaxAsteroids)
+                        systemData[i].asteroidCount = kMaxAsteroids;
                 } else {
                     systemData[i].asteroidCount = 0;
                 }
@@ -727,11 +727,11 @@ void LoadObjectData(void)
                 systemData[i].fleetProbTotal = 0;
                 for (j = 0; j < 8; j++) {
                     short dude = systemData[i].dudeTypes[j];
-                    if (dude >= kFirstResourceID && dude < 640) {
+                    if (dude >= kFirstResourceID && dude < kFirstResourceID + kMaxDudes) {
                         systemData[i].dudeTypes[j] -= kFirstResourceID;
                         total += systemData[i].dudeProbs[j];
                     } else {
-                        if (dude <= -128 && dude > -384) {
+                        if (dude <= -kFirstResourceID && dude > -(kFirstResourceID + kMaxFleets)) {
                             /* negative dude entries reference fleets */
                             systemData[i].fleets[systemData[i].fleetCount] = abs(dude) - kFirstResourceID;
                             systemData[i].fleetProbs[systemData[i].fleetCount] = systemData[i].dudeProbs[j];
@@ -774,7 +774,7 @@ void LoadObjectData(void)
                 for (j = 0; j < 8; j++) {
                     systemData[i].persons[j] = ResRec(SystRes, systemFileHand)->person[j];
                     systemData[i].persProbs[j] = ResRec(SystRes, systemFileHand)->personProb[j];
-                    if (systemData[i].persons[j] >= kFirstResourceID && systemData[i].persons[j] < 1151)
+                    if (systemData[i].persons[j] >= kFirstResourceID && systemData[i].persons[j] < kFirstResourceID + kMaxPersons - 1)
                         systemData[i].persons[j] -= kFirstResourceID;
                     else
                         systemData[i].persons[j] = -1;
@@ -997,8 +997,8 @@ void LoadObjectData(void)
                 outfitSystem[i].modType[3] = ResRec(OutfRes, outfitSystemFileHand)->modType4;
                 outfitSystem[i].modVal[3] = ResRec(OutfRes, outfitSystemFileHand)->modVal4;
                 for (j = 0; j < kOutfMods; j++) {
-                    if ((outfitSystem[i].modType[j] == 1 || outfitSystem[i].modType[j] == 3 ||
-                         outfitSystem[i].modType[j] == 0x15) && outfitSystem[i].modVal[j] >= kFirstResourceID)
+                    if ((outfitSystem[i].modType[j] == kOutfModWeapon || outfitSystem[i].modType[j] == kOutfModAmmo ||
+                         outfitSystem[i].modType[j] == kModTypeFakeID) &&outfitSystem[i].modVal[j] >= kFirstResourceID)
                         outfitSystem[i].modVal[j] -= kFirstResourceID;
                 }
                 outfitSystem[i].contributes[0] = ResRec(OutfRes, outfitSystemFileHand)->contribute1;
@@ -1280,7 +1280,7 @@ void LoadObjectData(void)
             for (i = 0; i < kMaxOutfits; i++) {
                 if (outfitSystem[i].techLevel < kOutfTechAbsent) {
                     for (count = 0; count < kOutfMods; count++) {
-                        if (outfitSystem[i].modType[count] == 3) {
+                        if (outfitSystem[i].modType[count] == kOutfModAmmo) {
                             j = outfitSystem[i].modVal[count];
                             g = weaponStats[j].guidance;
                             if (g != kResAbsent) {
@@ -1509,7 +1509,7 @@ void LoadObjectData(void)
                 shipClass[i].defOutfCount[5] = ResRec(ShipRes, shipClassFileHand)->itemCount2[1];
                 shipClass[i].defOutfCount[6] = ResRec(ShipRes, shipClassFileHand)->itemCount2[2];
                 shipClass[i].defOutfCount[7] = ResRec(ShipRes, shipClassFileHand)->itemCount2[3];
-                for (count = 0; count < 8; count++) {
+                for (count = 0; count < kDefaultOutfitSlots; count++) {
                     if (shipClass[i].defOutfID[count] >= kFirstResourceID && shipClass[i].defOutfID[count] < kFirstResourceID + kMaxOutfits) {
                         shipClass[i].defOutfID[count] -= kFirstResourceID;
                         if (shipClass[i].defOutfCount[count] < 0)
@@ -1538,7 +1538,7 @@ void LoadObjectData(void)
                         shipClass[i].weapAmmo[mountID[k] - kFirstResourceID] = mountAmmo[k];
                         if (mountCount[k] > 0) {
                             for (j = 0; j < kMaxOutfits; j++) {
-                                if (outfitSystem[j].modType[0] == 1 &&
+                                if (outfitSystem[j].modType[0] == kOutfModWeapon &&
                                     outfitSystem[j].modVal[0] == mountID[k] - kFirstResourceID &&
                                     outfitSystem[j].techLevel < kOutfTechAbsent) {
                                     mass = AdjustedItemMass(&outfitSystem[j], &shipClass[i]) * mountCount[k];
@@ -1564,7 +1564,7 @@ void LoadObjectData(void)
                             }
                             if (n != -1) {
                                 for (j = 0; j < kMaxOutfits; j++) {
-                                    if (outfitSystem[j].modType[0] == 3 &&
+                                    if (outfitSystem[j].modType[0] == kOutfModAmmo &&
                                         outfitSystem[j].modVal[0] == n &&
                                         outfitSystem[j].techLevel < kOutfTechAbsent) {
                                     mass = AdjustedItemMass(&outfitSystem[j], &shipClass[i]) * mountAmmo[k];
@@ -1581,7 +1581,7 @@ void LoadObjectData(void)
                 }
                 maxGuns = shipClass[i].maxGuns;
                 maxTurrets = shipClass[i].maxTurrets;
-                for (k = 0; k < 8; k++) {
+                for (k = 0; k < kDefaultOutfitSlots; k++) {
                     if (shipClass[i].defOutfID[k] != -1 && shipClass[i].defOutfCount[k] > 0 &&
                         outfitSystem[shipClass[i].defOutfID[k]].techLevel < kOutfTechAbsent) {
                         mass = AdjustedItemMass(&outfitSystem[shipClass[i].defOutfID[k]], &shipClass[i]) *
@@ -1757,7 +1757,7 @@ void LoadObjectData(void)
 
         found = 0;
         count = CountResources(kDudeType);
-        for (i = 0; i < 512; i++) {
+        for (i = 0; i < kMaxDudes; i++) {
             dudeFileHand = GetResource(kDudeType, i + kFirstResourceID);
             if (dudeFileHand != NULL) {
                 found++;
@@ -1771,7 +1771,7 @@ void LoadObjectData(void)
                     dudeData[i].govt -= kFirstResourceID;
                 else
                     dudeData[i].govt = -1;
-                for (j = 0; j < 16; j++) {
+                for (j = 0; j < kDudeShipSlots; j++) {
                     dudeData[i].shipTypes[j] = ResRec(DudeRes, dudeFileHand)->shipTypes[j];
                     dudeData[i].shipProbs[j] = ResRec(DudeRes, dudeFileHand)->probs[j];
                     if (dudeData[i].shipTypes[j] >= kFirstResourceID && dudeData[i].shipTypes[j] < kFirstResourceID + kMaxShipTypes) {
@@ -1824,12 +1824,12 @@ void LoadObjectData(void)
                 govtData[i].scanFine = ResRec(GovtRes, govtFileHand)->scanFine;
                 govtData[i].initialRec = ResRec(GovtRes, govtFileHand)->initialRec;
                 govtData[i].voiceType = ResRec(GovtRes, govtFileHand)->voiceType;
-                if (govtData[i].voiceType >= 0 && govtData[i].voiceType < 8) {
+                if (govtData[i].voiceType >= 0 && govtData[i].voiceType < kVoiceSets) {
                     govtData[i].voiceClass = -1;
-                } else if (govtData[i].voiceType >= 1000 && govtData[i].voiceType < 1008) {
+                } else if (govtData[i].voiceType >= 1000 && govtData[i].voiceType < 1000 + kVoiceSets) {
                     govtData[i].voiceType -= 1000;
                     govtData[i].voiceClass = 1;
-                } else if (govtData[i].voiceType >= 2000 && govtData[i].voiceType < 2008) {
+                } else if (govtData[i].voiceType >= 2000 && govtData[i].voiceType < 2000 + kVoiceSets) {
                     govtData[i].voiceType -= 2000;
                     govtData[i].voiceClass = 0;
                 } else {
@@ -2242,7 +2242,7 @@ void LoadObjectData(void)
     }
 
     /* ---------------- bööm: explosions ---------------- */
-    for (i = 0; i < 64; i++) {
+    for (i = 0; i < kMaxExplodTypes; i++) {
         explodType[i].frameRate = 0.25f;
         explodType[i].sound = -1;
         explodType[i].graphic = i;
@@ -2514,7 +2514,7 @@ void LoadObjectData(void)
                 }
                 if (asteroidType[i].yieldType < 0 ||
                     (asteroidType[i].yieldType > 6 && asteroidType[i].yieldType < 1000) ||
-                    asteroidType[i].yieldType >= 1128) {
+                    asteroidType[i].yieldType >= 1000 + kMaxJunks) {
                     asteroidType[i].yieldType = -1;
                     asteroidType[i].yieldQty = 0;
                 }
@@ -2537,15 +2537,15 @@ void LoadObjectData(void)
                     asteroidType[i].fragCount = 0;
                 for (j = 0; j < 2; j++) {
                     asteroidType[i].fragType[j] = ResRec(RoidRes, asteroidFileHand)->fragType[j];
-                    if (asteroidType[i].fragType[j] >= kFirstResourceID && asteroidType[i].fragType[j] < 144)
+                    if (asteroidType[i].fragType[j] >= kFirstResourceID && asteroidType[i].fragType[j] < kFirstResourceID + kMaxAsteroids)
                         asteroidType[i].fragType[j] -= kFirstResourceID;
-                    else if (asteroidType[i].fragType[j] < 0 || asteroidType[i].fragType[j] >= 16)
+                    else if (asteroidType[i].fragType[j] < 0 || asteroidType[i].fragType[j] >= kMaxAsteroids)
                         asteroidType[i].fragType[j] = -1;
                 }
                 asteroidType[i].explodType = ResRec(RoidRes, asteroidFileHand)->explodType;
                 if (asteroidType[i].explodType < 0 ||
-                    (asteroidType[i].explodType >= 64 && asteroidType[i].explodType < 1000) ||
-                    asteroidType[i].explodType >= 1064)
+                    (asteroidType[i].explodType >= kMaxExplodTypes && asteroidType[i].explodType < 1000) ||
+                    asteroidType[i].explodType >= 1000 + kMaxExplodTypes)
                     asteroidType[i].explodType = -1;
                 asteroidType[i].mass = ResRec(RoidRes, asteroidFileHand)->mass;
                 UnlockAHandle(asteroidFileHand);
@@ -2584,7 +2584,7 @@ void LoadObjectData(void)
             buttonColor[k].green = ((ResRec(ColrRes, colorFileHand)->buttonColor[k] >> 8) & 0xff) * 256;
             buttonColor[k].red = ((ResRec(ColrRes, colorFileHand)->buttonColor[k] >> 16) & 0xff) * 256;
         }
-        for (k = 0; k < 6; k++) {
+        for (k = 0; k < kMainButtons; k++) {
             menuButtonPos[k].h = ResRec(ColrRes, colorFileHand)->buttonPos[k * 2];
             menuButtonPos[k].v = ResRec(ColrRes, colorFileHand)->buttonPos[k * 2 + 1];
         }
@@ -3688,13 +3688,13 @@ short WritePilotData(short stellar)
                 (*playerFileHand)->shipType = 0;
         }
 #else
-        sig[0] = ((key ^ 0xb3deefe6846a1331ULL) & 0x0fffffffffffffffULL)
+        sig[0] = ((key ^ 0xb3deefe6846a1331ULL) & kKeyMask)
                      != 0x00e5b573ac69e57aULL;
-        sig[1] = ((key ^ 0x01175258fee9b4f0ULL) & 0x0fffffffffffffffULL)
+        sig[1] = ((key ^ 0x01175258fee9b4f0ULL) & kKeyMask)
                      != 0x01ca504ced18b085ULL;
-        sig[2] = ((key ^ 0xd9eab6006f7c65a8ULL) & 0x0fffffffffffffffULL)
+        sig[2] = ((key ^ 0xd9eab6006f7c65a8ULL) & kKeyMask)
                      != 0x0935b4147cad71dfULL;
-        sig[3] = ((key ^ 0x847ba0013f907235ULL) & 0x0fffffffffffffffULL)
+        sig[3] = ((key ^ 0x847ba0013f907235ULL) & kKeyMask)
                      != 0x0f02fa941793847fULL;
         for (i = 0; i < 4; i++) {
             if (sig[i] == 0)
@@ -3709,60 +3709,60 @@ short WritePilotData(short stellar)
         i = 0;
         do {
             (*playerFileHand)->cargo[i] = shipData[0].cargo[i];
-        } while (++i < 6);
+        } while (++i < kCargoTypes);
 #endif
         (*playerFileHand)->shield = shipData[0].shield;
         (*playerFileHand)->fuel = shipData[0].fuel;
         (*playerFileHand)->month = gameTime.month;
         (*playerFileHand)->day = gameTime.day;
         (*playerFileHand)->year = gameTime.year;
-        for (recSlot = 0; recSlot < 0x800; recSlot++)
+        for (recSlot = 0; recSlot < kMaxSystems; recSlot++)
             (*playerFileHand)->explore[recSlot] = systemData[recSlot].exploreLevel;
-        for (recSlot = 0; recSlot < 0x200; recSlot++)
+        for (recSlot = 0; recSlot < kMaxOutfits; recSlot++)
             (*playerFileHand)->outfits[recSlot] = shipSystems[recSlot];
-        for (recSlot = 0; recSlot < 0x800; recSlot++)
+        for (recSlot = 0; recSlot < kMaxSystems; recSlot++)
             (*playerFileHand)->legalStatus[recSlot] = playerRecord[recSlot];
-        for (recSlot = 0; recSlot < 0x100; recSlot++) {
+        for (recSlot = 0; recSlot < kMaxWeapTypes; recSlot++) {
             (*playerFileHand)->weapCount[recSlot] = shipData[0].weap[recSlot].count;
             (*playerFileHand)->weapAmmo[recSlot] = shipData[0].weap[recSlot].ammo;
         }
         (*playerFileHand)->credits = shipData[0].credits;
 #ifdef MAC1010 /* 1.0.10 spelling */
-        for (j = 0; j < 16; j++) {
+        for (j = 0; j < kMaxActiveMissions; j++) {
             CopyMissionSlot((*playerFileHand)->objectives[j], currentMissionObjectives[j],
                             (*playerFileHand)->missions[j], currentMissions[j]);
         }
 #else
-        for (i = 0; i < 16; i++) {
+        for (i = 0; i < kMaxActiveMissions; i++) {
             CopyMissionSlot((*playerFileHand)->objectives[i], currentMissionObjectives[i],
                             (*playerFileHand)->missions[i], currentMissions[i]);
         }
 #endif
-        for (i = 0; i < 10000; i++)
+        for (i = 0; i < kMaxMissionBits; i++)
             (*playerFileHand)->missionBits[i] = missionBit[i];
-        for (i = 0; i < 0x800; i++) {
+        for (i = 0; i < kMaxStellars; i++) {
             if (stellarData[i].prepared != 0)
                 (*playerFileHand)->spobFlag[i] = stellarData[i].dominated;
             else
                 (*playerFileHand)->spobFlag[i] = 0;
         }
-        for (i = 0; i < 0x40; i++) {
+        for (i = 0; i < kMaxShips; i++) {
             (*playerFileHand)->escortType[i] = -1;
             (*playerFileHand)->fighterType[i] = -1;
             (*playerFileHand)->fighterVoice[i] = -1;
             (*playerFileHand)->escortB[i] = 0;
             (*playerFileHand)->escortA[i] = 0;
         }
-        for (i = 0; i < 0x40; i++) {
+        for (i = 0; i < kMaxShips; i++) {
             if (shipData[i].active != 0 && shipData[i].parentShip == 0
                 && shipData[i].aiType == 5)
                 (*playerFileHand)->fighterType[i] = shipData[i].type;
             else
                 (*playerFileHand)->fighterType[i] = -1;
         }
-        for (i = 0; i < 0x40; i++) {
+        for (i = 0; i < kMaxShips; i++) {
             if (shipData[i].active != 0 && shipData[i].parentShip == 0
-                && shipData[i].aiType == 6 && shipData[i].specialMission == -1) {
+                && shipData[i].aiType == kShipTypeEscort && shipData[i].specialMission == -1) {
                 (*playerFileHand)->escortType[i] = shipData[i].type;
                 if (shipData[i].hired != 0)
                     (*playerFileHand)->escortType[i] += 1000;
@@ -3774,7 +3774,7 @@ short WritePilotData(short stellar)
                 (*playerFileHand)->escortType[i] = -1;
             }
         }
-        for (i = 0; i < 0x40; i++) {
+        for (i = 0; i < kMaxShips; i++) {
             if (shipData[i].active != 0 && shipData[i].parentShip == 0
                 && shipData[i].aiType >= 5 && shipData[i].specialMission == -1)
                 (*playerFileHand)->fighterVoice[i] = shipData[i].voiceClass;
@@ -3796,7 +3796,7 @@ short WritePilotData(short stellar)
         paint->green = playerPaint.green;
         paint->blue = playerPaint.blue;
 #endif
-        for (i = 0; i < 0x800; i++) {
+        for (i = 0; i < kMaxStellars; i++) {
             if (stellarData[i].loaded != 0 && stellarData[i].dominated != 0) {
                 (*altPlayerFileHand)->defWave[i] = stellarData[i].defWaveSize;
                 (*altPlayerFileHand)->tribute[i] = stellarData[i].daysDominated;
@@ -3805,7 +3805,7 @@ short WritePilotData(short stellar)
                 (*altPlayerFileHand)->tribute[i] = 0;
             }
         }
-        for (i = 0; i < 0x400; i++) {
+        for (i = 0; i < kMaxPersons; i++) {
             if (personData[i].loaded != 0 && personData[i].aiType >= 1) {
                 (*altPlayerFileHand)->persActive[i] = 1;
                 if (personData[i].grudge != 0)
@@ -3817,14 +3817,14 @@ short WritePilotData(short stellar)
                 (*altPlayerFileHand)->persB[i] = 0;
             }
         }
-        for (i = 0; i < 0x80; i++) {
+        for (i = 0; i < kMaxRanks; i++) {
             if (rankData[i].active != 0)
                 (*altPlayerFileHand)->rankOwned[i] = 1;
             else
                 (*altPlayerFileHand)->rankOwned[i] = 0;
         }
         (*altPlayerFileHand)->seenIntro = seenIntroScreen;
-        for (i = 0; i < 0x100; i++) {
+        for (i = 0; i < kMaxDisasters; i++) {
             if (disasterData[i].loaded != 0) {
                 (*altPlayerFileHand)->newsC[i] = disasterData[i].countdown;
                 (*altPlayerFileHand)->newsB[i] = disasterData[i].stellarID;
@@ -3833,9 +3833,9 @@ short WritePilotData(short stellar)
                 (*altPlayerFileHand)->newsB[i] = -1;
             }
         }
-        for (i = 0; i < 0x80; i++)
+        for (i = 0; i < kMaxJunks; i++)
             (*altPlayerFileHand)->junkHeld[i] = junkData[i].held;
-        for (i = 0; i < 0x200; i++) {
+        for (i = 0; i < kMaxCrons; i++) {
             if (cronEvent[i].active != 0) {
                 (*altPlayerFileHand)->cronA[i] = cronEvent[i].daysLeft;
                 (*altPlayerFileHand)->cronB[i] = cronEvent[i].holdoffLeft;
@@ -3844,9 +3844,9 @@ short WritePilotData(short stellar)
                 (*altPlayerFileHand)->cronB[i] = -1;
             }
         }
-        for (i = 0; i < 0x800; i++)
+        for (i = 0; i < kMaxSystems; i++)
             (*altPlayerFileHand)->systState[i] = systemData[i].reinforceDaysLeft;
-        for (i = 0; i < 0x800; i++)
+        for (i = 0; i < kMaxStellars; i++)
             (*altPlayerFileHand)->spobDead[i] = stellarData[i].deadDaysLeft;
         for (i = 0; i < 4; i++)
             (*altPlayerFileHand)->escortOrders[i] = playerEscortOrders[i];
@@ -4216,11 +4216,11 @@ void OpenLastPilotFile(void)
         return;
 #endif
     gameInProgress = 1;
-    for (i = 0; i < 0x800; i++) {
+    for (i = 0; i < kMaxSystems; i++) {
         if (systemData[i].loaded != 0 && systemData[i].exploreLevel > 0)
             ExploreNebulaeFromSystem(i);
     }
-    for (j = 0; j < 16; j++) {
+    for (j = 0; j < kMaxActiveMissions; j++) {
         if (currentMissionObjectives[j].active != 0) {
             if ((currentMissions[j].flags & kMissionInfiniteAuxShips) != 0)
                 currentMissions[j].auxShipsLeft = currentMissions[j].auxShipCount;
@@ -4252,11 +4252,11 @@ void OpenLastPilotFile(void)
         ResetPlayerRecord(1);
         if (LoadPilotData(data) == 0) {
             gameInProgress = 1;
-            for (i = 0; i < 0x800; i++) {
+            for (i = 0; i < kMaxSystems; i++) {
                 if (systemData[i].loaded != 0 && systemData[i].exploreLevel > 0)
                     ExploreNebulaeFromSystem(i);
             }
-            for (j = 0; j < 16; j++) {
+            for (j = 0; j < kMaxActiveMissions; j++) {
                 if (currentMissionObjectives[j].active != 0) {
                     if ((currentMissions[j].flags & kMissionInfiniteAuxShips) != 0)
                         currentMissions[j].auxShipsLeft = currentMissions[j].auxShipCount;
@@ -4489,7 +4489,7 @@ short LoadPilotData(char *path)
             playerKills = (*playerFileHand)->kills;
 
             crashlog("load pilot data 3");
-            for (i = 0; i < 16; i++) {
+            for (i = 0; i < kMaxActiveMissions; i++) {
                 CopyMissionSlot(currentMissionObjectives[i], (*playerFileHand)->objectives[i],
                                 currentMissions[i], (*playerFileHand)->missions[i]);
                 if (currentMissionObjectives[i].active != 0) {
@@ -4536,7 +4536,7 @@ short LoadPilotData(char *path)
 
             DeleteAllComputerShips(1, 1);
 
-            for (i = 0; i < 0x40; i++) {
+            for (i = 0; i < kMaxShips; i++) {
                 if ((*playerFileHand)->escortType[i] >= 0) {
                     n = ((*playerFileHand)->escortType[i] % 1000);
                     if (shipClass[n].techLevel == kResAbsent) {
@@ -4887,11 +4887,11 @@ short LoadPilotData(char *path)
     }
 
     for (i = 0; i < kMaxShipTypes; i++) {
-        shipClass[i].dailyHireRoll = (Rand(100) + 1);
-        shipClass[i].dailySaleRoll = (Rand(100) + 1);
+        shipClass[i].dailyHireRoll = (Rand(kDailyRollRange) + 1);
+        shipClass[i].dailySaleRoll = (Rand(kDailyRollRange) + 1);
     }
     for (i = 0; i < kMaxOutfits; i++)
-        outfitSystem[i].dailyRoll = (Rand(100) + 1);
+        outfitSystem[i].dailyRoll = (Rand(kDailyRollRange) + 1);
 
     crashlog("dumping pilot log");
     DumpPilotLog();
@@ -5609,21 +5609,12 @@ void VerifyResourceChecksums(void)
     unsigned char alert[256];
     unsigned long resType[kCheckedTypes];
     unsigned long type;
-#ifdef MACBUILD
     short t;
     short i;
     Handle h;
-    long sum;
-    unsigned long expected;
-    short n;
-#else
-    unsigned long expected;
-    short t;
-    short i;
     short n;
     long sum;
-    Handle h;
-#endif
+    unsigned long expected;
 
     resType[0] = kBoomType;
     resType[1] = kCharType;
@@ -5646,7 +5637,7 @@ void VerifyResourceChecksums(void)
     resType[18] = kSpobType;
     resType[19] = kSystType;
     resType[20] = kWeapType;
-    resType[21] = 0x79918aa8;
+    resType[21] = kYearType;
     resType[22] = kIntfType;
 
     if (shipClass[gameIsRegisteredIndex].registered != 0 ? 1 : 0)

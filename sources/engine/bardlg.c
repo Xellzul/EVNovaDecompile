@@ -29,6 +29,16 @@
 #define kPlainBarPictID     0x2137
 #define kBarVenue           1
 #define kBrokeStrIndex      0x169
+#define kBarLeaveItem       1
+#define kBarRaceItem        2
+#define kBarNewsItem        3
+#define kBarHireItem        5
+#define kBarOfferItem       6       /* a mission offer falls due */
+#define kBarDescItem        7
+#define kBarPortraitItem    8
+#define kBarMapItem         8       /* the map quick key */
+#define kBarPlayerInfoItem  9
+#define kBarMissionInfoItem 10
 
 PicHandle newsPic;
 PicHandle barPic;
@@ -89,7 +99,7 @@ void DoBarDialog(void)
     RandomizeNewsDialog();
     missionsOutside = 1;
     offeringFromShip = 0;
-    if (dockedPortMissions[1][0] == -1)
+    if (dockedPortMissions[kBarVenue][0] == -1)
         nextPortMission = -1;
     else
         nextPortMission = 0;
@@ -124,9 +134,9 @@ void DoBarDialog(void)
         if (gQuit)
             done = 1;
         MyModalDialog(barDialog, BarFilter, &itemHit, 0);
-        if (itemHit == 1)
+        if (itemHit == kBarLeaveItem)
             done = 1;
-        if (itemHit == 2) {
+        if (itemHit == kBarRaceItem) {
             if (shipData->credits > 0) {
                 DoRaceDialog();
             } else {
@@ -142,7 +152,7 @@ void DoBarDialog(void)
             SetDialogGWorld(barDialog);
             BarDialogUpdate();
         }
-        if (itemHit == 3) {
+        if (itemHit == kBarNewsItem) {
             SetDialogGWorld(barDialog);
             DrawBarButtons(-1);
             DoNewsDialog();
@@ -150,7 +160,7 @@ void DoBarDialog(void)
             SetDialogGWorld(barDialog);
             BarDialogUpdate();
         }
-        if (itemHit == 5) {
+        if (itemHit == kBarHireItem) {
             if (CanHireEscorts()) {
                 SetDialogGWorld(barDialog);
                 DrawBarButtons(-1);
@@ -167,7 +177,7 @@ void DoBarDialog(void)
 #endif
             }
         }
-        if (itemHit == 6) {
+        if (itemHit == kBarOfferItem) {
             if (OfferMissionFromPort(kBarVenue)) {
                 SetDialogGWorld(portDialog);
                 PortDialogUpdate();
@@ -175,7 +185,7 @@ void DoBarDialog(void)
                 BarDialogUpdate();
             }
         }
-        if (itemHit == 8) {
+        if (itemHit == kBarMapItem) {
             hypergateMapMode = 0;
             DoSystemMap();
             shipData->targetStellar = savedStellar;
@@ -184,13 +194,13 @@ void DoBarDialog(void)
             SetDialogGWorld(barDialog);
             RedrawDialog(barDialog);
         }
-        if (itemHit == 9) {
+        if (itemHit == kBarPlayerInfoItem) {
             DoPlayerInfoDialog();
             UpdateAllPortDialogs();
             SetDialogGWorld(barDialog);
             RedrawDialog(barDialog);
         }
-        if (itemHit == 0xa) {
+        if (itemHit == kBarMissionInfoItem) {
             shown = 0;
             for (i = 0; i < kMaxActiveMissions; i++) {
                 if (currentMissionObjectives[i].active != 0
@@ -245,6 +255,10 @@ void DoBarDialog(void)
 #define kRaceBackdropPict    0x2151
 #define kRaceRunnerPict      0x2152  /* +i per racer, +10 per animation frame */
 #define kRacerCount          4
+#define kLastRaceFrame       3
+#define kNewsDoneItem        1
+#define kRaceDoneItem        1
+#define kRaceHelpItem        2
 #define kRaceFirstButton     3       /* itemHit 3..6 pick a racer */
 #define kRaceHelpDesc        0x7ffc
 #define kRaceResultDesc      0x7ff8  /* + the winning racer */
@@ -282,67 +296,67 @@ Boolean BarFilter(long unused, EventRecord *ev, short *itemHit)
 
     if (absquatulateStr[0] != 0) {
         ev->what = kMouseDown;
-        *itemHit = 1;
+        *itemHit = kBarLeaveItem;
         return 1;
     }
     if ((int)ev->what == kKeyDown) {
         QuickKeyCheckHandler();
         if (QuickKeyCheck(keyPrefs.map)) {
             ev->what = kMouseDown;
-            *itemHit = 8;
+            *itemHit = kBarMapItem;
             return 1;
         }
         if (QuickKeyCheck(keyPrefs.playerInfo) && infoDialog == NULL) {
             ev->what = kMouseDown;
-            *itemHit = 9;
+            *itemHit = kBarPlayerInfoItem;
             return 1;
         }
         if (QuickKeyCheck(keyPrefs.missions) && missionInfoDialog == NULL) {
             ev->what = kMouseDown;
-            *itemHit = 10;
+            *itemHit = kBarMissionInfoItem;
             return 1;
         }
 #if V111
         key = (ev->message & kKeyCodeMask) >> 8;
         if (key == kReturnKeyCode || key == kEnterKeyCode || key == kEscapeKeyCode) {
-            *itemHit = 1;
+            *itemHit = kBarLeaveItem;
             return 1;
         }
         if (key == kGKeyCode || key == kRKeyCode) {
             ev->what = kMouseDown;
-            *itemHit = 2;
+            *itemHit = kBarRaceItem;
             return 1;
         }
         if (key == kWKeyCode || key == kNKeyCode) {
             ev->what = kMouseDown;
-            *itemHit = 3;
+            *itemHit = kBarNewsItem;
             return 1;
         }
         if (key == kHKeyCode || key == kEKeyCode) {
             ev->what = kMouseDown;
-            *itemHit = 5;
+            *itemHit = kBarHireItem;
             return 1;
         }
 #else
         c = EventCharOf(ev);
         if (IsReturnChar(c) || c == kEscapeChar) {
-            *itemHit = 1;
+            *itemHit = kBarLeaveItem;
             return 1;
         }
         key = tolower(c);
         if (key == 'g' || key == 'r') {
             ev->what = kMouseDown;
-            *itemHit = 2;
+            *itemHit = kBarRaceItem;
             return 1;
         }
         if (key == 'w' || key == 'n') {
             ev->what = kMouseDown;
-            *itemHit = 3;
+            *itemHit = kBarNewsItem;
             return 1;
         }
         if (key == 'h' || key == 'e') {
             ev->what = kMouseDown;
-            *itemHit = 5;
+            *itemHit = kBarHireItem;
             return 1;
         }
 #endif
@@ -355,26 +369,26 @@ Boolean BarFilter(long unused, EventRecord *ev, short *itemHit)
         BarDialogUpdate();
         button = TrackBarButtons(where);
         if (button == 0) {
-            *itemHit = 1;
+            *itemHit = kBarLeaveItem;
             return 1;
         }
         if (button == 1) {
-            *itemHit = 2;
+            *itemHit = kBarRaceItem;
             return 1;
         }
         if (button == 2) {
-            *itemHit = 3;
+            *itemHit = kBarNewsItem;
             return 1;
         }
         if (button == 4) {
-            *itemHit = 5;
+            *itemHit = kBarHireItem;
             return 1;
         }
         *itemHit = -1;
         return 1;
     }
     if (ReadTick() >= missionOfferTime) {
-        *itemHit = 6;
+        *itemHit = kBarOfferItem;
         missionOfferTime = ReadTick() + Rand(30) + 30;
         return 1;
     }
@@ -408,11 +422,11 @@ void BarDialogUpdate(void)
     if (barBackgroundPic != NULL)
         DrawPicHandle(barBackgroundPic, GetDialogPortRect(barDialog));
     if (barPic != NULL) {
-        GetDialogItem(barDialog, 8, &itemType, &item, &box);
+        GetDialogItem(barDialog, kBarPortraitItem, &itemType, &item, &box);
         ForeColor(blackColor);
         DrawPicHandle(barPic, &box);
     }
-    GetDialogItem(barDialog, 7, &itemType, &item, &box);
+    GetDialogItem(barDialog, kBarDescItem, &itemType, &item, &box);
     ForeColor(blackColor);
     TextFont(smallTextFont);
     TextSize(smallTextSize);
@@ -425,7 +439,7 @@ void BarDialogUpdate(void)
     ForeColor(blackColor);
     CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(barDialog)),
-             GetDialogPortRect(barDialog), GetDialogPortRect(barDialog), 0, NULL);
+             GetDialogPortRect(barDialog), GetDialogPortRect(barDialog), srcCopy, NULL);
 #ifdef MAC1010
     QDFlushPortBuffer(GetWindowGrafPort(GetDialogWindow(barDialog)), NULL);
 #else
@@ -469,7 +483,7 @@ void DoNewsDialog(void)
         if (gQuit != 0)
             done = 1;
         MyModalDialog(newsDialog, NewsDialogFilter, &itemHit, NULL);
-        if (itemHit == 1)
+        if (itemHit == kNewsDoneItem)
             done = 1;
     } while (done == 0);
 #ifdef MACBUILD
@@ -534,7 +548,7 @@ void NewsDialogUpdate(void)
     ForeColor(blackColor);
     CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(newsDialog)),
-             GetDialogPortRect(newsDialog), GetDialogPortRect(newsDialog), 0, NULL);
+             GetDialogPortRect(newsDialog), GetDialogPortRect(newsDialog), srcCopy, NULL);
 #if defined(MACBUILD) || V111
     QDFlushPortBuffer(GetDialogPort(newsDialog), NULL);
 #endif
@@ -555,7 +569,7 @@ Boolean NewsDialogFilter(long unused, EventRecord *ev, short *itemHit)
     if ((int)ev->what == kKeyDown) {
         key = (ev->message & kKeyCodeMask) >> 8;
         if (key == kReturnKeyCode || key == kEnterKeyCode || key == kEscapeKeyCode) {
-            *itemHit = 1;
+            *itemHit = kNewsDoneItem;
             return 1;
         }
     }
@@ -563,7 +577,7 @@ Boolean NewsDialogFilter(long unused, EventRecord *ev, short *itemHit)
     if ((int)ev->what == kKeyDown &&
         (IsReturnChar(EventCharOf(ev)) ||
          EventCharOf(ev) == kEscapeChar)) {
-        *itemHit = 1;
+        *itemHit = kNewsDoneItem;
         return 1;
     }
 #endif
@@ -574,7 +588,7 @@ Boolean NewsDialogFilter(long unused, EventRecord *ev, short *itemHit)
         GlobalToLocal(&where);
 #endif
         if (PtInRectPoint(where, GetDialogPortRect(newsDialog)) != 0) {
-            *itemHit = 1;
+            *itemHit = kNewsDoneItem;
             return 1;
         }
     }
@@ -794,9 +808,9 @@ void DoRaceDialog(void)
         if (gQuit != 0)
             done = 1;
         MyModalDialog(raceDialog, RaceFilter, &itemHit, NULL);
-        if (itemHit == 1)
+        if (itemHit == kRaceDoneItem)
             done = 1;
-        if (itemHit == 2) {
+        if (itemHit == kRaceHelpItem) {
             LoadDescription(textShowString, kRaceHelpDesc);
             ShowTextDialog(0, 0, 0);
             SetDialogGWorld(raceDialog);
@@ -823,7 +837,7 @@ void DoRaceDialog(void)
             if (raceWinner == -1 && raceBetAmount > 0) {
                 racePick = itemHit - kRaceFirstButton;
                 shipData[0].credits -= raceBetAmount;
-                statusRedraw[2] = 1;
+                statusRedraw[kRedrawCargo] = 1;
                 DrawStatus();
                 raceWinner = Rand(kRacerCount);
                 if (raceWinner == lastRaceWinner) {
@@ -854,7 +868,7 @@ void DoRaceDialog(void)
                 ShowTextDialog(0, 0, 1);
                 if (raceWinner == racePick) {
                     shipData[0].credits += payout;
-                    statusRedraw[2] = 1;
+                    statusRedraw[kRedrawCargo] = 1;
                     DrawStatus();
                 }
             } else {
@@ -871,7 +885,7 @@ void DoRaceDialog(void)
         raceBackgroundPic = NULL;
     }
     for (i = 0; i < kRacerCount; i++) {
-        for (j = 0; j <= 3; j++) {
+        for (j = 0; j <= kLastRaceFrame; j++) {
             if (raceButtonPic[i][j] != NULL) {
                 QDReleaseResource(raceButtonPic[i][j]);
                 raceButtonPic[i][j] = NULL;
@@ -897,7 +911,7 @@ Boolean RaceFilter(long unused, EventRecord *ev, short *itemHit)
     if ((int)ev->what == kKeyDown) {
         key = (ev->message & kKeyCodeMask) >> 8;
         if (key == kReturnKeyCode || key == kEnterKeyCode || key == kEscapeKeyCode) {
-            *itemHit = 1;
+            *itemHit = kRaceDoneItem;
             return 1;
         }
         return 0;
@@ -906,7 +920,7 @@ Boolean RaceFilter(long unused, EventRecord *ev, short *itemHit)
     if ((int)ev->what == kKeyDown &&
         (IsReturnChar(EventCharOf(ev)) ||
          EventCharOf(ev) == kEscapeChar)) {
-        *itemHit = 1;
+        *itemHit = kRaceDoneItem;
         return 1;
     }
 #endif
@@ -956,7 +970,7 @@ void RaceDialogUpdate(void)
     ForeColor(blackColor);
     CopyBits(GWorldContainerBits(&loadPort),
              GetPortBitMapForCopyBits(GetDialogPort(raceDialog)),
-             GetDialogPortRect(raceDialog), GetDialogPortRect(raceDialog), 0, NULL);
+             GetDialogPortRect(raceDialog), GetDialogPortRect(raceDialog), srcCopy, NULL);
 #ifdef MAC1010
     QDFlushPortBuffer(GetWindowGrafPort(GetDialogWindow(raceDialog)), NULL);
 #else

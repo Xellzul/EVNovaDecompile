@@ -81,7 +81,7 @@ void MissionHandlePlayerEnteredNewSystem(void)
                 if (sys == shipData[0].curSystem ||
                     currentMissions[i].shipSyst == -6) {
                     if (currentMissions[i].shipStart == 1) {
-                        if (currentMissions[i].shipBehav == 1 && currentMissions[i].shipGoal == 3)
+                        if (currentMissions[i].shipBehav == kMissionModeEscort && currentMissions[i].shipGoal == kMissionGoalEscort)
                             currentMissions[i].shipDelay = 30;
                         else
                             currentMissions[i].shipDelay = Rand(100) + 100;

@@ -139,7 +139,6 @@ unsigned char ADPCM_Mixer(ULong *data, short **out, ULong frames,
                            ULong step, AdpcmVoice *voice,
                            unsigned short left, unsigned short right)
 {
-#ifdef MAC1010 /* 1.0.10 spelling */
     long inc;
     short *dst;
     long vpdiff;
@@ -152,36 +151,14 @@ unsigned char ADPCM_Mixer(ULong *data, short **out, ULong frames,
     ULong word;
     ULong accum;
     ULong lastAccum;
-    char done;
     long lastL;
     long lastR;
+    char done;
     ULong delta;
     long r;
     long shift;
     long s;
     long t;
-#else
-    long index;
-    ULong *wp;
-    long vpdiff;
-    long stepsize;
-    long valprev;
-    long shift;
-    ULong remaining;
-    ULong pos;
-    long lastL;
-    ULong accum;
-    ULong lastAccum;
-    long lastR;
-    char done;
-    short *dst;
-    ULong word;
-    ULong delta;
-    long r;
-    long inc;
-    long s;
-    long t;
-#endif
 
     accum = lastAccum = 0;
     done = 0;

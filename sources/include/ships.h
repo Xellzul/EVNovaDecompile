@@ -107,9 +107,18 @@ extern void JettisonCargo(unsigned char withMissions);
 extern Boolean ShipCanCloak(ShipObj *ship);
 extern Boolean CanBuyOutfitItem(short outfit);
 extern unsigned char TurretBlindSpot(ShipObj *ship, short heading, short weap);
+/* statusRedraw[] indices: the status bar panel DrawStatus redraws */
+#define kRedrawNav          0
+#define kRedrawShield       1
+#define kRedrawCargo        2
+#define kRedrawWeap         3
+#define kRedrawFuel         4
+#define kRedrawRadar        5
+#define kRedrawTarg         6
+#define kStatusRedrawCount  7
 #pragma cplusplus on
 EXTERN_CPP_BEGIN
-extern Boolean statusRedraw[7];
+extern Boolean statusRedraw[kStatusRedrawCount];
 EXTERN_CPP_END
 #pragma cplusplus reset
 

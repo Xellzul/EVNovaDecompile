@@ -880,11 +880,7 @@ static ITPoint gDT_TileOrigin;                        /* 0x00865b08 the default 
         WRITE_PIXEL(d, dr, dg, db, alpha);                                      \
     }
 
-#ifdef MAC1010 /* 1.0.10 spelling */
-#define COV_UNIFORM         a = (short)extra;
-#else
 #define COV_UNIFORM         a = extra;
-#endif
 
 #define PIXEL_BLEND(dalpha, alpha, blend)                                       \
     READ_PIXEL(src, s, srcClut, v);                                             \

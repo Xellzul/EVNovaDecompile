@@ -135,15 +135,15 @@ void DrawMapButtons(short hilited)
     enabled[3] = showClearRouteButton;
     enabled[4] = 1;
     enabled[5] = 1;
-    mapButtonTable[0] = 4;
-    mapButtonTable[1] = 0x10;
-    mapButtonTable[2] = 0x11;
-    mapButtonTable[3] = 0x30;
+    mapButtonTable[0] = kDoneButtonLabel;
+    mapButtonTable[1] = kMinusButtonLabel;
+    mapButtonTable[2] = kPlusButtonLabel;
+    mapButtonTable[3] = kClearRouteButtonLabel;
     if (settings.showMapBorders != 0)
-        mapButtonTable[4] = 0x38;
+        mapButtonTable[4] = kHideBordersButtonLabel;
     else
-        mapButtonTable[4] = 0x37;
-    mapButtonTable[5] = 0x3b;
+        mapButtonTable[4] = kShowBordersButtonLabel;
+    mapButtonTable[5] = kFindButtonLabel;
     for (i = 0; i < 6; i++) {
         if (enabled[i] != 0) {
             if (i == hilited)
@@ -154,7 +154,7 @@ void DrawMapButtons(short hilited)
                            buttonLabel[mapButtonTable[i]], 0, 0, 0);
         } else
             DrawButton(GetDialogPort(mapDialog), &box[i],
-                       buttonLabel[mapButtonTable[i]], -1, 0, 0);
+                       buttonLabel[mapButtonTable[i]], kButtonDim, 0, 0);
     }
 }
 
@@ -254,14 +254,14 @@ void DrawShipyardButtons(short hilited)
     GetDialogItem(shipyardDialog, 0xa, &itemType, &item, &box[2]);
     GetDialogItem(shipyardDialog, 0xc, &itemType, &item, &box[3]);
     GetDialogItem(shipyardDialog, 0xd, &itemType, &item, &box[4]);
-    shipyardButtonTable[0] = 4;
+    shipyardButtonTable[0] = kDoneButtonLabel;
     if (shipBuyMode == 0)
-        shipyardButtonTable[1] = 3;
+        shipyardButtonTable[1] = kBuyShipButtonLabel;
     else
-        shipyardButtonTable[1] = 0xc;
-    shipyardButtonTable[2] = 0x2f;
-    shipyardButtonTable[3] = 0x12;
-    shipyardButtonTable[4] = 0x13;
+        shipyardButtonTable[1] = kHireEscortButtonLabel;
+    shipyardButtonTable[2] = kInfoButtonLabel;
+    shipyardButtonTable[3] = kScrollUpButtonLabel;
+    shipyardButtonTable[4] = kScrollDownButtonLabel;
     enabled[0] = 1;
     enabled[1] = canBuy;
     enabled[2] = selShipyardItem != -1;
@@ -281,7 +281,7 @@ void DrawShipyardButtons(short hilited)
                            buttonLabel[shipyardButtonTable[i]], 0, 0, 0);
         } else
             DrawButton(GetDialogPort(shipyardDialog), &box[i],
-                       buttonLabel[shipyardButtonTable[i]], -1, 0, 0);
+                       buttonLabel[shipyardButtonTable[i]], kButtonDim, 0, 0);
     }
 }
 
@@ -389,11 +389,11 @@ void DrawOutfitButtons(short hilited)
             count++;
     if (outfitScroll >= count - kGridPageCells)
         enabled[4] = 0;
-    outfitButtonTable[0] = 4;
-    outfitButtonTable[1] = 1;
-    outfitButtonTable[2] = 2;
-    outfitButtonTable[3] = 0x12;
-    outfitButtonTable[4] = 0x13;
+    outfitButtonTable[0] = kDoneButtonLabel;
+    outfitButtonTable[1] = kBuyButtonLabel;
+    outfitButtonTable[2] = kSellButtonLabel;
+    outfitButtonTable[3] = kScrollUpButtonLabel;
+    outfitButtonTable[4] = kScrollDownButtonLabel;
     shown[0] = 1;
     shown[2] = 1;
     shown[3] = 1;
@@ -413,7 +413,7 @@ void DrawOutfitButtons(short hilited)
                                buttonLabel[outfitButtonTable[i]], 0, 0, 0);
             } else
                 DrawButton(GetDialogPort(outfitDialog), &box[i],
-                           buttonLabel[outfitButtonTable[i]], -1, 0, 0);
+                           buttonLabel[outfitButtonTable[i]], kButtonDim, 0, 0);
         }
     }
 }

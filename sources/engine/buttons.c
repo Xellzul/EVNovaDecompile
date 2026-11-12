@@ -22,7 +22,6 @@
 
 #define kButtonPictID         7500
 #define kButtonMaskPictID     7600
-#define kOkButtonLabel        26
 
 /* the mac builds the offscreens on the main screen's device; the port's take none */
 #ifdef MACBUILD
@@ -151,9 +150,9 @@ void DrawTradeButtons(short hilited)
     enabled[0] = 1;
     enabled[1] = CanBuyGoods(selTradeItem);
     enabled[2] = CanSellGoods(selTradeItem);
-    tradeButtonTable[0] = 4;
-    tradeButtonTable[1] = 1;
-    tradeButtonTable[2] = 2;
+    tradeButtonTable[0] = kDoneButtonLabel;
+    tradeButtonTable[1] = kBuyButtonLabel;
+    tradeButtonTable[2] = kSellButtonLabel;
     for (i = 0; i < 3; i++) {
         if (enabled[i] != 0) {
             if (i == hilited)
@@ -164,7 +163,7 @@ void DrawTradeButtons(short hilited)
                            buttonLabel[tradeButtonTable[i]], 0, 0, 0);
         } else
             DrawButton(GetDialogPort(tradeDialog), &box[i],
-                       buttonLabel[tradeButtonTable[i]], -1, 0, 0);
+                       buttonLabel[tradeButtonTable[i]], kButtonDim, 0, 0);
     }
 }
 
@@ -227,8 +226,8 @@ void DrawCapAssignButtons(short hilited)
     short itemType;
     Handle item;
 
-    capAssignButtonTable[0] = 0x2e;
-    capAssignButtonTable[1] = 0x2d;
+    capAssignButtonTable[0] = kUseAsMyShipButtonLabel;
+    capAssignButtonTable[1] = kUseAsEscortButtonLabel;
     for (i = 0; i <= 1; i++) {
         GetDialogItem(captureDialog, i + 1, &itemType, &item, &box);
         if (i == hilited)
@@ -329,26 +328,26 @@ void DrawCommDialogButtons(short hilited)
     hasMission = 0;
     if (commShip != 0 && commShip->specialMission != -1
             && currentMissionObjectives[commShip->specialMission].active != 0
-            && currentMissions[commShip->specialMission].shipBehav == 1)
+            && currentMissions[commShip->specialMission].shipBehav == kMissionModeEscort)
         hasMission = 1;
     enabled[0] = 1;
     enabled[2] = 1;
-    commButtonTable[0] = 0x14;
-    commButtonTable[2] = 0x15;
+    commButtonTable[0] = kCloseChannelButtonLabel;
+    commButtonTable[2] = kGreetingsButtonLabel;
     if (altItem != 0) {
         enabled[1] = 0;
     } else {
         enabled[1] = 1;
         if (commShip != 0) {
             if (ExtendedIsThreatToPlayer(commShip) != 0)
-                commButtonTable[1] = 0x18;
-            else if (commShip->parentShip == 0 && commShip->aiType == 6 &&
+                commButtonTable[1] = kBegMercyButtonLabel;
+            else if (commShip->parentShip == 0 && commShip->aiType == kShipTypeEscort &&
                      hasMission == 0)
-                commButtonTable[1] = 0x1f;
+                commButtonTable[1] = kReleaseButtonLabel;
             else
-                commButtonTable[1] = 0x16;
+                commButtonTable[1] = kRequestAssistButtonLabel;
         } else {
-            commButtonTable[1] = 0x16;
+            commButtonTable[1] = kRequestAssistButtonLabel;
         }
     }
     for (i = 0; i <= 2; i++) {
@@ -428,21 +427,21 @@ void DrawPlanetCommDialogButtons(short hilited)
         GetDialogItem(commDialog, i + 1, &itemType, &item, &box[i]);
     enabled[0] = 1;
     enabled[1] = 1;
-    planetCommButtonTable[0] = 0x14;
+    planetCommButtonTable[0] = kCloseChannelButtonLabel;
     if (hatesPlayer != 0)
-        planetCommButtonTable[1] = 0x17;
+        planetCommButtonTable[1] = kOfferBribeButtonLabel;
     else
-        planetCommButtonTable[1] = 0x15;
+        planetCommButtonTable[1] = kGreetingsButtonLabel;
     if (stellarData[shipData[0].targetStellar].dominated != 0) {
         if ((stellarData[shipData[0].targetStellar].flags2 & kSpobAlwaysDominated) != 0) {
             enabled[2] = 0;
         } else {
             enabled[2] = 1;
-            planetCommButtonTable[2] = 0x1f;
+            planetCommButtonTable[2] = kReleaseButtonLabel;
         }
     } else {
         enabled[2] = 1;
-        planetCommButtonTable[2] = 0x2c;
+        planetCommButtonTable[2] = kDemandTributeButtonLabel;
     }
     for (i = 0; i < 3; i++) {
         if (enabled[i] != 0) {
@@ -454,7 +453,7 @@ void DrawPlanetCommDialogButtons(short hilited)
                            buttonLabel[planetCommButtonTable[i]], 0, 0, 0);
         } else
             DrawButton(GetDialogPort(commDialog), &box[i],
-                       buttonLabel[planetCommButtonTable[i]], -1, 0, 0);
+                       buttonLabel[planetCommButtonTable[i]], kButtonDim, 0, 0);
     }
     ForeColor(blackColor);
 }
@@ -519,8 +518,8 @@ void DrawMissionButtons(short hilited)
     ForeColor(blackColor);
     GetDialogItem(missionDialog, 1, &itemType, &item, &box[0]);
     GetDialogItem(missionDialog, 7, &itemType, &item, &box[1]);
-    missionButtonTable[0] = 0x19;
-    missionButtonTable[1] = 0;
+    missionButtonTable[0] = kAcceptButtonLabel;
+    missionButtonTable[1] = kLeaveButtonLabel;
     if (selMissionListItem == -1)
         enabled[0] = 0;
     else
@@ -536,7 +535,7 @@ void DrawMissionButtons(short hilited)
                            buttonLabel[missionButtonTable[i]], 0, 0, 0);
         } else
             DrawButton(GetDialogPort(missionDialog), &box[i],
-                       buttonLabel[missionButtonTable[i]], -1, 0, 0);
+                       buttonLabel[missionButtonTable[i]], kButtonDim, 0, 0);
     }
 }
 
@@ -604,8 +603,8 @@ void DrawMissionInfoButtons(short hilited)
         enabled[1] = 0;
     else
         enabled[1] = 1;
-    missionInfoButtonTable[0] = 4;
-    missionInfoButtonTable[1] = 0x22;
+    missionInfoButtonTable[0] = kDoneButtonLabel;
+    missionInfoButtonTable[1] = kAbortButtonLabel;
     for (i = 0; i < 2; i++) {
         if (enabled[i] != 0) {
             if (i == hilited)
@@ -616,7 +615,7 @@ void DrawMissionInfoButtons(short hilited)
                            buttonLabel[missionInfoButtonTable[i]], 0, 0, 0);
         } else
             DrawButton(GetDialogPort(missionInfoDialog), &box[i],
-                       buttonLabel[missionInfoButtonTable[i]], -1, 0, 0);
+                       buttonLabel[missionInfoButtonTable[i]], kButtonDim, 0, 0);
     }
 }
 
@@ -688,28 +687,28 @@ void DrawSingleMissionButtons(short hilited)
     short dimmed[4];
 
     ForeColor(blackColor);
-    singleMissionButtonTable[2] = 0x12;
-    singleMissionButtonTable[3] = 0x13;
+    singleMissionButtonTable[2] = kScrollUpButtonLabel;
+    singleMissionButtonTable[3] = kScrollDownButtonLabel;
     if (canScrollTextUp != 0 || canScrollTextDown != 0) {
         if (canScrollTextUp != 0)
             dimmed[2] = 0;
         else
-            dimmed[2] = -1;
+            dimmed[2] = kButtonDim;
         if (canScrollTextDown != 0)
             dimmed[3] = 0;
         else
-            dimmed[3] = -1;
+            dimmed[3] = kButtonDim;
     } else {
-        dimmed[2] = -2;
-        dimmed[3] = -2;
+        dimmed[2] = kButtonDisabled;
+        dimmed[3] = kButtonDisabled;
     }
     GetDialogItem(missionDialog, 9, &itemType, &item, &box[2]);
     GetDialogItem(missionDialog, 10, &itemType, &item, &box[3]);
     if (canRefuseMission) {
         for (i = 0; i <= 1; i++)
             GetDialogItem(missionDialog, i + 1, &itemType, &item, &box[i]);
-        singleMissionButtonTable[0] = 0x31;
-        singleMissionButtonTable[1] = 0x32;
+        singleMissionButtonTable[0] = kYesButtonLabel;
+        singleMissionButtonTable[1] = kNoButtonLabel;
         dimmed[0] = 0;
         dimmed[1] = 0;
         for (i = 0; i <= 1; i++) {
@@ -721,9 +720,9 @@ void DrawSingleMissionButtons(short hilited)
     } else {
         GetDialogItem(missionDialog, 6, &itemType, &item, &box[0]);
         GetDialogItem(missionDialog, 6, &itemType, &item, &box[1]);
-        singleMissionButtonTable[0] = 0x1a;
+        singleMissionButtonTable[0] = kOkButtonLabel;
         dimmed[0] = 0;
-        dimmed[1] = -2;
+        dimmed[1] = kButtonDisabled;
         if (hilited == 0)
             DrawButton(GetDialogPort(missionDialog), &box[0], missionButtonLabel[0], dimmed[0], 1, 0);
         else
@@ -801,12 +800,12 @@ void DrawPlayerInfoButtons(short page, short hilited)
     Rect box[6];
     Boolean enabled[6];
 
-    playerInfoButtonTable[0] = 4;
-    playerInfoButtonTable[1] = 0x23;
-    playerInfoButtonTable[2] = 0x24;
-    playerInfoButtonTable[3] = 0x25;
-    playerInfoButtonTable[4] = 0x26;
-    playerInfoButtonTable[5] = 0x3c;
+    playerInfoButtonTable[0] = kDoneButtonLabel;
+    playerInfoButtonTable[1] = kGeneralButtonLabel;
+    playerInfoButtonTable[2] = kCargoButtonLabel;
+    playerInfoButtonTable[3] = kExtrasButtonLabel;
+    playerInfoButtonTable[4] = kHonorsButtonLabel;
+    playerInfoButtonTable[5] = kJettisonButtonLabel;
     for (i = 0; i <= 4; i++) {
         enabled[i] = 1;
         GetDialogItem(infoDialog, i + 1, &itemType, &item, &box[i]);
@@ -903,20 +902,20 @@ void DrawEscortButtons(short hilited)
         enabled[3] = 1;
     else
         enabled[3] = 0;
-    escortButtonTable[0] = 0x14;
-    escortButtonTable[1] = 0x1f;
+    escortButtonTable[0] = kCloseChannelButtonLabel;
+    escortButtonTable[1] = kReleaseButtonLabel;
     if (commShip != 0) {
         if (commShip->upgradeOnLanding != 0)
-            escortButtonTable[2] = 0x34;
+            escortButtonTable[2] = kCancelUpgradeButtonLabel;
         else
-            escortButtonTable[2] = 0x33;
+            escortButtonTable[2] = kUpgradeEscortButtonLabel;
         if (commShip->sellOnLanding != 0)
-            escortButtonTable[3] = 0x36;
+            escortButtonTable[3] = kCancelSaleButtonLabel;
         else
-            escortButtonTable[3] = 0x35;
+            escortButtonTable[3] = kSellEscortButtonLabel;
     } else {
-        escortButtonTable[2] = 0x33;
-        escortButtonTable[3] = 0x35;
+        escortButtonTable[2] = kUpgradeEscortButtonLabel;
+        escortButtonTable[3] = kSellEscortButtonLabel;
     }
     for (i = 0; i < 4; i++) {
         if (enabled[i] != 0) {
@@ -928,7 +927,7 @@ void DrawEscortButtons(short hilited)
                            buttonLabel[escortButtonTable[i]], 0, 0, 0);
         } else
             DrawButton(GetDialogPort(commDialog), &box[i],
-                       buttonLabel[escortButtonTable[i]], -1, 0, 0);
+                       buttonLabel[escortButtonTable[i]], kButtonDim, 0, 0);
     }
 }
 
@@ -991,11 +990,11 @@ void DrawHaggleButtons(short hilited)
     GetDialogItem(haggleDialog, 1, &itemType, &item, &box[0]);
     GetDialogItem(haggleDialog, 2, &itemType, &item, &box[1]);
     if (haggleMode == 1) {
-        haggleButtonTable[0] = 0x1b;
-        haggleButtonTable[1] = 0x1c;
+        haggleButtonTable[0] = kAcceptPaymentButtonLabel;
+        haggleButtonTable[1] = kDemandMoreButtonLabel;
     } else {
-        haggleButtonTable[0] = 0x1d;
-        haggleButtonTable[1] = 0x1e;
+        haggleButtonTable[0] = kAcceptPriceButtonLabel;
+        haggleButtonTable[1] = kLowerPriceButtonLabel;
     }
     for (i = 0; i <= 1; i++) {
         if (i == hilited)
@@ -1181,12 +1180,12 @@ void DrawPlunderButtons(short hilited)
         GetDialogItem(plunderDialog, i + 1, &itemType, &item, &box[i]);
     for (i = 4; i <= 5; i++)
         GetDialogItem(plunderDialog, i + 2, &itemType, &item, &box[i]);
-    plunderButtonTable[0] = 0x22;
-    plunderButtonTable[1] = 0x27;
-    plunderButtonTable[2] = 0x28;
-    plunderButtonTable[3] = 0x29;
-    plunderButtonTable[4] = 0x2a;
-    plunderButtonTable[5] = 0x2b;
+    plunderButtonTable[0] = kAbortButtonLabel;
+    plunderButtonTable[1] = kPlunderCargoButtonLabel;
+    plunderButtonTable[2] = kCreditsButtonLabel;
+    plunderButtonTable[3] = kAmmoButtonLabel;
+    plunderButtonTable[4] = kEnergyButtonLabel;
+    plunderButtonTable[5] = kCaptureShipButtonLabel;
     enabled[0] = 1;
     if (salvageType != -1)
         enabled[1] = 1;
@@ -1219,7 +1218,7 @@ void DrawPlunderButtons(short hilited)
                            buttonLabel[plunderButtonTable[i]], 0, 0, 0);
         } else
             DrawButton(GetDialogPort(plunderDialog), &box[i],
-                       buttonLabel[plunderButtonTable[i]], -1, 0, 0);
+                       buttonLabel[plunderButtonTable[i]], kButtonDim, 0, 0);
     }
 }
 
@@ -1289,10 +1288,10 @@ void DrawBarButtons(short hilited)
     enabled[3] = 0;
     enabled[4] = CanHireEscorts();
     enabled[5] = 0;
-    barButtonTable[0] = 0;
-    barButtonTable[1] = 10;
-    barButtonTable[2] = 0xb;
-    barButtonTable[4] = 0xc;
+    barButtonTable[0] = kLeaveButtonLabel;
+    barButtonTable[1] = kGambleButtonLabel;
+    barButtonTable[2] = kHolovidButtonLabel;
+    barButtonTable[4] = kHireEscortButtonLabel;
     ForeColor(blackColor);
     for (i = 0; i < 6; i++) {
         if (enabled[i] != 0) {
@@ -1304,7 +1303,7 @@ void DrawBarButtons(short hilited)
                            buttonLabel[barButtonTable[i]], 0, 0, 0);
         } else
             DrawButton(GetDialogPort(barDialog), &box[i],
-                       buttonLabel[barButtonTable[i]], -1, 0, 0);
+                       buttonLabel[barButtonTable[i]], kButtonDim, 0, 0);
     }
 }
 
@@ -1404,22 +1403,22 @@ void DrawTextButtons(short hilited)
     GetDialogItem(textDialog, 1, &itemType, &item, &box[0]);
     GetDialogItem(textDialog, 5, &itemType, &item, &box[1]);
     GetDialogItem(textDialog, 6, &itemType, &item, &box[2]);
-    textButtonTable[0] = 0x1a;
-    textButtonTable[1] = 0x12;
-    textButtonTable[2] = 0x13;
+    textButtonTable[0] = kOkButtonLabel;
+    textButtonTable[1] = kScrollUpButtonLabel;
+    textButtonTable[2] = kScrollDownButtonLabel;
     dimmed[0] = 0;
     if (canScrollTextUp != 0 || canScrollTextDown != 0) {
         if (canScrollTextUp != 0)
             dimmed[1] = 0;
         else
-            dimmed[1] = -1;
+            dimmed[1] = kButtonDim;
         if (canScrollTextDown != 0)
             dimmed[2] = 0;
         else
-            dimmed[2] = -1;
+            dimmed[2] = kButtonDim;
     } else {
-        dimmed[1] = -2;
-        dimmed[2] = -2;
+        dimmed[1] = kButtonDisabled;
+        dimmed[2] = kButtonDisabled;
     }
     ForeColor(blackColor);
     for (i = 0; i < 3; i++) {
@@ -1449,17 +1448,17 @@ void DrawRaceButtons(short hilited)
         dimmed[i] = 0;
     }
     if (raceWinner == -1 && raceCount == 0)
-        raceButtonTable[0] = 0x21;
+        raceButtonTable[0] = kCancelButtonLabel;
     else
-        raceButtonTable[0] = 4;
-    raceButtonTable[1] = 0x39;
+        raceButtonTable[0] = kDoneButtonLabel;
+    raceButtonTable[1] = kHelpButtonLabel;
     for (i = 0; i < 4; i++) {
         GetDialogItem(raceDialog, i + 3, &itemType, &item, &box[i + 2]);
-        dimmed[i + 2] = -3;
+        dimmed[i + 2] = kButtonPicture;
         raceButtonTable[i + 2] = 0;
     }
     for (i = 0; i < 6; i++) {
-        if (dimmed[i] == -3) {
+        if (dimmed[i] == kButtonPicture) {
             if (raceWinner == i - 2)
                 pic = raceButtonPic[i - 2][2];
             else if (raceWinner != -1)
@@ -1642,9 +1641,6 @@ void DisposeButtons(void)
 
 /* --- DrawButton (0x004a3340) --- */
 
-
-#define kButtonPicture (-3)
-#define kButtonDim     (-1)
 
 #define kGlyphCaret 0x5e
 #define kGlyphAmp   0x26
