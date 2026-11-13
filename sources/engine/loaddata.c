@@ -3484,7 +3484,7 @@ short SavePilotFile(short stellar)
     dstObj = srcObj; \
     dstMsn = srcMsn
 #elif V111 /* V111 spelling */
-#define recSlot j
+#define recSlot k
 #define CopyMissionSlot(dstObj, srcObj, dstMsn, srcMsn) \
     dstObj = srcObj; \
     dstMsn = srcMsn
@@ -3593,13 +3593,13 @@ short WritePilotData(short stellar)
     RGBColor *paint;
 #ifdef MAC1010
     Boolean sig[5];
-    short j;
 #elif V111
     Boolean sig[5];
-    int j;
+    int k;
 #else
     KeyCheckFlag sig[4];
 #endif
+    short j;
     unsigned long long key;
     short i;
 
@@ -3683,8 +3683,8 @@ short WritePilotData(short stellar)
         sig[2] = KeyLow60Bits(key ^ 0xd9eab6006f7c65a8ULL) != 0x0935b4147cad71dfULL;
         sig[3] = KeyLow60Bits(key ^ 0x847ba0013f907235ULL) != 0x0f02fa941793847fULL;
         sig[4] = KeyLow60Bits(key ^ 0xf6170bf185359c3dULL) != 0x068887b12ff1e429ULL;
-        for (j = 0; j < 5; j++) {
-            if (sig[j] == 0)
+        for (k = 0; k < 5; k++) {
+            if (sig[k] == 0)
                 (*playerFileHand)->shipType = 0;
         }
 #else
@@ -3727,17 +3727,10 @@ short WritePilotData(short stellar)
             (*playerFileHand)->weapAmmo[recSlot] = shipData[0].weap[recSlot].ammo;
         }
         (*playerFileHand)->credits = shipData[0].credits;
-#ifdef MAC1010 /* 1.0.10 spelling */
         for (j = 0; j < kMaxActiveMissions; j++) {
             CopyMissionSlot((*playerFileHand)->objectives[j], currentMissionObjectives[j],
                             (*playerFileHand)->missions[j], currentMissions[j]);
         }
-#else
-        for (i = 0; i < kMaxActiveMissions; i++) {
-            CopyMissionSlot((*playerFileHand)->objectives[i], currentMissionObjectives[i],
-                            (*playerFileHand)->missions[i], currentMissions[i]);
-        }
-#endif
         for (i = 0; i < kMaxMissionBits; i++)
             (*playerFileHand)->missionBits[i] = missionBit[i];
         for (i = 0; i < kMaxStellars; i++) {

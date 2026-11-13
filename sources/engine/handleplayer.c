@@ -200,106 +200,61 @@ EXTERN_C_BEGIN
 // MAC: _HandlePlayer i386 0x00068390 ppc 0x00070b28
 void HandlePlayer(ShipObj *player)
 {
+    Boolean jumping;
+    Str255 msg;
+    short i;
+    short j;
+    short n;
+    short count;
+    short days;
+    short fuelCap;
+    short turnStep;
+    float turnLim;
+    float dist;
+    float heading;
+    float angle;
+    Point pt;
+    Str255 name;
+    float step;
+    float dmg;
+    Boolean ok;
+    Boolean linked[kNavSlots];
+#if defined(MACBUILD) && V111 /* V111 spelling */
+    FloatPoint origin;
+    short groupCount[4];
+    FloatPoint pos;
+    Rect box;
+    FloatPoint dest;
+    Rect hit;
+#else
+    Rect box;
+    Rect hit;
+    FloatPoint pos;
+    FloatPoint dest;
+    FloatPoint origin;
+    short groupCount[4];
+#endif
+    Rect *portRect;
+    Boolean canJump;
+    short lost;
+    short dir;
+    short k;
+    Boolean found;
+    Boolean escortHit;
+    Boolean turned;
+    Boolean targetUncloaked;
+    Boolean targetCloaked;
+    Boolean disabled;
+    Boolean dying;
+    Boolean routeDone;
+    Boolean flag;
+    Boolean destructing;
 #ifdef MACBUILD
-    Boolean jumping;
-    Str255 msg;
-    short i;
-    short j;
-    short n;
-    short count;
-    short days;
-    short fuelCap;
-    short turnStep;
-    float turnLim;
-    float dist;
-    float heading;
-    float angle;
-    Point pt;
-    float step;
-    Str255 name;
-    float dmg;
-    Boolean ok;
-    Boolean linked[kNavSlots];
-#ifdef MAC1010 /* 1.0.10 spelling */
-    Rect box;
-    Rect hit;
-    FloatPoint pos;
-    FloatPoint dest;
-    FloatPoint origin;
-    short groupCount[4];
-#else
-    FloatPoint origin;
-    short groupCount[4];
-    FloatPoint pos;
-    Rect box;
-    FloatPoint dest;
-    Rect hit;
-#endif
-    Rect *portRect;
-    Boolean canJump;
-    short lost;
-    short dir;
-    short k;
-    Boolean found;
-    Boolean escortHit;
-    Boolean turned;
-    Boolean targetUncloaked;
-    Boolean targetCloaked;
-    Boolean disabled;
-    Boolean dying;
-    Boolean routeDone;
-    Boolean flag;
-    Boolean destructing;
     short sys;
-    short waiting;
-    short rank;
-    double span;
-#else
-    Boolean jumping;
-    Boolean turned;
-    Str255 msg;
-    short i;
-    short j;
-    short n;
-    short count;
-    short days;
-    short fuelCap;
-    short turnStep;
-    float turnLim;
-    float heading;
-    float angle;
-    float step;
-    Str255 name;
-    float dist;
-    float dmg;
-    Boolean dying;
-    Boolean disabled;
-    Boolean ok;
-    Boolean targetUncloaked;
-    Boolean targetCloaked;
-    Boolean linked[kNavSlots];
-    Point pt;
-    Rect box;
-    Rect hit;
-    Rect *portRect;
-    FloatPoint stelPos;
-    FloatPoint pos;
-    short groupCount[4];
-    FloatPoint dest;
-    FloatPoint origin;
-    Boolean canJump;
-    Boolean routeDone;
-    short lost;
-    short dir;
-    short k;
-    Boolean found;
-    Boolean escortHit;
-    Boolean flag;
-    Boolean destructing;
-    short rank;
-    double span;
-    short waiting;
 #endif
+    short waiting;
+    short rank;
+    double span;
 
     quickKeyCheckResult = 0;
     if (settings.windowed == 0 && settings.noHyperGamma == 0 && ignoreKeys == 0) {
@@ -4642,7 +4597,7 @@ void HandlePlayerDockRequest(void)
                 crashlog_print(" (");
                 crashlog_print_pstr(stellarData[ship->targetStellar].name);
                 crashlog_print(")\n");
-                FlushEvents(1, 0);
+                FlushEvents(1, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
                 FlushEvents(2, 0);
                 FlushEvents(3, 0);
                 FlushEvents(4, 0);

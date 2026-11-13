@@ -130,7 +130,7 @@ extern int32_t RT3_Open(unsigned char tracked, short mode, const char *product,
 extern uint32_t ST_GetSysVolume(void);
 extern int32_t RT3_RunReminder(unsigned char force, unsigned char *registered);
 extern void *ReggieVersionCheck(void *ref, const char *name);
-extern int32_t FirstKeyDown(void);
+extern short FirstKeyDown(void);
 extern Boolean GovtSharedClass(short a, short b);
 extern void HandleAlertSprite(void);
 extern void HandleDoubleTimeSprite(void);

@@ -2252,7 +2252,7 @@ short ScanForKeys(void)
 #ifndef MACBUILD
 /* FirstKeyDown. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00466810
-int32_t FirstKeyDown(void)
+short FirstKeyDown(void)
 {
     int32_t code;
 
@@ -4346,18 +4346,12 @@ void SetupPortAvailableShipTypes(SpobRecord *port)
 {
 #if V111 /* V111 spelling */
     short count;
-    short threshold;
-    short i;
-    short j;
-    short k;
-    short best;
-#else
-    short i;
-    short j;
-    short k;
-    short threshold;
-    short best;
 #endif
+    short i;
+    short j;
+    short k;
+    short threshold;
+    short best;
     Boolean avail[kMaxShipTypes];
 
     if (port == 0)

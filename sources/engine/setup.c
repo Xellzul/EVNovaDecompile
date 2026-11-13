@@ -1185,17 +1185,12 @@ void LoadSprites(void)
 {
     short spriteID, maskID;
     short xSize, ySize;
-#ifdef MAC1010
     short xTiles, yTiles;
     short err;
     short i;
     int32_t resID;
-#else
-    short xTiles, yTiles;
-    short i;
-    int32_t resID;
+#ifndef MAC1010
     SpritePtr *q;
-    short err;
 #endif
 
     for (i = 0; i < kMaxWeapTypes; i++) {

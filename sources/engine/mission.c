@@ -330,7 +330,7 @@ void DoMissionDialog(void)
             done = 1;
         MyModalDialog(missionDialog, MissionFilter, &itemHit, 0);
         if (itemHit == kItemAccept) {
-            FlushEvents(3, 0);
+            FlushEvents(3, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
             FlushEvents(5, 0);
             FlushEvents(1, 0);
             FlushEvents(2, 0);
@@ -358,7 +358,7 @@ void DoMissionDialog(void)
             done = 1;
         }
         if (itemHit == kItemMap) {
-            FlushEvents(3, 0);
+            FlushEvents(3, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
             FlushEvents(5, 0);
             FlushEvents(1, 0);
             FlushEvents(2, 0);
@@ -395,7 +395,7 @@ void DoMissionDialog(void)
             RedrawDialog(missionDialog);
         }
         if (itemHit == kItemMissionInfo) {
-            FlushEvents(3, 0);
+            FlushEvents(3, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
             FlushEvents(5, 0);
             FlushEvents(1, 0);
             FlushEvents(2, 0);
@@ -422,7 +422,7 @@ void DoMissionDialog(void)
             RedrawDialog(missionDialog);
         }
         if (itemHit == kItemPlayerInfo) {
-            FlushEvents(3, 0);
+            FlushEvents(3, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
             FlushEvents(5, 0);
             FlushEvents(1, 0);
             FlushEvents(2, 0);
@@ -2919,10 +2919,6 @@ void MissionObjectivesCheck(short slot)
     short i;
     short count;
     short syst;
-#ifndef MACBUILD
-    Rect *vr;
-    Rect *sr;
-#endif
 
     if (currentMissionObjectives[slot].active == 0)
         return;
@@ -2989,10 +2985,25 @@ void MissionObjectivesCheck(short slot)
                                 && slot == shipData[i].specialMission
                                 && shipData[i].sprite != 0
                                 && ShipVisibleToShip(&shipData[i], shipData) != 0) {
-#ifdef MACBUILD
                             if (ShipCanCloak(&shipData[i]) != 0) {
+#ifdef MACBUILD
                                 vis = gSpriteWorld->windRect;
                                 shipRect = shipData[i].sprite->destFrameRect;
+#else
+                                Rect *vr;
+                                Rect *sr;
+
+                                vr = &gSpriteWorld->windRect;
+                                vis.top = vr->top;
+                                vis.left = vr->left;
+                                vis.bottom = vr->bottom;
+                                vis.right = vr->right;
+                                sr = &shipData[i].sprite->destFrameRect;
+                                shipRect.top = sr->top;
+                                shipRect.left = sr->left;
+                                shipRect.bottom = sr->bottom;
+                                shipRect.right = sr->right;
+#endif
                                 InsetRect(&vis,
                                           ((shipRect.right - shipRect.left) * 0.75),
                                           ((shipRect.bottom - shipRect.top) * 0.75));
@@ -3004,29 +3015,6 @@ void MissionObjectivesCheck(short slot)
                                 currentMissionObjectives[slot].objectivesDone = 1;
                                 break;
                             }
-#else
-                            if (ShipCanCloak(&shipData[i]) == 0) {
-                                currentMissionObjectives[slot].objectivesDone = 1;
-                                break;
-                            }
-                            vr = &gSpriteWorld->windRect;
-                            vis.top = vr->top;
-                            vis.left = vr->left;
-                            vis.bottom = vr->bottom;
-                            vis.right = vr->right;
-                            sr = &shipData[i].sprite->destFrameRect;
-                            shipRect.top = sr->top;
-                            shipRect.left = sr->left;
-                            shipRect.bottom = sr->bottom;
-                            shipRect.right = sr->right;
-                            InsetRect(&vis,
-                                      ((shipRect.right - shipRect.left) * 0.75),
-                                      ((shipRect.bottom - shipRect.top) * 0.75));
-                            if (SectRect(&vis, &shipRect, &shipRect) != 0) {
-                                currentMissionObjectives[slot].objectivesDone = 1;
-                                break;
-                            }
-#endif
                         }
                     }
                 }

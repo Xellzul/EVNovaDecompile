@@ -1003,38 +1003,28 @@ done:
 // FUNCTION: EVNOVA 0x004f42cd
 void _ReggiePrivateTickle(void)
 {
-#ifdef MAC1010 /* 1.0.10 spelling */
     char *product;
     char *value;
     char *key;
     NetPacket *packet;
     struct HashTable *reply;
+#ifndef MAC1010
+    const char *prefix;
+#endif
     char *version;
     ULong i;
     GlobalEntry **link;
     unsigned char removed;
     GlobalEntry *entry;
-#else
-    unsigned char removed;
-    char *product;
-    char *value;
-    char *key;
-    NetPacket *packet;
-    struct HashTable *reply;
-    const char *prefix;
-    GlobalEntry **link;
-    ULong i;
-    GlobalEntry *entry;
-#endif
-    GlobalEntry *spare;
+    GlobalEntry *found;
     int32_t err;
     int32_t e;
-    GlobalEntry *found;
+    GlobalEntry *spare;
 
     err = 0;
     packet = 0;
     reply = 0;
-    spare = found = 0;
+    found = spare = 0;
     ReggieAssert(gVersionList == 0 || gVersionList->name[0] != 0);
     product = 0;
     e = 0;
@@ -1044,21 +1034,19 @@ void _ReggiePrivateTickle(void)
     while ((packet = (NetPacket *)QueueRemove(&gReggiePrivateRecvQ)) != 0) {
 #ifdef MAC1010 /* 1.0.10 spelling */
         product = "REGGIE RESULT VERSION ";
+#else
+        prefix = "REGGIE RESULT VERSION ";
+#endif
         if (packet->length == packet->capacity)
             packet->length--;
         packet->data[packet->length] = 0;
         if (!AddressCompare(&packet->from, &gReggiePrivateAddress))
             goto next;
+#ifdef MAC1010 /* 1.0.10 spelling */
         e = StringCompareSafe(packet->data, product, StringGetLength((const unsigned char *)product));
         if (e != 0)
             goto next;
 #else
-        prefix = "REGGIE RESULT VERSION ";
-        if (packet->length == packet->capacity)
-            packet->length--;
-        packet->data[packet->length] = 0;
-        if (!AddressCompare(&packet->from, &gReggiePrivateAddress))
-            goto next;
         if (StringCompareSafe(packet->data, prefix, StringGetLength((const unsigned char *)prefix)) != 0)
             goto next;
 #endif
@@ -1077,24 +1065,22 @@ void _ReggiePrivateTickle(void)
         product = HashLookup(reply, "$PRODUCT", 0);
         if (product == 0)
             goto next;
-#ifdef MAC1010 /* 1.0.10 spelling */
         version = HashLookup(reply, "$VERSION", 0);
         if (version == 0)
             goto next;
 
+#ifdef MAC1010 /* 1.0.10 spelling */
         e = removed = 0;
+#else
+        e = 0;
+        removed = 0;
+#endif
         link = &gVersionList;
         while ((entry = *link) != 0) {
+#ifdef MAC1010 /* 1.0.10 spelling */
             e = StringCompare(product, entry->name);
             if (e == 0) {
 #else
-        if (HashLookup(reply, "$VERSION", 0) == 0)
-            goto next;
-
-        e = 0;
-        removed = 0;
-        link = &gVersionList;
-        while ((entry = *link) != 0) {
             if (StringCompare(product, (*link)->name) == 0) {
 #endif
                 if (entry->payload != 0)
@@ -1111,12 +1097,8 @@ void _ReggiePrivateTickle(void)
         }
         if (removed == 0)
             goto next;
-#ifdef MAC1010 /* 1.0.10 spelling */
         found = _ReggieVersionInsert(product, reply);
         if (found == 0) {
-#else
-        if (_ReggieVersionInsert(product, reply) == 0) {
-#endif
             err = kOutOfMemory;
             goto done;
         }

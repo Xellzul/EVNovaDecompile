@@ -213,15 +213,15 @@ int32_t PPAT_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
         err = kStreamOverrun;
         goto done;
     }
+#else
+    if (rec.map.left >= rec.map.right || rec.map.top >= rec.map.bottom ||
+        (rec.map.rowBytes & kRowBytesInvalid) != 0)
+        goto bad;
+#endif
     if (rec.map.pmTable > stream->size) {
         err = kStreamOverrun;
         goto done;
     }
-#else
-    if (rec.map.left >= rec.map.right || rec.map.top >= rec.map.bottom ||
-        (rec.map.rowBytes & kRowBytesInvalid) != 0 || rec.map.pmTable > stream->size)
-        goto bad;
-#endif
     if (rec.map.pmTable != 0 && rec.map.pmTable < stream->size) {
         stream->pos = rec.map.pmTable;
         e = _PICT_ReadColorTable(stream, &rec.table);

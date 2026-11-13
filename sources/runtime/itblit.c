@@ -1516,15 +1516,12 @@ int32_t DT_ImageCopy(ITImage *dst, const ITRect *dstRect, unsigned char copy, IT
     ITRect dr;
     ITRect sr;
     int32_t e;
-#ifdef MAC1010 /* 1.0.10 spelling */
     ULong height;
-    int32_t dstWidth, dstHeight;
-    ULong width;
-#else
-    ULong kind;
-    unsigned int dstWidth, dstHeight, srcWidth, srcHeight;
-    ULong height, width;
+    int dstWidth, dstHeight;
+#ifndef MAC1010
+    unsigned int srcWidth, srcHeight;
 #endif
+    ULong width;
     unsigned char *srcColumn;
     ITPixels *maskPixels;
     int32_t err;
@@ -1541,9 +1538,7 @@ int32_t DT_ImageCopy(ITImage *dst, const ITRect *dstRect, unsigned char copy, IT
     unsigned char dstLocked;
     unsigned char srcLocked;
     unsigned char *maskRow;
-#ifdef MAC1010 /* 1.0.10 spelling */
     ULong kind;
-#endif
 
     dstPixels = _DT_ImageGetImage(dst);
     srcPixels = _DT_ImageGetImage(src);

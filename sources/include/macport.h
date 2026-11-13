@@ -785,12 +785,8 @@ extern unsigned char *CtoPstr(char *str);
 #define everyEvent  0xffff
 #endif
 
-/* a byte pointer stepped as a long: MWCPPC takes no cast as an lvalue, and gcc and mwcc emit other code for the plain += */
-#ifdef MAC1010
-#define PtrAddBytes(p, n) ((p) += (n))
-#else
-#define PtrAddBytes(p, n) ((int32_t)(p) += (n))
-#endif
+/* a byte pointer stepped through a cast lvalue: gcc then keeps the pointer in its stack slot, which 1.1.1's bytes witness */
+#define PtrAddBytes(p, n) ((char *)(p) += (n))
 
 /* a registration key's check. `(k) << 4 >> 4` in one expression is an internal error in every MWCPPC held, so 1.0.10 shifts in statements, the expected value too. A revoked key has no top nibble, so want's is K's */
 #ifdef MAC1010

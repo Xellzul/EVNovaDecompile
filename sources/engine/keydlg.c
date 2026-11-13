@@ -209,7 +209,7 @@ Boolean KeyFilter(int32_t unused, EventRecord *ev, short *itemHit)
     short v;
     short h;
     int i;
-    int32_t code;
+    short code;
     short sel;
 
     SetDialogGWorld(keyDialog);
@@ -231,7 +231,7 @@ Boolean KeyFilter(int32_t unused, EventRecord *ev, short *itemHit)
         return 0;
     }
     code = FirstKeyDown();
-    if ((short)code != -1 && keyDialogSel != -1) {
+    if (code != -1 && keyDialogSel != -1) {
         newKeyPrefs[keyDialogSel] = code;
         sel = keyDialogSel;
         keyDialogSel = (keyDialogSel + 1) % kBindingCount;

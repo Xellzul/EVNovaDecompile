@@ -69,11 +69,7 @@ void BlitPixieRLETranslucent(unsigned char *rleTokens, unsigned char *dstPixel,
         case 2:
             BlitPixieTranslucentCopy(dstPixel, rleTokens, count);
             rleTokens += count;
-#if defined(MACBUILD) && V111
-            (int32_t)rleTokens += (-(int32_t)rleTokens) & 3;
-#else
-            rleTokens += (-(int32_t)rleTokens) & 3;
-#endif
+            (char *)rleTokens += (-(int32_t)rleTokens) & 3;
             dstPixel += count;
             break;
 

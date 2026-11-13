@@ -173,35 +173,19 @@ char GetToken(short *pos)
 // MAC: _EvalTestExp i386 0x00015cd4 ppc 0x00019968
 short EvalTestExp(short *pos)
 {
-#ifdef MAC1010 /* 1.0.10 spelling */
     short end;
+    short j;
+    short opens;
+    short closes;
     short count;
     short lastVal;
-    short j;
     short result;
-    short opens;
     Boolean negate;
-    short closes;
     char op;
     char c;
     short sub;
     short i;
     char tok;
-#else
-    short end;
-    short closes;
-    short count;
-    short j;
-    short opens;
-    char c;
-    short lastVal;
-    Boolean negate;
-    char op;
-    short result;
-    short sub;
-    short i;
-    char tok;
-#endif
 
     i = *pos;
     c = parseBuffer[*pos];

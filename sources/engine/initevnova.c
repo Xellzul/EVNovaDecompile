@@ -4407,14 +4407,9 @@ none:
 #define kEntryShove         50.0f
 #define kEntryDepth         (-999.0f)
 
-#if V111 /* V111 spelling */
-#define auxLeft j
-#define auxNum n
-#elif defined(MAC1010)
-#define auxLeft left
+#ifdef MACBUILD /* mac spelling */
 #define auxNum n
 #else
-#define auxLeft toSpawn
 #define auxNum count
 #endif
 
@@ -4437,6 +4432,7 @@ void EnterMoreShips(short sys)
     short count;
     short n;
     short i;
+    short left;
     short j;
     short toSpawn;
 #endif
@@ -4455,9 +4451,9 @@ void EnterMoreShips(short sys)
             if (currentMissions[i].auxShipDelay <= 0) {
                 if (currentMissions[i].auxShipDude != -1
                     && currentMissions[i].auxShipsSpawned < currentMissions[i].auxShipsLeft) {
-                    auxLeft = currentMissions[i].auxShipsLeft - currentMissions[i].auxShipsSpawned;
+                    left = currentMissions[i].auxShipsLeft - currentMissions[i].auxShipsSpawned;
                     if (ValidAuxShipSystem(shipData[0].curSystem, i)
-                        && auxLeft > 0) {
+                        && left > 0) {
                         dist = 0.0f;
                         for (step = kEntryStep; step > 0.0f;
                              step = step - kEntryStepDecay)
@@ -4465,7 +4461,7 @@ void EnterMoreShips(short sys)
                         heading = Rand(kEntryHeadings);
                         spot.x = spot.y = 0.0f;
                         Accel(heading, dist + kEntryRadius, &spot);
-                        for (auxNum = 0; auxNum < auxLeft; auxNum++) {
+                        for (auxNum = 0; auxNum < left; auxNum++) {
                             which = SpecificDudeSpawn(currentMissions[i].auxShipDude, sys,
                                                       kSpawnReserve, 0);
                             if (which != -1) {
@@ -5877,27 +5873,19 @@ short SpawnEscort(short shipType, short fromSpob)
 void DoEscortLand(void)
 {
 #ifdef MAC1010
-    short i;
-    short numSold;
-    short numUpgraded;
-    int32_t saleValue;
-    int32_t upgradeCost;
     int32_t total;
     short days;
-    short type;
-    short j;
 #else
-    short j;
+    short days;
+    int32_t total;
+#endif
     short i;
     short numSold;
     short numUpgraded;
-    short type;
-    short days;
-    int32_t total;
-    short k;
     int32_t saleValue;
     int32_t upgradeCost;
-#endif
+    short type;
+    short j;
 
     numUpgraded = 0;
     numSold = 0;
@@ -6001,11 +5989,7 @@ void DoEscortLand(void)
                 crashlog_print(" days for upgrade/sale of ");
                 crashlog_print_num(total);
                 crashlog_print(" escorts\n");
-#ifdef MAC1010
                 for (i = 0; i < days; i++)
-#else
-                for (k = 0; k < days; k++)
-#endif
                     IncrementGameTime();
             }
         }
@@ -7510,24 +7494,20 @@ void CheckForPiratedCodes(void)
 #endif
     for (i = 0; i < kBlacklistCount; i++) {
         code = RT3_GetLicenseCode();
-        code <<= 4;
 #ifdef MAC1010 /* 1.0.10 spelling */
         k = *(unsigned long long *)&keys.key[i];
 #else
         k = keys.key[i];
 #endif
         k <<= 4;
-#if V111 /* V111 spelling */
-        if ((k >> 4) == (code >> 4)) {
-#else
         k >>= 4;
+        code <<= 4;
         code >>= 4;
         if (k == code) {
 #ifdef MAC1010
             {
                 unsigned long long sum = k + code; /* 1.0.10 pad: the masked halves read past the compare, so none takes r0 */
             }
-#endif
 #endif
             FadeScreenIn();
             ShowTheCursor();

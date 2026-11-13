@@ -1337,22 +1337,18 @@ done:
 // FUNCTION: EVNOVA 0x0051b060
 int32_t _IT_ViewHandleKey(WindowNode *window, const ITKeyEvent *key, ITClick *click)
 {
-    int32_t err;
-    int32_t e;
     unsigned char ok;
     unsigned char isChild;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     ok = 0;
     MemoryClear(click, sizeof(ITClick));
-#ifdef MAC1010 /* 1.0.10 spelling */
-    isChild = window->parent != 0;
-#else
     if (window->parent != 0)
         isChild = true;
     else
         isChild = false;
-#endif
     ok = isChild;
     if (window->controls != 0) {
         e = _IT_ItemListHandleKey(window, window->controls, key, click);
@@ -1460,22 +1456,18 @@ done:
 // FUNCTION: EVNOVA 0x0051b1b1
 int32_t _IT_ViewHandleClick(WindowNode *window, ITInputEvent *event, ITClick *click)
 {
-    int32_t err;
-    int32_t e;
     unsigned char ok;
     unsigned char isChild;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     ok = 0;
     MemoryClear(click, sizeof(ITClick));
-#ifdef MAC1010 /* 1.0.10 spelling */
-    isChild = window->parent != 0;
-#else
     if (window->parent != 0)
         isChild = true;
     else
         isChild = false;
-#endif
     ok = isChild;
     if (window->controls != 0) {
         e = _IT_ItemListHandleClick(window, window->controls, (ULong)event, click);

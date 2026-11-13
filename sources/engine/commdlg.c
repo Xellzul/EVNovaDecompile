@@ -256,7 +256,7 @@ void DoCommDialog(short shipIndex)
         canAskHelp = 1;
     commDialogMode = 0;
     commBackgroundPic = GetPicture(kCommPictID2);
-    FlushEvents(1, 0);
+    FlushEvents(1, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
     FlushEvents(2, 0);
     FlushEvents(3, 0);
     FlushEvents(4, 0);
@@ -798,7 +798,7 @@ void DoPlanetCommDialog(short stellar)
         LoadResponse(2);
     commDialogMode = 1;
     commBackgroundPic = GetPicture(kCommPictID);
-    FlushEvents(1, 0);
+    FlushEvents(1, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
     FlushEvents(2, 0);
     FlushEvents(3, 0);
     FlushEvents(4, 0);
@@ -1009,10 +1009,7 @@ Boolean PlanetCommFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Point where;
     short button;
-#if V111
-    short key;
-#else
-    EventChar key;
+#ifndef V111
     int what;
 #endif
 
@@ -1023,6 +1020,8 @@ Boolean PlanetCommFilter(int32_t unused, EventRecord *ev, short *itemHit)
     if (what == kKeyDown) {
 #endif
 #if V111
+        short key;
+
         key = (ev->message & kKeyCodeMask) >> 8;
         if (key == kReturnKeyCode || key == kEnterKeyCode || key == kEKeyCode
             || key == kEscapeKeyCode) {
@@ -1043,6 +1042,8 @@ Boolean PlanetCommFilter(int32_t unused, EventRecord *ev, short *itemHit)
         }
         if (key == kDKeyCode || key == kTKeyCode) {
 #else
+        EventChar key;
+
         key = EventCharOf(ev);
         key = tolower(key);
         if (IsReturnChar(key) || key == 'e' || key == kEscapeChar) {
@@ -2621,7 +2622,7 @@ void DoEscortDialog(ShipObj *ship)
 
     SelectWindow(FrontWindow(commDialog));
     BringToFront(FrontWindow(commDialog));
-    FlushEvents(1, 0);
+    FlushEvents(1, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
     FlushEvents(2, 0);
     FlushEvents(3, 0);
     FlushEvents(4, 0);
@@ -2702,17 +2703,13 @@ Boolean EscortFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Point where;
     short button;
-#if V111
-    short key;
-#else
-    EventChar c;
-    EventChar key;
-#endif
     int what;
 
     what = ev->what;
     if (what == kKeyDown) {
 #if V111
+        short key;
+
         key = (ev->message & kKeyCodeMask) >> 8;
         if (key == kReturnKeyCode || key == kEnterKeyCode || key == kEscapeKeyCode) {
             *itemHit = 1;
@@ -2735,6 +2732,9 @@ Boolean EscortFilter(int32_t unused, EventRecord *ev, short *itemHit)
             return 1;
         }
 #else
+        EventChar c;
+        EventChar key;
+
         c = EventCharOf(ev);
         if (IsReturnChar(c) || c == kEscapeChar) {
             *itemHit = 1;

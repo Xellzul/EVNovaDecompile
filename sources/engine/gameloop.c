@@ -3506,17 +3506,12 @@ void HandleShip(ShipObj *ship)
 
     if (ship->jumpTimer > 0.0f) {
         if (!IsDisabled(ship) && gameFrozen == 0) {
-#ifdef MAC1010 /* 1.0.10 spelling */
-            v = ShipTurnRate(ship);
-            if (abs(AngularDifference(ship->heading, ship->desiredHeading)) <= v) {
-#else
-#ifdef V111 /* V111 spelling */
-            inRange = abs(AngularDifference(ship->heading, ship->desiredHeading))
-                      <= ShipTurnRate(ship);
+#ifdef MACBUILD
+            if (abs(AngularDifference(ship->heading, ship->desiredHeading))
+                    <= ShipTurnRate(ship)) {
 #else
             turnRate = ShipTurnRate(ship);
             inRange = abs(AngularDifference(ship->heading, ship->desiredHeading)) <= turnRate;
-#endif
             if (inRange) {
 #endif
                 if (AIIsShipJumping(ship)) {
@@ -3557,20 +3552,6 @@ void HandleShip(ShipObj *ship)
         if (ship->thrust != 0.0) {
             if (ship->speedLimit == 0.0) {
                 if (ship->jumpTimer <= 0.0f) {
-#ifdef MAC1010
-                    v = ShipMaxSpeed(ship);
-                    if (ShipIsInertialess(ship)) {
-                        ship->accelMag += ship->thrust * gSpeedMult;
-                        if (ship->accelMag > v)
-                            ship->accelMag = v;
-                        if (ship->accelMag < 0.0)
-                            ship->accelMag = 0;
-                    } else {
-                        AdjustedAccel(ship->heading,
-                                     ship->thrust * gSpeedMult,
-                                     &ship->vel, v);
-                    }
-#else
                     maxSpeed = ShipMaxSpeed(ship);
                     if (ShipIsInertialess(ship)) {
                         ship->accelMag += ship->thrust * gSpeedMult;
@@ -3583,20 +3564,19 @@ void HandleShip(ShipObj *ship)
                                      ship->thrust * gSpeedMult,
                                      &ship->vel, maxSpeed);
                     }
-#endif
                 }
             } else if (ship->speedLimit > 0.0) {
-                v = (float)ship->speedLimit;
+                maxSpeed = (float)ship->speedLimit;
                 if (ShipIsInertialess(ship)) {
                     ship->accelMag += ship->thrust * gSpeedMult;
-                    if (ship->accelMag > v)
-                        ship->accelMag = v;
+                    if (ship->accelMag > maxSpeed)
+                        ship->accelMag = maxSpeed;
                     if (ship->accelMag < 0.0)
                         ship->accelMag = 0;
                 } else {
                     AdjustedAccel(ship->heading,
                                  ship->thrust * gSpeedMult,
-                                 &ship->vel, v);
+                                 &ship->vel, maxSpeed);
                 }
             } else {
                 if (ShipIsInertialess(ship)) {

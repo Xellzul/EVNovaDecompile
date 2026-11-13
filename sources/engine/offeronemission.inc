@@ -311,7 +311,7 @@
         MyModalDialog(missionDialog, SingleMissionFilter, &itemHit, 0);
         if (canRefuseMission != 0) {
             if (itemHit == kItemAccept) {
-                FlushEvents(3, 0);
+                FlushEvents(3, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
                 FlushEvents(5, 0);
                 FlushEvents(1, 0);
                 FlushEvents(2, 0);
@@ -351,7 +351,7 @@
                 done = 1;
             }
         } else if (itemHit == kItemAccept || itemHit == kItemRefuse) {
-            FlushEvents(3, 0);
+            FlushEvents(3, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
             FlushEvents(5, 0);
             FlushEvents(1, 0);
             FlushEvents(2, 0);
@@ -362,7 +362,7 @@
             done = 1;
         }
         if (itemHit == kBriefItemMap) {
-            FlushEvents(3, 0);
+            FlushEvents(3, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
             FlushEvents(5, 0);
             FlushEvents(1, 0);
             FlushEvents(2, 0);
@@ -394,7 +394,7 @@
             RedrawDialog(missionDialog);
         }
         if (itemHit == kBriefItemPlayerInfo) {
-            FlushEvents(3, 0);
+            FlushEvents(3, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
             FlushEvents(5, 0);
             FlushEvents(1, 0);
             FlushEvents(2, 0);
@@ -416,7 +416,7 @@
                 }
             }
             if (widest > 0) {
-                FlushEvents(3, 0);
+                FlushEvents(3, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
                 FlushEvents(5, 0);
                 FlushEvents(1, 0);
                 FlushEvents(2, 0);

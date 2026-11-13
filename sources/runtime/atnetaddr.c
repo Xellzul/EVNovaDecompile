@@ -22,20 +22,14 @@
 // FUNCTION: EVNOVA 0x0052917a
 Word16 AddressToNetworkStack(const NetAddress *a)
 {
-#ifdef MAC1010
-    int32_t family;
-#else
-    long long family;
-#endif
     int32_t err, e;
     Word16 result;
 
     e = err = 0;
     result = 0;
-    family = a->family & kNetFamilyMask;
-    if (family == kNetFamilyInet)
+    if ((a->family & kNetFamilyMask) == kNetFamilyInet)
         result = 0;
-    else if (family == kNetFamilyIPX)
+    else if ((a->family & kNetFamilyMask) == kNetFamilyIPX)
         result = 1;
     return result;
 }

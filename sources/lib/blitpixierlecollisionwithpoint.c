@@ -61,11 +61,7 @@ Boolean BlitPixieRLECollisionWithPoint(unsigned char *rleData, Point *pt, Rect *
                 return 1;
 
             rleData += count;
-#if defined(MACBUILD) && V111
-            (int32_t)rleData += (-(int32_t)rleData) & 3;
-#else
-            rleData += (-(int32_t)rleData) & 3;
-#endif
+            (char *)rleData += (-(int32_t)rleData) & 3;
             break;
 
         case 3:

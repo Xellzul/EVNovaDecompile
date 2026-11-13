@@ -20,19 +20,10 @@ void BlitPixieMask(unsigned char *srcPixels, unsigned char *dstPixels,
     dstRowBytes -= byteWidth;
 
     while (numRows--) {
-#ifdef MACBUILD /* mac spelling */
-        for (i = 0; i < byteWidth; dstPixels++, i++, srcPixels++, maskPixels++) {
-            *dstPixels = (*dstPixels & *maskPixels) | *srcPixels;
-        }
-#else
         for (i = 0; i < byteWidth; i++) {
-            *dstPixels = (*dstPixels & *maskPixels) | *srcPixels;
-
-            maskPixels++;
-            srcPixels++;
+            *dstPixels = (*dstPixels & *maskPixels++) | *srcPixels++;
             dstPixels++;
         }
-#endif
 
         srcPixels += srcRowBytes;
         dstPixels += dstRowBytes;

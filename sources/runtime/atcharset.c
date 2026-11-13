@@ -50,7 +50,6 @@ typedef struct CharsetInfo {
 #define kHasWin             0x02
 #define kHasIso             0x04
 #define kWinHasMac          0x40
-#define kSetBits            0xbf                 /* every flag but kWinHasMac */
 #define kNonAscii           0xff80
 #define kHighStart          0xa0
 
@@ -379,7 +378,7 @@ AT_STATIC int32_t _EncodingPreflightMappings(struct HashTable *table)
     MemoryClear(gUnicodeMappings, sizeof(gUnicodeMappings));
     gUnicodeMappingCount = 0;
 
-    entry.unicode = (short)gTextMappingSubstitute;
+    entry.unicode = gTextMappingSubstitute;
     entry.iso = gTextMappingSubstitute;
     entry.win = gTextMappingSubstitute;
     entry.mac = gTextMappingSubstitute;
@@ -400,11 +399,7 @@ AT_STATIC int32_t _EncodingPreflightMappings(struct HashTable *table)
         gTextMappingsFlags[i] = 0xff;
     }
     for (i = 0x80; i < 0x100; i = i + 1) {
-#ifdef MAC1010 /* 1.0.10 spelling */
         entry.unicode = gTextMappingSubstitute;
-#else
-        entry.unicode = (short)gTextMappingSubstitute;
-#endif
         entry.iso = gTextMappingSubstitute;
         entry.win = gTextMappingSubstitute;
         entry.mac = gTextMappingSubstitute;
@@ -791,23 +786,16 @@ ULong _IndirectGetEncoding(void **handle, char *nameOut, ULong *kindOut, ULong *
             else
                 kind = kKindText;
             if (tag == kNoLength) {
-#ifdef MAC1010 /* 1.0.10 spelling */
-                set = flags & ~kWinHasMac;
-                if (set == (kHasWin | kHasIso)) {
+                if ((set = flags, set &= ~kWinHasMac) == (kHasWin | kHasIso)) {
                     guess = "ISO-8859-1";
                     tag = kTagIso;
-                } else if (set == kHasWin) {
+                } else if ((set = flags, set &= ~kWinHasMac) == kHasWin) {
                     guess = "Windows-1252";
                     tag = kTagWin;
+#ifdef MAC1010 /* 1.0.10 spelling */
                 } else if (set == kHasMac) {
 #else
-                if ((set = flags, set &= kSetBits) == (kHasWin | kHasIso)) {
-                    guess = "ISO-8859-1";
-                    tag = kTagIso;
-                } else if ((set = flags, set &= kSetBits) == kHasWin) {
-                    guess = "Windows-1252";
-                    tag = kTagWin;
-                } else if ((flags &= kSetBits) == kHasMac) {
+                } else if ((flags &= ~kWinHasMac) == kHasMac) {
 #endif
                     guess = "MacRoman";
                     tag = kTagMac;

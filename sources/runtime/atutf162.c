@@ -268,36 +268,28 @@ unsigned short *unicode_strpbrk(const unsigned short *s, const unsigned short *s
 // FUNCTION: EVNOVA 0x0052c56c
 ULong _unicode_tocase(ULong c, const FoldRange *table, ULong n)
 {
+    ULong lo;
+    ULong first;
+    unsigned char count;
+    unsigned char stride;
+    short delta;
 #ifdef MAC1010 /* 1.0.10 spelling */
     int32_t info;
-    ULong first;
-    unsigned char count;
-    unsigned char stride;
-    short delta;
     const FoldRange *range;
-    ULong mid;
-    ULong hi;
-    ULong lo;
 #else
-    ULong lo;
-    ULong hi;
-    ULong mid;
-    ULong first;
-    int32_t found;
-    unsigned char count;
-    unsigned char stride;
-    short delta;
     unsigned short info;
 #endif
+    ULong mid;
+    ULong hi;
 
     if ((c >= 0x2500 && c <= 0xfeff) || (c >= 0x600 && c <= 0x1dff) ||
         (c >= 0x2000 && c <= 0x20ff) || (c >= 0x2200 && c <= 0x23ff))
         return c;
     lo = 0;
     hi = n - 1;
-#ifdef MAC1010 /* 1.0.10 spelling */
     for (mid = -1; lo <= hi; mid = -1) {
         mid = (lo + hi) >> 1;
+#ifdef MAC1010 /* 1.0.10 spelling */
         range = &table[mid];
         first = range->first;
         if (c < first) {
@@ -305,13 +297,21 @@ ULong _unicode_tocase(ULong c, const FoldRange *table, ULong n)
             continue;
         }
         info = range->info;
+#else
+        first = table[mid].first;
+        if (c < first) {
+            hi = mid - 1;
+            continue;
+        }
+        info = table[mid].info;
+#endif
         count = info >> 8;
         if (c > first + count) {
             lo = mid + 1;
             continue;
         }
         stride = info;
-        delta = range->delta;
+        delta = table[mid].delta;
         break;
     }
     if (mid == -1) {
@@ -329,52 +329,14 @@ ULong _unicode_tocase(ULong c, const FoldRange *table, ULong n)
         if (c >= first && c <= first + count)
             mid = 0;
     }
-    if (mid == -1)
-        return c;
-    if (count == 0)
-        return c + delta;
-    return (c - first) % stride != 0 ? c : c + delta;
-#else
-    while (found = -1, lo <= hi) {
-        mid = (lo + hi) >> 1;
-        first = table[mid].first;
-        if (c < first) {
-            hi = mid - 1;
-            continue;
-        }
-        info = table[mid].info;
-        count = info >> 8;
-        if (c > first + count) {
-            lo = mid + 1;
-            continue;
-        }
-        stride = info;
-        delta = table[mid].delta;
-        found = mid;
-        break;
-    }
-    if (found == -1) {
-        if (table == kUpperRanges) {
-            first = kDeseretLower;
-            count = kDeseretCount;
-            stride = 1;
-            delta = -kDeseretDelta;
-        } else {
-            first = kDeseretUpper;
-            count = kDeseretCount;
-            stride = 1;
-            delta = kDeseretDelta;
-        }
-        if (c >= first && c <= first + count)
-            found = 0;
-    }
-    if (found != -1) {
-        if (count != 0 && (c - first) % stride != 0)
+    if (mid != -1) {
+        if (count == 0)
+            return c + delta;
+        if ((c - first) % stride != 0)
             return c;
         return c + delta;
     }
     return c;
-#endif
 }
 
 /* unicode_toupper. STATE: MATCH, byte-identical. OPEN: none */

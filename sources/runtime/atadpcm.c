@@ -139,7 +139,6 @@ unsigned char ADPCM_Mixer(ULong *data, short **out, ULong frames,
                            ULong step, AdpcmVoice *voice,
                            unsigned short left, unsigned short right)
 {
-    int32_t inc;
     short *dst;
     int32_t vpdiff;
     int32_t stepsize;
@@ -215,13 +214,7 @@ unsigned char ADPCM_Mixer(ULong *data, short **out, ULong frames,
             vpdiff = valprev * left >> kLevelShift;
             r = (valprev * right) >> kLevelShift;
             if (dst != 0) {
-#ifdef MAC1010 /* 1.0.10 spelling */
-                delta = kFracOne / delta;
-                for (stepsize = delta; stepsize <= kFracOne; stepsize += delta) {
-#else
-                inc = kFracOne / delta;
-                for (stepsize = inc; stepsize <= kFracOne; stepsize += inc) {
-#endif
+                for (stepsize = kFracOne / delta; stepsize <= kFracOne; stepsize += kFracOne / delta) {
                     s = (((vpdiff - lastL) * stepsize) >> 8) + lastL;
                     s += dst[0];
                     if (s < -32768)
@@ -241,13 +234,7 @@ unsigned char ADPCM_Mixer(ULong *data, short **out, ULong frames,
                         goto finished;
                 }
             } else {
-#ifdef MAC1010 /* 1.0.10 spelling */
-                delta = kFracOne / delta;
-                for (inc = delta; inc <= kFracOne; inc += delta) {
-#else
-                inc = kFracOne / delta;
-                for (stepsize = inc; stepsize <= kFracOne; stepsize += inc) {
-#endif
+                for (stepsize = kFracOne / delta; stepsize <= kFracOne; stepsize += kFracOne / delta) {
                     if (--frames == 0)
                         goto finished;
                 }

@@ -381,22 +381,13 @@ int32_t PT_ParseTreeLoad(void **text, const char *rawTags, const char *emptyTags
     const char *mark;
     const char *pos;
     const char *end;
-#ifdef MAC1010 /* 1.0.10 spelling */
-    const unsigned short *next;
-#endif
-    const unsigned short *u;
     ITElement *node;
     unsigned char isTag;
     unsigned char isNamed;
     unsigned char isOpen;
-    ULong size;
-    ULong i;
     ULong n;
     ULong last;
     ULong limit;
-#ifndef MAC1010
-    const unsigned short *next;
-#endif
     ITElement *e;
     ITElement *tree;
     char c;
@@ -477,7 +468,11 @@ int32_t PT_ParseTreeLoad(void **text, const char *rawTags, const char *emptyTags
         }
     }
     if (wide) {
+        const unsigned short *next;
+        ULong i;
+        ULong size;
         ULong step;
+        const unsigned short *u;
 
         next = *text;
         u = *text;

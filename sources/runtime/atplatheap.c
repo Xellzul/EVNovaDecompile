@@ -738,17 +738,9 @@ int32_t IndirectReplaceData(void **handle, const void *data, ULong length)
 int32_t IndirectSpliceData(void **handle, ULong offset, ULong oldLength, const void *data,
                   ULong newLength)
 {
-#ifdef MAC1010 /* 1.0.10 spelling */
-    ULong end;
     int32_t err, e;
     ULong size;
     ULong len;
-#else
-    int32_t err, e;
-    ULong size;
-    ULong end;
-    ULong len;
-#endif
 
     err = 0;
     SystemCheckCallback();
@@ -760,8 +752,7 @@ int32_t IndirectSpliceData(void **handle, ULong offset, ULong oldLength, const v
     }
     size = IndirectGetSize(handle);
     len = newLength;
-    end = offset + oldLength;
-    if (end > size) {
+    if (offset + oldLength > size) {
         err = kBadArgument;
         goto done;
     }
@@ -773,7 +764,7 @@ int32_t IndirectSpliceData(void **handle, ULong offset, ULong oldLength, const v
         }
     }
     MemoryMove((char *)*handle + offset + newLength,
-                 (char *)*handle + offset + oldLength, size - end);
+                 (char *)*handle + offset + oldLength, size - (offset + oldLength));
     MemoryCopy((char *)*handle + offset, data, newLength);
     if (oldLength > newLength) {
         e = IndirectSetSize(handle, size + newLength - oldLength);

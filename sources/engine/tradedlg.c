@@ -659,7 +659,6 @@ void TradeDialogUpdate(void)
     Boolean junkSeen[kMaxJunks];
     short junkSlots;
     short k;
-    int32_t row;
     Rect insetBox;
     unsigned char num[256];
     char message[255];
@@ -685,7 +684,6 @@ void TradeDialogUpdate(void)
     Boolean junkSeen[kMaxJunks];
     short junkSlots;
     short k;
-    int32_t row;
     Rect insetBox;
     unsigned char num[256];
     char text[2048];
@@ -709,7 +707,6 @@ void TradeDialogUpdate(void)
     Boolean seen[kMaxCargo];
     short junkSlots;
     short k;
-    int32_t row;
     Rect insetBox;
     unsigned char num[256];
     Rect box;
@@ -765,12 +762,7 @@ void TradeDialogUpdate(void)
     }
 
     for (i = 0; i <= kLastRow; i++) {
-#ifdef MAC1010
-        GetDialogItem(tradeDialog, i + kFirstRowItem, &itemType, &item, &box);
-#else
-        row = i;
-        GetDialogItem(tradeDialog, row + kFirstRowItem, &itemType, (Handle *)&item, &box);
-#endif
+        GetDialogItem(tradeDialog, i + kFirstRowItem, &itemType, (Handle *)&item, &box);
         if (RectInRgn(&box, GetWindowVisRgn(FrontWindow(tradeDialog)))) {
             insetBox = box;
             InsetRect(&insetBox, 1, 1);
@@ -795,12 +787,7 @@ void TradeDialogUpdate(void)
                 LineTo((box.right - 1), (box.bottom - 1));
             }
 
-#ifdef MAC1010
-            row = i;
-            if (tradePrice[row] != 0) {
-#else
             if (tradePrice[i] != 0) {
-#endif
                 RGBForeColor((RGBColor *)&ldefColors[0]);
                 if (i <= kLastCommodity) {
 #ifdef CEFIX /* F12.49 */
@@ -808,13 +795,8 @@ void TradeDialogUpdate(void)
 #else
                     MoveTo((box.left + 7), (box.top + 10));
 #endif
-#ifdef MAC1010
-                    DrawString(cargoName[row]);
-                    qty = shipData->cargo[row];
-#else
                     DrawString(cargoName[i]);
                     qty = shipData->cargo[i];
-#endif
                     if (qty > 0) {
                         NumToString(qty, (StringPtr)text);
 #ifdef CEFIX /* F12.50 */
@@ -827,24 +809,14 @@ void TradeDialogUpdate(void)
 #endif
                         DrawString((StringPtr)text);
                     }
-#ifdef MAC1010
                 } else if (junkType[i - kFirstJunkItem] != -1) {
-#else
-                } else if (junkType[(int)row - kFirstJunkItem] != -1) {
-                    int junkIdx = row - kFirstJunkItem;
-#endif
 #ifdef CEFIX /* F12.45 */
                     CE_SetPen(box.left + CE_Scale(6), box.top + CE_Scale(10));
 #else
                     MoveTo((box.left + 6), (box.top + 10));
 #endif
-#ifdef MAC1010
                     DrawString(junkData[junkType[i - kFirstJunkItem]].name);
                     qty = junkData[junkType[i - kFirstJunkItem]].held;
-#else
-                    DrawString(junkData[junkType[junkIdx]].name);
-                    qty = junkData[junkType[junkIdx]].held;
-#endif
                     if (qty > 0) {
                         NumToString(qty, (StringPtr)text);
 #ifdef CEFIX /* F12.46 */
@@ -879,23 +851,13 @@ void TradeDialogUpdate(void)
                 }
                 if (!found) {
                     if (i <= kLastCommodity) {
-#ifdef MAC1010
-                        if (portDemand[row] == kPortShortage)
-                            DrawIndString(kGameStrList, 0xc9);
-                        if (portDemand[row] == kPortSurplus)
-                            DrawIndString(kGameStrList, 0xca);
-                        if (portDemand[row] == kPortEmbargo)
-                            DrawIndString(kGameStrList, 0xcb);
-                    } else if (junkType[i - kFirstJunkItem] != -1) {
-#else
                         if (portDemand[i] == kPortShortage)
                             DrawIndString(kGameStrList, 0xc9);
                         if (portDemand[i] == kPortSurplus)
                             DrawIndString(kGameStrList, 0xca);
                         if (portDemand[i] == kPortEmbargo)
                             DrawIndString(kGameStrList, 0xcb);
-                    } else if (junkType[(int)row - kFirstJunkItem] != -1) {
-#endif
+                    } else if (junkType[i - kFirstJunkItem] != -1) {
                         if (i == kFirstJunkItem)
                             DrawIndString(kGameStrList, 0xcb);
                         if (i == kLastRow)
@@ -903,11 +865,7 @@ void TradeDialogUpdate(void)
                     }
                 }
 
-#ifdef MAC1010
-                NumToString(tradePrice[row], (StringPtr)text);
-#else
-                NumToString(tradePrice[i], text);
-#endif
+                NumToString(tradePrice[i], (StringPtr)text);
 #ifdef CEFIX /* F12.48 */
                 CE_SetPen(box.right - (StringWidth((StringPtr)text) + CE_Scale(10)),
                           box.top + CE_Scale(10));
@@ -5088,10 +5046,8 @@ Boolean ShipDescFilter(int32_t unused, EventRecord *ev, short *itemHit)
 // MAC: _ShipDescDialogUpdate i386 0x0004f915 ppc 0x00058710
 void ShipDescDialogUpdate(void)
 {
-#ifdef MACBUILD
     short numWeapTypes;
     short drawn;
-    short itemType;
     short sel;
     Rect box;
     Boolean hasPict;
@@ -5099,28 +5055,11 @@ void ShipDescDialogUpdate(void)
     unsigned char buf[256];
     Rect box2;
     Handle item;
-    short i;
-    short j;
-    int32_t freeMass;
-    int32_t mass;
-#else
-    int32_t drawn;
-    int32_t numWeapTypes;
     short itemType;
-    short sel;
-    int32_t lineV;
-    Rect box2;
-    Boolean hasPict;
-    char line[1024];
-    unsigned char buf[256];
-    Rect box;
-    Handle item;
     short i;
     short j;
-    short jumps;
     int32_t freeMass;
     int32_t mass;
-#endif
 
     SetGWorldContainer(&loadPort);
     ForeColor(blackColor);
@@ -5343,19 +5282,11 @@ void ShipDescDialogUpdate(void)
         if (shipClass[sel].fuel == 0)
             DrawIndString(kGameStrList, 335);
         else {
-#ifdef MACBUILD
             numWeapTypes = shipClass[sel].fuel / 100;
             NumToString(numWeapTypes, buf);
             DrawString(buf);
             DrawString("\p ");
             if (numWeapTypes == 1)
-#else
-            jumps = shipClass[sel].fuel / 100;
-            NumToString(jumps, buf);
-            DrawString(buf);
-            DrawString("\p ");
-            if (jumps == 1)
-#endif
                 DrawIndString(kGameStrList, 239);
             else
                 DrawIndString(kGameStrList, 240);
@@ -5366,7 +5297,7 @@ void ShipDescDialogUpdate(void)
             if (shipClass[sel].weapCount[i] > 0)
                 numWeapTypes++;
         }
-        if ((short)numWeapTypes == 0) {
+        if (numWeapTypes == 0) {
             ForeColor(whiteColor);
             if (hasPict) {
                 GetDialogItem(shipDescDialog, 8, &itemType, &item, &box2);
@@ -5465,8 +5396,8 @@ void ShipDescDialogUpdate(void)
                                 DrawString("\ps");
                         }
                     }
-                    if (hasPict && (short)numWeapTypes > 1
-                        && (short)drawn < (short)numWeapTypes - 1)
+                    if (hasPict && numWeapTypes > 1
+                        && drawn < numWeapTypes - 1)
                         strcat(line, ", ");
                     drawn++;
                 }
