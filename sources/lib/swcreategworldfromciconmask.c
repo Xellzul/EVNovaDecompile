@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* swcreategworldfromciconmask.c -- SWCreateGWorldFromCIconMask (win 0x00479070, donor SpriteWorldUtils.c line 444). Notes: Research/notes/swcreategworldfromciconmask.md */
 #include "macport.h"
 #include "shipobj.h"
@@ -140,7 +140,7 @@ short SWCreateGWorldFromCIconMask(SpriteWorldPtr destSpriteWorld,
         srcSkip = cIconH->RowBytes - cIconH->Width;
 
         maskPix = GetCWindowPixMap(tempGWorldP);
-        dst = GetPixBaseAddr(maskPix);
+        dst = (unsigned short *)GetPixBaseAddr(maskPix);
 
         pixBounds = GetGWorldPixMap((CGrafPtr)maskPix);
         dstSkip = GetPixRowBytes(maskPix)

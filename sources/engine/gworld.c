@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* gworld.c -- the GWorldContainer wrapper around an offscreen drawing world (win TU region 0x0046f740..0x0046f95a). Notes: Research/notes/gworld.md */
 #include "macport.h"
 #include "render.h"
@@ -8,8 +8,8 @@
 CGrafPtr prevGWorld;
 GDHandle prevGDevice;
 #else
-static void *savedDevice;
 static CGrafPtr savedPort;
+static void *savedDevice;
 #endif
 
 

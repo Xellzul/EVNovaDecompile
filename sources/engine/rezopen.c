@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* rezopen.c -- open a BurgerLib REZ container, parse its "resource.map" entry into resmgr.c's RezFile/RezTypeEntry/ResRecord layout, and link it into gRezFiles (win 0x004ce4d0). Notes: Research/notes/rezopen.md */
 /* This file adds the raw, still-big-endian counterparts the map's bytes are
    read as before SwapEndianShort/Long convert them in place; every struct and
@@ -65,22 +65,22 @@ short EVOpenResourceFile(void *path)
     RawRezMap *map;
 
     if (gRezFiles == NULL)
-        gRezFiles = LinkedListNew();
+        gRezFiles = (ListRec *)LinkedListNew();
 
-    rez = AllocAPointer(sizeof(RezFile));
-    if (ResourceInit(rez, path, 0) != 0)
+    rez = (RezFile *)AllocAPointer(sizeof(RezFile));
+    if (ResourceInit(rez, (const char *)path, 0) != 0)
         goto fail;
 
     mapData = ResourceLoadByName(rez, "resource.map");
     if (mapData == NULL)
         goto closeFail;
 
-    map = mapData;
+    map = (RawRezMap *)mapData;
     if (map->typeCount != 0) {
         rawType = (RawTypeEntry *)((char *)mapData + SwapEndianLong(map->typeListOffset));
         typeCount = SwapEndianLong(map->typeCount);
         rez->typeCount = typeCount;
-        rez->types = AllocAPointer(rez->typeCount * sizeof(RezTypeEntry));
+        rez->types = (RezTypeEntry *)AllocAPointer(rez->typeCount * sizeof(RezTypeEntry));
 
         type = rez->types;
         do {
@@ -90,7 +90,7 @@ short EVOpenResourceFile(void *path)
                 entryCount = SwapEndianLong(rawType->count);
                 type->type = SwapEndianLong(rawType->type);
                 type->count = entryCount;
-                type->first = AllocAPointer(type->count * sizeof(ResRecord));
+                type->first = (ResRecord *)AllocAPointer(type->count * sizeof(ResRecord));
 
                 record = type->first;
                 do {

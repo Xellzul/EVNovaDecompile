@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixierle.c -- BlitPixieRLE (win 0x00471e10). Notes: Research/notes/blitpixierle.md */
 #include "macport.h"
 #include "shipobj.h"

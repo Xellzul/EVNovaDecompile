@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* rectfill.c -- FillRectWithColor (win 0x004b6a10): clip a Rect to the current port and fill it with an RGBColor. Notes: Research/notes/rectfill.md */
 #include <stddef.h>
 

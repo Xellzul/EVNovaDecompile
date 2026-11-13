@@ -1,7 +1,9 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixietranslucentclearcopy8.c -- BlitPixieTranslucentClearCopy8 (win 0x00473dc0). Notes: Research/notes/blitpixietranslucentclearcopy8.md */
 #include "macport.h"
 #include "shipobj.h"
+
+EXTERN_C_BEGIN
 
 /* BlitPixieTranslucentClearCopy8 (mac _BlitPixieTranslucentClearCopy8). STATE: MATCH, byte-identical. OPEN: none. */
 // FUNCTION: EVNOVA 0x00473dc0
@@ -26,3 +28,5 @@ void BlitPixieTranslucentClearCopy8(unsigned char *dstPixels,
         s++;
     }
 }
+
+EXTERN_C_END

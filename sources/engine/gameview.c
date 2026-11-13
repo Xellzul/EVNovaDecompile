@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* gameview.c -- centre the 640x480 play area in the window (win 0x00486790). Notes: Research/notes/gameview.md */
 #include <stddef.h>
 

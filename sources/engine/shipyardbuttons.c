@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* shipyardbuttons.c -- the head of the buttons TU (win 0x0049eef0..0x0049fbb0), the three Draw/Track button pairs buttons.c does not yet carry: the map, the shipyard and the outfitter. Notes: Research/notes/shipyardbuttons.md */
 #include "macport.h"
 #include "gameconst.h"

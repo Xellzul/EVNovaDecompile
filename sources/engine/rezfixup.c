@@ -1,9 +1,11 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* rezfixup.c -- post-load fixup for one resource body (win 0x004ce700, neighbour of rezopen.c). Notes: Research/notes/rezfixup.md */
 #include "macport.h"
 #include "resources.h"
 #include "gameutil.h"
 #include "burger.h"
+
+EXTERN_C_BEGIN
 
 /* The 25 endian-swap descriptor streams endianswap.c's SwapEndianByDescriptor walks --
    see Research/data-global-initializers.md rows 13-37. */
@@ -274,3 +276,5 @@ void FixupResourceByType(Handle h, uint32_t type)
         FixupRLEPixelData((unsigned char *)*h + 0x10, (RLEPixelData *)*h);
     UnlockAHandle(h);
 }
+
+EXTERN_C_END

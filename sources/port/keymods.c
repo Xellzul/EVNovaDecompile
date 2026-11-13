@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* keymods.c -- the modifier-key scan the port has to synthesise (win 0x004cea20). Notes: Research/notes/keymods.md */
 #include "macport.h"
 

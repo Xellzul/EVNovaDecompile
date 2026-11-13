@@ -1,9 +1,11 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* fixpoweroftwo.c -- fix_power_of_two (win 0x004736a0). Notes: Research/notes/fixpoweroftwo.md */
 /* Clamp an UNSIGNED argument to 31: `cmp eax, 0x20 / jae' is an unsigned compare, so the
    guard is `>= 32u' and a negative level would wrap and clamp rather than pass through. */
 #include "macport.h"
 #include "shipobj.h"
+
+EXTERN_C_BEGIN
 
 /* fix_power_of_two. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004736a0
@@ -15,3 +17,5 @@ uint32_t fix_power_of_two(uint32_t level)
 
     return level;
 }
+
+EXTERN_C_END

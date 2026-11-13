@@ -1,5 +1,6 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* drawbeam.c -- the SWBeams.c run from DrawTranslucentLine to EraseLightningBeam (win 0x00479590-0x0047b399). Notes: Research/notes/drawbeam.md */
+#include <stdlib.h>
 #include "macport.h"
 #include "spriteworld.h"
 #ifdef MACBUILD
@@ -757,10 +758,7 @@ void DrawBeam(FramePtr dstFrameP, Point srcPoint, Point dstPoint, uint32_t color
     if (srcPoint.h == dstPoint.h && srcPoint.v == dstPoint.v)
         return;
 
-    clipRect.top = dstFrameP->frameRect.top;
-    clipRect.left = dstFrameP->frameRect.left;
-    clipRect.bottom = dstFrameP->frameRect.bottom;
-    clipRect.right = dstFrameP->frameRect.right;
+    clipRect = dstFrameP->frameRect;
 
     InsetRect(&clipRect, -32, -32);
 
@@ -1082,10 +1080,7 @@ void DrawLightningBeam(FramePtr frameA, FramePtr frameB, Point srcPoint, Point d
     srcPtH = srcPoint.h;
     dstPtH = dstPoint.h;
 
-    clipRect.top = frameA->frameRect.top;
-    clipRect.left = frameA->frameRect.left;
-    clipRect.bottom = frameA->frameRect.bottom;
-    clipRect.right = frameA->frameRect.right;
+    clipRect = frameA->frameRect;
 
     InsetRect(&clipRect, -32, -32);
 
@@ -1101,12 +1096,12 @@ void DrawLightningBeam(FramePtr frameA, FramePtr frameB, Point srcPoint, Point d
     dstH = dstPtH;
     srcH = srcPtH;
     dH = srcH - dstH;
-    segs = __builtin_abs(dH);
+    segs = abs(dH);
 
     dstV = dstPoint.v;
     srcV = srcPoint.v;
     dV = srcV - dstV;
-    absV = __builtin_abs(dV);
+    absV = abs(dV);
 
     if (segs > absV)
         segs = (segPercent * segs * 0.01);
@@ -1371,10 +1366,7 @@ void EraseBeam(FramePtr srcFrameP, FramePtr dstFrameP, Point srcPoint, Point dst
     short   level;
     Rect    clipRect;
 
-    clipRect.top = dstFrameP->frameRect.top;
-    clipRect.left = dstFrameP->frameRect.left;
-    clipRect.bottom = dstFrameP->frameRect.bottom;
-    clipRect.right = dstFrameP->frameRect.right;
+    clipRect = dstFrameP->frameRect;
 
     InsetRect(&clipRect, -32, -32);
 
@@ -1561,10 +1553,7 @@ void EraseLightningBeam(FramePtr srcFrameP, FramePtr dstFrameP,
     short   segs;
     short   margin, t;
 
-    clipRect.top = dstFrameP->frameRect.top;
-    clipRect.left = dstFrameP->frameRect.left;
-    clipRect.bottom = dstFrameP->frameRect.bottom;
-    clipRect.right = dstFrameP->frameRect.right;
+    clipRect = dstFrameP->frameRect;
 
 
     InsetRect(&clipRect, -32, -32);
@@ -1578,9 +1567,9 @@ void EraseLightningBeam(FramePtr srcFrameP, FramePtr dstFrameP,
     if (srcPoint.v > clipRect.bottom && dstPoint.v > clipRect.bottom)
         return;
 
-    dh = __builtin_abs(srcPoint.h - dstPoint.h);
+    dh = abs(srcPoint.h - dstPoint.h);
 
-    dv = __builtin_abs(srcPoint.v - dstPoint.v);
+    dv = abs(srcPoint.v - dstPoint.v);
 
     if (dh > dv)
         segs = (segPercent * dh * 0.01);
@@ -1598,12 +1587,12 @@ void EraseLightningBeam(FramePtr srcFrameP, FramePtr dstFrameP,
     margin = ((halfWidth + jitter) * 2.5);
 
     t = stepH;
-    t = __builtin_abs(t) * 2;
+    t = abs(t) * 2;
     if (margin < t)
         margin = t;
 
     t = stepV;
-    t = __builtin_abs(t) * 2;
+    t = abs(t) * 2;
     if (margin < t)
         margin = t;
 

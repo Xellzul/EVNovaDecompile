@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* spritelayer.c -- SpriteWorld's SpriteLayer.c, tu-map object O16: sprite layers. Notes: Research/notes/spritelayer.md */
 #include "macport.h"
 #include "shipobj.h"

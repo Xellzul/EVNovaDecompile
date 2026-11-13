@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixieinterface.c -- SpriteWorld's BlitPixieInterface.c, tu-map object O12: the sprite draw and collision procs. Notes: Research/notes/blitpixieinterface.md */
 #include "macport.h"
 #include "shipobj.h"
@@ -501,7 +501,7 @@ void BlitPixieRLEDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP,
         srcBlitRect.right = SW_PIXELBYTES(dstFrameP, srcBlitRect.right);
 
         BlitPixieRLEClipped(
-            srcFrameP->rleTokenStart,
+            (unsigned char *)srcFrameP->rleTokenStart,
             dstPixel,
             dstRowBytes,
             &srcBlitRect);
@@ -509,7 +509,7 @@ void BlitPixieRLEDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP,
     else
     {
         BlitPixieRLE(
-            srcFrameP->rleTokenStart,
+            (unsigned char *)srcFrameP->rleTokenStart,
             dstPixel,
             dstRowBytes);
     }
@@ -577,18 +577,18 @@ void BlitPixieRLETranslucentDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrame
             if (gSWCurrentSpriteBeingDrawn->translucency <= 0 &&
                 gSWCurrentSpriteBeingDrawn->tintMode <= 0)
             {
-                BlitPixieRLEClipped(srcFrameP->rleTokenStart,
+                BlitPixieRLEClipped((unsigned char *)srcFrameP->rleTokenStart,
                         dstPixel, dstRowBytes, &srcBlitRect);
             }
             else if (gSWCurrentSpriteBeingDrawn->translucency < 32)
-                BlitPixieRLETranslucentClipped8(srcFrameP->rleTokenStart,
+                BlitPixieRLETranslucentClipped8((unsigned char *)srcFrameP->rleTokenStart,
                         dstPixel, dstRowBytes, &srcBlitRect);
             else if (gSWCurrentSpriteBeingDrawn->tintRed == 32 &&
                      gSWCurrentSpriteBeingDrawn->tintGreen == 32 &&
                      gSWCurrentSpriteBeingDrawn->tintBlue == 32 &&
                      gSWCurrentSpriteBeingDrawn->translucency == 32 &&
                      gSWCurrentSpriteBeingDrawn->tintMode == 0)
-                BlitPixieRLEAddOverClipped8(srcFrameP->rleTokenStart,
+                BlitPixieRLEAddOverClipped8((unsigned char *)srcFrameP->rleTokenStart,
                         dstPixel, dstRowBytes, &srcBlitRect);
         }
         else
@@ -604,15 +604,15 @@ void BlitPixieRLETranslucentDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrame
                     gSWCurrentSpriteBeingDrawn->tintBlue == 32 &&
                     gSWCurrentSpriteBeingDrawn->translucency == 32 &&
                     gSWCurrentSpriteBeingDrawn->tintMode == 0)
-                    BlitPixieRLEAddOverClipped(srcFrameP->rleTokenStart,
+                    BlitPixieRLEAddOverClipped((unsigned char *)srcFrameP->rleTokenStart,
                             dstPixel, dstRowBytes, &srcBlitRect);
                 else if (gSWCurrentSpriteBeingDrawn->translucency < 64)
-                    BlitPixieRLETranslucentClipped(srcFrameP->rleTokenStart,
+                    BlitPixieRLETranslucentClipped((unsigned char *)srcFrameP->rleTokenStart,
                             dstPixel, dstRowBytes, &srcBlitRect);
             }
             else
             {
-                BlitPixieRLEClipped(srcFrameP->rleTokenStart,
+                BlitPixieRLEClipped((unsigned char *)srcFrameP->rleTokenStart,
                         dstPixel, dstRowBytes, &srcBlitRect);
             }
         }
@@ -624,18 +624,18 @@ void BlitPixieRLETranslucentDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrame
             if (gSWCurrentSpriteBeingDrawn->translucency <= 0 &&
                 gSWCurrentSpriteBeingDrawn->tintMode <= 0)
             {
-                BlitPixieRLE(srcFrameP->rleTokenStart,
+                BlitPixieRLE((unsigned char *)srcFrameP->rleTokenStart,
                         dstPixel, dstRowBytes);
             }
             else if (gSWCurrentSpriteBeingDrawn->translucency < 32)
-                BlitPixieRLETranslucent8(srcFrameP->rleTokenStart,
+                BlitPixieRLETranslucent8((unsigned char *)srcFrameP->rleTokenStart,
                         dstPixel, dstRowBytes);
             else if (gSWCurrentSpriteBeingDrawn->tintRed == 32 &&
                      gSWCurrentSpriteBeingDrawn->tintGreen == 32 &&
                      gSWCurrentSpriteBeingDrawn->tintBlue == 32 &&
                      gSWCurrentSpriteBeingDrawn->translucency == 32 &&
                      gSWCurrentSpriteBeingDrawn->tintMode == 0)
-                BlitPixieRLEAddOver8(srcFrameP->rleTokenStart,
+                BlitPixieRLEAddOver8((unsigned char *)srcFrameP->rleTokenStart,
                         dstPixel, dstRowBytes);
         }
         else
@@ -651,15 +651,15 @@ void BlitPixieRLETranslucentDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrame
                     gSWCurrentSpriteBeingDrawn->tintBlue == 32 &&
                     gSWCurrentSpriteBeingDrawn->translucency == 32 &&
                     gSWCurrentSpriteBeingDrawn->tintMode == 0)
-                    BlitPixieRLEAddOver(srcFrameP->rleTokenStart,
+                    BlitPixieRLEAddOver((unsigned char *)srcFrameP->rleTokenStart,
                             dstPixel, dstRowBytes);
                 else if (gSWCurrentSpriteBeingDrawn->translucency < 64)
-                    BlitPixieRLETranslucent(srcFrameP->rleTokenStart,
+                    BlitPixieRLETranslucent((unsigned char *)srcFrameP->rleTokenStart,
                             dstPixel, dstRowBytes);
             }
             else
             {
-                BlitPixieRLE(srcFrameP->rleTokenStart,
+                BlitPixieRLE((unsigned char *)srcFrameP->rleTokenStart,
                         dstPixel, dstRowBytes);
             }
         }
@@ -692,8 +692,8 @@ Boolean BlitPixieRLECollisionProc(SpritePtr srcSpriteP, SpritePtr dstSpriteP,
     dstRect->right = SW_PIXELBYTES(dstFrameP, dstRect->right);
 
     collision = BlitPixieRLECollision(
-                    srcFrameP->rleTokenStart,
-                    dstFrameP->rleTokenStart,
+                    (unsigned char *)srcFrameP->rleTokenStart,
+                    (unsigned char *)dstFrameP->rleTokenStart,
                     srcRect,
                     dstRect);
 
@@ -720,7 +720,7 @@ Boolean BlitPixieRLEPointCollisionProc(SpritePtr sprite, Point *pt, Rect *rect)
     r.bottom = rect->bottom;
     p.h = pt->h << fr->pixelShift;
     p.v = pt->v;
-    return BlitPixieRLECollisionWithPoint(fr->rleTokenStart, &p, &r);
+    return BlitPixieRLECollisionWithPoint((unsigned char *)fr->rleTokenStart, &p, &r);
 }
 
 #ifdef MACBUILD

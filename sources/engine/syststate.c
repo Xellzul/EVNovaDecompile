@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* syststate.c -- two small pieces of the system-entry state machine (win 0x0045cfc0 and 0x0045d030, from the run below 0x0045d0a0). Notes: Research/notes/syststate.md */
 #include <stddef.h>
 
@@ -9,6 +9,7 @@
 #include "render.h"
 #include "gameutil.h"
 
+EXTERN_C_BEGIN
 
 
 /* InitStatus. STATE: MATCH, byte-identical. OPEN: none */
@@ -99,3 +100,5 @@ void BlitStatusArea(void)
     }
 }
 #endif
+
+EXTERN_C_END

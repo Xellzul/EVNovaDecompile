@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* swcreaterledata.c -- SWCreateRLEData (win 0x004760c0, SpriteCompiler.c lines 241-242, donor SpriteCompiler.c line 150). Notes: Research/notes/swcreaterledata.md */
 #include "macport.h"
 #include "spriteworld.h"

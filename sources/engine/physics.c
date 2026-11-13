@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* physics.c -- ship motion helpers (win 0x0043b4a0..0x0043ba30: Accel, AdjustedAccel, CalcInterceptAngle, SpeedLimit ...). Notes: Research/notes/physics.md */
 #include <math.h>
 

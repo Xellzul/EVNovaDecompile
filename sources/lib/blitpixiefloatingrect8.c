@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixiefloatingrect8.c -- BlitPixieFloatingRect8 (win 0x00471dc0). Notes: Research/notes/blitpixiefloatingrect8.md */
 /* The four bytes of frame are real and unused: the exe opens `sub esp, 4' and nothing
    references [esp+0..3]. A local that is declared and never read is the only thing that

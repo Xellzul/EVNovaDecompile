@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* mainscreenpict.c -- composite the main screen's background picture and its three animated button/logo sprites into loadPort each tick (win 0x0048c3c0). Notes: Research/notes/mainscreenpict.md */
 #include <stddef.h>
 

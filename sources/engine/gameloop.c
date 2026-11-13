@@ -1,9 +1,9 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* gameloop.c -- the main-loop object (tu-map O3, win 0x00428340..0x0043b170). Notes: Research/notes/gameloop.md */
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <stddef.h>
-#include <stdlib.h>
 
 #include "burgermath.h"
 #include "macport.h"
@@ -2182,7 +2182,7 @@ void HandleBeams(unsigned char advance)
                                     diff = CalcInterceptAngle(&muzzle,
                                         &shipData[j].pos);
                                     hitAngle = hitAngle * 10 / 32;
-                                    if (__builtin_abs(diff - angle) <= hitAngle) {
+                                    if (abs(diff - angle) <= hitAngle) {
                                         dist = XYFloatSquaredDist(
                                             &shipData[j].pos, &muzzle);
                                         if (dist < bestDist || best == -1) {
@@ -2320,7 +2320,7 @@ void HandleBeams(unsigned char advance)
                                             diff = CalcInterceptAngle(&muzzle,
                                                 &asteroidData[roid].pos);
                                             hitAngle = size * 10 / 32;
-                                            if (__builtin_abs(diff - angle) <= hitAngle) {
+                                            if (abs(diff - angle) <= hitAngle) {
                                                 dist = XYFloatSquaredDist(
                                                     &shipData[roid].pos,
                                                     &muzzle);

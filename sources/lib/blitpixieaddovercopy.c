@@ -1,7 +1,9 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixieaddovercopy.c -- BlitPixieAddOverCopy (win 0x00473b60), inside the un-anchored BlitPixie block. Notes: Research/notes/blitpixieaddovercopy.md */
 #include "macport.h"
 #include "shipobj.h"
+
+EXTERN_C_BEGIN
 
 /* BlitPixieAddOverCopy (mac _BlitPixieAddOverCopy). STATE: MATCH 100.0%, byte-identical. OPEN: none. */
 // FUNCTION: EVNOVA 0x00473b60
@@ -80,3 +82,5 @@ void BlitPixieAddOverCopy(unsigned char *dstPixels, unsigned char *srcPixels,
     }
 }
 #endif
+
+EXTERN_C_END

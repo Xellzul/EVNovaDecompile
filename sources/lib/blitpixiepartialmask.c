@@ -1,7 +1,9 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixiepartialmask.c -- BlitPixiePartialMask (win 0x00471b70), the per-row blit BlitPixiePartialMaskDrawProc calls. Notes: Research/notes/blitpixiepartialmask.md */
 #include "macport.h"
 #include "shipobj.h"
+
+EXTERN_C_BEGIN
 
 /* BlitPixiePartialMask (mac _BlitPixiePartialMask). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00471b70
@@ -27,3 +29,5 @@ void BlitPixiePartialMask(unsigned char *srcPixels, unsigned char *dstPixels,
         maskPixels += srcRowBytes;
     }
 }
+
+EXTERN_C_END

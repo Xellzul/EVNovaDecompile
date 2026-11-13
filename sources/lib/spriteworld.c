@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* spriteworld.c -- SpriteWorld's SpriteWorld.c, tu-map object O17: the sprite world, its update and animation. Notes: Research/notes/spriteworld.md */
 #include <stddef.h>
 
@@ -9,6 +9,8 @@
 #include "burger.h"
 #include "render.h"
 #include "game.h"
+
+EXTERN_C_BEGIN
 
 /* SWCreateSpriteWorldFromWindow (mac _SWCreateSpriteWorldFromWindow). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00477910
@@ -114,23 +116,14 @@ short SWCreateSpriteWorldFromWindow(SpriteWorldPtr *spriteWorldP, CWindowPtr src
     else
         srcRectP = worldRectP;
 
-    windRect.top = srcRectP->top;
-    windRect.left = srcRectP->left;
-    windRect.bottom = srcRectP->bottom;
-    windRect.right = srcRectP->right;
+    windRect = *srcRectP;
 
     mainGDH = (void *)GetMainDevice();
 
     if (offscreenRectP == 0) {
-        tempRect.top = windRect.top;
-        tempRect.left = windRect.left;
-        tempRect.bottom = windRect.bottom;
-        tempRect.right = windRect.right;
+        tempRect = windRect;
     } else {
-        tempRect.top = offscreenRectP->top;
-        tempRect.left = offscreenRectP->left;
-        tempRect.bottom = offscreenRectP->bottom;
-        tempRect.right = offscreenRectP->right;
+        tempRect = *offscreenRectP;
     }
 
     OffsetRect(&tempRect, -tempRect.left, -tempRect.top);
@@ -1243,15 +1236,9 @@ void SWUpdateSpriteWorld(SpriteWorldRec *spriteWorldP, Boolean updateWindow)
                     gSWCurrentSpriteBeingDrawn = 0;
                 }
 
-                curSpriteP->deltaFrameRect.top = curSpriteP->destFrameRect.top;
-                curSpriteP->deltaFrameRect.left = curSpriteP->destFrameRect.left;
-                curSpriteP->deltaFrameRect.bottom = curSpriteP->destFrameRect.bottom;
-                curSpriteP->deltaFrameRect.right = curSpriteP->destFrameRect.right;
+                curSpriteP->deltaFrameRect = curSpriteP->destFrameRect;
 
-                curSpriteP->oldFrameRect.top = curSpriteP->destFrameRect.top;
-                curSpriteP->oldFrameRect.left = curSpriteP->destFrameRect.left;
-                curSpriteP->oldFrameRect.bottom = curSpriteP->destFrameRect.bottom;
-                curSpriteP->oldFrameRect.right = curSpriteP->destFrameRect.right;
+                curSpriteP->oldFrameRect = curSpriteP->destFrameRect;
 
                 curSpriteP->needsToBeDrawn = 0;
                 curSpriteP->needsToBeErased = 0;
@@ -2017,10 +2004,7 @@ void SWAnimateSpriteWorld(SpriteWorldRec *spriteWorldP)
 
                         if (curSpriteP->justBecameVisible) {
                             if (!curSpriteP->needsToBeErased) {
-                                curSpriteP->oldFrameRect.top = curSpriteP->destFrameRect.top;
-                                curSpriteP->oldFrameRect.left = curSpriteP->destFrameRect.left;
-                                curSpriteP->oldFrameRect.bottom = curSpriteP->destFrameRect.bottom;
-                                curSpriteP->oldFrameRect.right = curSpriteP->destFrameRect.right;
+                                curSpriteP->oldFrameRect = curSpriteP->destFrameRect;
                             }
 
                             curSpriteP->justBecameVisible = 0;
@@ -2177,15 +2161,9 @@ void SWAnimateSpriteWorld(SpriteWorldRec *spriteWorldP)
     if (spriteWorldP->fastBlit) {
         while (curSpriteP != 0 && AreWeFrontProcess()) {
             if (curSpriteP->srD3) {
-                screenDestRect.top = curSpriteP->destFrameRect.top;
-                screenDestRect.left = curSpriteP->destFrameRect.left;
-                screenDestRect.bottom = curSpriteP->destFrameRect.bottom;
-                screenDestRect.right = curSpriteP->destFrameRect.right;
+                screenDestRect = curSpriteP->destFrameRect;
 
-                oldScreenDestRect.top = curSpriteP->oldFrameRect.top;
-                oldScreenDestRect.left = curSpriteP->oldFrameRect.left;
-                oldScreenDestRect.bottom = curSpriteP->oldFrameRect.bottom;
-                oldScreenDestRect.right = curSpriteP->oldFrameRect.right;
+                oldScreenDestRect = curSpriteP->oldFrameRect;
 
                 oldScreenDestRect.left += spriteWorldP->windRect.left;
                 oldScreenDestRect.right += spriteWorldP->windRect.left;
@@ -2194,10 +2172,7 @@ void SWAnimateSpriteWorld(SpriteWorldRec *spriteWorldP)
             }
             else
             {
-                screenDestRect.top = curSpriteP->deltaFrameRect.top;
-                screenDestRect.left = curSpriteP->deltaFrameRect.left;
-                screenDestRect.bottom = curSpriteP->deltaFrameRect.bottom;
-                screenDestRect.right = curSpriteP->deltaFrameRect.right;
+                screenDestRect = curSpriteP->deltaFrameRect;
             }
 
             screenDestRect.left += spriteWorldP->windRect.left;
@@ -2241,15 +2216,9 @@ void SWAnimateSpriteWorld(SpriteWorldRec *spriteWorldP)
                 }
             }
 
-            curSpriteP->deltaFrameRect.top = curSpriteP->destFrameRect.top;
-            curSpriteP->deltaFrameRect.left = curSpriteP->destFrameRect.left;
-            curSpriteP->deltaFrameRect.bottom = curSpriteP->destFrameRect.bottom;
-            curSpriteP->deltaFrameRect.right = curSpriteP->destFrameRect.right;
+            curSpriteP->deltaFrameRect = curSpriteP->destFrameRect;
 
-            curSpriteP->oldFrameRect.top = curSpriteP->destFrameRect.top;
-            curSpriteP->oldFrameRect.left = curSpriteP->destFrameRect.left;
-            curSpriteP->oldFrameRect.bottom = curSpriteP->destFrameRect.bottom;
-            curSpriteP->oldFrameRect.right = curSpriteP->destFrameRect.right;
+            curSpriteP->oldFrameRect = curSpriteP->destFrameRect;
 
             curSpriteP->needsToBeDrawn = 0;
             curSpriteP->needsToBeErased = 0;
@@ -2359,10 +2328,7 @@ void SWCheckIdleSpriteOverlap(SpriteWorldRec *spriteWorldP, SpritePtr idleSprite
                 SW_MIN(idleSpriteP->destFrameRect.bottom, activeSpriteP->deltaFrameRect.bottom);
 
             frameRectP = &idleSpriteP->curFrameP->frameRect;
-            srcSectRect.top = frameRectP->top;
-            srcSectRect.left = frameRectP->left;
-            srcSectRect.bottom = frameRectP->bottom;
-            srcSectRect.right = frameRectP->right;
+            srcSectRect = *frameRectP;
 
             srcSectRect.left += (dstSectRect.left - idleSpriteP->destFrameRect.left);
             srcSectRect.top += (dstSectRect.top - idleSpriteP->destFrameRect.top);
@@ -2626,10 +2592,7 @@ short SWFlagRectAsChanged(SpriteWorldPtr spriteWorldP, Rect *theChangedRect)
     newUpdateRectP = (UpdateRectStructPtr)AllocAPointer(sizeof(UpdateRectStruct));
 
     if (newUpdateRectP != 0) {
-        newUpdateRectP->updateRect.top = theChangedRect->top;
-        newUpdateRectP->updateRect.left = theChangedRect->left;
-        newUpdateRectP->updateRect.bottom = theChangedRect->bottom;
-        newUpdateRectP->updateRect.right = theChangedRect->right;
+        newUpdateRectP->updateRect = *theChangedRect;
         newUpdateRectP->nextRectStructP = 0;
 
         if (spriteWorldP->headUpdateRectP == 0) {
@@ -2795,3 +2758,5 @@ void SWHideAllSprites(SpriteWorldPtr spriteWorldP)
         curSpriteLayerP = curSpriteLayerP->nextSpriteLayerP;
     }
 }
+
+EXTERN_C_END

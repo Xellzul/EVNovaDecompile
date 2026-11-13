@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* licensescramble.c -- ScrambleRand, an RT3 license-scramble helper only InitEVNova calls; exe 0x004ab970, the object after music.c's .CRT hook 0x004ab960. Notes: Research/notes/music.md */
 
 #include "macport.h"

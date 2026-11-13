@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* imagecicn.c -- BurgerLib's ImageParseCicn (win 0x004d2bd0), the cicn decoder GetCIcon feeds a raw resource. Notes: Research/notes/imagecicn.md */
 #include "macport.h"
 /* Image_t is pinned by vendor-obsolete/burgerlib/Burger_2004_period.h: ImagePtr +0, PalettePtr
@@ -67,7 +67,7 @@ int ImageParseCicn(Image_t *Output, const Word8 *InputPtr)
         NonFatal("Height can't be zero.");
         goto Abort;
     }
-    dst = AllocAPointer(Output->Width * Output->Height);
+    dst = (Word8 *)AllocAPointer(Output->Width * Output->Height);
     if (dst == 0)
         goto Abort;
     Output->ImagePtr = dst;
@@ -83,7 +83,7 @@ int ImageParseCicn(Image_t *Output, const Word8 *InputPtr)
     {
         Word8 *pal;
 
-        pal = AllocAPointerClear(0x300);
+        pal = (Word8 *)AllocAPointerClear(0x300);
         if (pal == 0)
             goto Abort;
         Output->PalettePtr = pal;

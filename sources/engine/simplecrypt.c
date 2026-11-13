@@ -1,7 +1,10 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* simplecrypt.c -- the resource XOR cipher (win 0x0046f960). Notes: Research/notes/simplecrypt.md */
 #include <stddef.h>
 #include "int32.h"
+#include "gametypes.h"
+
+EXTERN_C_BEGIN
 
 #define kCryptStep 0xdeadbeefUL
 
@@ -60,7 +63,7 @@ int32_t DoEncryption(void *buf, uint32_t len, uint32_t key)
     uint32_t curKey;
 
     if (buf != NULL && len != 0) {
-        p = buf;
+        p = (unsigned char *)buf;
         count = len >> 2;
         rem = (len - count * 4);
         curKey = key;
@@ -101,3 +104,5 @@ int32_t DoEncryption(void *buf, uint32_t len, uint32_t key)
     return 0;
 }
 #endif
+
+EXTERN_C_END

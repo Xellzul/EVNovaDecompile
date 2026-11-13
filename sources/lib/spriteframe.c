@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* spriteframe.c -- SpriteWorld's SpriteFrame.c, tu-map object O15: frame creation, disposal and locking. Notes: Research/notes/spriteframe.md */
 #include "macport.h"
 #include "shipobj.h"
@@ -122,7 +122,7 @@ short SWCreateFrame(void *theGDH, SWFrameRec **newFrameP, Rect *frameRect,
 
     numScanLines = frameRect->bottom - frameRect->top;
 
-    tempFrameP = AllocAPointerClear(sizeof(SWFrameRec) +
+    tempFrameP = (SWFrameRec *)AllocAPointerClear(sizeof(SWFrameRec) +
             (sizeof(uint32_t) * (numScanLines + 1)));
 
     if (tempFrameP != 0) {
@@ -292,7 +292,7 @@ short SWCreateWindowFrame(CWindowPtr srcWindowP, SWFrameRec **newFrameP,
     frameRect->bottom = SW_MIN(frameRect->bottom, GetCWindowPortRect(srcWindowP)->bottom);
     frameRect->right = SW_MIN(frameRect->right, GetCWindowPortRect(srcWindowP)->right);
 
-    tempFrameP = AllocAPointerClear(sizeof(SWFrameRec) +
+    tempFrameP = (SWFrameRec *)AllocAPointerClear(sizeof(SWFrameRec) +
             (sizeof(uint32_t) * numScanLines));
 
     if (tempFrameP != 0) {
@@ -436,7 +436,7 @@ short SWCreateFrameFromCicnResource(SpriteWorldRec *destSpriteWorld,
     CGrafPtr saveGWorld;
     void *saveGDH;
     SWFrameRec *tempFrameP;
-    void *cIconH;
+    CIconHandle cIconH;
     Rect frameRect;
 
     *newFrameP = 0;
@@ -780,7 +780,7 @@ short SWCreateFrameFromGWorldAndRectPartial(SWFrameRec **newFrameP,
     numScanLines = frameRect->bottom - frameRect->top;
     depth = GetPixDepth(GetCWindowPixMap(pictGWorld));
 
-    tempFrameP = AllocAPointerClear(sizeof(SWFrameRec) +
+    tempFrameP = (SWFrameRec *)AllocAPointerClear(sizeof(SWFrameRec) +
             (sizeof(uint32_t) * (numScanLines + 1)));
 
     if (tempFrameP != 0) {
@@ -1447,7 +1447,7 @@ void SWLockFrame(SWFrameRec *srcFrameP)
             pixMapH = srcFrameP->framePixHndl;
             srcFrameP->framePix = pixMapH;
 
-            srcFrameP->frameBaseAddr = GetPixBaseAddr(pixMapH);
+            srcFrameP->frameBaseAddr = (char *)GetPixBaseAddr(pixMapH);
             srcFrameP->frameRowBytes = GetPixRowBytes(pixMapH);
             srcFrameP->frameDepth = GetPixDepth(pixMapH);
 
@@ -1461,7 +1461,7 @@ void SWLockFrame(SWFrameRec *srcFrameP)
             pixMapH = srcFrameP->maskPixHndl;
             srcFrameP->maskPix = pixMapH;
 
-            srcFrameP->maskBaseAddr = GetPixBaseAddr(pixMapH);
+            srcFrameP->maskBaseAddr = (char *)GetPixBaseAddr(pixMapH);
         }
     }
 }
@@ -1611,7 +1611,7 @@ void SWLockWindowFrame(SWFrameRec *windowFrameP)
         globalRect = *GetWindowPortRect(windowFrameP->framePort);
         SetPort(savePort);
 
-        windowFrameP->frameBaseAddr = GetPixBaseAddr(pixMapH);
+        windowFrameP->frameBaseAddr = (char *)GetPixBaseAddr(pixMapH);
         windowFrameP->frameRowBytes = GetPixRowBytes(pixMapH);
         windowFrameP->frameDepth = GetPixDepth(pixMapH);
         windowFrameP->worldRectOffset = 0;

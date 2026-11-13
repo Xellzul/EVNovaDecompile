@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* offermissionfromport.c -- ResetMissionOfferVenue, OfferMissionFromPort; exe 0x00448660..0x00448670. Notes: Research/notes/gameutils.md */
 
 #include <math.h>

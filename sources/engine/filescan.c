@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* filescan.c -- count the files of one extension in a directory, logging each (win 0x0046f690). Notes: Research/notes/filescan.md */
 #include <stdio.h>
 
@@ -6,6 +6,8 @@
 #include "burger.h"
 #include "burgerplat.h"
 #include "crashlog.h"
+
+EXTERN_C_BEGIN
 
 /* OpenEVPlugins (mac _OpenEVPlugins). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046f500
@@ -70,3 +72,5 @@ short CountEVPlugins(const char *path, const char *ext, FILE *log)
     CloseADirectory(&dir);
     return count;
 }
+
+EXTERN_C_END

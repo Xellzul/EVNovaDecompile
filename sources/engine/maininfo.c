@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* maininfo.c -- the main-screen object (tu-map O23, win 0x004873b0..0x00489d70). Notes: Research/notes/maininfo.md */
 #include <stddef.h>
 #include <string.h>
@@ -357,12 +357,12 @@ void MainScreenUpdate(short which)
             if (targetInfoPic[i] != NULL) {
                 SWSetPortToBackground(gSpriteWorld);
                 ForeColor(blackColor);
-                QDGetPictureBounds(targetInfoPic[i], &box);
+                QDGetPictureBounds((PicHandle)targetInfoPic[i], &box);
                 OffsetRect(&box, -box.left, -box.top);
                 OffsetRect(&box,
                            mainMenuCenter.h - (box.right - box.left) / 2,
                            mainMenuCenter.v + 0x118);
-                DrawPicHandle(targetInfoPic[i], &box);
+                DrawPicHandle((PicHandle)targetInfoPic[i], &box);
                 SWSetPortToWorkArea(gSpriteWorld);
                 ForeColor(blackColor);
                 CopyBits(GetPortBitMapForCopyBits(
@@ -717,11 +717,11 @@ void SetupInterfaceBackground(void)
         menuTopCorner.v = mainMenuCenter.v - kMenuHalfHeight;
         ForeColor(blackColor);
         PaintRect(&loadPort.bounds);
-        DrawPicHandle(pic, &interfacePicRect);
+        DrawPicHandle((PicHandle)pic, &interfacePicRect);
 #ifdef CEFIX /* F28.01 */
         CE_DrawVersion();
 #endif
-        QDReleaseResource(pic);
+        QDReleaseResource((PicHandle)pic);
     }
     SWSetPortToWindow(gSpriteWorld);
 }
@@ -1154,10 +1154,10 @@ void DoPrefsDialog(void)
     savedGamma = settings.gamma;
 
     GetDialogItem(prefsDialog, kItemFullScreen, NULL, (Handle *)&item, &box);
-    DisableControl(item);
+    DisableControl((ControlPtr)item);
     GetDialogItem(prefsDialog, kItemMessages, NULL, (Handle *)&item, &box);
 #ifndef CEFIX /* F22.04 */
-    DisableControl(item);
+    DisableControl((ControlPtr)item);
 #endif
 
     do {
@@ -1169,113 +1169,113 @@ void DoPrefsDialog(void)
         GetDialogItem(prefsDialog, kItemFullScreen, &itemType, (Handle *)&item, &box);
         ctl = item;
         if (DAT_007355d0 >= kTrueColorDepth) {
-            SetControlValue(ctl, 1);
+            SetControlValue((ControlPtr)ctl, 1);
         } else if (settings.yieldEvents != 0) {
-            SetControlValue(ctl, 1);
+            SetControlValue((ControlPtr)ctl, 1);
         } else {
-            SetControlValue(ctl, 0);
+            SetControlValue((ControlPtr)ctl, 0);
         }
 
         if (settings.windowed != 0 && gameLoaded != 0) {
             GetDialogItem(prefsDialog, kItemMessages, &itemType, (Handle *)&item, &box);
-            SetControlValue(item, 0);
+            SetControlValue((ControlPtr)item, 0);
         }
 
         GetDialogItem(prefsDialog, kItemMusic, &itemType, (Handle *)&item, &box);
         ctl = item;
         if (settings.introMusic != 0)
-            SetControlValue(ctl, 1);
+            SetControlValue((ControlPtr)ctl, 1);
         else
-            SetControlValue(ctl, 0);
+            SetControlValue((ControlPtr)ctl, 0);
         GetDialogItem(prefsDialog, kItemSmoothing, &itemType, (Handle *)&item, &box);
         ctl = item;
 #ifdef CEFIX /* F04.01 */
         ceRunInAWindow = CE_IsWindowed();
-        SetControlValue(ctl, ceRunInAWindow);
+        SetControlValue((ControlPtr)ctl, ceRunInAWindow);
 #else
         if (settings.windowedPending != 0)
-            SetControlValue(ctl, 1);
+            SetControlValue((ControlPtr)ctl, 1);
         else
-            SetControlValue(ctl, 0);
+            SetControlValue((ControlPtr)ctl, 0);
 #endif
         GetDialogItem(prefsDialog, kItemEarlyOut, &itemType, (Handle *)&item, &box);
         ctl = item;
         if (settings.noMovies == 0)
-            SetControlValue(ctl, 1);
+            SetControlValue((ControlPtr)ctl, 1);
         else
-            SetControlValue(ctl, 0);
+            SetControlValue((ControlPtr)ctl, 0);
         GetDialogItem(prefsDialog, kItemNoDebris, &itemType, (Handle *)&item, &box);
         ctl = item;
         if (settings.noDebris == 0)
-            SetControlValue(ctl, 1);
+            SetControlValue((ControlPtr)ctl, 1);
         else
-            SetControlValue(ctl, 0);
+            SetControlValue((ControlPtr)ctl, 0);
         GetDialogItem(prefsDialog, kItemShipSets, &itemType, (Handle *)&item, &box);
         ctl = item;
         if (settings.shipAnimations != 0)
-            SetControlValue(ctl, 1);
+            SetControlValue((ControlPtr)ctl, 1);
         else
-            SetControlValue(ctl, 0);
+            SetControlValue((ControlPtr)ctl, 0);
         GetDialogItem(prefsDialog, kItemShipGlow, &itemType, (Handle *)&item, &box);
         ctl = item;
         if (settings.engineGlows != 0)
-            SetControlValue(ctl, 1);
+            SetControlValue((ControlPtr)ctl, 1);
         else
-            SetControlValue(ctl, 0);
+            SetControlValue((ControlPtr)ctl, 0);
         GetDialogItem(prefsDialog, kItemShipLights, &itemType, (Handle *)&item, &box);
         ctl = item;
         if (settings.runningLights != 0)
-            SetControlValue(ctl, 1);
+            SetControlValue((ControlPtr)ctl, 1);
         else
-            SetControlValue(ctl, 0);
+            SetControlValue((ControlPtr)ctl, 0);
         GetDialogItem(prefsDialog, kItemShipWeapons, &itemType, (Handle *)&item, &box);
         ctl = item;
         if (settings.weaponGlows != 0)
-            SetControlValue(ctl, 1);
+            SetControlValue((ControlPtr)ctl, 1);
         else
-            SetControlValue(ctl, 0);
+            SetControlValue((ControlPtr)ctl, 0);
         GetDialogItem(prefsDialog, kItemStatusBar, &itemType, (Handle *)&item, &box);
         ctl = item;
         if (settings.parallaxStars != 0)
-            SetControlValue(ctl, 1);
+            SetControlValue((ControlPtr)ctl, 1);
         else
-            SetControlValue(ctl, 0);
+            SetControlValue((ControlPtr)ctl, 0);
         GetDialogItem(prefsDialog, kItemAutoAim, &itemType, (Handle *)&item, &box);
         ctl = item;
         if (settings.ambientSounds != 0)
-            SetControlValue(ctl, 1);
+            SetControlValue((ControlPtr)ctl, 1);
         else
-            SetControlValue(ctl, 0);
+            SetControlValue((ControlPtr)ctl, 0);
         GetDialogItem(prefsDialog, kItemMessages, &itemType, (Handle *)&item, &box);
         ctl = item;
         if (settings.noHyperGamma == 0)
-            SetControlValue(ctl, 1);
+            SetControlValue((ControlPtr)ctl, 1);
         else
-            SetControlValue(ctl, 0);
+            SetControlValue((ControlPtr)ctl, 0);
         GetDialogItem(prefsDialog, kItemNetwork, &itemType, (Handle *)&item, &box);
         ctl = item;
         if (settings.noVersionCheck == 0)
-            SetControlValue(ctl, 1);
+            SetControlValue((ControlPtr)ctl, 1);
         else
-            SetControlValue(ctl, 0);
+            SetControlValue((ControlPtr)ctl, 0);
 
         GetDialogItem(prefsDialog, kItemMusicVolText, &itemType, (Handle *)&item, &box);
         musicVol = settings.volume;
         if ((short)musicVol < 0 || (short)musicVol > kMaxMusicVol) {
-            SetDialogItemText(item, "\p???");
+            SetDialogItemText((Handle)item, "\p???");
         } else {
             GetIndString(volText, kMusicVolStrList, ((short)musicVol + 1));
-            SetDialogItemText(item, volText);
+            SetDialogItemText((Handle)item, volText);
         }
 
         GetDialogItem(prefsDialog, kItemGammaText, NULL, (Handle *)&item, &box);
         if (item != NULL) {
             gammaLevel = settings.gamma;
             if ((short)gammaLevel > kMaxGamma) {
-                SetDialogItemText(item, "\p???");
+                SetDialogItemText((Handle)item, "\p???");
             } else {
                 GetIndString(volText, kGammaStrList, ((short)gammaLevel + 1));
-                SetDialogItemText(item, volText);
+                SetDialogItemText((Handle)item, volText);
             }
         }
 
@@ -1830,7 +1830,7 @@ void EnterGameFromMainScreen(void)
     playerIsLanded = 0;
     crashlog("adjusting sounds");
     AdjustSoundVolume();
-    shipData[17].licenseName = RT3_GetLicenseName();
+    shipData[17].licenseName = (unsigned char *)RT3_GetLicenseName();
     DisposeMainScreenSounds();
     crashlog("showing intro screen");
     if (seenIntroScreen) {

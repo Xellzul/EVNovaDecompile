@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* resourceexists.c -- ResourceExists; exe 0x0047b7a0. Notes: Research/notes/resmgr.md */
 
 #include <stddef.h>

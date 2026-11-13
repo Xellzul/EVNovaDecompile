@@ -1,8 +1,8 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* loaddata.c -- pilot-folder setup, OpenDataFiles, LoadObjectData, LoadStrings, LoadPrefs/SavePrefs, the pilot file, the resource utilities, the chär record readers and VerifyResourceChecksums. Notes: Research/notes/loaddata.md */
+#include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -2666,8 +2666,6 @@ void LoadDescription(char *dst, short id)
 
     textFileHand = GetResource(kDescType, id);
     if (textFileHand != NULL) {
-        extern char *strcpy(char *dst, const char *src); /* 0x004d6010 MSL; block-scope keeps THIS block's two calls out of
-                                                            line -- the else arm's strcpy(dst, "") inlines */
 #ifdef MACBUILD
         HNoPurge(textFileHand);
 #endif
@@ -3161,7 +3159,7 @@ void LoadPrefs(void)
     strcpy(path, gPrefsDirectory);
     strcat(path, name);
     strcat(path, ".prf");
-    gPrefsHandle = LoadAFileHandle(path);
+    gPrefsHandle = (PrefsRecord **)LoadAFileHandle(path);
     if (gPrefsHandle != NULL) {
         LockAHandle((Handle)gPrefsHandle);
         settings.introMusic = 0;
@@ -3347,9 +3345,9 @@ void SavePrefs(void)
         UnlockAHandle((Handle)gPrefsHandle);
         DeallocAHandle(gPrefsHandle);
     } else {
-        void *f;
+        FILE *f;
 
-        f = FOpenExpandedPath(path, "wb");
+        f = (FILE *)FOpenExpandedPath(path, "wb");
         if (f != NULL)
             fclose(f);
     }
@@ -3478,91 +3476,10 @@ short SavePilotFile(short stellar)
 }
 #endif
 
-#ifdef MAC1010
-#define recSlot i
-#define CopyMissionSlot(dstObj, srcObj, dstMsn, srcMsn) \
-    dstObj = srcObj; \
-    dstMsn = srcMsn
-#elif V111 /* V111 spelling */
+#if V111 /* V111 spelling */
 #define recSlot k
-#define CopyMissionSlot(dstObj, srcObj, dstMsn, srcMsn) \
-    dstObj = srcObj; \
-    dstMsn = srcMsn
 #else
 #define recSlot i
-#define CopyMissionSlot(dstObj, srcObj, dstMsn, srcMsn) \
-    os = &srcObj; \
-    od = &dstObj; \
-    od->active = os->active; \
-    od->returnDone = os->returnDone; \
-    od->objectivesDone = os->objectivesDone; \
-    od->failed = os->failed; \
-    od->flags = os->flags; \
-    od->dueDate = os->dueDate; \
-    ms = &srcMsn; \
-    md = &dstMsn; \
-    md->travelStellar = ms->travelStellar; \
-    md->unk2 = ms->unk2; \
-    md->returnStellar = ms->returnStellar; \
-    md->shipCount = ms->shipCount; \
-    md->shipDude = ms->shipDude; \
-    md->shipGoal = ms->shipGoal; \
-    md->shipBehav = ms->shipBehav; \
-    md->shipStart = ms->shipStart; \
-    md->shipSyst = ms->shipSyst; \
-    md->cargoType = ms->cargoType; \
-    md->cargoQty = ms->cargoQty; \
-    md->pickupMode = ms->pickupMode; \
-    md->dropoffMode = ms->dropoffMode; \
-    md->scanMask = ms->scanMask; \
-    md->compGovt = ms->compGovt; \
-    md->compReward = ms->compReward; \
-    md->datePostIncrement = ms->datePostIncrement; \
-    md->payment = ms->payment; \
-    md->specialShipsKilled = ms->specialShipsKilled; \
-    md->specialShipsBoarded = ms->specialShipsBoarded; \
-    md->specialShipsDisabled = ms->specialShipsDisabled; \
-    md->specialShipsJumpedIn = ms->specialShipsJumpedIn; \
-    md->specialShipsJumpedOut = ms->specialShipsJumpedOut; \
-    md->initialShipCount = ms->initialShipCount; \
-    md->canAbort = ms->canAbort; \
-    md->hasCargo = ms->hasCargo; \
-    md->unk34 = ms->unk34; \
-    md->briefDesc = ms->briefDesc; \
-    md->quickBriefDesc = ms->quickBriefDesc; \
-    md->loadCargoDesc = ms->loadCargoDesc; \
-    md->dropCargoDesc = ms->dropCargoDesc; \
-    md->compDesc = ms->compDesc; \
-    md->failDesc = ms->failDesc; \
-    md->refuseDesc = ms->refuseDesc; \
-    md->shipDoneDesc = ms->shipDoneDesc; \
-    md->timeLimit = ms->timeLimit; \
-    md->destStrList = ms->destStrList; \
-    md->destStrIndex = ms->destStrIndex; \
-    md->shipDelay = ms->shipDelay; \
-    md->misnIndex = ms->misnIndex; \
-    md->shipStrList = ms->shipStrList; \
-    md->shipStrIndex = ms->shipStrIndex; \
-    md->shipTypeIndex = ms->shipTypeIndex; \
-    md->flags = ms->flags; \
-    md->flags2 = ms->flags2; \
-    *(UnsignedWide *)md->unk59 = *(UnsignedWide *)ms->unk59; \
-    md->auxShipCount = ms->auxShipCount; \
-    md->auxShipDude = ms->auxShipDude; \
-    md->auxShipSyst = ms->auxShipSyst; \
-    md->auxShipsSpawned = ms->auxShipsSpawned; \
-    md->auxShipDelay = ms->auxShipDelay; \
-    md->auxShipsLeft = ms->auxShipsLeft; \
-    *(MStr64 *)md->shipName = *(MStr64 *)ms->shipName; \
-    *(MStr64 *)md->shipSubtitle = *(MStr64 *)ms->shipSubtitle; \
-    *(MStr255 *)md->unkED = *(MStr255 *)ms->unkED; \
-    *(MStr255 *)md->beginSetString = *(MStr255 *)ms->beginSetString; \
-    *(MStr255 *)md->setString2 = *(MStr255 *)ms->setString2; \
-    *(MStr255 *)md->succSetString = *(MStr255 *)ms->succSetString; \
-    *(MStr255 *)md->failSetString = *(MStr255 *)ms->failSetString; \
-    *(MStr255 *)md->abortSetString = *(MStr255 *)ms->abortSetString; \
-    *(MStr255 *)md->shipDoneSetString = *(MStr255 *)ms->shipDoneSetString; \
-    *(MStr256 *)md->name = *(MStr256 *)ms->name
 #endif
 
 /* WritePilotData. STATE: MATCH 100% (1367 exact, 356 reloc), 1723/1723, byte-identical yes
@@ -3585,12 +3502,7 @@ short WritePilotData(short stellar)
 #endif
     char name[0x100];
     char path[0x800];
-    void *f;
-    MissionState *od;
-    MissionState *os;
-    MissionRecord *md;
-    MissionRecord *ms;
-    RGBColor *paint;
+    FILE *f;
 #ifdef MAC1010
     Boolean sig[5];
 #elif V111
@@ -3643,9 +3555,9 @@ short WritePilotData(short stellar)
     PStr2CStr(name, playerName);
     strcat(path, name);
     strcat(path, ".plt");
-    playerFileHand = AllocAHandle2(sizeof(PilotRec), 0);
-    altPlayerFileHand = AllocAHandle2(sizeof(PilotRec2), 0);
-    f = FOpenExpandedPath(path, "wb");
+    playerFileHand = (PilotRec **)AllocAHandle2(sizeof(PilotRec), 0);
+    altPlayerFileHand = (PilotRec2 **)AllocAHandle2(sizeof(PilotRec2), 0);
+    f = (FILE *)FOpenExpandedPath(path, "wb");
     if (f != NULL && playerFileHand != NULL && altPlayerFileHand != NULL) {
         LockAHandle((Handle)playerFileHand);
         LockAHandle((Handle)altPlayerFileHand);
@@ -3728,8 +3640,8 @@ short WritePilotData(short stellar)
         }
         (*playerFileHand)->credits = shipData[0].credits;
         for (j = 0; j < kMaxActiveMissions; j++) {
-            CopyMissionSlot((*playerFileHand)->objectives[j], currentMissionObjectives[j],
-                            (*playerFileHand)->missions[j], currentMissions[j]);
+            (*playerFileHand)->objectives[j] = currentMissionObjectives[j];
+            (*playerFileHand)->missions[j] = currentMissions[j];
         }
         for (i = 0; i < kMaxMissionBits; i++)
             (*playerFileHand)->missionBits[i] = missionBit[i];
@@ -3781,14 +3693,7 @@ short WritePilotData(short stellar)
             (*altPlayerFileHand)->strict = 0;
         (*altPlayerFileHand)->gender = playerGender;
         strncpy((*altPlayerFileHand)->nickname, (char *)playerNickname, 0x40);
-#if V111 || defined(MACBUILD) /* V111 spelling */
         (*altPlayerFileHand)->paint = playerPaint;
-#else
-        paint = &(*altPlayerFileHand)->paint;
-        paint->red = playerPaint.red;
-        paint->green = playerPaint.green;
-        paint->blue = playerPaint.blue;
-#endif
         for (i = 0; i < kMaxStellars; i++) {
             if (stellarData[i].loaded != 0 && stellarData[i].dominated != 0) {
                 (*altPlayerFileHand)->defWave[i] = stellarData[i].defWaveSize;
@@ -4089,7 +3994,7 @@ Boolean OpenPilotFile(char *missingResource)
     char path[0x800];
     unsigned char text[256];
     int32_t result;
-    void *data;
+    char *data;
     int gotFile;
 
     *missingResource = 0;
@@ -4234,9 +4139,9 @@ void OpenLastPilotFile(void)
     GetIniIndString(name, kPilotDirList, 4);
     strcpy(path, pilotsFolder);
     strcat(path, name);
-    data = LoadAFile(path, &len);
+    data = (char *)LoadAFile(path, &len);
     if (data != NULL && data[len - 1] != 0) {
-        data = ResizeAPointer(data, len + 1);
+        data = (char *)ResizeAPointer(data, len + 1);
         data[len] = 0;
     }
     if (data != NULL && DoesPilotExist(data) != 0) {
@@ -4304,12 +4209,7 @@ short LoadPilotData(char *path)
 #endif
     char buf[0x40];
     Str255 text;
-    void *f;
-    MissionState *od;
-    MissionState *os;
-    MissionRecord *md;
-    MissionRecord *ms;
-    RGBColor *paint;
+    FILE *f;
     char *tail;
     short i;
     short j;
@@ -4353,14 +4253,14 @@ short LoadPilotData(char *path)
             FlipNpil(kPilotResID, *playerFileHand, GetHandleSize((Handle)playerFileHand), 0);
 #endif
 #else
-    f = FOpenExpandedPath(path, "rb");
+    f = (FILE *)FOpenExpandedPath(path, "rb");
     if (f == NULL)
         goto badFile;
 
     crashlog("load pilot data 1");
     len = fgetlong(f);
     if (len > 0) {
-        playerFileHand = AllocAHandle2(len, 0);
+        playerFileHand = (PilotRec **)AllocAHandle2(len, 0);
         LockAHandle((Handle)playerFileHand);
         fread(*playerFileHand, len, 1, f);
         UnlockAHandle((Handle)playerFileHand);
@@ -4483,8 +4383,8 @@ short LoadPilotData(char *path)
 
             crashlog("load pilot data 3");
             for (i = 0; i < kMaxActiveMissions; i++) {
-                CopyMissionSlot(currentMissionObjectives[i], (*playerFileHand)->objectives[i],
-                                currentMissions[i], (*playerFileHand)->missions[i]);
+                currentMissionObjectives[i] = (*playerFileHand)->objectives[i];
+                currentMissions[i] = (*playerFileHand)->missions[i];
                 if (currentMissionObjectives[i].active != 0) {
                     SetMissionDeadline(&currentMissionObjectives[i].dueDate,
                                   currentMissions[i].timeLimit);
@@ -4622,7 +4522,7 @@ short LoadPilotData(char *path)
 #else
     len = fgetlong(f);
     if (len > 0) {
-        altPlayerFileHand = AllocAHandle2(len, 0);
+        altPlayerFileHand = (PilotRec2 **)AllocAHandle2(len, 0);
         LockAHandle((Handle)altPlayerFileHand);
         fread(*altPlayerFileHand, len, 1, f);
         UnlockAHandle((Handle)altPlayerFileHand);
@@ -4664,14 +4564,7 @@ short LoadPilotData(char *path)
                 playerGender = 0;
 
             strncpy((char *)playerNickname, (*altPlayerFileHand)->nickname, 0x40);
-#if V111 || defined(MACBUILD) /* V111 spelling */
             playerPaint = (*altPlayerFileHand)->paint;
-#else
-            paint = &(*altPlayerFileHand)->paint;
-            playerPaint.red = paint->red;
-            playerPaint.green = paint->green;
-            playerPaint.blue = paint->blue;
-#endif
 
             for (i = 0; i < kMaxStellars; i++) {
                 if (stellarData[i].prepared != 0 && stellarData[i].dominated == 0) {

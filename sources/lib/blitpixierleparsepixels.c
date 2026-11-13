@@ -1,8 +1,10 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixierleparsepixels.c -- BlitPixieRLEParsePixels (win 0x00472510). Notes: Research/notes/blitpixierleparsepixels.md */
 #include "macport.h"
 #include "shipobj.h"
 #include "burger.h"
+
+EXTERN_C_BEGIN
 
 #define kParamErr       -50
 #define kMemFullErr     -108
@@ -346,11 +348,11 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
     depthL = depth;
     bytesPerPixel = depthL >> 3;
 
-    frameHandle = AllocAHandle2(
+    frameHandle = (void **)AllocAHandle2(
             numRows * byteWidth * 8 + rows * 4 + 4, 0);
     if (frameHandle != 0) {
         LockAHandle((Handle)frameHandle);
-        tokens = *frameHandle;
+        tokens = (unsigned char *)*frameHandle;
 
         srcRow = srcPixels;
         maskRow = maskPixels;
@@ -539,3 +541,5 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
     return err;
 }
 #endif
+
+EXTERN_C_END

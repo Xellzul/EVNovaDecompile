@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* portbuttons.c -- the spaceport's button pair, TrackPlanetButtons and DrawPlanetButtons. Notes: Research/notes/portbuttons.md, Research/notes/trackplanetbuttons.md */
 /*
  * A disabled button draws kButtonDisabled, the selected one with the hilite

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* swparticles.c -- SpriteWorld's SWParticles.c, the whole object (win 0x0047b7d0-0x0047c800). Notes: Research/notes/swparticles.md */
 #include <stddef.h>
 
@@ -7,6 +7,8 @@
 #include "burger.h"
 #include "macport.h"
 #include "spriteworld.h"
+
+EXTERN_C_BEGIN
 
 #if defined(MACBUILD) && !defined(MAC_GAMEUTILS_ONLY)
 #ifdef MAC1010 /* 1.0.10 spelling */
@@ -38,7 +40,7 @@ static int32_t gLastElementInUse = 0;
 static int gNumberOfParticlesActive = 0;
 static int gGravity = 0;
 static uint32_t gNumArrayElements = 0;
-static Boolean gParticlesInitialized = false;
+static Boolean gParticlesInitialized = 0;
 static int32_t scrollOffsetHoriz = 0;
 static int32_t scrollOffsetVert = 0;
 #endif
@@ -238,6 +240,7 @@ void EraseParticlesOffscreen(SpriteWorldPtr spriteWorldP)
         *SW_PIXELPTR32(frame, x, y) = c;
 
 #if V111
+#ifdef MACBUILD
 /* EraseParticlesScrollingOffscreen (mac _EraseParticlesScrollingOffscreen, mac-only). STATE: see the mac gate. */
 // MAC: _EraseParticlesScrollingOffscreen i386 0x000c5403 ppc 0x000d16b4
 void	EraseParticlesScrollingOffscreen( SpriteWorldPtr spriteWorldP )
@@ -291,6 +294,7 @@ void	EraseParticlesScrollingOffscreen( SpriteWorldPtr spriteWorldP )
 		}
 	)
 }
+#endif
 #endif
 
 /* DrawParticlesOffscreen (mac _DrawParticlesOffscreen). STATE: MATCH, byte-identical.
@@ -448,6 +452,7 @@ void UpdateParticlesInWindow(SpriteWorldPtr spriteWorldP)
     MoveParticles();
 }
 
+#ifdef MACBUILD
 /* UpdateParticlesInScrollingWindow (mac _UpdateParticlesInScrollingWindow, mac-only). STATE: see the mac gate. */
 // MAC: _UpdateParticlesInScrollingWindow i386 0x000c63ba ppc 0x000d26b4
 void UpdateParticlesInScrollingWindow(SpriteWorldPtr spriteWorldP)
@@ -455,6 +460,7 @@ void UpdateParticlesInScrollingWindow(SpriteWorldPtr spriteWorldP)
     SW_ASSERT(gParticlesInitialized == true, 522);
     MoveParticles();
 }
+#endif
 #else
 void UpdateParticlesInWindow(SpriteWorldRec *spriteWorldP)
 {
@@ -563,3 +569,5 @@ void MoveParticles(void)
     }
 }
 #endif
+
+EXTERN_C_END

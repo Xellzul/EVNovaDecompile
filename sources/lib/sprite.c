@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* sprite.c -- SpriteWorld's Sprite.c, tu-map object O14: sprite creation, frames, movement and collision. Notes: Research/notes/sprite.md */
 #include "macport.h"
 #include "burger.h"
@@ -443,7 +443,7 @@ short SWCreateSpriteFromSinglePictXY(
         unsigned char maskType)
 {
     short err;
-    void *tempPic;
+    PicHandle tempPic;
     CGrafPtr tempPictGWorldP;
     CGrafPtr tempMaskGWorldP;
     CGrafPtr tempTempMaskGWorldP;
@@ -935,69 +935,7 @@ short SWCloneSprite(SpritePtr cloneSpriteP, SpritePtr *newSpriteP, void *spriteS
         if (GetAPointerSize(tempSpriteP) < sizeof(SpriteRec))
             SWAssertFail("Sprite.c", 1400);
 
-        tempSpriteP->parentSpriteLayerP = cloneSpriteP->parentSpriteLayerP;
-        tempSpriteP->nextSpriteP = cloneSpriteP->nextSpriteP;
-        tempSpriteP->prevSpriteP = cloneSpriteP->prevSpriteP;
-        tempSpriteP->nextActiveSpriteP = cloneSpriteP->nextActiveSpriteP;
-        tempSpriteP->nextIdleSpriteP = cloneSpriteP->nextIdleSpriteP;
-        tempSpriteP->isVisible = cloneSpriteP->isVisible;
-        tempSpriteP->needsToBeDrawn = cloneSpriteP->needsToBeDrawn;
-        tempSpriteP->needsToBeErased = cloneSpriteP->needsToBeErased;
-        tempSpriteP->onTop = cloneSpriteP->onTop;
-        tempSpriteP->justBecameVisible = cloneSpriteP->justBecameVisible;
-        tempSpriteP->pad1b = cloneSpriteP->pad1b;
-        tempSpriteP->destFrameRect = cloneSpriteP->destFrameRect;
-        tempSpriteP->oldFrameRect = cloneSpriteP->oldFrameRect;
-        tempSpriteP->deltaFrameRect = cloneSpriteP->deltaFrameRect;
-        tempSpriteP->frameDrawProc = cloneSpriteP->frameDrawProc;
-        tempSpriteP->tileDepth = cloneSpriteP->tileDepth;
-        tempSpriteP->destRectIsVisible = cloneSpriteP->destRectIsVisible;
-        tempSpriteP->oldRectIsVisible = cloneSpriteP->oldRectIsVisible;
-        tempSpriteP->clippedSourceRect = cloneSpriteP->clippedSourceRect;
-        tempSpriteP->destOffscreenRect = cloneSpriteP->destOffscreenRect;
-        tempSpriteP->frameArray = cloneSpriteP->frameArray;
-        tempSpriteP->curFrameP = cloneSpriteP->curFrameP;
-        tempSpriteP->numFrames = cloneSpriteP->numFrames;
-        tempSpriteP->maxFrames = cloneSpriteP->maxFrames;
-        tempSpriteP->frameTimeInterval = cloneSpriteP->frameTimeInterval;
-        tempSpriteP->timeOfLastFrameChange = cloneSpriteP->timeOfLastFrameChange;
-        tempSpriteP->frameAdvance = cloneSpriteP->frameAdvance;
-        tempSpriteP->curFrameIndex = cloneSpriteP->curFrameIndex;
-        tempSpriteP->firstFrameIndex = cloneSpriteP->firstFrameIndex;
-        tempSpriteP->lastFrameIndex = cloneSpriteP->lastFrameIndex;
-        tempSpriteP->frameChangeProc = cloneSpriteP->frameChangeProc;
-        tempSpriteP->moveTimeInterval = cloneSpriteP->moveTimeInterval;
-        tempSpriteP->timeOfLastMove = cloneSpriteP->timeOfLastMove;
-        tempSpriteP->horizMoveDelta = cloneSpriteP->horizMoveDelta;
-        tempSpriteP->vertMoveDelta = cloneSpriteP->vertMoveDelta;
-        tempSpriteP->moveBoundsRect = cloneSpriteP->moveBoundsRect;
-        tempSpriteP->spriteMoveProc = cloneSpriteP->spriteMoveProc;
-        tempSpriteP->realSpriteMoveProc = cloneSpriteP->realSpriteMoveProc;
-        tempSpriteP->spriteCollideProc = cloneSpriteP->spriteCollideProc;
-        tempSpriteP->sharedPictGWorld = cloneSpriteP->sharedPictGWorld;
-        tempSpriteP->sharedMaskGWorld = cloneSpriteP->sharedMaskGWorld;
-        tempSpriteP->spriteRemoval = cloneSpriteP->spriteRemoval;
-        tempSpriteP->frameAdvanceMode = cloneSpriteP->frameAdvanceMode;
-        tempSpriteP->translucency = cloneSpriteP->translucency;
-        tempSpriteP->tintRed = cloneSpriteP->tintRed;
-        tempSpriteP->tintGreen = cloneSpriteP->tintGreen;
-        tempSpriteP->tintBlue = cloneSpriteP->tintBlue;
-        tempSpriteP->tintMode = cloneSpriteP->tintMode;
-        tempSpriteP->tintColor = cloneSpriteP->tintColor;
-        tempSpriteP->rotation = cloneSpriteP->rotation;
-        tempSpriteP->scaledWidth = cloneSpriteP->scaledWidth;
-        tempSpriteP->scaledHeight = cloneSpriteP->scaledHeight;
-        tempSpriteP->colorValue = cloneSpriteP->colorValue;
-        tempSpriteP->colorRGB = cloneSpriteP->colorRGB;
-        tempSpriteP->flippedHorizontal = cloneSpriteP->flippedHorizontal;
-        tempSpriteP->flippedVertical = cloneSpriteP->flippedVertical;
-        tempSpriteP->pad2 = cloneSpriteP->pad2;
-        tempSpriteP->userData = cloneSpriteP->userData;
-        tempSpriteP->rleDataH = cloneSpriteP->rleDataH;
-        tempSpriteP->collisionsDisabled = cloneSpriteP->collisionsDisabled;
-        tempSpriteP->ownsRLEData = cloneSpriteP->ownsRLEData;
-        tempSpriteP->isEmptySprite = cloneSpriteP->isEmptySprite;
-        tempSpriteP->srD3 = cloneSpriteP->srD3;
+        *tempSpriteP = *cloneSpriteP;
 
         tempSpriteP->parentSpriteLayerP = 0;
         tempSpriteP->nextSpriteP = 0;
@@ -1010,7 +948,7 @@ short SWCloneSprite(SpritePtr cloneSpriteP, SpritePtr *newSpriteP, void *spriteS
 
     if ((int)err == noErr) {
         frameArraySize = cloneSpriteP->maxFrames * sizeof(FramePtr);
-        tempSpriteP->frameArray = AllocAPointerClear(frameArraySize);
+        tempSpriteP->frameArray = (FramePtr *)AllocAPointerClear(frameArraySize);
 
         if (tempSpriteP->frameArray != 0) {
             for (index = 0; index < cloneSpriteP->maxFrames; index++) {
@@ -1335,7 +1273,7 @@ void SWUnlockSprite(SpritePtr srcSpriteP)
         }
     }
 
-    spriteData = srcSpriteP->frameArray[0]->rleDataH;
+    spriteData = (Handle)srcSpriteP->frameArray[0]->rleDataH;
     if (spriteData != 0) {
         for (curFrame = 0; curFrame < srcSpriteP->numFrames; curFrame++) {
             srcFrameP = srcSpriteP->frameArray[curFrame];
@@ -1613,14 +1551,7 @@ void SWSetCurrentFrameIndex(SpritePtr srcSpriteP, short frameIndex)
                     (srcSpriteP->curFrameP->hotSpotV - newFrameP->hotSpotV);
 
         srcSpriteP->curFrameP = newFrameP;
-#ifdef MACBUILD
         srcSpriteP->destFrameRect = newFrameP->frameRect;
-#else
-        srcSpriteP->destFrameRect.top = newFrameP->frameRect.top;
-        srcSpriteP->destFrameRect.left = newFrameP->frameRect.left;
-        srcSpriteP->destFrameRect.bottom = newFrameP->frameRect.bottom;
-        srcSpriteP->destFrameRect.right = newFrameP->frameRect.right;
-#endif
 
         if (srcSpriteP->scaledWidth > 0)
             srcSpriteP->destFrameRect.right = srcSpriteP->destFrameRect.left +
@@ -1882,14 +1813,7 @@ void SWSetSpriteLocation(SpritePtr srcSpriteP, short horizLoc, short vertLoc)
     srcSpriteP->destFrameRect.top = vertLoc;
     srcSpriteP->destFrameRect.left = horizLoc;
 
-#ifdef MACBUILD
     srcSpriteP->deltaFrameRect = srcSpriteP->destFrameRect;
-#else
-    srcSpriteP->deltaFrameRect.top = srcSpriteP->destFrameRect.top;
-    srcSpriteP->deltaFrameRect.left = srcSpriteP->destFrameRect.left;
-    srcSpriteP->deltaFrameRect.bottom = srcSpriteP->destFrameRect.bottom;
-    srcSpriteP->deltaFrameRect.right = srcSpriteP->destFrameRect.right;
-#endif
 
     srcSpriteP->needsToBeDrawn = 1;
 }

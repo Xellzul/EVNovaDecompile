@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* loadbar.c -- the startup progress bar (win 0x004ab1b0..0x004ab3d0). Notes: Research/notes/loadbar.md */
 #include <stdlib.h>
 #include "macport.h"
@@ -240,7 +240,7 @@ unsigned char ShowScrollingText(short strListID)
         if (maxWidth < width)
             maxWidth = width;
         line[i] = 0;
-        line[i] = NewPtr(256);
+        line[i] = (char *)NewPtr(256);
         if (line[i] != 0) {
             if (text[1] == '<' && text[2] == 'R' && text[3] == 'E' && text[4] == 'G'
                 && text[5] == '>') {

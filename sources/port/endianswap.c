@@ -1,6 +1,9 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* endianswap.c -- byte-swap a resource body from a descriptor (win 0x004ce660). Notes: Research/notes/endianswap.md */
 #include "int32.h"
+#include "gametypes.h"
+
+EXTERN_C_BEGIN
 
 /* resource bodies are big-endian: they come off a Mac-authored rez file.
    Same shape as loaddata.c's helper - `static __inline` is the only spelling
@@ -86,3 +89,5 @@ void SwapEndianByDescriptor(unsigned char *data, unsigned short *desc)
         desc++;
     }
 }
+
+EXTERN_C_END

@@ -1,10 +1,12 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* crashlog.c -- debug logging. Notes: Research/notes/crashlog.md */
 #include <stdio.h>
 
 #include "burger.h"
 #include "macport.h"
 #include "crashlog.h"
+
+EXTERN_C_BEGIN
 
 // GLOBAL: EVNOVA 0x007cdab0
 #ifdef MAC1010
@@ -239,3 +241,5 @@ FILE *crashlog_get_file(void)
 void PtoCstring(unsigned char *s)
 #include "../engine/ptocstring.inc"
 #endif
+
+EXTERN_C_END

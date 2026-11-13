@@ -1,8 +1,10 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* construct8bitalphatable.c -- Construct8BitAlphaTable (win 0x004740d0). Notes: Research/notes/construct8bitalphatable.md */
 #include "macport.h"
 #include "burger.h"
 #include "spriteworld.h"
+
+EXTERN_C_BEGIN
 
 #if defined(MACBUILD) && !defined(MAC1010)
 #define kAlphaTableType     0x74c3a462      /* 'Tt\xe4b' saved as UTF-8: gcc keeps the last four bytes */
@@ -46,3 +48,5 @@ short Construct8BitAlphaTable(void)
 
     return noErr;
 }
+
+EXTERN_C_END

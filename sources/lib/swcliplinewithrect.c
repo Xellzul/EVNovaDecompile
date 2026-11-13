@@ -1,6 +1,8 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* swcliplinewithrect.c -- SWClipLineWithRect (win 0x0047b3c0, donor SWFastLine.c line 659). Notes: Research/notes/swcliplinewithrect.md */
 #include "macport.h"
+
+EXTERN_C_BEGIN
 
 
 /* SWClipLineWithRect (mac _SWClipLineWithRect). STATE: MATCH, byte-identical. OPEN: none */
@@ -272,3 +274,5 @@ Boolean SWClipLineWithRect(Point *srcPoint, Point *dstPoint, Rect *clipRectP)
     return foundStartPt;
 }
 #endif
+
+EXTERN_C_END

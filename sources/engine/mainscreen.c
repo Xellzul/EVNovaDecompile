@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* mainscreen.c -- the main screen: DoMainScreen, its choice and keyboard handlers (win 0x00486880..0x004872a0). Notes: Research/notes/mainscreen.md */
 /*
  * The checks are a straight run of independent ifs rather than a chain, so each

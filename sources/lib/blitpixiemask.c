@@ -1,10 +1,12 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixiemask.c -- BlitPixieMask (win 0x00471a70), the per-row masked blit BlitPixieMaskDrawProc calls. Notes: Research/notes/blitpixiemask.md */
 /* The row strides are pre-adjusted once at the top, on the PARAMETER slots, so the
    per-row advance adds only the leftover stride. The source pixels are pre-masked by
    the caller, which is why an OR suffices; both counters are unsigned. */
 #include "macport.h"
 #include "shipobj.h"
+
+EXTERN_C_BEGIN
 
 /* BlitPixieMask (mac _BlitPixieMask). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00471a70
@@ -30,3 +32,5 @@ void BlitPixieMask(unsigned char *srcPixels, unsigned char *dstPixels,
         maskPixels += srcRowBytes;
     }
 }
+
+EXTERN_C_END

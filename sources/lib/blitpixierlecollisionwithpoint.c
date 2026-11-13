@@ -1,7 +1,9 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixierlecollisionwithpoint.c -- BlitPixieRLECollisionWithPoint (win 0x00472420). Notes: Research/notes/blitpixierlecollisionwithpoint.md */
 #include "macport.h"
 #include "shipobj.h"
+
+EXTERN_C_BEGIN
 
 /* BlitPixieRLECollisionWithPoint (mac _BlitPixieRLECollisionWithPoint). STATE: MATCH, exe 103 / obj 103 instrs, byte-identical yes.
    OPEN: none. see notes */
@@ -80,3 +82,5 @@ Boolean BlitPixieRLECollisionWithPoint(unsigned char *rleData, Point *pt, Rect *
 
     return 0;
 }
+
+EXTERN_C_END

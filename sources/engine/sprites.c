@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* sprites.c -- sprite metric accessors (win region 0x00462340-0x004624c0). Notes: Research/notes/sprites.md */
 #include <stddef.h>
 
@@ -8,6 +8,8 @@
 #include "game.h"
 #include "crashlog.h"
 #include "macport.h"
+
+EXTERN_C_BEGIN
 
 /*
  * Two rects: the frame the current cel occupies and the sprite's own bounds.
@@ -111,3 +113,5 @@ short GetMasterShipSpriteXSize(short id)
     }
     return 75;
 }
+
+EXTERN_C_END

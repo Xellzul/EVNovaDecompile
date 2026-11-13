@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixierletranslucent8.c -- BlitPixieRLETranslucent8 (win 0x00472bb0), the 8-bit partial-translucency RLE walker. Notes: Research/notes/blitpixierletranslucent8.md */
 #include "macport.h"
 #include "shipobj.h"

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* keydlg.c -- the key-binding dialog's update proc (win 0x0048b860). Notes: Research/notes/keydlg.md */
 /*
  * picBox must be declared before name: with a large array in the frame mwcc

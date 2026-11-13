@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixietranslucentbiascopy8.c -- BlitPixieTranslucentBiasCopy8 (win 0x00473e00). Notes: Research/notes/blitpixietranslucentbiascopy8.md */
 /* `*dst = alphaTable[level2][bias][*src]': the row is selected by a FIXED colour held
    in a global and the columns by the source, so the destination is never read. level2 is

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* swcreategworldfrompict.c -- SWCreateGWorldFromPict (win 0x00478fa0, donor SpriteWorldUtils.c line 392). Notes: Research/notes/swcreategworldfrompict.md */
 /* The port's NewGWorld takes four arguments, not six: with no GDevice list the donor's
    device query and its first arm both go. The `err == noErr' test goes through an int
@@ -83,7 +83,7 @@ short SWCreateGWorldFromPict(SpriteWorldPtr destSpriteWorld,
 
     depth = destSpriteWorld->pixelDepth;
 
-    QDGetPictureBounds(pictH, &pictRect);
+    QDGetPictureBounds((PicHandle)pictH, &pictRect);
     OffsetRect(&pictRect, -pictRect.left, -pictRect.top);
 
 #ifdef CEFIX /* F11.03 */
@@ -98,7 +98,7 @@ short SWCreateGWorldFromPict(SpriteWorldPtr destSpriteWorld,
         SetPort(tempGWorld);
 
         EraseRect(&pictRect);
-        DrawPicHandle(pictH, &pictRect);
+        DrawPicHandle((PicHandle)pictH, &pictRect);
     }
 
     SetPort(saveGWorld);

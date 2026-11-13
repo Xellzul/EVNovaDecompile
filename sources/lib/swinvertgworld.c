@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* swinvertgworld.c -- SWInvertGWorld (win 0x004791b0, donor SpriteWorldUtils.c line 506) and SWInvertRect (win 0x004791d0, donor line 518). Notes: Research/notes/swinvertgworld.md */
 #include "macport.h"
 #include "shipobj.h"

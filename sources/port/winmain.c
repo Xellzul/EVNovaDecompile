@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* winmain.c -- the port's WinMain (win 0x004d2a80). Notes: Research/notes/winmain.md */
 #include <stddef.h>
 #include "macport.h"
@@ -9,6 +9,8 @@
 #ifdef V111
 #include "render.h"
 #endif
+
+EXTERN_C_BEGIN
 
 
 /* WinMain. STATE: MATCH, byte-identical. OPEN: none */
@@ -51,7 +53,7 @@ int __stdcall WinMain(void *hInstance, void *hPrevInstance, char *lpCmdLine,
 #endif
         InitializeQTML(2);
         gRezOpenPending = 1;
-        EVOpenResourceFile("9:Nova.rez");
+        EVOpenResourceFile((void *)"9:Nova.rez");
         SetLastError(0);
         LoadStringA(hInstance, 0x3b6, buf, 0x100);
         GetLastError();
@@ -68,3 +70,5 @@ int __stdcall WinMain(void *hInstance, void *hPrevInstance, char *lpCmdLine,
     }
     return 0;
 }
+
+EXTERN_C_END

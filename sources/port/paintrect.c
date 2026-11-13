@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* paintrect.c -- PaintRect, InvertRect, EraseRect, FrameRect; exe 0x004b6b90..0x004b6ef0. Notes: Research/notes/qddraw.md */
 
 #include <stddef.h>

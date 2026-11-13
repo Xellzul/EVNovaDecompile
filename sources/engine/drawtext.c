@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* drawtext.c -- centred Pascal-string drawing (win 0x004622f0). Notes: Research/notes/drawtext.md */
 /*
  * Both halves of the centring divide by two as signed ints, which is why the
@@ -7,6 +7,7 @@
 #include "macport.h"
 #include "cefix.h"
 
+EXTERN_C_BEGIN
 
 /* DrawStringCentered. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004622f0
@@ -23,3 +24,5 @@ void DrawStringCentered(const unsigned char *str, short left, short right,
 #endif
     DrawString(str);
 }
+
+EXTERN_C_END

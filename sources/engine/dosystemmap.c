@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* dosystemmap.c -- tu-map object O25: the galaxy map dialog, its drawing, filters and jump routes. Notes: Research/notes/dosystemmap.md */
 #include <stddef.h>
 #include <string.h>
@@ -21,6 +21,9 @@
 #include "stellar.h"
 #include "cefix.h"
 #include "space.h"
+
+EXTERN_C_BEGIN
+
 #ifdef MACBUILD
 extern void SaveMapBordersState(void);
 #endif
@@ -2718,7 +2721,9 @@ Boolean MapFilter(DialogPtr dlg, EventRecord *event, short *itemHit)
     if ((int)event->what == kMouseDown) {
 #if V111
         pt = event->where;
+#ifdef MACBUILD
         GlobalToLocal(&pt);
+#endif
         GetDialogItem(mapDialog, kMapPictItem,&itemType, &item, &box);
         if (PtInRectPoint(pt, &box) == 0) {
             MapDialogUpdate();
@@ -3761,3 +3766,5 @@ void DrawMapInfluence(Rect bounds)
 #endif
     ForeColor(blackColor);
 }
+
+EXTERN_C_END

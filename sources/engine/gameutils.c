@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* gameutils.c -- the engine helpers: CenterWindow (empty, two windows). Notes: Research/notes/gameutils.md */
 #include <math.h>
 #include <stddef.h>

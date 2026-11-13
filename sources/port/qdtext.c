@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* qdtext.c -- the port's QuickDraw text calls, DrawTextRun .. MeasureWrappedText (8 functions); exe 0x004bc760..0x004bcc70. Notes: Research/notes/toolbox.md */
 
 #include <stddef.h>
@@ -40,9 +40,9 @@ void DrawTextRun(const void *text, uint32_t byteCount, Rect *box, char clipped, 
         return;
 
 #ifdef CEFIX /* F08.02 */
-    buf = AllocAPointer(byteCount * sizeof(unsigned short));
+    buf = (char *)AllocAPointer(byteCount * sizeof(unsigned short));
 #else
-    buf = AllocAPointer(byteCount);
+    buf = (char *)AllocAPointer(byteCount);
 #endif
     n = byteCount;
     outPtr = (char *)text;

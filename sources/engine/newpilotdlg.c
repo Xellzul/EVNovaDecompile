@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* newpilotdlg.c -- the New Pilot confirm/abort gate (win 0x0048a7e0). Notes: Research/notes/newpilotdlg.md */
 #include <stddef.h>
 
@@ -8,6 +8,8 @@
 #include "game.h"
 #include "gameutil.h"
 #include "gametypes.h"
+
+EXTERN_C_BEGIN
 
 #define kNewPilotDlogID          0xc1d
 #define kNewPilotOneCharDlogID   0xc1e
@@ -294,7 +296,7 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
     FrameDefaultButton(dlg, 1);
 
     GetDialogItem(dlg, kItemStrictPlay, &type, (Handle *)&h, &box);
-    ctl = h;
+    ctl = (ControlPtr)h;
     if (strict != 0)
         SetControlValue(ctl, 1);
     else
@@ -302,7 +304,7 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
 
     for (i = 0, p = newPlayerName[0]; i < kNameFieldCount; i++) {
         GetDialogItem(dlg, i + kItemFirstNameField, &type, (Handle *)&h, &box);
-        SetDialogItemText(h, p);
+        SetDialogItemText((Handle)h, p);
         p += kNameFieldStride;
     }
     SelectDialogItemText(dlg, kItemFirstNameField, 0, kSelectAllNameText);
@@ -334,7 +336,7 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
         }
     }
     GetDialogItem(dlg, kItemCharPopup, &type, (Handle *)&h, &box);
-    ctl = h;
+    ctl = (ControlPtr)h;
     SetControlValue(ctl, (short)selected);
 
     do {
@@ -350,7 +352,7 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
 #endif
 
                 GetDialogItem(dlg, n + kItemFirstNameField, &type, (Handle *)&h, &box);
-                GetDialogItemText(h, savedName);
+                GetDialogItemText((Handle)h, savedName);
                 PtoCstr(savedName);
                 if (strlen((char *)savedName) > kMaxPilotNameLen) {
                     SysBeep(0);
@@ -368,7 +370,7 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
             else
                 strict = 1;
             GetDialogItem(dlg, kItemStrictPlay, &type, (Handle *)&h, &box);
-            ctl = h;
+            ctl = (ControlPtr)h;
             if (strict != 0)
                 SetControlValue(ctl, 1);
             else
@@ -384,7 +386,7 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
     if (result != 0) {
         for (i = 0, p = newPlayerName[0]; i < kNameFieldCount; i++) {
             GetDialogItem(dlg, i + kItemFirstNameField, &type, (Handle *)&h, &box);
-            GetDialogItemText(h, p);
+            GetDialogItemText((Handle)h, p);
             p += kNameFieldStride;
         }
         *strictPlay = strict;
@@ -399,3 +401,5 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
     return result;
 }
 #endif
+
+EXTERN_C_END

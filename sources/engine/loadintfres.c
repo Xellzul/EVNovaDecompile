@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* loadintfres.c -- LoadIntfResource (win 0x004cda50), the status-bar-panel loader called once from EnterGameFromMainScreen. Notes: Research/notes/loadintfres.md */
 #include <stddef.h>
 #include <string.h>
@@ -50,7 +50,7 @@ void LoadIntfResource(void)
     short id;
     short pid;
     short picID;
-    void *pict;
+    PicHandle pict;
     Rect *p;
     IntfRec **rec;
     IntfRec **rec2;
@@ -159,7 +159,7 @@ void LoadIntfResource(void)
 #endif
         DrawPicHandle(pict, &pictRect);
 #ifdef MACBUILD
-        HPurge(pict);
+        HPurge((Handle)pict);
 #endif
         QDReleaseResource(pict);
         UnsetGWorldContainer(&statusOffPort);

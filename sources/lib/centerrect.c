@@ -1,9 +1,11 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* centerrect.c -- CenterRect (win 0x0047b710, donor SWGameUtils.c line 82). Notes: Research/notes/centerrect.md */
 /* `/2' on a signed short is the `cmp 0x80000000 / sbb -1 / sar 1' triple, four times
    over: that is what fixes the widths here, since an unsigned spelling would have given
    a plain `shr'. */
 #include "macport.h"
+
+EXTERN_C_BEGIN
 
 /* CenterRect (mac _CenterRect). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047b710
@@ -18,3 +20,5 @@ void CenterRect(Rect *rectA, Rect *rectB)
     rectA->right = rectA->left + width;
     rectA->bottom = rectA->top + height;
 }
+
+EXTERN_C_END

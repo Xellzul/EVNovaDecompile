@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* swcreatespriteworld.c -- SWEnterSpriteWorld (SpriteWorld.c's order) and SWCreateSpriteWorld (win 0x00477640, donor SpriteWorld.c line 117). Notes: Research/notes/swcreatespriteworld.md */
 #include "macport.h"
 #include "shipobj.h"
@@ -174,7 +174,7 @@ short SWCreateSpriteWorld(void *mainGDH, SpriteWorldRec **spriteWorldP,
     err = noErr;
     *spriteWorldP = 0;
 
-    tempSpriteWorldP = AllocAPointerClear(sizeof(SpriteWorldRec));
+    tempSpriteWorldP = (SpriteWorldRec *)AllocAPointerClear(sizeof(SpriteWorldRec));
     if (tempSpriteWorldP == 0)
         err = memFullErr;
 
@@ -202,25 +202,13 @@ short SWCreateSpriteWorld(void *mainGDH, SpriteWorldRec **spriteWorldP,
         tempSpriteWorldP->postEraseCallBack = 0;
         tempSpriteWorldP->postDrawCallBack = 0;
 
-        tempSpriteWorldP->windRect.top = windowFrameP->frameRect.top;
-        tempSpriteWorldP->windRect.left = windowFrameP->frameRect.left;
-        tempSpriteWorldP->windRect.bottom = windowFrameP->frameRect.bottom;
-        tempSpriteWorldP->windRect.right = windowFrameP->frameRect.right;
+        tempSpriteWorldP->windRect = windowFrameP->frameRect;
 
-        tempSpriteWorldP->backRect.top = backFrameP->frameRect.top;
-        tempSpriteWorldP->backRect.left = backFrameP->frameRect.left;
-        tempSpriteWorldP->backRect.bottom = backFrameP->frameRect.bottom;
-        tempSpriteWorldP->backRect.right = backFrameP->frameRect.right;
+        tempSpriteWorldP->backRect = backFrameP->frameRect;
 
-        tempSpriteWorldP->originalWindRect.top = windowFrameP->frameRect.top;
-        tempSpriteWorldP->originalWindRect.left = windowFrameP->frameRect.left;
-        tempSpriteWorldP->originalWindRect.bottom = windowFrameP->frameRect.bottom;
-        tempSpriteWorldP->originalWindRect.right = windowFrameP->frameRect.right;
+        tempSpriteWorldP->originalWindRect = windowFrameP->frameRect;
 
-        tempSpriteWorldP->originalBackRect.top = backFrameP->frameRect.top;
-        tempSpriteWorldP->originalBackRect.left = backFrameP->frameRect.left;
-        tempSpriteWorldP->originalBackRect.bottom = backFrameP->frameRect.bottom;
-        tempSpriteWorldP->originalBackRect.right = backFrameP->frameRect.right;
+        tempSpriteWorldP->originalBackRect = backFrameP->frameRect;
 
         tempSpriteWorldP->headUpdateRectP = 0;
 
@@ -236,24 +224,15 @@ short SWCreateSpriteWorld(void *mainGDH, SpriteWorldRec **spriteWorldP,
         tempSpriteWorldP->thereAreNonScrollingLayers = 0;
         tempSpriteWorldP->fastBlit = 1;
 
-        tempSpriteWorldP->visScrollRect.top = windowFrameP->frameRect.top;
-        tempSpriteWorldP->visScrollRect.left = windowFrameP->frameRect.left;
-        tempSpriteWorldP->visScrollRect.bottom = windowFrameP->frameRect.bottom;
-        tempSpriteWorldP->visScrollRect.right = windowFrameP->frameRect.right;
+        tempSpriteWorldP->visScrollRect = windowFrameP->frameRect;
 
         OffsetRect(&tempSpriteWorldP->visScrollRect,
                    -tempSpriteWorldP->visScrollRect.left,
                    -tempSpriteWorldP->visScrollRect.top);
 
-        tempSpriteWorldP->offscreenScrollRect.top = tempSpriteWorldP->visScrollRect.top;
-        tempSpriteWorldP->offscreenScrollRect.left = tempSpriteWorldP->visScrollRect.left;
-        tempSpriteWorldP->offscreenScrollRect.bottom = tempSpriteWorldP->visScrollRect.bottom;
-        tempSpriteWorldP->offscreenScrollRect.right = tempSpriteWorldP->visScrollRect.right;
+        tempSpriteWorldP->offscreenScrollRect = tempSpriteWorldP->visScrollRect;
 
-        tempSpriteWorldP->oldVisScrollRect.top = tempSpriteWorldP->visScrollRect.top;
-        tempSpriteWorldP->oldVisScrollRect.left = tempSpriteWorldP->visScrollRect.left;
-        tempSpriteWorldP->oldVisScrollRect.bottom = tempSpriteWorldP->visScrollRect.bottom;
-        tempSpriteWorldP->oldVisScrollRect.right = tempSpriteWorldP->visScrollRect.right;
+        tempSpriteWorldP->oldVisScrollRect = tempSpriteWorldP->visScrollRect;
 
         tempSpriteWorldP->tileLayerArray = 0;
         tempSpriteWorldP->tilingCache = 0;

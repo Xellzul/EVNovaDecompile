@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* missionbiteffects.c -- PropagateMissionBitEffects (win 0x00448090-0x0044864c). Notes: Research/notes/missionbiteffects.md */
 #include "space.h"
 #include "gametypes.h"

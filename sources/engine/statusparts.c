@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* statusparts.c -- the status-panel painters at win link order 0x0045f530 (DrawStatusTarg), 0x00460ec0 (DrawStatusWeap) and 0x004612c0 (DrawStatusCargo); contiguous, and the next function is trigtables.c's, so the run is one original .obj. Notes: Research/notes/statusparts.md */
 #include <math.h>
 #include <stddef.h>
@@ -632,7 +632,7 @@ void DrawStatusTarg(void)
         ForeColor(blackColor);
         h = shipClass[shipData[shipData[0].targetShip].type].targetPictID;
         if (targetInfoPic[h] != NULL)
-            DrawPicHandle(targetInfoPic[h], &picRect);
+            DrawPicHandle((PicHandle)targetInfoPic[h], &picRect);
 
         if (shipData[shipData[0].targetShip].specialMission != -1) {
             if (currentMissions[shipData[shipData[0].targetShip].specialMission].shipSubtitle[0] > 0)

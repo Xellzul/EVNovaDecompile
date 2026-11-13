@@ -1,9 +1,11 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* profile.c -- the engine's own 64-slot sampling profiler (win TU region 0x0046fbf0..0x0046ff00). Notes: Research/notes/profile.md */
 #include <stdio.h>
 #include <string.h>
 #include "game.h"
 #include "burger.h"
+
+EXTERN_C_BEGIN
 
 #define kProfileSlots 64
 
@@ -20,13 +22,13 @@ short dependency[kProfileSlots];
 short lastEntered;
 Boolean done[kProfileSlots];
 #else
-static Boolean done[kProfileSlots];          /* dump bookkeeping */
-static short lastEntered;
-static short dependency[kProfileSlots];          /* -1 = none */
-static char name[kProfileSlots][32];
-static uint32_t totalMilliseconds[kProfileSlots];    /* milliseconds */
-static uint32_t iterations[kProfileSlots];
 static unsigned long long lastMicroseconds[kProfileSlots];
+static uint32_t iterations[kProfileSlots];
+static uint32_t totalMilliseconds[kProfileSlots];    /* milliseconds */
+static char name[kProfileSlots][32];
+static short dependency[kProfileSlots];          /* -1 = none */
+static short lastEntered;
+static Boolean done[kProfileSlots];          /* dump bookkeeping */
 #endif
 
 /* print_dependents (mac _print_dependents). STATE: MATCH, byte-identical. OPEN: none */
@@ -160,3 +162,5 @@ void MyProfileDump(const char *path)
         fclose(f);
     }
 }
+
+EXTERN_C_END

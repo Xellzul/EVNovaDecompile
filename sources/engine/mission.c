@@ -1,9 +1,9 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* mission.c -- the mission object (tu-map O5, win 0x0043bbb0..0x00447f20). Notes: Research/notes/mission.md */
+#include <stdlib.h>
 #include <math.h>
 #include <string.h>
 #include <stddef.h>
-#include <stdlib.h>
 
 #include "gametypes.h"
 #include "gameconst.h"
@@ -814,7 +814,7 @@ short SelectMissionCargoQty(short choice)
     if (choice >= 0)
         return choice;
     if (choice <= -2) {
-        spread = __builtin_abs(choice);
+        spread = abs(choice);
         return Rand(spread) + spread / 2;
     }
     return 0;
@@ -3122,7 +3122,7 @@ void MungeBriefing(Boolean briefing, short which)
 #ifdef MACBUILD
     BlockMoveData(briefingTextPtr, *(Handle)stringHandle, GetAHandleSize(stringHandle));
 #else
-    memmove(*(Handle)stringHandle, briefingTextPtr, GetAHandleSize(stringHandle));
+    memmove(*(Handle)stringHandle, briefingTextPtr, GetAHandleSize((Handle)stringHandle));
 #endif
     for (i = 0; i < kBriefingSize; i++)
         briefingTextPtr[i] = '\0';
@@ -3343,7 +3343,7 @@ tokens:
 
     strncpy(playerNameStr, (char *)playerName, kNameLen);
     PtoCstr((unsigned char *)playerNameStr);
-    if (playerNickname[0] != '\0') {
+    if (playerNickname[0] != 0) {
         strncpy(nickStr, (char *)playerNickname, kNameLen);
         PtoCstr((unsigned char *)nickStr);
     } else {
@@ -3460,15 +3460,15 @@ tokens:
     }
 
     if (leetMode != 0) {
-        MungeForSymbol("you", "j00");
-        MungeForSymbol("You", "j00");
-        MungeForSymbol("ck", "x0r");
-        MungeForSymbol("i", "1");
-        MungeForSymbol("I", "1");
-        MungeForSymbol("e", "3");
-        MungeForSymbol("E", "3");
-        MungeForSymbol("l", "7");
-        MungeForSymbol("L", "7");
+        MungeForSymbol("you", (char *)"j00");
+        MungeForSymbol("You", (char *)"j00");
+        MungeForSymbol("ck", (char *)"x0r");
+        MungeForSymbol("i", (char *)"1");
+        MungeForSymbol("I", (char *)"1");
+        MungeForSymbol("e", (char *)"3");
+        MungeForSymbol("E", (char *)"3");
+        MungeForSymbol("l", (char *)"7");
+        MungeForSymbol("L", (char *)"7");
     }
 
 #ifdef MACBUILD
@@ -3479,8 +3479,8 @@ tokens:
     }
     HPurge(stringHandle);
 #else
-    if (GetAHandleSize(stringHandle) <= kBriefingSize) {
-        memmove(briefingTextPtr, *(Handle)stringHandle, GetAHandleSize(stringHandle));
+    if (GetAHandleSize((Handle)stringHandle) <= kBriefingSize) {
+        memmove(briefingTextPtr, *(Handle)stringHandle, GetAHandleSize((Handle)stringHandle));
     } else {
         memmove(briefingTextPtr, *(Handle)stringHandle, kBriefingSize);
     }
@@ -3499,10 +3499,10 @@ void MungeForSymbol(char *needle, void *replacement)
     short at;
 
     needleLen = strlen(needle);
-    replLen = strlen(replacement);
+    replLen = strlen((char *)replacement);
     at = 0;
     do {
-        at = ReplaceInHandle(stringHandle, at, needle, needleLen, replacement, replLen);
+        at = ReplaceInHandle((Handle)stringHandle, at, needle, needleLen, (char *)replacement, replLen);
     } while (at >= 0);
 }
 
@@ -4397,8 +4397,8 @@ Boolean SingleMissionFilter(int32_t unused, EventRecord *ev, short *itemHit)
 void SingleMissionDialogUpdate(void)
 {
     Boolean inside;
-    void *loaded;
-    void *pic;
+    PicHandle loaded;
+    PicHandle pic;
     Rect r;
     Rect r2;
     short itemType;

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* swcreatesprite.c -- SWCreateSprite (win 0x004744a0, donor line 56). Notes: Research/notes/swcreatesprite.md */
 #include "macport.h"
 #include "burger.h"

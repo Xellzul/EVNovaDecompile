@@ -1,7 +1,9 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixiememset.c -- BlitPixieMemSet (win 0x00474410). Notes: Research/notes/blitpixiememset.md */
 #include "macport.h"
 #include "shipobj.h"
+
+EXTERN_C_BEGIN
 
 /* BlitPixieMemSet (mac _BlitPixieMemSet). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00474410
@@ -39,3 +41,5 @@ void BlitPixieMemSet(unsigned char *dstPixels, uint32_t value,
     }
 }
 #endif
+
+EXTERN_C_END

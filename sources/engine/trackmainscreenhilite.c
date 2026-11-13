@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* trackmainscreenhilite.c -- MainScreenRolloverIdle; exe 0x0048c210. Notes: Research/notes/mainscreen.md */
 
 #include <stddef.h>
@@ -101,7 +101,7 @@ void MainScreenRolloverIdle(void)
         i = 0;
         do {
             sprite = menuButtonSprite[(short)i];
-            if (sprite != 0 && SWRLECollisionWithPoint(sprite, &pt) != 0) {
+            if (sprite != 0 && SWRLECollisionWithPoint((SpritePtr)sprite, &pt) != 0) {
                 sel = i;
                 break;
             }

@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixierect.c -- BlitPixieRect (win 0x00471cf0). Notes: Research/notes/blitpixierect.md */
 #include "macport.h"
 #include "shipobj.h"

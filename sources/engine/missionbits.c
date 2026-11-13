@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* missionbits.c -- mission-bit set-expression entry points (win TU region around 0x00448020). Notes: Research/notes/missionbits.md */
 #include <stdio.h>
 #include "burger.h"
@@ -6,6 +6,7 @@
 #include "player.h"
 #include "game.h"
 
+EXTERN_C_BEGIN
 
 /* EvalMissionBitSetString (mac _EvalMissionBitSetString). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00448020
@@ -59,3 +60,5 @@ void DumpMissionBitLog(void)
     }
     fclose(log);
 }
+
+EXTERN_C_END

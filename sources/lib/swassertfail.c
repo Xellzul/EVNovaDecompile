@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* swassertfail.c -- SWAssertFail (win 0x004794d0, donor SpriteWorldUtils.c line 1866). Notes: Research/notes/swassertfail.md */
 #include "macport.h"
 #include "burger.h"
@@ -7,6 +7,8 @@
 #include "stellar.h"
 #include "spriteworld.h"
 #endif
+
+EXTERN_C_BEGIN
 
 #define kAssertAlertID 128
 
@@ -84,3 +86,5 @@ void SWAssertFail(char *filename, int lineNum)
     ExitToShell();
 }
 #endif
+
+EXTERN_C_END

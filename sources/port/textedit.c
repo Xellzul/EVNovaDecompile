@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* textedit.c -- the port's TextEdit, over Win32 DrawText (win TU region 0x004bcd30-0x004bcf80). Notes: Research/notes/textedit.md */
 #include <stddef.h>
 #include <string.h>
@@ -32,7 +32,7 @@ TEHandle TENew(const Rect *destRect, const Rect *viewRect)
     TEHandle te;
     Rect *r;
 
-    te = AllocAHandle2(sizeof(TERec), 0);
+    te = (TEHandle)AllocAHandle2(sizeof(TERec), 0);
     LockAHandle((Handle)te);
     memset(*te, 0, sizeof(TERec));
 
@@ -64,7 +64,7 @@ void TESetText(const void *text, int32_t length, TEHandle hTE)
 {
     if ((*hTE)->text != NULL)
         DeallocAPointer((*hTE)->text);
-    (*hTE)->text = AllocAPointer(length);
+    (*hTE)->text = (char *)AllocAPointer(length);
     (*hTE)->textLength = length;
     memcpy((*hTE)->text, text, length);
     TECalText(hTE);

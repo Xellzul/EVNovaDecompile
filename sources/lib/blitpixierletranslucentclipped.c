@@ -1,4 +1,4 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixierletranslucentclipped.c -- tu-map object O13: four of the six inner translucent RLE blitters of the un-anchored BlitPixie block. Notes: Research/notes/blitpixierletranslucentclipped.md */
 #include "macport.h"
 #include "shipobj.h"

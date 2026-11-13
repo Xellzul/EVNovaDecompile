@@ -1,8 +1,10 @@
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
+// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
 /* blitpixierleclipped.c -- BlitPixieRLEClipped and the RLE byte-swapper FixupRLEPixelData (win 0x00471e90-0x00472190). Notes: Research/notes/blitpixierleclipped.md */
 #include "macport.h"
 #include "shipobj.h"
 #include "spriteworld.h"
+
+EXTERN_C_BEGIN
 
 #ifdef MACBUILD
 #define kTokenShift 24
@@ -500,3 +502,5 @@ void FixupRLEPixelData(unsigned char *tokens, RLEPixelData *header)
     } while (opcode != 0 || --frames != 0);
 }
 #endif
+
+EXTERN_C_END
