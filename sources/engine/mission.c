@@ -2274,14 +2274,12 @@ Boolean MissionFilter(int32_t unused, EventRecord *ev, short *itemHit)
         }
     }
     if ((int)ev->what == kMouseDown) {
-#ifdef MACBUILD
         where = ev->where;
+#ifdef MACBUILD
         GlobalToLocal(&where);
         GetDialogItem(missionDialog, 2, &itemType, &item, &box);
         if ((PtInRect)(where, &box)) {
 #else
-        where.v = ev->where.v;
-        where.h = ev->where.h;
         GetDialogItem(missionDialog, 2, &itemType, (Handle *)&item, &box);
         if (PtInRect(where.h, where.v, &box)) {
 #endif
@@ -3988,14 +3986,12 @@ Boolean MissionInfoFilter(int32_t unused, EventRecord *ev, short *itemHit)
         }
     }
     if ((int)ev->what == kMouseDown) {
-#ifdef MACBUILD
         where = ev->where;
+#ifdef MACBUILD
         GlobalToLocal(&where);
         GetDialogItem(missionInfoDialog, 2, &itemType, &item, &box);
         if ((PtInRect)(where, &box)) {
 #else
-        where.v = ev->where.v;
-        where.h = ev->where.h;
         GetDialogItem(missionInfoDialog, 2, &itemType, (Handle *)&item, &box);
         if (PtInRect(where.h, where.v, &box)) {
 #endif
@@ -4161,15 +4157,11 @@ Boolean SingleMissionFilter(int32_t unused, EventRecord *ev, short *itemHit)
     Point where;
     void *item;
     short button;
-#ifdef MAC1010 /* 1.0.10 spelling */
     int acceptKey;
     int refuseKey;
     EventChar c;
-#else
-    EventChar c;
+#ifndef MAC1010 /* 1.0.10 spelling */
     int what;
-    int acceptKey;
-    int refuseKey;
 #endif
 #endif
 

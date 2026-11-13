@@ -719,7 +719,7 @@ void TradeDialogUpdate(void)
     short holds;
     short totalCargo;
     short available;
-    short missionCargo;
+    short over;
 #endif
 
     SetGWorldContainer(&loadPort);
@@ -926,7 +926,7 @@ void TradeDialogUpdate(void)
         }
         if (available > 0) {
 #else
-        missionCargo = 0;
+        available = 0;
         k = 0;
         missionTons = 0;
         junkTons = 0;
@@ -938,7 +938,7 @@ void TradeDialogUpdate(void)
         for (j = 0; j < kMaxActiveMissions; j++) {
             if (currentMissionObjectives[j].active && currentMissions[j].hasCargo &&
                 currentMissions[j].cargoType != -1 && currentMissions[j].cargoQty >= 0) {
-                missionCargo++;
+                available++;
                 missionSlots++;
                 missionTons += currentMissions[j].cargoQty;
                 if (seen[currentMissions[j].cargoType] == 0) {
@@ -949,13 +949,13 @@ void TradeDialogUpdate(void)
         }
         for (j = 0; j < kMaxJunks; j++) {
             if (junkData[j].held > 0 && j != junkType[0] && j != junkType[1]) {
-                missionCargo++;
+                available++;
                 junkTons += junkData[j].held;
                 junkSlots++;
                 k++;
             }
         }
-        if (missionCargo > 0) {
+        if (available > 0) {
 #endif
             if (missionSlots + junkSlots > 0) {
                 StrcatIndCString((char *)text, kGameStrList, 0x16b);
@@ -999,19 +999,11 @@ void TradeDialogUpdate(void)
         }
         strcat((char *)text, ": ");
         if (fleetHolds > holds) {
-#ifdef MACBUILD
             over = totalCargo - missionTons;
             over -= fleetHolds - holds;
             if (over < 0)
                 over = 0;
             available = holds - (over + missionTons);
-#else
-            available = totalCargo - missionTons;
-            available -= fleetHolds - holds;
-            if (available < 0)
-                available = 0;
-            available = holds - (available + missionTons);
-#endif
             if (available < 0)
                 available = 0;
         } else {
@@ -7168,11 +7160,6 @@ void DoPlayerInfoDialog(void)
     Rect saved;
     Rect box6;
     unsigned char buf[256];
-    Rect *win;
-    short savedTop;
-    short savedLeft;
-    short savedBottom;
-    short savedRight;
     short delta;
     short i;
     short tallest;
@@ -7205,15 +7192,7 @@ void DoPlayerInfoDialog(void)
         playerInfoBackgroundPic[i] = GetPicture(kPlayerInfoFirstPictID + i);
     SetDialogGWorld(infoDialog);
     SetupPlayerInfoText();
-#ifdef MACBUILD
     saved = *GetDialogPortRect(infoDialog);
-#else
-    win = GetDialogPortRect(infoDialog);
-    savedTop = win->top;
-    savedLeft = win->left;
-    savedBottom = win->bottom;
-    savedRight = win->right;
-#endif
     GetDialogItem(infoDialog, 6, &itemType, &item, &box6);
     GetDialogItem(infoDialog, 1, &itemType, &item, &buttonBox[0]);
     GetDialogItem(infoDialog, 7, &itemType, &item, &buttonBox[1]);
@@ -7236,9 +7215,9 @@ void DoPlayerInfoDialog(void)
     boxHeight = box6.bottom - box6.top;
     if (tallest > boxHeight) {
         delta = tallest - boxHeight + 4;
-#ifdef MACBUILD
         r = saved;
         r.bottom += delta;
+#ifdef MACBUILD
         SizeWindow(GetDialogWindow(infoDialog), (r.right - r.left),
                    (r.bottom - r.top), true);
         pt.v = 0;
@@ -7246,6 +7225,13 @@ void DoPlayerInfoDialog(void)
         LocalToGlobal(&pt);
         pt.v -= delta * 0.5;
         MoveWindow(GetDialogWindow(infoDialog), pt.h, pt.v, true);
+#else
+        SizeDialogWindow(infoDialog, (r.right - r.left),
+                     (r.bottom - r.top), 1);
+        dv = 0;
+        dv -= delta * 0.5;
+        OffsetDialogWindow(infoDialog, 0, dv, 1);
+#endif
         r = buttonBox[0];
         OffsetRect(&r, 0, delta);
         GetDialogItem(infoDialog, 1, &itemType, &item, &buttonBox[0]);
@@ -7258,39 +7244,6 @@ void DoPlayerInfoDialog(void)
         r.bottom += delta;
         GetDialogItem(infoDialog, 6, &itemType, &item, &box6);
         SetDialogItem(infoDialog, 6, itemType, item, &r);
-#else
-        r.top = savedTop;
-        r.left = savedLeft;
-        r.bottom = savedBottom;
-        r.right = savedRight;
-        r.bottom += delta;
-        SizeDialogWindow(infoDialog, (r.right - r.left),
-                     (r.bottom - r.top), 1);
-        dv = 0;
-        dv -= delta * 0.5;
-        OffsetDialogWindow(infoDialog, 0, dv, 1);
-        r.top = buttonBox[0].top;
-        r.left = buttonBox[0].left;
-        r.bottom = buttonBox[0].bottom;
-        r.right = buttonBox[0].right;
-        OffsetRect(&r, 0, delta);
-        GetDialogItem(infoDialog, 1, &itemType, &item, &buttonBox[0]);
-        SetDialogItem(infoDialog, 1, itemType, item, &r);
-        r.top = buttonBox[1].top;
-        r.left = buttonBox[1].left;
-        r.bottom = buttonBox[1].bottom;
-        r.right = buttonBox[1].right;
-        GetDialogItem(infoDialog, 7, &itemType, &item, &buttonBox[1]);
-        OffsetRect(&r, 0, delta);
-        SetDialogItem(infoDialog, 7, itemType, item, &r);
-        r.top = box6.top;
-        r.left = box6.left;
-        r.bottom = box6.bottom;
-        r.right = box6.right;
-        r.bottom += delta;
-        GetDialogItem(infoDialog, 6, &itemType, &item, &box6);
-        SetDialogItem(infoDialog, 6, itemType, item, &r);
-#endif
     }
     CenterWindow(FrontWindow(infoDialog), gWind);
     ShowWindowNoFlash(FrontWindow(infoDialog));
@@ -8642,7 +8595,6 @@ void SetupPlayerInfoText(void)
         qty = shipSystems[i];
         if (qty > 0 && lcOutfitName[i][0] != 0 &&
             (outfitSystem[i].flags & kOutfShowInRanks) == 0) {
-#ifdef MACBUILD
             if (outfitSystem[i].sameNameIndex < 0 || outfitSystem[i].sameNameIndex >= i)
                 type = i;
             else
@@ -8653,18 +8605,6 @@ void SetupPlayerInfoText(void)
                 count++;
             }
             outfitQty[type] += qty;
-#else
-            slot = outfitSystem[i].sameNameIndex;
-            if (slot < 0 || slot >= i)
-                slot = i;
-            if (outfitQty[slot] == 0) {
-                weight = outfitSystem[slot].dispWeight;
-                if (weight > maxWeight || count == 0)
-                    maxWeight = weight;
-                count++;
-            }
-            outfitQty[slot] += qty;
-#endif
         }
     }
 

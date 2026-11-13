@@ -1122,11 +1122,8 @@ short TrackPlunderButtons(Point where)
     overButton = 0;
     first = box;
     walk = box;
-#if V111 /* V111 spelling */
-#else
     downV = *(short *)&where;
     downH = ((short *)&where)[1];
-#endif
     for (; overButton <= 5; overButton++, walk++) {
 #if V111 /* V111 spelling */
         if (enabled[overButton] != 0 && PtInRectPoint(where, &box[overButton]) != 0)

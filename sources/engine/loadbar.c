@@ -138,20 +138,10 @@ void DrawIntroProgressBar(void)
     RGBForeColor(&progressColor[2]);
     FrameRect(&progressRect);
 
-#ifdef MACBUILD
     box = progressRect;
     InsetRect(&box, 1, 1);
 
     box.right = (box.left + progressCount / progressMax * 198.0);
-#else
-    box.top = progressRect.top;
-    box.left = progressRect.left;
-    box.bottom = progressRect.bottom;
-    box.right = progressRect.right;
-    InsetRect(&box, 1, 1);
-
-    box.right = (progressCount / progressMax * 198.0 + box.left);
-#endif
     if (box.right >= progressRect.right)
         box.right = progressRect.right - 1;
 

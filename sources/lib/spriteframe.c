@@ -1447,7 +1447,7 @@ void SWLockFrame(SWFrameRec *srcFrameP)
             pixMapH = srcFrameP->framePixHndl;
             srcFrameP->framePix = pixMapH;
 
-            srcFrameP->frameBaseAddr = (char *)GetPixBaseAddr(pixMapH);
+            srcFrameP->frameBaseAddr = GetPixBaseAddr(pixMapH);
             srcFrameP->frameRowBytes = GetPixRowBytes(pixMapH);
             srcFrameP->frameDepth = GetPixDepth(pixMapH);
 
@@ -1461,7 +1461,7 @@ void SWLockFrame(SWFrameRec *srcFrameP)
             pixMapH = srcFrameP->maskPixHndl;
             srcFrameP->maskPix = pixMapH;
 
-            srcFrameP->maskBaseAddr = (char *)GetPixBaseAddr(pixMapH);
+            srcFrameP->maskBaseAddr = GetPixBaseAddr(pixMapH);
         }
     }
 }
@@ -1611,7 +1611,7 @@ void SWLockWindowFrame(SWFrameRec *windowFrameP)
         globalRect = *GetWindowPortRect(windowFrameP->framePort);
         SetPort(savePort);
 
-        windowFrameP->frameBaseAddr = (char *)GetPixBaseAddr(pixMapH);
+        windowFrameP->frameBaseAddr = GetPixBaseAddr(pixMapH);
         windowFrameP->frameRowBytes = GetPixRowBytes(pixMapH);
         windowFrameP->frameDepth = GetPixDepth(pixMapH);
         windowFrameP->worldRectOffset = 0;

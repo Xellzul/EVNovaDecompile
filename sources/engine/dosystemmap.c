@@ -575,8 +575,7 @@ void DoSystemMap(void)
     Point prevMouse;
     MapScroll savedScroll;
 #else
-    short savedX;
-    short savedY;
+    MapScroll savedScroll;
     unsigned char savedShow;
     short itemType;
     Handle item;
@@ -1014,13 +1013,10 @@ void DoSystemMap(void)
             } else {
                 if (StillDown()) {
                     GetMouse(&anchor);
-#if V111 /* V111 spelling */
+#if V111
                     prevMouse = anchor;
-                    savedScroll = mapScroll;
-#else
-                    savedX = mapScroll.h;
-                    savedY = mapScroll.v;
 #endif
+                    savedScroll = mapScroll;
                     while (StillDown()) {
                         BusyIdle();
 #if V111
@@ -1035,9 +1031,9 @@ void DoSystemMap(void)
                         prevV = mouse.v;
                         prevH = mouse.h;
                         GetMouse(&mouse);
-                        mapScroll.h = (savedX
+                        mapScroll.h = (savedScroll.h
                                               - (mouse.h - anchor.h) * mapZoom);
-                        mapScroll.v = (savedY
+                        mapScroll.v = (savedScroll.v
                                               - (mouse.v - anchor.v) * mapZoom);
                         ScrollMapDisplay(mouse.h - prevH, mouse.v - prevV);
 #endif
@@ -1045,13 +1041,8 @@ void DoSystemMap(void)
                     }
                     if (settings.showMapBorders != 0)
                         RecalcAllMapInfluence(&box);
-#if V111
                     if (mapScroll.h != savedScroll.h
                         || mapScroll.v != savedScroll.v)
-#else
-                    if (mapScroll.h != savedX
-                        || mapScroll.v != savedY)
-#endif
                         MapDialogUpdate();
                 }
             }
@@ -1095,14 +1086,7 @@ void DoSystemMap(void)
     ForeColor(blackColor);
     SetRect(&r, found - x, sys - y, found + x, sys + y);
     pr = GetCWindowPortRect(gWind);
-#if V111 /* V111 spelling */
     box2 = *pr;
-#else
-    box2.top = pr->top;
-    box2.left = pr->left;
-    box2.bottom = pr->bottom;
-    box2.right = pr->right;
-#endif
 #ifdef CEFIX /* F14.17 */
     box2.left = box2.right - ceStatusBarWidth;
 #else
@@ -1819,15 +1803,9 @@ void MapDialogUpdate(void)
         DrawMap(box);
         if (selSystem != -1) {
             sy = systemData[selSystem].pos.v;
-#ifdef MACBUILD
             r2.left = (box.left + w / 2
                               + (float)systemData[selSystem].pos.h / mapZoom
                               - temp / mapZoom);
-#else
-            r2.left = (box.left + w / 2
-                              + systemData[selSystem].pos.h / mapZoom
-                              - temp / mapZoom);
-#endif
             r2.top = (box.top + h / 2
                              + sy / mapZoom
                              - savedY / mapZoom);
@@ -2719,8 +2697,8 @@ Boolean MapFilter(DialogPtr dlg, EventRecord *event, short *itemHit)
         }
     }
     if ((int)event->what == kMouseDown) {
-#if V111
         pt = event->where;
+#if V111
 #ifdef MACBUILD
         GlobalToLocal(&pt);
 #endif
@@ -2756,8 +2734,6 @@ Boolean MapFilter(DialogPtr dlg, EventRecord *event, short *itemHit)
         return 1;
     }
 #else
-        pt.v = event->where.v;
-        pt.h = event->where.h;
         GetDialogItem(mapDialog, kMapPictItem,&itemType, &item, &box);
         if (PtInRect(pt.h, pt.v, &box) != 0) {
             *itemHit = kMapPictItem;
@@ -3198,21 +3174,11 @@ void DrawMap(Rect box)
                     MoveTo(destPt.x, destPt.y);
                     LineTo(curPt.x, curPt.y);
                     angle = CalcInterceptAngle(&destPt, &curPt);
-#ifdef MACBUILD
                     curPt = destPt;
-#else
-                    curPt.x = destPt.x;
-                    curPt.y = destPt.y;
-#endif
                     Accel(angle + 45, 8.0f, &curPt);
                     MoveTo(destPt.x, destPt.y);
                     LineTo(curPt.x, curPt.y);
-#ifdef MACBUILD
                     curPt = destPt;
-#else
-                    curPt.x = destPt.x;
-                    curPt.y = destPt.y;
-#endif
                     Accel((angle + 315) % kFullCircle, 8.0f, &curPt);
                     MoveTo(destPt.x, destPt.y);
                     LineTo(curPt.x, curPt.y);

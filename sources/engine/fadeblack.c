@@ -24,14 +24,7 @@ void ShowSplashScreen(void)
     ForeColor(blackColor);
     rect = &loadPort.bounds;
     PaintRect(rect);
-#ifdef MACBUILD
     box = loadPort.bounds;
-#else
-    box.top = loadPort.bounds.top;
-    box.left = loadPort.bounds.left;
-    box.bottom = loadPort.bounds.bottom;
-    box.right = loadPort.bounds.right;
-#endif
     if (pic != 0) {
         CenterPict(pic, &box);
         DrawPicHandle((PicHandle)pic, &box);
@@ -73,34 +66,18 @@ void HideSplashScreen(void)
 void ShowAmbrosiaLogo(void)
 {
     void *pic;
-    Rect *rect;
     Rect box;
 
     pic = GetPicture(kAmbrosiaLogoPictID);
     SetGWorldContainer(&loadPort);
-#ifdef MACBUILD
     box = loadPort.bounds;
-#else
-    box.top = loadPort.bounds.top;
-    box.left = loadPort.bounds.left;
-    box.bottom = loadPort.bounds.bottom;
-    box.right = loadPort.bounds.right;
-#endif
     CenterPict(pic, &box);
     ForeColor(blackColor);
     PaintRect(&loadPort.bounds);
     DrawPicHandle((PicHandle)pic, &box);
     UnsetGWorldContainer(&loadPort);
     SWSetPortToWindow(gSpriteWorld);
-#ifdef MACBUILD
     box = *GetCWindowPortRect((WindowRef)gWind);
-#else
-    rect = GetCWindowPortRect(gWind);
-    box.top = rect->top;
-    box.left = rect->left;
-    box.bottom = rect->bottom;
-    box.right = rect->right;
-#endif
     CenterPict(pic, &box);
     ForeColor(blackColor);
     PaintRect(GetCWindowPortRect((WindowRef)gWind));

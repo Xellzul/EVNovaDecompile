@@ -90,19 +90,8 @@ void DrawStatusRadar(Boolean highlight)
     hasIFF = HasIFF(shipData);
     hasDensity = HasDensityScanner(shipData);
     SetGWorldContainer(&loadPort);
-#ifdef MACBUILD
     srcRect = statusOffRect[kRadarRect];
     dstRect = srcRect;
-#else
-    srcRect.top = statusOffRect[kRadarRect].top;
-    srcRect.left = statusOffRect[kRadarRect].left;
-    srcRect.bottom = statusOffRect[kRadarRect].bottom;
-    srcRect.right = statusOffRect[kRadarRect].right;
-    dstRect.top = srcRect.top;
-    dstRect.left = srcRect.left;
-    dstRect.bottom = srcRect.bottom;
-    dstRect.right = srcRect.right;
-#endif
 #ifdef CEFIX /* F14.06 */
     OffsetRect(&dstRect, GetCWindowPortRect(gWind)->right - ceStatusBarWidth, 0);
 #else

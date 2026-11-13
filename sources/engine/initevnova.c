@@ -3666,10 +3666,8 @@ void DeleteAllComputerShips(Boolean force, Boolean keepPlayer)
 
 #if V111 /* V111 spelling */
 #define shipsLeft sysOf
-#define shipNum k
 #else
 #define shipsLeft count
-#define shipNum j
 #endif
 
 /* SetupShipsInSystem (mac _SetupShipsInSystem). STATE: MATCH 100.0%, exe 675 / obj 675 instrs,
@@ -3875,9 +3873,8 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
     short j;
     short slot;
     short sysOf;
-#if V111 /* V111 spelling */
     unsigned short k;
-#else
+#if !V111
     short count;
 #endif
     short govt;
@@ -3946,7 +3943,7 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
                     }
                 }
                 if (shipsLeft > 0) {
-                    for (shipNum = 0; (short)shipNum < shipsLeft; shipNum++) {
+                    for (k = 0; (short)k < shipsLeft; k++) {
                         slot = MissionDudeSpawn(currentMissions[i].shipDude, -1, sys, i);
                         if (slot != -1) {
                             if (currentMissions[i].shipGoal == kMissionGoalEscort) {
@@ -4307,7 +4304,6 @@ short MissionDudeSpawn(short dude, short wantType, short sys, short mission)
 {
     short slot;
     short pick;
-    short sel;
     short i;
 
     slot = GenericRandomShipSpawn(sys, kSpawnReserve);
@@ -4324,23 +4320,13 @@ short MissionDudeSpawn(short dude, short wantType, short sys, short mission)
             }
         }
     }
-    pick = currentMissions[mission].shipTypeIndex;
-#ifdef MAC1010 /* 1.0.10 spelling */
-    if (pick != -1)
-        sel = pick;
+    if (currentMissions[mission].shipTypeIndex != -1)
+        pick = currentMissions[mission].shipTypeIndex;
     else {
-        sel = SelectShipFieldFromDude(&dudeData[dude], 0);
-        if (sel == -1)
-            sel = SelectShipFieldFromDude(&dudeData[dude], 1);
-    }
-    pick = sel;
-#else
-    if (pick == -1) {
         pick = SelectShipFieldFromDude(&dudeData[dude], 0);
         if (pick == -1)
             pick = SelectShipFieldFromDude(&dudeData[dude], 1);
     }
-#endif
     if (pick < 0 || pick > kDudeShipSlots)
         goto fail;
     shipData[slot].specialMission = mission;
@@ -6250,11 +6236,7 @@ short SpawnPerson(short sys, unsigned char noDisabled, short person)
 }
 
 /* the mac's index is the short itself; win reads it in three widths, each a CSE class */
-#if V111 /* V111 spelling */
-#define slotL slot
-#define slotR slot
-#define slotI slot
-#elif defined(MAC1010)
+#if defined(MACBUILD) || V111 /* mac spelling */
 #define slotL slot
 #define slotR slot
 #define slotI slot

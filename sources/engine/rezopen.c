@@ -52,7 +52,7 @@ static __inline int32_t SwapEndianLong(uint32_t t)
 
 /* EVOpenResourceFile (mac _EVOpenResourceFile). STATE: MATCH 100.0%, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ce4d0
-short EVOpenResourceFile(void *path)
+short EVOpenResourceFile(const char *path)
 {
     RezFile *rez;
     void *mapData;
@@ -68,7 +68,7 @@ short EVOpenResourceFile(void *path)
         gRezFiles = (ListRec *)LinkedListNew();
 
     rez = (RezFile *)AllocAPointer(sizeof(RezFile));
-    if (ResourceInit(rez, (const char *)path, 0) != 0)
+    if (ResourceInit(rez, path, 0) != 0)
         goto fail;
 
     mapData = ResourceLoadByName(rez, "resource.map");

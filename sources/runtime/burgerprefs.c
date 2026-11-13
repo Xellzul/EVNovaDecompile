@@ -201,7 +201,7 @@ int32_t WritePrefsFile(PrefsNode *file, const char *path)
 
     StreamHandleEndSave(&text);
     if (text.failed == 0) {
-        out = (FILE *)FOpenExpandedPath(path, "w");
+        out = FOpenExpandedPath(path, "w");
         if (out != 0) {
             fwrite(LockAHandle(text.handle), 1, text.extent, out);
             fclose(out);

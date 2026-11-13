@@ -2416,9 +2416,9 @@ void DisposeGWorld(CGrafPtr port)
 
 /* GetPixBaseAddr. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004bba40
-void *GetPixBaseAddr(PixMapPtr pm)
+char *GetPixBaseAddr(PixMapPtr pm)
 {
-    return pm->baseAddr;
+    return (char *)pm->baseAddr;
 }
 
 /* GetPixRowBytes. STATE: MATCH, byte-identical. OPEN: none */

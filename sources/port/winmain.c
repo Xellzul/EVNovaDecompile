@@ -53,7 +53,7 @@ int __stdcall WinMain(void *hInstance, void *hPrevInstance, char *lpCmdLine,
 #endif
         InitializeQTML(2);
         gRezOpenPending = 1;
-        EVOpenResourceFile((void *)"9:Nova.rez");
+        EVOpenResourceFile("9:Nova.rez");
         SetLastError(0);
         LoadStringA(hInstance, 0x3b6, buf, 0x100);
         GetLastError();

@@ -84,7 +84,7 @@ void DebugXString(const char *string)
         EnterCriticalSection(Semi);
     length = strlen(string);
     if (length != 0) {
-        log = (evn_FILE *)FOpenExpandedPath("LogFile.Txt", "a");
+        log = FOpenExpandedPath("LogFile.Txt", "a");
         if (log != 0) {
             fwrite(string, 1, length, log);
             fclose(log);

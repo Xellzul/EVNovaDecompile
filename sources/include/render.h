@@ -85,11 +85,7 @@ extern void FloaterEraseCallback(void *a);
 extern void SetupListRects(Point *where);
 extern void InitOffscreen(void);
 extern void HideAmbrosiaLogo(void);
-#ifdef MAC1010
 extern void PostAnimateHandler(void);
-#else
-extern int PostAnimateHandler(void);
-#endif
 #ifdef V111
 extern unsigned char useLegacyRenderingPipeline;
 #endif

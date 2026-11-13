@@ -498,18 +498,11 @@ void LoadObjectData(void)
 #ifdef MACBUILD
     ColorSearchUPP colorSearch;
 #endif
-#if V111 /* V111 spelling */
     short mountCount[8];
     short mountID[8];
-    short mountAmmo[8];
-    RGBColor rgb;
-#else
-    short mountCount[8];
-    short mountID[8];
-    RGBColor rgb;
-    short mountAmmo[8];
-#endif
     unsigned char name[256];
+    short mountAmmo[8];
+    RGBColor rgb;
     Boolean used[kMaxStellars];
 
     if (EVBugResourceFieldTest(0))
@@ -3347,7 +3340,7 @@ void SavePrefs(void)
     } else {
         FILE *f;
 
-        f = (FILE *)FOpenExpandedPath(path, "wb");
+        f = FOpenExpandedPath(path, "wb");
         if (f != NULL)
             fclose(f);
     }
@@ -3557,7 +3550,7 @@ short WritePilotData(short stellar)
     strcat(path, ".plt");
     playerFileHand = (PilotRec **)AllocAHandle2(sizeof(PilotRec), 0);
     altPlayerFileHand = (PilotRec2 **)AllocAHandle2(sizeof(PilotRec2), 0);
-    f = (FILE *)FOpenExpandedPath(path, "wb");
+    f = FOpenExpandedPath(path, "wb");
     if (f != NULL && playerFileHand != NULL && altPlayerFileHand != NULL) {
         LockAHandle((Handle)playerFileHand);
         LockAHandle((Handle)altPlayerFileHand);
@@ -4253,7 +4246,7 @@ short LoadPilotData(char *path)
             FlipNpil(kPilotResID, *playerFileHand, GetHandleSize((Handle)playerFileHand), 0);
 #endif
 #else
-    f = (FILE *)FOpenExpandedPath(path, "rb");
+    f = FOpenExpandedPath(path, "rb");
     if (f == NULL)
         goto badFile;
 

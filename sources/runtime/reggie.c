@@ -730,17 +730,11 @@ ReggieLocal ULong _ReggieBufferCallback(int32_t unk0, void *ref, NetChunk *chunk
 {
     SessionContext *ctx;
     ULong length;
-#ifdef MAC1010 /* 1.0.10 spelling */
     char *data;
-#else
-    unsigned char *data;
-#endif
-    ULong n;
     ULong i;
 
     ctx = ref;
     length = chunk->length;
-#ifdef MAC1010 /* 1.0.10 spelling */
     data = chunk->data;
     if (ctx->lengthFrames != 0) {
         if (length < kLengthPrefix)
@@ -752,38 +746,15 @@ ReggieLocal ULong _ReggieBufferCallback(int32_t unk0, void *ref, NetChunk *chunk
     }
     for (i = 0; i < length; i++) {
         if (data[i] == '\r') {
-            n = i + 1;
-            if (n == length)
-                return n;
-            if (data[i + 1] == '\n')
-                n = i + 2;
-            return n;
-        }
-        if (data[i] == '\n')
-            return i + 1;
-    }
-#else
-    data = (unsigned char *)chunk->data;
-    if (ctx->lengthFrames != 0) {
-        if (length < kLengthPrefix)
-            return kNoFrame;
-        n = Net16(*(unsigned short *)data) + kLengthPrefix;
-        if (n > chunk->size)
-            n = chunk->size;
-        return n;
-    }
-    for (i = 0; i < length; i++) {
-        if (data[i] == '\r') {
             if (i + 1 == length)
                 return i + 1;
             if (data[i + 1] == '\n')
-                return i += 2;
+                return i + 2;
             return i + 1;
         }
         if (data[i] == '\n')
             return i + 1;
     }
-#endif
     return kNoFrame;
 }
 
@@ -3734,18 +3705,11 @@ AT_STATIC int32_t _ReggiePacketExtract(void **h, struct HashTable **out)
     first = 0;
     *out = 0;
     while (*out == 0 && (size = IndirectGetSize(h)) != 0) {
-#ifdef MAC1010 /* 1.0.10 spelling */
         for (i = 0; i < size; i++) {
             if (((char *)*h)[i] == '\r' || ((char *)*h)[i] == '\n')
                 break;
         }
         n = i;
-#else
-        for (n = 0; n < size; n++) {
-            if (((char *)*h)[n] == '\r' || ((char *)*h)[n] == '\n')
-                break;
-        }
-#endif
         for (; n < size; n++) {
             if (((char *)*h)[n] != '\r' && ((char *)*h)[n] != '\n')
                 break;

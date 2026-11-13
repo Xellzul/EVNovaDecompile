@@ -6078,7 +6078,6 @@ Boolean ShipsShareParent(ShipObj *a, ShipObj *b)
     while (shipData[rootB].active != 0 && (next = shipData[rootB].parentShip) >= 0
            && next < kMaxShips && rootB != next)
         rootB = next;
-    return rootA == rootB;
 #else
     rootA = a->index;
     while (1) {
@@ -6106,10 +6105,10 @@ Boolean ShipsShareParent(ShipObj *a, ShipObj *b)
             break;
         rootB = next;
     }
+#endif
     if (rootA == rootB)
         return 1;
     return 0;
-#endif
 }
 
 /* PtoCstr (mac _PtoCstr). STATE: MATCH, byte-identical. OPEN: none */

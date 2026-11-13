@@ -30,7 +30,7 @@ extern void * AllocAPointer(Word32 MemSize);
 #else
 extern void DeallocAPointer(void *MemPtr);
 #endif
-extern void * FOpenExpandedPath(const char *path, const char *mode);
+extern evn_FILE *FOpenExpandedPath(const char *path, const char *mode);
 #ifdef MACBUILD
 #define AllocAPointerClear(size) NewPtrClear(size)
 #else

@@ -333,7 +333,7 @@ int32_t ResourceInit(RezFile *rez, const char *path, ULong start)
     if (rez != 0) {
         FastMemSet(rez, 0, kRezStateSize);
         if (path != 0) {
-            file = (FILE *)FOpenExpandedPath(path, "rb");
+            file = FOpenExpandedPath(path, "rb");
             if (file != 0) {
                 if (start != 0)
                     fseek(file, start, SEEK_SET);
@@ -739,7 +739,7 @@ Handle ResourceLoadHandle(RezFile *Input, int32_t RezNum)
     if (FileNameOffset != 0 && (Input->flags & kFlagExternalOk) &&
         (!(flags & kRezTriedExternal) || (flags & kRezIsExternal))) {
         FileName = LockAHandle((Handle)Input->groups) + FileNameOffset;
-        fp = (FILE *)FOpenExpandedPath(FileName, "rb");
+        fp = FOpenExpandedPath(FileName, "rb");
         if (fp != 0) {
             size = fgetfilesize(fp);
             if (size != 0) {

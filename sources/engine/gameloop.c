@@ -5399,18 +5399,10 @@ void PostEraseCallback(SpriteWorldPtr world)
     EraseParticlesOffscreen(world);
 }
 
-/* PostAnimateHandler (mac _PostAnimateHandler). STATE: MATCH, byte-identical.
-   OPEN: return type. The exe leaves eax to the last call and never sets it before
-   the epilogue, so int against void is undecidable from the body and the one
-   caller discards it; render.h:62 pins int, so the body has no return statement.
-   see notes */
+/* PostAnimateHandler (mac _PostAnimateHandler). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00439d40
 // MAC: _PostAnimateHandler i386 0x00038cc6 ppc 0x0003ed78
-#ifdef MAC1010
 void PostAnimateHandler(void)
-#else
-int PostAnimateHandler(void)
-#endif
 {
     int i;
     int passes;

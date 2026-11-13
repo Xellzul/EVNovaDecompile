@@ -1664,6 +1664,7 @@ void DeathStarAI(ShipObj *ship)
 // MAC: _HighLevelAIHandler i386 0x0008d453 ppc 0x00098fdc
 void HighLevelAIHandler(ShipObj *ship)
 {
+    short j;
     short best;
     unsigned char msg[256];
     FloatPoint pt;
@@ -1802,27 +1803,21 @@ void HighLevelAIHandler(ShipObj *ship)
             ship->aiSubstate = kSubEnterHG;
             if (ship->aiTimer < 0.0f || ship->aiTimer > 16.0f)
                 ship->aiTimer = 16.0f;
-#ifdef MAC1010 /* 1.0.10 spelling */
-#define escortShip i
-#else
-#define escortShip dy
-#endif
-            for (escortShip = 1; escortShip < kMaxShips; escortShip++) {
-                if (escortShip != ship->index && shipData[escortShip].active != 0
-                        && ship->index == shipData[escortShip].parentShip) {
-                    shipData[escortShip].parentShip = -1;
-                    shipData[escortShip].aiType = ship->aiType;
-                    if (shipData[escortShip].aiType > kShipTypeWarship)
-                        shipData[escortShip].aiType = kShipTypeWarship;
-                    shipData[escortShip].defenseStellar = -1;
-                    shipData[escortShip].grudge = -1;
-                    shipData[escortShip].targetShip = -1;
-                    shipData[escortShip].targetStellar = ship->targetStellar;
-                    shipData[escortShip].aiState = kAIStateGoHGate;
-                    shipData[escortShip].aiSubstate = kSubLoJack;
+            for (j = 1; j < kMaxShips; j++) {
+                if (j != ship->index && shipData[j].active != 0
+                        && ship->index == shipData[j].parentShip) {
+                    shipData[j].parentShip = -1;
+                    shipData[j].aiType = ship->aiType;
+                    if (shipData[j].aiType > kShipTypeWarship)
+                        shipData[j].aiType = kShipTypeWarship;
+                    shipData[j].defenseStellar = -1;
+                    shipData[j].grudge = -1;
+                    shipData[j].targetShip = -1;
+                    shipData[j].targetStellar = ship->targetStellar;
+                    shipData[j].aiState = kAIStateGoHGate;
+                    shipData[j].aiSubstate = kSubLoJack;
                 }
             }
-#undef escortShip
         }
     }
 
@@ -2384,14 +2379,14 @@ void HighLevelAIHandler(ShipObj *ship)
         pt.x = stellarData[ship->targetStellar].pos.h;
         pt.y = stellarData[ship->targetStellar].pos.v;
         best = -1;
-        for (reach = 0; reach < kMaxWeapTypes; reach++) {
-            if ((weaponStats[reach].flags2 & kWeapPlanetType) != 0
-                    && shipClass[ship->type].weapCount[reach] > 0
-                    && WeaponHasAmmo(ship, reach)
-                    && weaponStats[reach].guidance != kGuidanceBeam
-                    && weaponStats[reach].guidance != kGuidanceTurretBeam
-                    && weaponStats[reach].guidance <= kGuidanceFrontQuad) {
-                best = reach;
+        for (j = 0; j < kMaxWeapTypes; j++) {
+            if ((weaponStats[j].flags2 & kWeapPlanetType) != 0
+                    && shipClass[ship->type].weapCount[j] > 0
+                    && WeaponHasAmmo(ship, j)
+                    && weaponStats[j].guidance != kGuidanceBeam
+                    && weaponStats[j].guidance != kGuidanceTurretBeam
+                    && weaponStats[j].guidance <= kGuidanceFrontQuad) {
+                best = j;
                 break;
             }
         }
@@ -6379,10 +6374,10 @@ void AIMaintainFormation(ShipObj *ship, Boolean snap)
     float dy;
 #ifdef MACBUILD
     float x;
+#endif
     float fy;
     float y;
     float band;
-#endif
 
     if (ship->jumpTimer > 0.0f && snap == 0)
         return;
@@ -6398,39 +6393,30 @@ void AIMaintainFormation(ShipObj *ship, Boolean snap)
     dy = step;
     step *= gSpeedMult;
     dy *= gSpeedMult;
-#ifdef MACBUILD
     band = kDeadband;
     if (snap != 0) {
         ship->pos = ship->formPos;
     }
     else {
+#ifdef MACBUILD
         x = ship->pos.x;
         if (x <= ship->formPos.x - band)
-            ship->pos.x = x + step;
+            ship->pos.x += step;
         else if (x >= ship->formPos.x + band)
-            ship->pos.x = x - step;
+            ship->pos.x -= step;
+#else
+        if (ship->pos.x <= ship->formPos.x - band)
+            ship->pos.x += step;
+        else if (ship->pos.x >= ship->formPos.x + band)
+            ship->pos.x -= step;
+#endif
         y = ship->pos.y;
         fy = ship->formPos.y;
         if (y <= fy - band)
-            ship->pos.y = y + dy;
+            ship->pos.y += dy;
         else if (y >= fy + band)
-            ship->pos.y = y - dy;
+            ship->pos.y -= dy;
     }
-#else
-    if (snap != 0) {
-        ship->pos = ship->formPos;
-    }
-    else {
-        if (ship->pos.x <= ship->formPos.x - kDeadband)
-            ship->pos.x = ship->pos.x + step;
-        else if (ship->formPos.x + kDeadband <= ship->pos.x)
-            ship->pos.x = ship->pos.x - step;
-        if (ship->pos.y <= ship->formPos.y - kDeadband)
-            ship->pos.y = ship->pos.y + dy;
-        else if (ship->formPos.y + kDeadband <= ship->pos.y)
-            ship->pos.y = ship->pos.y - dy;
-    }
-#endif
 }
 
 /* AIShipIsScooping (mac _AIShipIsScooping). STATE: MATCH, byte-identical. OPEN: none */
@@ -6454,7 +6440,6 @@ Boolean AIShipIsScooping(ShipObj *ship)
 void FireAIShipWeapon(ShipObj *ship)
 {
     short ammoUsed;
-    short slot;
     short shot;
     short i;
     short maxShots;
@@ -6623,18 +6608,10 @@ void FireAIShipWeapon(ShipObj *ship)
                           shipClass[ship->type].maxSpeed);
         }
 
-#ifdef MACBUILD
         if ((weaponStats[ship->selectedWeapon].flags & kWeapFireSimultaneously) != 0)
             reload = weaponStats[ship->selectedWeapon].reload;
         else
             reload = shotsFired * (weaponStats[ship->selectedWeapon].reload / ship->weap[ship->selectedWeapon].count);
-#else
-        slot = ship->selectedWeapon;
-        if ((weaponStats[slot].flags & kWeapFireSimultaneously) != 0)
-            reload = weaponStats[slot].reload;
-        else
-            reload = shotsFired * (weaponStats[slot].reload / ship->weap[slot].count);
-#endif
 
         if (ship->targetShip == 0) {
             if (playerKills < shipClass->strength * 100)
@@ -6669,7 +6646,6 @@ void FireAIShipWeapon(ShipObj *ship)
                         ship->fuel = 0.0f;
                 }
             }
-#ifdef MACBUILD
             if (ship->weap[ship->selectedWeapon].burstCount
                     >= WeaponBurstInterval(ship->selectedWeapon,
                            ship->weap[ship->selectedWeapon].count)) {
@@ -6679,19 +6655,6 @@ void FireAIShipWeapon(ShipObj *ship)
         }
 
         ship->weap[ship->selectedWeapon].reloadTimer = reload;
-#else
-            slot = ship->selectedWeapon;
-            if (ship->weap[slot].burstCount
-                    >= WeaponBurstInterval(ship->selectedWeapon,
-                           ship->weap[(int)ship->selectedWeapon].count)) {
-                ship->weap[slot].burstCount = 0;
-                slot = ship->selectedWeapon;
-                reload = weaponStats[slot].burstReload;
-            }
-        }
-
-        ship->weap[slot].reloadTimer = reload;
-#endif
         if ((weaponStats[ship->selectedWeapon].flags3 & kWeapExclusive) != 0) {
             for (i = 0; i < kMaxWeapTypes; i++) {
                 if (i != ship->selectedWeapon

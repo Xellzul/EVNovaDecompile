@@ -29,17 +29,11 @@
 #define kStrDepthThousands   18
 #define kStrResolution       19
 #define kStrResolutionTail   20
-#define NameByte(i) playerName[i]
-#else
-#define NameByte(i) (int)playerName[i]
 #endif
-
-/* gameview.c's type, and its +0x4c is why the exe derefs twice here */
 
 /* MainScreenUpdate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004873b0
 // MAC: _MainScreenUpdate i386 0x00017c0d ppc 0x0001b8e8
-#ifdef MACBUILD
 void MainScreenUpdate(short which)
 {
     unsigned char text[256];
@@ -91,90 +85,90 @@ void MainScreenUpdate(short which)
     } else {
         if (gameInProgress) {
             if (IsDying(shipData) == 0) {
-            MoveTo((mainMenuCenter.h - 0xbe), (mainMenuCenter.v + 0xfa));
-            RGBForeColor(labelColor);
-            DrawIndString(kGameStrList, 0xfb);
-            MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x106));
-            RGBForeColor(valueColor);
-            DrawString(playerName);
-            MoveTo((mainMenuCenter.h - 0xbe), (mainMenuCenter.v + 0x11e));
-            RGBForeColor(labelColor);
-            DrawIndString(kGameStrList, 0xff);
-            MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x12a));
-            RGBForeColor(valueColor);
-            DrawString(shipName);
-            MoveTo((mainMenuCenter.h - 0xbe), (mainMenuCenter.v + 0x142));
-            RGBForeColor(labelColor);
-            DrawIndString(kGameStrList, 0x100);
-            MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x14e));
-            RGBForeColor(valueColor);
-            DrawString(shipClass[shipData->type].name);
-            MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x15a));
-            RGBForeColor(valueColor);
-            DrawString(shipClass[shipData->type].subtitle);
-            RGBForeColor(labelColor);
-            MoveTo((mainMenuCenter.h + 0x78), (mainMenuCenter.v + 0xfa));
-            DrawIndString(kGameStrList, 0x116);
-            MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x106));
-            DrawIndString(kGameStrList, 0x117);
-            MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x112));
-            RGBForeColor(valueColor);
-            if (SystemIsInhabited(shipData->curSystem))
-                DrawLegalStatusString(shipData->curSystem);
-            else
-                DrawIndString(kGameStrList, 0x18c);
-            MoveTo((mainMenuCenter.h + 0x78), (mainMenuCenter.v + 0x12a));
-            RGBForeColor(labelColor);
-            DrawIndString(kGameStrList, 0xfe);
-            MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x136));
-            RGBForeColor(valueColor);
-            DrawCombatRatingString();
-            MoveTo((mainMenuCenter.h + 0x78), (mainMenuCenter.v + 0x14e));
-            RGBForeColor(labelColor);
-            DrawIndString(kGameStrList, 0xfc);
-            MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x15a));
-            RGBForeColor(valueColor);
-            DateToMedString(gameTime, (char *)text);
-            CtoPstr((char *)text);
-            DrawString(text);
-            ForeColor(blackColor);
-            i = shipClass[shipData->type].targetPictID;
-            if (targetInfoPic[i] != NULL) {
-                SWSetPortToBackground(gSpriteWorld);
-                ForeColor(blackColor);
-                QDGetPictureBounds(targetInfoPic[i], &box);
-                OffsetRect(&box, -box.left, -box.top);
-                OffsetRect(&box,
-                           mainMenuCenter.h - (box.right - box.left) / 2,
-                           mainMenuCenter.v + 0x118);
-                DrawPicHandle(targetInfoPic[i], &box);
-                SWSetPortToWorkArea(gSpriteWorld);
-                ForeColor(blackColor);
-                CopyBits(GetPortBitMapForCopyBits(
-                             gSpriteWorld->backFrameP->framePort),
-                         GetPortBitMapForCopyBits(
-                             gSpriteWorld->workFrameP->framePort),
-                         &box, &box, 0x22, NULL);
-            }
-        } else {
-            RGBForeColor(labelColor);
-            if (NameByte(1) == 'K' && NameByte(2) == 'e' &&
-                NameByte(3) == 'n' && NameByte(4) == 'n' &&
-                NameByte(5) == 'y') {
-                DrawStringCentered("\pOh my God! They killed Kenny!",
-                                   (mainMenuCenter.h - 0x96),
-                                   (mainMenuCenter.h + 0x96),
-                                   (mainMenuCenter.v + 0x136));
-            } else {
-                pstrcpy(text, playerName);
-                PtoCstr(text);
-                strcat((char *)text, " ");
-                StrcatIndCString((char *)text, kGameStrList, 0x115);
+                MoveTo((mainMenuCenter.h - 0xbe), (mainMenuCenter.v + 0xfa));
+                RGBForeColor(labelColor);
+                DrawIndString(kGameStrList, 0xfb);
+                MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x106));
+                RGBForeColor(valueColor);
+                DrawString(playerName);
+                MoveTo((mainMenuCenter.h - 0xbe), (mainMenuCenter.v + 0x11e));
+                RGBForeColor(labelColor);
+                DrawIndString(kGameStrList, 0xff);
+                MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x12a));
+                RGBForeColor(valueColor);
+                DrawString(shipName);
+                MoveTo((mainMenuCenter.h - 0xbe), (mainMenuCenter.v + 0x142));
+                RGBForeColor(labelColor);
+                DrawIndString(kGameStrList, 0x100);
+                MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x14e));
+                RGBForeColor(valueColor);
+                DrawString(shipClass[shipData->type].name);
+                MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x15a));
+                RGBForeColor(valueColor);
+                DrawString(shipClass[shipData->type].subtitle);
+                RGBForeColor(labelColor);
+                MoveTo((mainMenuCenter.h + 0x78), (mainMenuCenter.v + 0xfa));
+                DrawIndString(kGameStrList, 0x116);
+                MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x106));
+                DrawIndString(kGameStrList, 0x117);
+                MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x112));
+                RGBForeColor(valueColor);
+                if (SystemIsInhabited(shipData->curSystem))
+                    DrawLegalStatusString(shipData->curSystem);
+                else
+                    DrawIndString(kGameStrList, 0x18c);
+                MoveTo((mainMenuCenter.h + 0x78), (mainMenuCenter.v + 0x12a));
+                RGBForeColor(labelColor);
+                DrawIndString(kGameStrList, 0xfe);
+                MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x136));
+                RGBForeColor(valueColor);
+                DrawCombatRatingString();
+                MoveTo((mainMenuCenter.h + 0x78), (mainMenuCenter.v + 0x14e));
+                RGBForeColor(labelColor);
+                DrawIndString(kGameStrList, 0xfc);
+                MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x15a));
+                RGBForeColor(valueColor);
+                DateToMedString(gameTime, (char *)text);
                 CtoPstr((char *)text);
-                DrawStringCentered(text, (mainMenuCenter.h - 0x96),
-                                   (mainMenuCenter.h + 0x96),
-                                   (mainMenuCenter.v + 0x136));
-            }
+                DrawString(text);
+                ForeColor(blackColor);
+                i = shipClass[shipData->type].targetPictID;
+                if (targetInfoPic[i] != NULL) {
+                    SWSetPortToBackground(gSpriteWorld);
+                    ForeColor(blackColor);
+                    QDGetPictureBounds((PicHandle)targetInfoPic[i], &box);
+                    OffsetRect(&box, -box.left, -box.top);
+                    OffsetRect(&box,
+                               mainMenuCenter.h - (box.right - box.left) / 2,
+                               mainMenuCenter.v + 0x118);
+                    DrawPicHandle((PicHandle)targetInfoPic[i], &box);
+                    SWSetPortToWorkArea(gSpriteWorld);
+                    ForeColor(blackColor);
+                    CopyBits(GetPortBitMapForCopyBits(
+                                 gSpriteWorld->backFrameP->framePort),
+                             GetPortBitMapForCopyBits(
+                                 gSpriteWorld->workFrameP->framePort),
+                             &box, &box, 0x22, NULL);
+                }
+            } else {
+                RGBForeColor(labelColor);
+                if (playerName[1] == 'K' && playerName[2] == 'e' &&
+                    playerName[3] == 'n' && playerName[4] == 'n' &&
+                    playerName[5] == 'y') {
+                    DrawStringCentered("\pOh my God! They killed Kenny!",
+                                       (mainMenuCenter.h - 0x96),
+                                       (mainMenuCenter.h + 0x96),
+                                       (mainMenuCenter.v + 0x136));
+                } else {
+                    pstrcpy(text, playerName);
+                    PtoCstr(text);
+                    strcat((char *)text, " ");
+                    StrcatIndCString((char *)text, kGameStrList, 0x115);
+                    CtoPstr((char *)text);
+                    DrawStringCentered(text, (mainMenuCenter.h - 0x96),
+                                       (mainMenuCenter.h + 0x96),
+                                       (mainMenuCenter.v + 0x136));
+                }
             }
         } else if (slideIndex[2] >= slideFrameCount[2]) {
             RGBForeColor(labelColor);
@@ -227,255 +221,38 @@ void MainScreenUpdate(short which)
                 gSpriteWorld->workFrameP, &box, &box);
         }
     }
+#ifdef MACBUILD
     if (!useLegacyRenderingPipeline)
         ForeColor(blackColor);
+#endif
     MainScreenRolloverDraw();
     if (which == 1) {
         CopyBits(GetPortBitMapForCopyBits(
                      gSpriteWorld->workFrameP->framePort),
                  GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
-                 &gSpriteWorld->workFrameP->frameRect,
-                 &gSpriteWorld->workFrameP->frameRect, 0, NULL);
-        box = loadPort.bounds;
-        box.left = (box.right - 0xc2);
-        dst = *GetCWindowPortRect((WindowRef)gWind);
-        dst.left = (dst.right - 0xc2);
-        CopyBits(GWorldContainerBits(&loadPort),
-                 GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
-                 &box, &dst, 0, NULL);
-        QDFlushPortBuffer(GetCWindowGrafPort(gWind), NULL);
-    }
-}
-#else
-void MainScreenUpdate(short which)
-{
-    unsigned char text[256];
-    Rect box;
-    Boolean shown[8];
-    Rect dst;
-    Rect *wr;
-    short i;
-    RGBColor *valueColor;
-    RGBColor *labelColor;
-
-    if (mainScreenBackgroundDirty != 0) {
-        SetupInterfaceBackground();
-        MainScreenAnimDraw();
-        mainScreenBackgroundDirty = 0;
-    }
-    SetGWorldContainer(&loadPort);
-    SWSetPortToWorkArea(gSpriteWorld);
-    ForeColor(blackColor);
-    if (which == 2) {
-        CopyBits((BitMapPtr)GetGWCPixMap(&loadPort),
-                 GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
-                 &rolloverDestRect, &rolloverDestRect, 0, NULL);
-        for (i = 0; i < 3; i++) {
-            if (slidePort[i].world != NULL && slideIndex[i] < slideFrameCount[i]) {
-                CopyBits((BitMapPtr)GetGWCPixMap(&loadPort),
-                         GetPortBitMapForCopyBits(
-                             gSpriteWorld->workFrameP->framePort),
-                         &slideDestRect[i], &slideDestRect[i], 0, NULL);
-            }
-        }
-    } else {
-        CopyBits((BitMapPtr)GetGWCPixMap(&loadPort),
-                 GetPortBitMapForCopyBits(gSpriteWorld->workFrameP->framePort),
-                 &gSpriteWorld->workFrameP->frameRect,
-                 &gSpriteWorld->workFrameP->frameRect, 0, NULL);
-    }
-    SetRect(&box, standardPicRect.left + 0x115, standardPicRect.top + 0x10a,
-            standardPicRect.left + 0x171, standardPicRect.top + 0x1be);
-    valueColor = &menuTextColor[0];
-    labelColor = &menuTextColor[1];
-    TextFont(menuFontID);
-    TextSize(menuTextSize);
-    if (creatingPilotFile != 0) {
-        RGBForeColor(labelColor);
-        GetIndString(text, kGameStrList, 0x113);
-        DrawStringCentered(text, (mainMenuCenter.h - 0x96),
-                           (mainMenuCenter.h + 0x96),
-                           (mainMenuCenter.v + 0x136));
-    } else {
-        if (gameInProgress == 0) {
-            if (slideIndex[2] >= slideFrameCount[2]) {
-                RGBForeColor(labelColor);
-                GetIndString(text, kGameStrList, 0x114);
-                DrawStringCentered(text, (mainMenuCenter.h - 0x96),
-                                   (mainMenuCenter.h + 0x96),
-                                   (mainMenuCenter.v + 0x136));
-            }
-        } else if (IsDying(shipData) == 0) {
-            MoveTo((mainMenuCenter.h - 0xbe), (mainMenuCenter.v + 0xfa));
-            RGBForeColor(labelColor);
-            DrawIndString(kGameStrList, 0xfb);
-            MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x106));
-            RGBForeColor(valueColor);
-            DrawString(playerName);
-            MoveTo((mainMenuCenter.h - 0xbe), (mainMenuCenter.v + 0x11e));
-            RGBForeColor(labelColor);
-            DrawIndString(kGameStrList, 0xff);
-            MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x12a));
-            RGBForeColor(valueColor);
-            DrawString(shipName);
-            MoveTo((mainMenuCenter.h - 0xbe), (mainMenuCenter.v + 0x142));
-            RGBForeColor(labelColor);
-            DrawIndString(kGameStrList, 0x100);
-            MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x14e));
-            RGBForeColor(valueColor);
-            DrawString(shipClass[shipData->type].name);
-            MoveTo((mainMenuCenter.h - 0xb9), (mainMenuCenter.v + 0x15a));
-            RGBForeColor(valueColor);
-            DrawString(shipClass[shipData->type].subtitle);
-            RGBForeColor(labelColor);
-            MoveTo((mainMenuCenter.h + 0x78), (mainMenuCenter.v + 0xfa));
-            DrawIndString(kGameStrList, 0x116);
-            MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x106));
-            DrawIndString(kGameStrList, 0x117);
-            MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x112));
-            RGBForeColor(valueColor);
-            if (SystemIsInhabited(shipData->curSystem) == 0)
-                DrawIndString(kGameStrList, 0x18c);
-            else
-                DrawLegalStatusString(shipData->curSystem);
-            MoveTo((mainMenuCenter.h + 0x78), (mainMenuCenter.v + 0x12a));
-            RGBForeColor(labelColor);
-            DrawIndString(kGameStrList, 0xfe);
-            MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x136));
-            RGBForeColor(valueColor);
-            DrawCombatRatingString();
-            MoveTo((mainMenuCenter.h + 0x78), (mainMenuCenter.v + 0x14e));
-            RGBForeColor(labelColor);
-            DrawIndString(kGameStrList, 0xfc);
-            MoveTo((mainMenuCenter.h + 0x7d), (mainMenuCenter.v + 0x15a));
-            RGBForeColor(valueColor);
-            DateToMedString(gameTime, (char *)text);
-            CtoPstr((char *)text);
-            DrawString(text);
-            ForeColor(blackColor);
-            i = shipClass[shipData->type].targetPictID;
-            if (targetInfoPic[i] != NULL) {
-                SWSetPortToBackground(gSpriteWorld);
-                ForeColor(blackColor);
-                QDGetPictureBounds((PicHandle)targetInfoPic[i], &box);
-                OffsetRect(&box, -box.left, -box.top);
-                OffsetRect(&box,
-                           mainMenuCenter.h - (box.right - box.left) / 2,
-                           mainMenuCenter.v + 0x118);
-                DrawPicHandle((PicHandle)targetInfoPic[i], &box);
-                SWSetPortToWorkArea(gSpriteWorld);
-                ForeColor(blackColor);
-                CopyBits(GetPortBitMapForCopyBits(
-                             gSpriteWorld->backFrameP->framePort),
-                         GetPortBitMapForCopyBits(
-                             gSpriteWorld->workFrameP->framePort),
-                         &box, &box, 0x22, NULL);
-            }
-        } else {
-            RGBForeColor(labelColor);
-            if (NameByte(1) == 'K' && NameByte(2) == 'e' &&
-                NameByte(3) == 'n' && NameByte(4) == 'n' &&
-                NameByte(5) == 'y') {
-                DrawStringCentered("\pOh my God! They killed Kenny!",
-                                   (mainMenuCenter.h - 0x96),
-                                   (mainMenuCenter.h + 0x96),
-                                   (mainMenuCenter.v + 0x136));
-            } else {
-                pstrcpy(text, playerName);
-                PtoCstr(text);
-                strcat((char *)text, " ");
-                StrcatIndCString((char *)text, kGameStrList, 0x115);
-                CtoPstr((char *)text);
-                DrawStringCentered(text, (mainMenuCenter.h - 0x96),
-                                   (mainMenuCenter.h + 0x96),
-                                   (mainMenuCenter.v + 0x136));
-            }
-        }
-    }
-
-    if (slideIndex[0] >= slideFrameCount[0])
-        shown[0] = shown[3] = 1;
-    else
-        shown[0] = shown[3] = 0;
-    if (slideIndex[1] >= slideFrameCount[1])
-        shown[1] = shown[4] = 1;
-    else
-        shown[1] = shown[4] = 0;
-    if (slideIndex[2] >= slideFrameCount[2])
-        shown[2] = shown[5] = 1;
-    else
-        shown[2] = shown[5] = 0;
-
-    for (i = 0; i < 6; i++) {
-        if (menuButtonSprite[i] != NULL && shown[i] != 0) {
-            wr = &menuButtonSprite[i]->frameArray[0]->frameRect;
-            box.top = wr->top;
-            box.left = wr->left;
-            box.bottom = wr->bottom;
-            box.right = wr->right;
-            OffsetRect(&box, menuButtonPos[i].h + menuTopCorner.h,
-                       menuButtonPos[i].v + menuTopCorner.v);
-            SWSetSpriteLocation(menuButtonSprite[i],
-                         (menuButtonPos[i].h + menuTopCorner.h),
-                         (menuButtonPos[i].v + menuTopCorner.v));
-            BlitPixieRLEDrawProc(
-                menuButtonSprite[i]->frameArray[0],
-                gSpriteWorld->workFrameP, &box, &box);
-        }
-    }
-    ForeColor(blackColor);
-    SWSetPortToWindow(gSpriteWorld);
-    ForeColor(blackColor);
-    for (i = 0; i < 6; i++) {
-        if (menuButtonSprite[i] != NULL && shown[i] != 0) {
-            wr = &menuButtonSprite[i]->frameArray[0]->frameRect;
-            box.top = wr->top;
-            box.left = wr->left;
-            box.bottom = wr->bottom;
-            box.right = wr->right;
-            OffsetRect(&box, menuButtonPos[i].h + menuTopCorner.h,
-                       menuButtonPos[i].v + menuTopCorner.v);
-            SWSetSpriteLocation(menuButtonSprite[i],
-                         (menuButtonPos[i].h + menuTopCorner.h),
-                         (menuButtonPos[i].v + menuTopCorner.v));
-            BlitPixieRLEDrawProc(
-                menuButtonSprite[i]->frameArray[0],
-                gSpriteWorld->workFrameP, &box, &box);
-        }
-    }
-    MainScreenRolloverDraw();
-    if (which == 1) {
-        CopyBits(GetPortBitMapForCopyBits(
-                     gSpriteWorld->workFrameP->framePort),
-                 GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
                  &gSpriteWorld->workFrameP->frameRect,
                  &gSpriteWorld->workFrameP->frameRect, 0, NULL);
         /* and the 0xc2-wide status strip, loadPort -> the window's right edge. */
-        box.top = loadPort.bounds.top;
-        box.left = loadPort.bounds.left;
-        box.bottom = loadPort.bounds.bottom;
-        box.right = loadPort.bounds.right;
+        box = loadPort.bounds;
 #ifdef CEFIX /* F14.15 */
         box.left = (box.right - ceStatusBarWidth);
 #else
         box.left = (box.right - 0xc2);
 #endif
-        wr = GetCWindowPortRect(gWind);
-        dst.top = wr->top;
-        dst.left = wr->left;
-        dst.bottom = wr->bottom;
-        dst.right = wr->right;
+        dst = *GetCWindowPortRect((WindowRef)gWind);
 #ifdef CEFIX /* F14.16 */
         dst.left = (dst.right - ceStatusBarWidth);
 #else
         dst.left = (dst.right - 0xc2);
 #endif
-        CopyBits((BitMapPtr)GetGWCPixMap(&loadPort),
-                 GetPortBitMapForCopyBits(GetCWindowGrafPort(gWind)),
+        CopyBits(GWorldContainerBits(&loadPort),
+                 GetPortBitMapForCopyBits(GetCWindowGrafPort((WindowRef)gWind)),
                  &box, &dst, 0, NULL);
+#ifdef MACBUILD
+        QDFlushPortBuffer(GetCWindowGrafPort(gWind), NULL);
+#endif
     }
 }
-#endif
 
 #define kShippingVer    "1.0.A"
 #define kUpgradePrompt  0x33
@@ -698,14 +475,7 @@ void SetupInterfaceBackground(void)
     ForeColor(blackColor);
     pic = GetPicture(kInterfacePictID);
     if (pic != 0) {
-#ifdef MACBUILD
         interfacePicRect = loadPort.bounds;
-#else
-        interfacePicRect.top = loadPort.bounds.top;
-        interfacePicRect.left = loadPort.bounds.left;
-        interfacePicRect.bottom = loadPort.bounds.bottom;
-        interfacePicRect.right = loadPort.bounds.right;
-#endif
         CenterPict(pic, &interfacePicRect);
         if (loadPort.bounds.bottom - loadPort.bounds.top < kMinFullHeight)
             OffsetRect(&interfacePicRect, 0, -kSmallScreenNudge);
@@ -2151,11 +1921,7 @@ void EnterGameFromMainScreen(void)
 void DoNewPilot(void)
 {
     uint32_t resType;
-#ifdef MACBUILD
     Boolean wantStrictPlay;
-#else
-    Boolean wantStrictPlay;
-#endif
 #ifdef MACBUILD
     Str255 prompt;
     Str255 charName;
@@ -2295,17 +2061,7 @@ void DoNewPilot(void)
     pstrcpy(shipName, newShipName);
     pstrcpy(playerName, newPlayerName[0]);
     pstrcpy(playerNickname, shipNameP);
-#ifdef MACBUILD
     gameTime = scenarioStartDate;
-#else
-    gameTime.year = scenarioStartDate.year;
-    gameTime.month = scenarioStartDate.month;
-    gameTime.day = scenarioStartDate.day;
-    gameTime.hour = scenarioStartDate.hour;
-    gameTime.minute = scenarioStartDate.minute;
-    gameTime.second = scenarioStartDate.second;
-    gameTime.dayOfWeek = scenarioStartDate.dayOfWeek;
-#endif
     gameInProgress = 1;
     strictPlay = wantStrictPlay;
     shipData->deathTimer = -1.0f;

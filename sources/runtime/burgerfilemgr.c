@@ -78,7 +78,7 @@ Word GetADirectoryEntryExtension(DirectorySearch_t *dir, const char *ext)
 
 /* FOpenExpandedPath. STATE: MATCH 100%, exe 13 / obj 13 instrs, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f1df0
-void *FOpenExpandedPath(const char *path, const char *mode)
+FILE *FOpenExpandedPath(const char *path, const char *mode)
 {
     char expanded[kPathBufferSize];
 
@@ -99,9 +99,9 @@ Word CopyAFile(const char *dest, const char *source)
     result = 1;
     buffer = AllocAPointer(0x10000);
     if (buffer != 0) {
-        in = (FILE *)FOpenExpandedPath(source, "rb");
+        in = FOpenExpandedPath(source, "rb");
         if (in != 0) {
-            out = (FILE *)FOpenExpandedPath(dest, "wb");
+            out = FOpenExpandedPath(dest, "wb");
             if (out != 0) {
                 result = 0;
                 size = fgetfilesize(in);
@@ -378,7 +378,7 @@ int32_t SaveAFile(const char *path, const void *data, uint32_t length)
 {
     FILE *file;
 
-    file = (FILE *)FOpenExpandedPath(path, "wb");
+    file = FOpenExpandedPath(path, "wb");
     if (file == 0) {
         NonFatal("Can't open the file to save to\n");
         return 0;
@@ -410,7 +410,7 @@ Word SaveATextFile(const char *name, const void *data, uint32_t length)
     uint32_t written;
     int closed;
 
-    file = (FILE *)FOpenExpandedPath(name, "w");
+    file = FOpenExpandedPath(name, "w");
     if (file == 0) {
         NonFatal("Can't open the file to save to\n");
         return 0;
@@ -430,7 +430,7 @@ void *LoadAFile(const char *name, uint32_t *length)
 {
     FILE *fp;
 
-    fp = (FILE *)FOpenExpandedPath(name, "rb");
+    fp = FOpenExpandedPath(name, "rb");
     if (fp != 0)
         return LoadAFileFP(fp, length);
     NonFatal("File %s was not found\n", name);
@@ -489,7 +489,7 @@ void *LoadAFileHandle(const char *path)
 {
     FILE *file;
 
-    file = (FILE *)FOpenExpandedPath(path, "rb");
+    file = FOpenExpandedPath(path, "rb");
     if (file == 0) {
         NonFatal("File %s was not found\n", path);
         return 0;

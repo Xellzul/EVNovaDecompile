@@ -187,8 +187,8 @@ short SWFixImageGWorld(CGrafPtr pictureGWorld, CGrafPtr maskGWorld, Rect *rectP)
     GetPort(&saveGWorld);
     saveDevice = GetGWorldDevice(saveGWorld);
 
-    baseAddr = (char *)GetPixBaseAddr(pictPix);
-    maskAddr = (char *)GetPixBaseAddr(maskPix);
+    baseAddr = GetPixBaseAddr(pictPix);
+    maskAddr = GetPixBaseAddr(maskPix);
     rowBytes = GetPixRowBytes(pictPix);
 
     baseAddr += rectP->top * rowBytes;

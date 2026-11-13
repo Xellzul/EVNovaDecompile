@@ -891,7 +891,7 @@ extern void MakeAlias(const FSRef *target);
 extern short EVOpenResourceFile(const FSRef *ref, SInt8 permission);
 #else
 extern void MakeAlias(char *name);
-extern short EVOpenResourceFile(void *path);
+extern short EVOpenResourceFile(const char *path);
 #endif
 extern void SwapEndianByDescriptor(unsigned char *data, unsigned short *desc);
 extern void LoadMenuListItem(ControlRecord *rec, int32_t menuID, unsigned char *promptTitle,
@@ -1273,7 +1273,7 @@ extern GWorldContainer loadPort;
 EXTERN_CPP_END
 #pragma cplusplus reset
 
-extern void *GetPixBaseAddr(PixMapPtr pm);
+extern char *GetPixBaseAddr(PixMapPtr pm);
 extern short GetPixRowBytes(PixMapPtr pm);
 extern short GetPixDepth(PixMapPtr pm);
 #endif
