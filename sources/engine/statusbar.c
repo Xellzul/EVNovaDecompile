@@ -1,5 +1,4 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
-// COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* statusbar.c -- the status-bar driver pair (win link order 0x0045d0a0, 0x0045d320; mac 1.1.1 twins _RedrawStatus @0x4cac0, _DrawStatus @0x4c85d). Notes: Research/notes/statusbar.md */
 #include "macport.h"
 #include "shipobj.h"

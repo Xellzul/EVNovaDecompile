@@ -701,17 +701,11 @@ done:
 // FUNCTION: EVNOVA 0x004f3e0a
 void _ReggieFixProductName(char *out, const char *src)
 {
-#ifdef MAC1010 /* 1.0.10 spelling */
-    ULong n;
     char *start;
-#else
-    char *start;
-    ULong n;
-#endif
     char c;
 
     start = out;
-    while ((n = out - start) < kNameBuffer - 1 && (*out = *src++) != 0) {
+    while ((ULong)(out - start) < kNameBuffer - 1 && (*out = *src++) != 0) {
         c = *out;
         if (c >= 'a' && c <= 'z') {
             *out += 'A' - 'a';
@@ -724,7 +718,7 @@ void _ReggieFixProductName(char *out, const char *src)
             *out++ = '_';
         }
     }
-    if (n == kNameBuffer - 1)
+    if ((ULong)(out - start) == kNameBuffer - 1)
         *out = 0;
 }
 

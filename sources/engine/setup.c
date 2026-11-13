@@ -1,5 +1,4 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
-// COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 // COMPILE-WHY: two scoped `#pragma opt_repositioncode off' regions (pragma-only, no -opt
 // spelling), over SetupMonitor and over ConvertSpriteToRLE; each matches only with it.
 /* setup.c --tu-map object O26, the original Setup.c: SpriteWorld and sprite setup, loading, cleanup and game-state reset, then the QuickDraw state shims. Notes: Research/notes/setup.md */

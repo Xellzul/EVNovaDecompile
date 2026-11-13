@@ -1904,11 +1904,6 @@ static __inline float FloatSqrt(float x)
 // MAC: _HandleBeams i386 0x00030295 ppc 0x0003561c
 void HandleBeams(unsigned char advance)
 {
-#ifndef MACBUILD
-    short *dstHead;
-    short *dstTail;
-    short *src;
-#endif
     FloatPoint off;
     FloatPoint drawPt;
     FloatPoint muzzle;
@@ -1970,19 +1965,8 @@ void HandleBeams(unsigned char advance)
             if (killShots)
                 beamData[i].state = -1;
             if (advance) {
-#ifdef MACBUILD
                 beamData[i].lastHead = beamData[i].head;
                 beamData[i].lastTail = beamData[i].tail;
-#else
-                dstHead = (short *)&beamData[i].lastHead;
-                src = (short *)&beamData[i].head;
-                dstHead[0] = src[0];
-                dstHead[1] = src[1];
-                src = (short *)&beamData[i].tail;
-                dstTail = (short *)&beamData[i].lastTail;
-                dstTail[0] = src[0];
-                dstTail[1] = src[1];
-#endif
             }
             if (advance) {
                 angle = shipData[beamData[i].owner].sprite->curFrameIndex
@@ -5023,9 +5007,7 @@ void HandleMouse(void)
     Point mouse;
     short frame;
     Rect *port;
-#ifndef MACBUILD
     Rect *fr;
-#endif
     SpriteRec *spr;
     short i;
     short j;
@@ -5035,15 +5017,11 @@ void HandleMouse(void)
 #ifdef MACBUILD
     GetMouse(&mouse);
     port = GetCWindowPortRect((WindowRef)gWind);
-    box = *port;
 #else
     GetGlobalMouse(&mouse);
     port = GetCWindowPortRect(gWind);
-    box.top = port->top;
-    box.left = port->left;
-    box.bottom = port->bottom;
-    box.right = port->right;
 #endif
+    box = *port;
     if (PtInRectPoint(mouse, &box))
         HideTheCursor();
     else
@@ -5085,15 +5063,8 @@ void HandleMouse(void)
             spr = (SpriteRec *)shipData[i].sprite;
             if (spr == NULL)
                 continue;
-#ifdef MACBUILD
-            box = spr->destFrameRect;
-#else
             fr = &spr->destFrameRect;
-            box.top = fr->top;
-            box.left = fr->left;
-            box.bottom = fr->bottom;
-            box.right = fr->right;
-#endif
+            box = *fr;
             if (box.right - box.left < kMinHotRectSize)
                 InsetRect(&box, kHotRectInset, kHotRectInset);
             if (PtInRectPoint(mouse, &box)) {
@@ -5115,15 +5086,8 @@ void HandleMouse(void)
             s = spr->userData;
             if (stellarData[s].loaded == 0)
                 continue;
-#ifdef MACBUILD
-            box = spr->destFrameRect;
-#else
             fr = &spr->destFrameRect;
-            box.top = fr->top;
-            box.left = fr->left;
-            box.bottom = fr->bottom;
-            box.right = fr->right;
-#endif
+            box = *fr;
             if (box.right - box.left < kMinHotRectSize)
                 InsetRect(&box, kHotRectInset, kHotRectInset);
             if (PtInRectPoint(mouse, &box)) {

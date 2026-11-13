@@ -1,5 +1,4 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
-// COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* music.c -- the intro-music song and CrtInitHook8, the .CRT hook that ends its object (win 0x004ab5d0..0x004ab960). Notes: Research/notes/music.md */
 /*
  * Both volume computations read settings.volume through movzx even though the pref

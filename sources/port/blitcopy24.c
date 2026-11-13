@@ -1,5 +1,4 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
-// COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 // COMPILE-WHY: `#pragma opt_repositioncode off' (pragma-only) around CopyBitsScale16Average alone, on
 // after CopyBitsScale8 and reset before CopyBitsScale24. Without it the block mover parks the
 // nearest-neighbour arm; left on past CopyBitsScale16Average it moves LoadPictResource's dispose arm.

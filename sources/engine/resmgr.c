@@ -1,5 +1,4 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
-// COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* resmgr.c -- the Mac Resource Manager shims the win port implements over BurgerLib's REZ container (win 0x004cdfa0..0x004ce480). Notes: Research/notes/resmgr.md */
 #include <stddef.h>
 

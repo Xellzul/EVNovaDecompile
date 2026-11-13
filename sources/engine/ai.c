@@ -1,5 +1,4 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
-// COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* ai.c -- the AI object (tu-map O1, win 0x00401000..0x004160f0). Notes: Research/notes/ai.md */
 #include <stdlib.h>
 #include <math.h>
@@ -6019,7 +6018,6 @@ void AIPlunderShipContents(ShipObj *me, ShipObj *target)
 /* AICalculateOddsAgainst. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004133f0
 // MAC: _AICalculateOddsAgainst i386 0x00084a2e ppc 0x0008f038
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
 void AICalculateOddsAgainst(ShipObj *ship)
 {
     float playerWeight;
@@ -6061,7 +6059,6 @@ void AICalculateOddsAgainst(ShipObj *ship)
    OPEN: none */
 // FUNCTION: EVNOVA 0x00413610
 // MAC: _AICallForReinforcements i386 0x0007f5a1 ppc 0x000890ec
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
 Boolean AICallForReinforcements(ShipObj *ship, Boolean force)
 {
     float threshold;
@@ -6161,7 +6158,6 @@ short AIShipIsOutOfAmmo(ShipObj *ship)
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00413990
 // MAC: _AICalcFormationPositions i386 0x00085040 ppc 0x0008ffb8
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
 void AICalcFormationPositions(ShipObj *ship, Boolean recalc)
 {
     short escortCount;

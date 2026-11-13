@@ -1,5 +1,4 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -D_MSL_USE_INLINE=0 -lang c++ -bool off
-// COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 // COMPILE-WHY: -D_MSL_USE_INLINE=0 (Win32Headers.pch): <ctype.h> declares tolower pure, so the name loop's systemData load ranks invariant.
 /* dosystemsearch.c -- DoSystemSearch and CrtInitHook7, the .CRT hook that ends its object; exe 0x004aab30..0x004aaf50. Notes: Research/notes/mapdlg.md */
 

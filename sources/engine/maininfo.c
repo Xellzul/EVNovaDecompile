@@ -1411,7 +1411,6 @@ void DoPrefsDialog(void)
 #endif
 #endif
 
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -proc generic
 /* entergame -- EnterGameFromMainScreen and DoNewPilot. Notes: Research/notes/entergame.md */
 
 /* far arrays inside the one big 0x005912a0 allocation, reached at raw offsets

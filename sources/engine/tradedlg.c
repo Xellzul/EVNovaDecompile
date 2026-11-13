@@ -1,5 +1,4 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
-// COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* tradedlg.c -- tu-map object O24: the trade, outfit, shipyard, port, player-info and description dialogs, then the escort menu, quantity dialog and map world, ending at the .CRT hook. Notes: Research/notes/tradedlg.md */
 #include <stddef.h>
 #include <stdio.h>

@@ -299,28 +299,17 @@ ITElement *PT_ParseTreeGetParent(ITElement *root, ITElement *node)
 ITElement *PT_ParseTreeGetNext(ITElement *root, ITElement *node)
 {
     ITElement *e;
-#ifdef MAC1010 /* 1.0.10 spelling */
-    ITElement *next;
-#endif
     int32_t err;
 
     err = 0;
     e = 0;
     for (e = root; e != 0 && e->order != node->order + 1;) {
-#ifdef MAC1010 /* 1.0.10 spelling */
-        next = e->next;
-        if (next == 0)
+        if (e->next == 0)
             e = e->child;
-        else if (next->order > node->order + 1)
-            e = e->child;
-        else
-            e = next;
-#else
-        if (e->next == 0 || e->next->order > node->order + 1)
+        else if (e->next->order > node->order + 1)
             e = e->child;
         else
             e = e->next;
-#endif
     }
     return e;
 }

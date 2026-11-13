@@ -16,7 +16,6 @@
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00448090
 // MAC: _PropagateMissionBitEffects i386 0x00099676 ppc 0x000a52a0
-// COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 void PropagateMissionBitEffects(void)
 {
     short i;

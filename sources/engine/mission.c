@@ -1961,12 +1961,7 @@ void ApplyMissionPay(int32_t amount)
                 playerRecord[i] = 0;
         }
     } else if (amount <= -(kPctOfCashBase + 1) && amount > -(kPctOfCashBase + 100)) {
-#ifdef MACBUILD
         i = abs(amount) - kPctOfCashBase;
-#else
-        i = abs(amount);
-        i -= kPctOfCashBase;
-#endif
         shipData[0].credits -= shipData[0].credits * ((float)i * 0.01);
     }
 }
@@ -2986,24 +2981,8 @@ void MissionObjectivesCheck(short slot)
                                 && shipData[i].sprite != 0
                                 && ShipVisibleToShip(&shipData[i], shipData) != 0) {
                             if (ShipCanCloak(&shipData[i]) != 0) {
-#ifdef MACBUILD
                                 vis = gSpriteWorld->windRect;
                                 shipRect = shipData[i].sprite->destFrameRect;
-#else
-                                Rect *vr;
-                                Rect *sr;
-
-                                vr = &gSpriteWorld->windRect;
-                                vis.top = vr->top;
-                                vis.left = vr->left;
-                                vis.bottom = vr->bottom;
-                                vis.right = vr->right;
-                                sr = &shipData[i].sprite->destFrameRect;
-                                shipRect.top = sr->top;
-                                shipRect.left = sr->left;
-                                shipRect.bottom = sr->bottom;
-                                shipRect.right = sr->right;
-#endif
                                 InsetRect(&vis,
                                           ((shipRect.right - shipRect.left) * 0.75),
                                           ((shipRect.bottom - shipRect.top) * 0.75));
@@ -4297,20 +4276,14 @@ Boolean SingleMissionFilter(int32_t unused, EventRecord *ev, short *itemHit)
     }
 #if V111
     if (ev->what == kMouseDown) {
-        where = ev->where;
 #else
 #ifdef MAC1010 /* 1.0.10 spelling */
     if ((int)ev->what == kMouseDown) {
 #else
     if (what == kMouseDown) {
 #endif
-#ifdef MACBUILD
+#endif
         where = ev->where;
-#else
-        where.v = ev->where.v;
-        where.h = ev->where.h;
-#endif
-#endif
 #ifdef MACBUILD
         GlobalToLocal(&where);
 #endif

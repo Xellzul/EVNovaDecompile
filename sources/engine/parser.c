@@ -1,5 +1,4 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off -lang c++ -bool off
-// COMPILE-WHY: -lang c++ -bool off, the game's C++ build (user decision 10, 2026-10-13): C++ linkage puts a TU's globals in place in .bss, bool off keeps a comparison's value int-typed (parser.c); Research/compiler-inventory.md
 /* parser.c -- the Parser.c object: the mission-bit expression machine, ParseTextDescription and the parse-buffer save/restore (win 0x00448ba0-0x0044aa60, from its head Trim, the space skipper). Notes: Research/notes/parser.md */
 /*
  * The filename is not a guess: both functions assert with the literal

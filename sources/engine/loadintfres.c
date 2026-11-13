@@ -26,17 +26,9 @@
     pid = govtData[g].interfaceID; \
     if (pid >= kFirstResourceID) \
         id = pid
-#ifdef MAC1010
-#define CopyStatusRect(n, area) \
-    statusOffRect[n] = (*rec)->area
-#else
 #define CopyStatusRect(n, area) \
     p = &(*rec)->area; \
-    statusOffRect[n].top = p->top; \
-    statusOffRect[n].left = p->left; \
-    statusOffRect[n].bottom = p->bottom; \
-    statusOffRect[n].right = p->right
-#endif
+    statusOffRect[n] = *p
 #endif
 
 /* LoadIntfResource (mac _LoadIntfResource). STATE: MATCH 100.0% (269 exact, 94
