@@ -1789,7 +1789,7 @@ void EnterGameFromMainScreen(void)
         LoadMainScreenAnim();
         while (StillDown())
             BusyIdle();
-        FlushEvents(3, 0);
+        FlushEvents(3, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
         FlushEvents(5, 0);
         FlushEvents(1, 0);
         FlushEvents(2, 0);
@@ -1812,7 +1812,7 @@ void EnterGameFromMainScreen(void)
         MainScreenAnimDraw();
         MainScreenUpdate(1);
     }
-    FlushEvents(3, 0);
+    FlushEvents(3, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
     FlushEvents(5, 0);
     FlushEvents(1, 0);
     FlushEvents(2, 0);

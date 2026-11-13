@@ -146,9 +146,9 @@ unsigned char AtomicMaskTest(ULong *word, ULong bit)
     return result;
 }
 
-int32_t _AtomicCheckCritical(void)
+unsigned char _AtomicCheckCritical(void)
 {
-    int32_t result;
+    unsigned char result;
 #if TARGET_API_MAC_CARBON
     ULong depth;
 

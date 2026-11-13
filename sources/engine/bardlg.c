@@ -493,7 +493,7 @@ void DoNewsDialog(void)
     newsPic = NULL;
     DisposeDialogNoFlash(newsDialog);
     newsDialog = NULL;
-    FlushEvents(1, 0);
+    FlushEvents(1, 0); /* BUG: event kinds passed as masks: the Mac flushes no key events */
     FlushEvents(2, 0);
     FlushEvents(3, 0);
     FlushEvents(4, 0);

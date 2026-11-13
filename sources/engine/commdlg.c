@@ -1120,16 +1120,11 @@ Boolean PlanetCommFilter(int32_t unused, EventRecord *ev, short *itemHit)
 void PlanetCommDialogUpdate(void)
 {
     Handle item;
-    short itemType;
-#ifndef MAC1010 /* 1.0.10 spelling */
-    RGBColor rgbGold;
-#endif
     unsigned char text[255]; /* BUG: a 255-character commResponseString overruns text by one */
+    short itemType;
     Rect box;
     Rect textBox;
-#ifdef MAC1010
     RGBColor rgbGold;
-#endif
     short i;
     short spriteWidth;
     short spriteHeight;
@@ -1594,14 +1589,13 @@ short DoHaggleDialog(Boolean raise, short chance)
 // MAC: _HaggleFilter i386 0x00091d9d ppc 0x0009d8e8
 Boolean HaggleFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
-#if V111
-    short key;
-#endif
     Point where;
     short button;
 
     if ((int)ev->what == kKeyDown) {
 #if V111
+        short key;
+
         key = (ev->message & kKeyCodeMask) >> 8;
         if (key == kReturnKeyCode || key == kEnterKeyCode) {
             *itemHit = 1;
@@ -2384,14 +2378,13 @@ void SetPlunderValues(void)
 // MAC: _PlunderFilter i386 0x00092f20 ppc 0x0009ee40
 Boolean PlunderFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
-#if V111
-    short key;
-#endif
     Point where;
     short button;
 
     if ((int)ev->what == kKeyDown) {
 #if V111
+        short key;
+
         key = (ev->message & kKeyCodeMask) >> 8;
         if (key == kReturnKeyCode || key == kEnterKeyCode || key == kEscapeKeyCode) {
 #else

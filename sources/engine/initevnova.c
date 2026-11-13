@@ -4705,7 +4705,7 @@ unsigned char LaunchFighter(ShipObj *parent, short fighterType)
     short n;
     short inacc;
 
-    if (fighterType < 0 || fighterType > kMaxWeapTypes)
+    if (fighterType < 0 || fighterType > kMaxWeapTypes) /* BUG: admits kMaxWeapTypes, one past weaponStats */
         return 0;
     slot = GenericRandomShipSpawn(parent->curSystem, kSpawnReserve);
     if (slot == -1)
@@ -6191,7 +6191,7 @@ short SpawnPerson(short sys, unsigned char noDisabled, short person)
             eligible[pick] = 1;
             personData[pick].loaded = 1;
         } else {
-            pick = Rand(0x3fe);
+            pick = Rand(0x3fe); /* BUG: Rand never returns 0x3fe, so person 1150 never spawns at random */
         }
         if (eligible[pick] != 0) {
             slot = GenericRandomShipSpawn(sys, kSpawnReserve);

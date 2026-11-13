@@ -4407,7 +4407,7 @@ Boolean ShipyardFilter(int32_t unused, EventRecord *ev, short *itemHit)
             old = selShipyardItem;
             if (selShipListItem != -1) {
                 count = 0;
-                for (i = 0; i < 512; i++) {
+                for (i = 0; i < 512; i++) { /* BUG: not kMaxShipTypes: with over 512 ships for sale the keys stop scrolling early */
                     if (dockedPortShipTypes[i] != -1)
                         count++;
                 }
