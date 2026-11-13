@@ -478,7 +478,7 @@ done:
 /* nv_SetDialogTemplateBounds. STATE: MATCH, byte-identical. OPEN: none
    Second live use of itemsID forces early widening (notes). */
 // FUNCTION: EVNOVA 0x004ceec0
-int32_t nv_SetDialogTemplateBounds(DialogPtr dlg, const unsigned short *tmpl)
+short nv_SetDialogTemplateBounds(DialogPtr dlg, const unsigned short *tmpl)
 {
     int32_t itemsID;
     int32_t halfWidth;

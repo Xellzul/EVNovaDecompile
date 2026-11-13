@@ -78,8 +78,6 @@ void HandleShipDisplay(ShipObj *ship)
     float dx;
 #define n w
 #define bank w
-#define frames nFrames
-#define shieldFrames nFrames
 #elif defined(MACBUILD)
     unsigned char msg[256];
     short sizes[kSpriteSizeSlots];
@@ -96,8 +94,6 @@ void HandleShipDisplay(ShipObj *ship)
     unsigned short red;
     unsigned short green;
     unsigned short blue;
-    short shieldFrames;
-    short frames;
     short bank;
     short blastRadius;
     short nFrames;
@@ -125,7 +121,7 @@ void HandleShipDisplay(ShipObj *ship)
     float dy;
     float rate;
     float ion;
-    unsigned short nFrames;
+    short nFrames;
     short h;
     short best;
     short bank;
@@ -141,8 +137,6 @@ void HandleShipDisplay(ShipObj *ship)
     Boolean hideAll;
     Boolean hasWeap;
     short blastRadius;
-    short shieldFrames;
-    short frames;
     Boolean hasLight;
     Boolean hasAlt;
     float angleScale;
@@ -210,17 +204,14 @@ void HandleShipDisplay(ShipObj *ship)
     }
 
     nFrames = shipClass[ship->type].framesPer;
-    angleScale = ((float)(short)nFrames / 360.0);
+    angleScale = ((float)nFrames / 360.0);
 
     if (ship->curSystem == shipData[0].curSystem && ship->active != 0) {
         if (shipClass[ship->type].cost != -1) {
             SWSetSpriteVisible(ship->sprite, 1);
             SWCloneFramesFromMaster(ship->sprite, masterShipSprite[ship->type]);
-#ifndef MAC1010
-            shieldFrames = frames = nFrames;
-#endif
             bank = 0;
-            if (ship->sprite->numFrames > shieldFrames) {
+            if (ship->sprite->numFrames > nFrames) {
                 if ((shipClass[ship->type].shanFlags & kShanBanks) != 0) {
                     if (ship->bankDir < 0)
                         bank = 1;
@@ -282,8 +273,8 @@ void HandleShipDisplay(ShipObj *ship)
             }
             if ((shipClass[ship->type].shanFlags & kShanSkewCorrect) != 0) {
                 if (shipClass[ship->type].frameAngles) {
-                    frame = frames - 1;
-                    i = frames - 1;
+                    frame = nFrames - 1;
+                    i = nFrames - 1;
                     while (i >= 0) {
                         if (shipClass[ship->type].frameAngles[i] < ship->heading) {
                             frame = i;
@@ -297,24 +288,24 @@ void HandleShipDisplay(ShipObj *ship)
             } else {
                 frame = (ship->heading * angleScale);
             }
-            SWSetCurrentFrameIndex(ship->sprite, (bank * frames + frame));
+            SWSetCurrentFrameIndex(ship->sprite, (bank * nFrames + frame));
             if (hasGlow != 0) {
                 SWCloneFramesFromMaster(ship->glowSprite, masterShipGlowSprite[ship->type]);
-                SWSetCurrentFrameIndex(ship->glowSprite, (bank * frames + frame));
+                SWSetCurrentFrameIndex(ship->glowSprite, (bank * nFrames + frame));
             }
             if (hasLight != 0) {
                 SWCloneFramesFromMaster(ship->lightSprite, masterShipLightSprite[ship->type]);
-                SWSetCurrentFrameIndex(ship->lightSprite, (bank * frames + frame));
+                SWSetCurrentFrameIndex(ship->lightSprite, (bank * nFrames + frame));
             }
             if (hasWeap != 0) {
                 SWCloneFramesFromMaster(ship->weapSprite, masterShipWeaponSprite[ship->type]);
-                SWSetCurrentFrameIndex(ship->weapSprite, (bank * frames + frame));
+                SWSetCurrentFrameIndex(ship->weapSprite, (bank * nFrames + frame));
             }
             if (hasShield != 0) {
                 SWCloneFramesFromMaster(ship->shieldSprite, masterShipShieldSprite[ship->type]);
-                if (ship->shieldSprite->numFrames > shieldFrames)
+                if (ship->shieldSprite->numFrames > nFrames)
                     SWSetCurrentFrameIndex(ship->shieldSprite,
-                                           (bank * frames + frame));
+                                           (bank * nFrames + frame));
                 else if (ship->shieldSprite->numFrames > 1)
                     SWSetCurrentFrameIndex(ship->shieldSprite, frame);
                 else
@@ -629,7 +620,7 @@ void HandleShipDisplay(ShipObj *ship)
                 SWSetSpriteVisible(ship->altSprite, 1);
                 SWCloneFramesFromMaster(ship->altSprite, masterShipAltSprite[ship->type]);
                 SWSetCurrentFrameIndex(ship->altSprite,
-                                       (frames * ship->altSet + frame));
+                                       (nFrames * ship->altSet + frame));
                 ship->altSprite->translucency = ship->sprite->translucency;
                 ship->altSprite->tintColor = ship->sprite->tintColor;
                 ship->altSprite->tintMode = ship->sprite->tintMode;
@@ -1003,8 +994,6 @@ void HandleShipDisplay(ShipObj *ship)
 #ifdef MAC1010
 #undef n
 #undef bank
-#undef frames
-#undef shieldFrames
 #endif
 
 #define kSpinWrap               36.0f
