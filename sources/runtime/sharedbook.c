@@ -30,10 +30,10 @@ int _ilog(unsigned int v){
 #define VQ_FEXP_BIAS 768
 
 /* not linked */
-long _float32_pack(float val){
+int32_t _float32_pack(float val){
   int sign=0;
-  long exp;
-  long mant;
+  int32_t exp;
+  int32_t mant;
   if(val<0){
     sign=0x80000000;
     val= -val;
@@ -44,10 +44,10 @@ long _float32_pack(float val){
   return(sign|exp|mant);
 }
 
-float _float32_unpack(long val){
+float _float32_unpack(int32_t val){
   double mant=val&0x1fffff;
   int    sign=val&0x80000000;
-  long   exp =(val&0x7fe00000L)>>VQ_FMAN;
+  int32_t   exp =(val&0x7fe00000L)>>VQ_FMAN;
   if(sign)mant= -mant;
   return(ldexp(mant,exp-(VQ_FMAN-1)-VQ_FEXP_BIAS));
 }
@@ -55,17 +55,17 @@ float _float32_unpack(long val){
 /* _make_words. STATE: BurgerLib's libvorbis 1.0rc3, the body under if(r) so a failed
    allocation leaves through return(r) (MATCH, byte-identical). OPEN: none. */
 // FUNCTION: EVNOVA 0x005442a0
-long *_make_words(long *l,long n){
-  long i,j;
-  long marker[33];
-  long *r=(long *)_ogg_malloc(n*sizeof(*r));
+int32_t *_make_words(int32_t *l,int32_t n){
+  int32_t i,j;
+  int32_t marker[33];
+  int32_t *r=(int32_t *)_ogg_malloc(n*sizeof(*r));
   if(r){
     FastMemSet(marker,0,sizeof(marker));
 
     for(i=0;i<n;i++){
-      long length=l[i];
+      int32_t length=l[i];
       if(length>0){
-	long entry=marker[length];
+	int32_t entry=marker[length];
 
 	if(length<32 && (entry>>length)){
 	  _ogg_free(r);
@@ -97,7 +97,7 @@ long *_make_words(long *l,long n){
     }
 
     for(i=0;i<n;i++){
-      long temp=0;
+      int32_t temp=0;
       for(j=0;j<l[i];j++){
 	temp<<=1;
 	temp|=(r[i]>>j)&1;
@@ -114,22 +114,22 @@ long *_make_words(long *l,long n){
 // FUNCTION: EVNOVA 0x00544500
 decode_aux *_make_decode_tree(codebook *c){
   const static_codebook *s=c->c;
-  long top=0,i,j,n;
+  int32_t top=0,i,j,n;
   decode_aux *t=(decode_aux *)_ogg_malloc(sizeof(*t));
   if(t){
-    long *ptr0=(long *)_ogg_calloc(c->entries*2,sizeof(*ptr0));
+    int32_t *ptr0=(int32_t *)_ogg_calloc(c->entries*2,sizeof(*ptr0));
     t->ptr0=ptr0;
     if(ptr0){
-      long *ptr1=(long *)_ogg_calloc(c->entries*2,sizeof(*ptr1));
+      int32_t *ptr1=(int32_t *)_ogg_calloc(c->entries*2,sizeof(*ptr1));
       t->ptr1=ptr1;
       if(ptr1){
-        long *codelist=_make_words(s->lengthlist,s->entries);
+        int32_t *codelist=_make_words(s->lengthlist,s->entries);
         if(codelist){
           t->aux=c->entries*2;
 
           for(i=0;i<c->entries;i++){
             if(s->lengthlist[i]>0){
-              long ptr=0;
+              int32_t ptr=0;
               for(j=0;j<s->lengthlist[i]-1;j++){
                 int bit=(codelist[i]>>j)&1;
                 if(!bit){
@@ -153,11 +153,11 @@ decode_aux *_make_decode_tree(codebook *c){
           t->tabn = _ilog(c->entries)-4;
           if(t->tabn<5)t->tabn=5;
           n = 1<<t->tabn;
-          t->tab = (long *)_ogg_malloc(n*sizeof(*t->tab));
+          t->tab = (int32_t *)_ogg_malloc(n*sizeof(*t->tab));
           t->tabl = (int *)_ogg_malloc(n*sizeof(*t->tabl));
           if(t->tab && t->tabl){
             for (i = 0; i < n; i++) {
-              long p = 0;
+              int32_t p = 0;
               for (j = 0; j < t->tabn && (p > 0 || j == 0); j++) {
                 if (i & (1 << j))
                   p = ptr1[p];
@@ -184,12 +184,12 @@ decode_aux *_make_decode_tree(codebook *c){
 /* _book_maptype1_quantvals. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00544850
-long _book_maptype1_quantvals(const static_codebook *b){
-  long vals=floor(pow((float)b->entries,1.f/b->dim));
+int32_t _book_maptype1_quantvals(const static_codebook *b){
+  int32_t vals=floor(pow((float)b->entries,1.f/b->dim));
 
   while(1){
-    long acc=1;
-    long acc1=1;
+    int32_t acc=1;
+    int32_t acc1=1;
     int i;
     for(i=0;i<b->dim;i++){
       acc*=vals;
@@ -211,7 +211,7 @@ long _book_maptype1_quantvals(const static_codebook *b){
    joining the final return(NULL) (MATCH, byte-identical). OPEN: none. */
 // FUNCTION: EVNOVA 0x005449c0
 float *_book_unquantize(const static_codebook *b){
-  long j,k;
+  int32_t j,k;
   if(b->maptype==1 || b->maptype==2){
     int quantvals;
     float mindel=_float32_unpack(b->q_min);
@@ -311,7 +311,7 @@ void vorbis_book_clear(codebook *b){
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00544df0
 int vorbis_book_init_encode(codebook *c,const static_codebook *s){
-  long j,k;
+  int32_t j,k;
   FastMemSet(c,0,sizeof(*c));
   c->c=s;
   c->entries=s->entries;
@@ -398,7 +398,7 @@ int _best(codebook *book, float *a, int step){
 
     if(c->q_sequencep){
       int pv;
-      long mul=1;
+      int32_t mul=1;
       float qlast=0;
       for(k=0,o=0;k<dim;k++,o+=step){
 	pv=(int)((a[o]-qlast-pt->min)/pt->del);
@@ -416,7 +416,7 @@ int _best(codebook *book, float *a, int step){
     }
 
     if(k==dim && pt->fitlength[entry]){
-      long *list=pt->fitlist+pt->fitmap[entry];
+      int32_t *list=pt->fitlist+pt->fitmap[entry];
       for(i=0;i<pt->fitlength[entry];i++){
 	float this_=_dist(dim,book->valuelist+list[i]*dim,a,step);
 	if(besti==-1 || this_<best){

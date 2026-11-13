@@ -13,15 +13,15 @@
 extern unsigned char DT_IsRectReallyEmpty(const ITRect *r);                      /* itrect.c */
 extern void DT_ColorLighten(ITColor *color);                                /* itrect.c */
 extern void DT_ColorDarken(ITColor *color);                                /* itrect.c */
-extern long DT_GetFillColor(ITImage *image, ITColor *fore);                 /* itgfx.c */
-extern long DT_SetTextColor(ITImage *image, const ITColor *fore);           /* itgfx.c */
-extern long DT_SetTextSize(ITImage *image, long size);                     /* itgfx.c */
-extern long DT_GetTextInfo(ITImage *image, long *metrics);                 /* itgfx.c */
-extern long DT_SetPixel(ITImage *image, long x, long y, const ITColor *color);  /* itgfx.c */
-extern long DT_SetPenLocation(ITImage *image, long x, long y);                /* itgfx.c */
-extern long DT_DrawLineTo(ITImage *image, long x, long y);                /* itgfx.c */
-extern long DT_GetTextWidth(ITImage *image, const char *text, long length); /* itgfx.c */
-extern long DT_DrawText(ITImage *image, const char *text, long length); /* itgfx.c */
+extern int32_t DT_GetFillColor(ITImage *image, ITColor *fore);                 /* itgfx.c */
+extern int32_t DT_SetTextColor(ITImage *image, const ITColor *fore);           /* itgfx.c */
+extern int32_t DT_SetTextSize(ITImage *image, int32_t size);                     /* itgfx.c */
+extern int32_t DT_GetTextInfo(ITImage *image, int32_t *metrics);                 /* itgfx.c */
+extern int32_t DT_SetPixel(ITImage *image, int32_t x, int32_t y, const ITColor *color);  /* itgfx.c */
+extern int32_t DT_SetPenLocation(ITImage *image, int32_t x, int32_t y);                /* itgfx.c */
+extern int32_t DT_DrawLineTo(ITImage *image, int32_t x, int32_t y);                /* itgfx.c */
+extern int32_t DT_GetTextWidth(ITImage *image, const char *text, int32_t length); /* itgfx.c */
+extern int32_t DT_DrawText(ITImage *image, const char *text, int32_t length); /* itgfx.c */
 
 /* the control's data handle */
 typedef struct ITBorder {
@@ -34,7 +34,7 @@ typedef struct ITBorder {
     unsigned char pad0f;
     short line;                                  /* +0x10 LINE */
     short indent;                                /* +0x12 INDENT: raised above 0, sunk below */
-    long align;                                  /* +0x14 the title's ALIGN */
+    int32_t align;                                  /* +0x14 the title's ALIGN */
     ITRect bounds;                               /* +0x18 */
     unsigned char active;                        /* +0x28 */
     unsigned char visible;                       /* +0x29 */
@@ -55,8 +55,8 @@ typedef struct ITBorder {
 
 #define STEP(indent)        ((indent) < 0 ? -1 : 1)
 
-long _IT_BorderDraw(void *hwnd, void *dc, ITBorder *border, unsigned char fill);
-long IT_DrawBorderFrame(ITImage *image, ITRect *r, long indent, long gapLeft, long gapRight,
+int32_t _IT_BorderDraw(void *hwnd, void *dc, ITBorder *border, unsigned char fill);
+int32_t IT_DrawBorderFrame(ITImage *image, ITRect *r, int32_t indent, int32_t gapLeft, int32_t gapRight,
                   unsigned char chipped, unsigned char dotted, unsigned char fill,
                   const ITColor *lineColor, const ITColor *portBack, const ITColor *boxBack);
 
@@ -65,11 +65,11 @@ long IT_DrawBorderFrame(ITImage *image, ITRect *r, long indent, long gapLeft, lo
    the data, 0x12 paints; bounds, title and colours; no value, text or input). STATE: MATCH
    100%, exe 385 / obj 385, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051fe38
-long IT_BorderHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
+int32_t IT_BorderHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
                   void *b)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ITBorder *border;
     char *value;
     unsigned char enable;
@@ -204,7 +204,7 @@ long IT_BorderHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
         err = kUnsupported;
         break;
     case kMsgGetValue:
-        *(long *)b = 0;
+        *(int32_t *)b = 0;
         break;
     case kMsgSetValue:
         err = kUnsupported;
@@ -264,25 +264,25 @@ long IT_BorderHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
    yes (785 bytes). OPEN: none; gapLeft holds the widest title first, and a centred title is
    placed from 0, as in the exe */
 // FUNCTION: EVNOVA 0x0052030b
-long _IT_BorderDraw(void *hwnd, void *dc, ITBorder *border, unsigned char fill)
+int32_t _IT_BorderDraw(void *hwnd, void *dc, ITBorder *border, unsigned char fill)
 {
-    long err;
-    long e;
-    long result;
+    int32_t err;
+    int32_t e;
+    int32_t result;
     ITImage *image;
     const ITColor *lineColor;
     ULong count;
-    long ltr;
-    long width;
-    long offset;
-    long gapLeft;
+    int32_t ltr;
+    int32_t width;
+    int32_t offset;
+    int32_t gapLeft;
     ULong length;
     short line;
-    long middle;
-    long half;
+    int32_t middle;
+    int32_t half;
     ITColor color;
     ITColor back;
-    long metrics[5];
+    int32_t metrics[5];
 
     err = 0;
     image = 0;
@@ -406,12 +406,12 @@ done:
    884, byte-identical yes. OPEN: none; the inner bevel's last gap pixel takes the outer shade,
    as in the exe */
 // FUNCTION: EVNOVA 0x0052061c
-long IT_DrawBorderFrame(ITImage *image, ITRect *r, long indent, long gapLeft, long gapRight,
+int32_t IT_DrawBorderFrame(ITImage *image, ITRect *r, int32_t indent, int32_t gapLeft, int32_t gapRight,
                   unsigned char chipped, unsigned char dotted, unsigned char fill,
                   const ITColor *lineColor, const ITColor *portBack, const ITColor *boxBack)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong i;
     ITImage *port;
     unsigned char rule;

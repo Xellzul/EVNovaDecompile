@@ -9,13 +9,13 @@
 /* BlitPixieScale8Bit (mac _BlitPixieScale8Bit, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieScale8Bit i386 0x000bf669 ppc 0x000cb2c0
 void BlitPixieScale8Bit(
-	unsigned char *src,	unsigned long srcBytes,	long width1, long height1, long startu,
-	unsigned char *dst,	unsigned long dstBytes,	long width2, long height2, long startv )
+	unsigned char *src,	uint32_t srcBytes,	int32_t width1, int32_t height1, int32_t startu,
+	unsigned char *dst,	uint32_t dstBytes,	int32_t width2, int32_t height2, int32_t startv )
 {
-	unsigned long		u,du;
-	unsigned long		out;
-	long				x;
-	long				errorTerm,error1,error2;
+	uint32_t		u,du;
+	uint32_t		out;
+	int32_t				x;
+	int32_t				errorTerm,error1,error2;
 
  	du = (width1 << FP_SHIFT) / width2;
 
@@ -43,8 +43,8 @@ void BlitPixieScale8Bit(
 				out = (out << 8) | src[(u >> FP_SHIFT)];
 				u += du;
 
-				*((unsigned long *) dst) = out;
-				dst += sizeof(unsigned long);
+				*((uint32_t *) dst) = out;
+				dst += sizeof(uint32_t);
 			}
 
 				// do bytes
@@ -87,14 +87,14 @@ void BlitPixieScale8Bit(
 /* BlitPixieScaleMask8Bit (mac _BlitPixieScaleMask8Bit, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieScaleMask8Bit i386 0x000bf7a8 ppc 0x000cb3ec
 void BlitPixieScaleMask8Bit(
-	unsigned char *src,	unsigned long srcBytes,	long width1, long height1, long startu,
-	unsigned char *dst,	unsigned long dstBytes,	long width2, long height2, long startv,
+	unsigned char *src,	uint32_t srcBytes,	int32_t width1, int32_t height1, int32_t startu,
+	unsigned char *dst,	uint32_t dstBytes,	int32_t width2, int32_t height2, int32_t startv,
 	unsigned char *mask)
 {
-	unsigned long		u,du;
-	unsigned long		outpixel,outmask;
-	long				x;
-	long				errorTerm,error1,error2;
+	uint32_t		u,du;
+	uint32_t		outpixel,outmask;
+	int32_t				x;
+	int32_t				errorTerm,error1,error2;
 
  	du = (width1 << FP_SHIFT) / width2;
 
@@ -126,9 +126,9 @@ void BlitPixieScaleMask8Bit(
 				outpixel = (outpixel << 8) | src[u >> FP_SHIFT];
 				u += du;
 
-				*((unsigned long *) dst) &= outmask;
-				*((unsigned long *) dst) |= outpixel;
-				dst += sizeof(unsigned long);
+				*((uint32_t *) dst) &= outmask;
+				*((uint32_t *) dst) |= outpixel;
+				dst += sizeof(uint32_t);
 			}
 
 				// do bytes
@@ -179,13 +179,13 @@ void BlitPixieScaleMask8Bit(
 /* BlitPixieScale16Bit (mac _BlitPixieScale16Bit, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieScale16Bit i386 0x000bf95b ppc 0x000cb5ac
 void BlitPixieScale16Bit(
-	unsigned short *src, unsigned long srcBytes,	long width1, long height1, long startu,
-	unsigned short *dst, unsigned long dstBytes,	long width2, long height2, long startv )
+	unsigned short *src, uint32_t srcBytes,	int32_t width1, int32_t height1, int32_t startu,
+	unsigned short *dst, uint32_t dstBytes,	int32_t width2, int32_t height2, int32_t startv )
 {
-	unsigned long		u,du;
-	unsigned long		out;
-	long				x;
-	long				errorTerm,error1,error2;
+	uint32_t		u,du;
+	uint32_t		out;
+	int32_t				x;
+	int32_t				errorTerm,error1,error2;
 
  	du = (width1 << FP_SHIFT) / width2;
 
@@ -209,8 +209,8 @@ void BlitPixieScale16Bit(
 				out = (out << 16) | src[(u >> FP_SHIFT)];
 				u += du;
 
-				*((unsigned long *) dst) = out;
-				dst += sizeof(unsigned long);
+				*((uint32_t *) dst) = out;
+				dst += sizeof(uint32_t);
 			}
 
 				// do shorts
@@ -245,14 +245,14 @@ void BlitPixieScale16Bit(
 /* BlitPixieScaleMask16Bit (mac _BlitPixieScaleMask16Bit, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieScaleMask16Bit i386 0x000bfa2a ppc 0x000cb67c
 void BlitPixieScaleMask16Bit(
-	unsigned short *src, unsigned long srcBytes,	long width1, long height1, long startu,
-	unsigned short *dst, unsigned long dstBytes,	long width2, long height2, long startv,
+	unsigned short *src, uint32_t srcBytes,	int32_t width1, int32_t height1, int32_t startu,
+	unsigned short *dst, uint32_t dstBytes,	int32_t width2, int32_t height2, int32_t startv,
 	unsigned short *mask)
 {
-	unsigned long		u,du;
-	unsigned long		outpixel,outmask;
-	long				x;
-	long				errorTerm,error1,error2;
+	uint32_t		u,du;
+	uint32_t		outpixel,outmask;
+	int32_t				x;
+	int32_t				errorTerm,error1,error2;
 
  	du = (width1 << FP_SHIFT) / width2;
 
@@ -278,9 +278,9 @@ void BlitPixieScaleMask16Bit(
 				outpixel = (outpixel << 16) | src[u >> FP_SHIFT];
 				u += du;
 
-				*((unsigned long *) dst) &= outmask;
-				*((unsigned long *) dst) |= outpixel;
-				dst += sizeof(unsigned long);
+				*((uint32_t *) dst) &= outmask;
+				*((uint32_t *) dst) |= outpixel;
+				dst += sizeof(uint32_t);
 			}
 
 				// do shorts
@@ -320,12 +320,12 @@ void BlitPixieScaleMask16Bit(
 /* BlitPixieScale32Bit (mac _BlitPixieScale32Bit, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieScale32Bit i386 0x000bfb4a ppc 0x000cb788
 void BlitPixieScale32Bit(
-	unsigned long *src,	unsigned long srcBytes,	long width1, long height1, long startu,
-	unsigned long *dst,	unsigned long dstBytes,	long width2, long height2, long startv )
+	uint32_t *src,	uint32_t srcBytes,	int32_t width1, int32_t height1, int32_t startu,
+	uint32_t *dst,	uint32_t dstBytes,	int32_t width2, int32_t height2, int32_t startv )
 {
-	unsigned long		u,du;
-	long				x;
-	long				errorTerm,error1,error2;
+	uint32_t		u,du;
+	int32_t				x;
+	int32_t				errorTerm,error1,error2;
 
  	du = (width1 << FP_SHIFT) / width2;
 
@@ -348,10 +348,10 @@ void BlitPixieScale32Bit(
 
 			// advance to next row(s)
 		errorTerm += error1;
-		dst = (unsigned long *) ((char *) dst + dstBytes);
+		dst = (uint32_t *) ((char *) dst + dstBytes);
 	  	while ( errorTerm > 0 )
 		{
-	  		src = (unsigned long *) ((char *) src + srcBytes);
+	  		src = (uint32_t *) ((char *) src + srcBytes);
 			errorTerm -= error2;
 	  	}
 	}
@@ -361,13 +361,13 @@ void BlitPixieScale32Bit(
 /* BlitPixieScaleMask32Bit (mac _BlitPixieScaleMask32Bit, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieScaleMask32Bit i386 0x000bfbd5 ppc 0x000cb824
 void BlitPixieScaleMask32Bit(
-	unsigned long *src,	unsigned long srcBytes,	long width1, long height1, long startu,
-	unsigned long *dst,	unsigned long dstBytes,	long width2, long height2, long startv,
-	unsigned long *mask)
+	uint32_t *src,	uint32_t srcBytes,	int32_t width1, int32_t height1, int32_t startu,
+	uint32_t *dst,	uint32_t dstBytes,	int32_t width2, int32_t height2, int32_t startv,
+	uint32_t *mask)
 {
-	unsigned long		u,du;
-	long				x;
-	long				errorTerm,error1,error2;
+	uint32_t		u,du;
+	int32_t				x;
+	int32_t				errorTerm,error1,error2;
 
  	du = (width1 << FP_SHIFT) / width2;
 
@@ -392,11 +392,11 @@ void BlitPixieScaleMask32Bit(
 
 			// advance to next row(s)
 		errorTerm += error1;
-		dst = (unsigned long *) ((char *) dst + dstBytes);
+		dst = (uint32_t *) ((char *) dst + dstBytes);
 	  	while ( errorTerm > 0 )
 		{
-	  		src = (unsigned long *) ((char *) src + srcBytes);
-			mask = (unsigned long *) ((char *) mask + srcBytes);
+	  		src = (uint32_t *) ((char *) src + srcBytes);
+			mask = (uint32_t *) ((char *) mask + srcBytes);
 			errorTerm -= error2;
 	  	}
 	}

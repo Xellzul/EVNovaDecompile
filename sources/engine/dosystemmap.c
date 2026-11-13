@@ -88,7 +88,7 @@ void DoSystemMap(void)
     short w;
     short h;
     short s3;
-    long sy;
+    int32_t sy;
     short savedStellar;
     Boolean inRoute;
     Boolean selected;
@@ -543,7 +543,7 @@ void DoSystemMap(void)
     short i;
     short j;
     short routeLen;
-    long last;
+    int32_t last;
     short prev;
     short s2;
     short s3;
@@ -1151,7 +1151,7 @@ void CreateMapTriggerRgn(void)
                                                  /* 0x004b8df0 */
                                                  /* 0x00468210 */
 
-static inline void MapPoint(Rect *r, float y, float x, Rect *b, short w, short h, long sx, short sy)
+static inline void MapPoint(Rect *r, float y, float x, Rect *b, short w, short h, int32_t sx, short sy)
 {
     r->left = (b->left + w / 2 + x / mapZoom - sx / mapZoom);
     r->top = (b->top + h / 2 + y / mapZoom - sy / mapZoom);
@@ -1184,7 +1184,7 @@ void MapDialogUpdate(void)
     Boolean ok;
     Boolean linked;
     short w, h;
-    long temp;
+    int32_t temp;
     short st;
     short sw;
 
@@ -1668,7 +1668,7 @@ void MapDialogUpdate(void)
 #endif
     short savedY;
     short sel;
-    long temp;
+    int32_t temp;
     short itemType;
     Rect box;
     Rect nebR;
@@ -2006,7 +2006,7 @@ void MapDialogUpdate(void)
                     strcat((char *)buf, " ");
                     StrcatIndCString((char *)buf, kGameStrList, 0x144);
                 }
-                if ((long)buf[0] == 0)
+                if ((int32_t)buf[0] == 0)
                     StrcatIndCString((char *)buf, kGameStrList, 0x14f);
                 buf[0] = toupper(buf[0]);
                 CtoPstr((char *)buf);
@@ -3338,7 +3338,7 @@ void RecalcAllMapInfluence(Rect *r)
 /* RecalcMapInfluence (mac _RecalcMapInfluence). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004a9d50
 // MAC: _RecalcMapInfluence i386 0x000119ee ppc 0x0001545c
-void RecalcMapInfluence(long left, long top, long right, long bottom, Rect *r)
+void RecalcMapInfluence(int32_t left, int32_t top, int32_t right, int32_t bottom, Rect *r)
 {
     short i;
     short dy;
@@ -3459,9 +3459,9 @@ Boolean AddSystemInfluenceToMap(short sys, Rect *r)
     short lowest;
     short distX;
     short distY;
-    long r2;
-    long d2;
-    long level;
+    int32_t r2;
+    int32_t d2;
+    int32_t level;
     unsigned char strength;
     Boolean placed;
 

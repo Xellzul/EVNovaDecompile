@@ -25,13 +25,13 @@
 
 /* the gamma library linked into this fragment alone */
 extern void DisposeGammaTools(void);
-extern long GammaFadeTo(unsigned long id, unsigned long percent, unsigned long millis);
-extern long GammaFadeToColor(unsigned long id, void *color, unsigned long percent, unsigned long ticks, unsigned char linear);
+extern int32_t GammaFadeTo(uint32_t id, uint32_t percent, uint32_t millis);
+extern int32_t GammaFadeToColor(uint32_t id, void *color, uint32_t percent, uint32_t ticks, unsigned char linear);
 
 #else
 
 /* CarbonLib's gamma calls; Universal Interfaces 3.4.1 has no header for them */
-typedef long ScreenRef;
+typedef int32_t ScreenRef;
 typedef struct ScreenGamma {
     float red[256];
     float green[256];

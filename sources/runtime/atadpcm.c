@@ -139,26 +139,26 @@ unsigned char ADPCM_Mixer(ULong *data, short **out, ULong frames,
                            ULong step, AdpcmVoice *voice,
                            unsigned short left, unsigned short right)
 {
-    long inc;
+    int32_t inc;
     short *dst;
-    long vpdiff;
-    long stepsize;
-    long valprev;
-    long index;
+    int32_t vpdiff;
+    int32_t stepsize;
+    int32_t valprev;
+    int32_t index;
     ULong *wp;
     ULong remaining;
     ULong pos;
     ULong word;
     ULong accum;
     ULong lastAccum;
-    long lastL;
-    long lastR;
+    int32_t lastL;
+    int32_t lastR;
     char done;
     ULong delta;
-    long r;
-    long shift;
-    long s;
-    long t;
+    int32_t r;
+    int32_t shift;
+    int32_t s;
+    int32_t t;
 
     accum = lastAccum = 0;
     done = 0;

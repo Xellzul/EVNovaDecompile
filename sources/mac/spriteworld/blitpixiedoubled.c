@@ -7,7 +7,7 @@
 // MAC: _BlitPixieDoubled8Bit i386 0x000bfcc9 ppc 0x000cb94c
 void BlitPixieDoubled8Bit(
 	unsigned char *source,			unsigned char *destination,
-	unsigned long srcRowBytes,		unsigned long dstRowBytes,
+	uint32_t srcRowBytes,		uint32_t dstRowBytes,
 	unsigned short width,			unsigned short height)
 {
 	int			x,y;
@@ -32,7 +32,7 @@ void BlitPixieDoubled8Bit(
 // MAC: _BlitPixieDoubled16Bit i386 0x000bfd52 ppc 0x000cb9b4
 void BlitPixieDoubled16Bit(
 	unsigned short *source,			unsigned short *destination,
-	unsigned long srcRowBytes,		unsigned long dstRowBytes,
+	uint32_t srcRowBytes,		uint32_t dstRowBytes,
 	unsigned short width,			unsigned short height)
 {
 	int			x,y;
@@ -56,13 +56,13 @@ void BlitPixieDoubled16Bit(
 /* BlitPixieDoubled32Bit (mac _BlitPixieDoubled32Bit, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieDoubled32Bit i386 0x000bfde0 ppc 0x000cba28
 void BlitPixieDoubled32Bit(
-	unsigned long *source,			unsigned long *destination,
-	unsigned long srcRowBytes,		unsigned long dstRowBytes,
+	uint32_t *source,			uint32_t *destination,
+	uint32_t srcRowBytes,		uint32_t dstRowBytes,
 	unsigned short width,			unsigned short height)
 {
 	int			x,y;
 	int			x2,y2;
-	unsigned long		c;
+	uint32_t		c;
 
 	for ( y = 0, y2 = 0; y < height; y++, y2 += 2 )
 	{

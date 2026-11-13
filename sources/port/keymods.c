@@ -4,9 +4,9 @@
 
 /* GetKeyModifiers. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cea20
-long GetKeyModifiers(void)
+int32_t GetKeyModifiers(void)
 {
-    long mods;
+    int32_t mods;
 
     mods = 0;
     if (KeyIsDown(kScanLShift) || KeyIsDown(kScanRShift))

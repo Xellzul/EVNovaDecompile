@@ -11,7 +11,7 @@ int ceMapBordersVisibleWidth = kCEBordersWidth;
 int ceMapBordersVisibleHeight = kCEBordersHeight;
 
 /* The map item's size in grid cells, taken before each rebuild. As in CE it only shrinks. */
-void CE_RecalcMapInfluence(long left, long top, long right, long bottom, Rect *r)
+void CE_RecalcMapInfluence(int32_t left, int32_t top, int32_t right, int32_t bottom, Rect *r)
 {
     short width;
     short height;

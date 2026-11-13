@@ -1,20 +1,21 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* simplecrypt.c -- the resource XOR cipher (win 0x0046f960). Notes: Research/notes/simplecrypt.md */
 #include <stddef.h>
+#include "int32.h"
 
 #define kCryptStep 0xdeadbeefUL
 
 #ifdef MAC1010
 /* DoEncryption, 1.0.10: on a handle, big-endian only */
-OSErr DoEncryption(Handle h, unsigned long key)
+OSErr DoEncryption(Handle h, uint32_t key)
 {
     OSErr err;
-    unsigned long curKey;
-    unsigned long *p;
-    long size;
+    uint32_t curKey;
+    uint32_t *p;
+    int32_t size;
     short rem;
-    long count;
-    unsigned long word;
+    int32_t count;
+    uint32_t word;
     unsigned char *tail;
 
     err = noErr;
@@ -24,7 +25,7 @@ OSErr DoEncryption(Handle h, unsigned long key)
         err = nilHandleErr;
     else {
         curKey = key;
-        p = (unsigned long *)*h;
+        p = (uint32_t *)*h;
         size = GetHandleSize(h);
         count = size >> 2;
         rem = size - (count << 2);
@@ -49,14 +50,14 @@ OSErr DoEncryption(Handle h, unsigned long key)
    OPEN: none */
 // FUNCTION: EVNOVA 0x0046f960
 // MAC: _DoEncryption i386 0x000a51cb ppc 0x000b0f40
-long DoEncryption(void *buf, unsigned long len, unsigned long key)
+int32_t DoEncryption(void *buf, uint32_t len, uint32_t key)
 {
     short rem;
-    unsigned long count;
-    unsigned long mask;
+    uint32_t count;
+    uint32_t mask;
     unsigned char *p;
-    unsigned long word;
-    unsigned long curKey;
+    uint32_t word;
+    uint32_t curKey;
 
     if (buf != NULL && len != 0) {
         p = buf;
@@ -70,8 +71,8 @@ long DoEncryption(void *buf, unsigned long len, unsigned long key)
             word = ((curKey >> 24) & 0xff) | ((curKey >> 8) & 0xff00)
                    | ((curKey & 0xff00) << 8) | ((curKey & 0xff) << 24);
 #endif
-            word ^= *(unsigned long *)p;
-            *(unsigned long *)p = word;
+            word ^= *(uint32_t *)p;
+            *(uint32_t *)p = word;
             curKey += kCryptStep;
             p += 4;
             curKey ^= kCryptStep;
@@ -82,7 +83,7 @@ long DoEncryption(void *buf, unsigned long len, unsigned long key)
         mask = ((curKey >> 24) & 0xff) | ((curKey >> 8) & 0xff00)
                | ((curKey & 0xff00) << 8) | ((curKey & 0xff) << 24);
 #endif
-        mask ^= *(unsigned long *)p;
+        mask ^= *(uint32_t *)p;
 #if TARGET_RT_BIG_ENDIAN
         while (rem--) {
             *p = mask >> 24;

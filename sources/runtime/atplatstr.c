@@ -19,7 +19,7 @@ static unsigned char gStringUpperReady;               /* 0x00866338 table built 
 /* StringGetLength. STATE: MATCH 100%, exe 12 / obj 12, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb76d
 #ifdef MAC1010
-unsigned long StringGetLength(const unsigned char *s)
+uint32_t StringGetLength(const unsigned char *s)
 {
     ULong n;
 
@@ -31,10 +31,10 @@ unsigned long StringGetLength(const unsigned char *s)
     return n;
 }
 #else
-unsigned long StringGetLength(const unsigned char *s)
+uint32_t StringGetLength(const unsigned char *s)
 {
     ULong n;
-    long err;
+    int32_t err;
 
     err = 0;
     n = -1;
@@ -69,7 +69,7 @@ char *StringDuplicate(const char *s)
 {
     char *copy;
     char *start;
-    long err;
+    int32_t err;
 
     err = 0;
     copy = 0;
@@ -104,7 +104,7 @@ char *StringCopy(char *dst, const char *src)
 char *StringCopy(char *dst, const char *src)
 {
     char *start;
-    long err;
+    int32_t err;
 
     err = 0;
     start = dst;
@@ -135,7 +135,7 @@ char *StringCopySafe(char *dst, const char *src, ULong size)
 char *StringCopySafe(char *dst, const char *src, ULong size)
 {
     char *start;
-    long err;
+    int32_t err;
 
     err = 0;
     start = dst;
@@ -171,10 +171,10 @@ unsigned char *StringAppendSafe(unsigned char *dst, const unsigned char *src, UL
     return dst;
 }
 #else
-unsigned char *StringAppendSafe(unsigned char *dst, const unsigned char *src, unsigned long n)
+unsigned char *StringAppendSafe(unsigned char *dst, const unsigned char *src, uint32_t n)
 {
     unsigned char *start;
-    long err;
+    int32_t err;
 
     err = 0;
     start = dst;
@@ -195,7 +195,7 @@ unsigned char *StringAppendSafe(unsigned char *dst, const unsigned char *src, un
 /* StringCompare. STATE: MATCH 100%, exe 26 / obj 26, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb866
 #ifdef MAC1010
-long StringCompare(const char *a, const char *b)
+int32_t StringCompare(const char *a, const char *b)
 {
     ULong ca;
     ULong cb;
@@ -211,13 +211,13 @@ long StringCompare(const char *a, const char *b)
     return ca < cb ? (signed char)-1 : (signed char)1;
 }
 #else
-long StringCompare(const char *a, const char *b)
+int32_t StringCompare(const char *a, const char *b)
 {
     ULong ca;
     ULong cb;
     const unsigned char *s1;
     const unsigned char *s2;
-    long err;
+    int32_t err;
 
     err = 0;
     s1 = (const unsigned char *)a;
@@ -234,7 +234,7 @@ long StringCompare(const char *a, const char *b)
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb89c
 #ifdef MAC1010
-long StringCompareSafe(const char *a, const char *b, ULong n)
+int32_t StringCompareSafe(const char *a, const char *b, ULong n)
 {
     ULong ca;
     ULong cb;
@@ -252,13 +252,13 @@ long StringCompareSafe(const char *a, const char *b, ULong n)
     return ca < cb ? (signed char)-1 : (signed char)1;
 }
 #else
-long StringCompareSafe(const char *a, const char *b, ULong n)
+int32_t StringCompareSafe(const char *a, const char *b, ULong n)
 {
     const unsigned char *s1;
     const unsigned char *s2;
     ULong ca;
     ULong cb;
-    long err;
+    int32_t err;
 
     err = 0;
     s1 = (const unsigned char *)a;
@@ -309,7 +309,7 @@ char *StringTokenize(char *s, int delim, char **next)
     char c;
     char d;
     char *p;
-    long err;
+    int32_t err;
 
     err = 0;
     d = delim;
@@ -357,7 +357,7 @@ char *StringFindString(const char *s, const char *sub)
 #else
 char *StringFindString(const char *s, const char *sub)
 {
-    long err;
+    int32_t err;
     char first;
     ULong i;
     char c;
@@ -401,7 +401,7 @@ char *StringFindDelimiter(const char *s, const char *set)
 #else
 char *StringFindDelimiter(const char *s, const char *set)
 {
-    long err;
+    int32_t err;
     const char *p;
 
     err = 0;
@@ -425,7 +425,7 @@ char *StringFromNumber(char *out, ULong value)
     char *start;
     ULong place;
     unsigned char started;
-    long err;
+    int32_t err;
 
     err = 0;
     start = out;
@@ -488,7 +488,7 @@ ULong StringFromBytes(const void *data, ULong size, ULong offset, char *hex, cha
 ULong StringToNumber(const char *s)
 {
     ULong value;
-    long err;
+    int32_t err;
 
     err = 0;
     value = 0;
@@ -502,7 +502,7 @@ ULong StringToNumber(const char *s)
 #ifdef MAC1010
 unsigned char *StringP2CCopy(unsigned char *dst, const unsigned char *src)
 {
-    long n;
+    int32_t n;
     unsigned char *p;
 
     n = *src + 1;
@@ -530,7 +530,7 @@ unsigned char *StringC2PCopy(unsigned char *dst, const char *src)
 
 unsigned char *StringP2C(unsigned char *s)
 {
-    long n;
+    int32_t n;
     unsigned char *p;
 
     n = *s + 1;
@@ -545,10 +545,10 @@ unsigned char *StringP2C(unsigned char *s)
 
 char *StringC2P(char *s)
 {
-    long c;
+    int32_t c;
     char *p;
     ULong n;
-    long next;
+    int32_t next;
 
     c = *s;
     if (c == 0)
@@ -568,8 +568,8 @@ char *StringC2P(char *s)
 
 unsigned char *StringPascalAppend(unsigned char *dst, const unsigned char *src)
 {
-    long n;
-    long room;
+    int32_t n;
+    int32_t room;
 
     room = 0xff - dst[0];
     n = room;
@@ -589,7 +589,7 @@ char *String2UpperCopySafe(char *dst, const char *src, ULong n)
     ULong i;
     ULong c;
     int lower;
-    long err;
+    int32_t err;
 
     err = 0;
     if (gStringUpperReady == 0) {
@@ -633,7 +633,7 @@ char *String2LowerCopySafe(char *dst, const char *src, ULong n)
     ULong i;
     ULong c;
     int upper;
-    long err;
+    int32_t err;
 
     err = 0;
     if (gStringLowerReady == 0) {
@@ -697,7 +697,7 @@ char *StringFormat(char *out, const char *fmt, ...)
 
 /* StringFormatSafe. STATE: MATCH 100%, exe 17 / obj 17 instrs, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004ebb62
-char *StringFormatSafe(char *out, long size, const char *fmt, ...)
+char *StringFormatSafe(char *out, int32_t size, const char *fmt, ...)
 {
     va_list args;
 
@@ -776,12 +776,12 @@ char *StringFormatVarg(char *out, ULong size, const char *format, va_list args)
     char buf[kScratchSize];
     LongLong sval;
     ULongLong uval;
-    long i;
+    int32_t i;
     const char *s;
     const unsigned char *p;
     void *ptr;
     ULong k;
-    long err;
+    int32_t err;
 
     err = 0;
     outPtr = out;
@@ -972,7 +972,7 @@ char *StringFormatVarg(char *out, ULong size, const char *format, va_list args)
             continue;
 
         case 'n':
-            *va_arg(args, long *) = outPtr - out;
+            *va_arg(args, int32_t *) = outPtr - out;
             fmt = fmt + (i + 1);
             continue;
 
@@ -1004,7 +1004,7 @@ void _StringFormatNumber(char *buf, ULongLong value, ULong base, const char *dig
 {
     ULongLong v;
     ULong n;
-    long err;
+    int32_t err;
 
     err = 0;
     StringGetLength((const unsigned char *)digits);

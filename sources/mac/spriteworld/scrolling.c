@@ -2102,12 +2102,12 @@ void SWMoveVisScrollRect(
     height = spriteWorldP->visScrollRect.bottom - spriteWorldP->visScrollRect.top;
     width = spriteWorldP->visScrollRect.right - spriteWorldP->visScrollRect.left;
 
-    if ((long)vertPos < spriteWorldP->scrollRectMoveBounds.top)
+    if ((int32_t)vertPos < spriteWorldP->scrollRectMoveBounds.top)
     {
         spriteWorldP->visScrollRect.top = spriteWorldP->scrollRectMoveBounds.top;
         spriteWorldP->visScrollRect.bottom = spriteWorldP->visScrollRect.top + height;
     }
-    else if ((long)vertPos + height > spriteWorldP->scrollRectMoveBounds.bottom)
+    else if ((int32_t)vertPos + height > spriteWorldP->scrollRectMoveBounds.bottom)
     {
         spriteWorldP->visScrollRect.bottom = spriteWorldP->scrollRectMoveBounds.bottom;
         spriteWorldP->visScrollRect.top = spriteWorldP->visScrollRect.bottom - height;
@@ -2118,12 +2118,12 @@ void SWMoveVisScrollRect(
         spriteWorldP->visScrollRect.bottom = vertPos + height;
     }
 
-    if ((long)horizPos < spriteWorldP->scrollRectMoveBounds.left)
+    if ((int32_t)horizPos < spriteWorldP->scrollRectMoveBounds.left)
     {
         spriteWorldP->visScrollRect.left = spriteWorldP->scrollRectMoveBounds.left;
         spriteWorldP->visScrollRect.right = spriteWorldP->visScrollRect.left + width;
     }
-    else if ((long)horizPos + width > spriteWorldP->scrollRectMoveBounds.right)
+    else if ((int32_t)horizPos + width > spriteWorldP->scrollRectMoveBounds.right)
     {
         spriteWorldP->visScrollRect.right = spriteWorldP->scrollRectMoveBounds.right;
         spriteWorldP->visScrollRect.left = spriteWorldP->visScrollRect.right - width;
@@ -2144,14 +2144,14 @@ void SWOffsetVisScrollRect(
     short           horizOffset,
     short           vertOffset)
 {
-    if ((long)spriteWorldP->visScrollRect.top + vertOffset <
+    if ((int32_t)spriteWorldP->visScrollRect.top + vertOffset <
             spriteWorldP->scrollRectMoveBounds.top)
     {
         spriteWorldP->visScrollRect.bottom -= spriteWorldP->visScrollRect.top -
             spriteWorldP->scrollRectMoveBounds.top;
         spriteWorldP->visScrollRect.top = spriteWorldP->scrollRectMoveBounds.top;
     }
-    else if ((long)spriteWorldP->visScrollRect.bottom + vertOffset >
+    else if ((int32_t)spriteWorldP->visScrollRect.bottom + vertOffset >
             spriteWorldP->scrollRectMoveBounds.bottom)
     {
         spriteWorldP->visScrollRect.top -= spriteWorldP->visScrollRect.bottom -
@@ -2164,14 +2164,14 @@ void SWOffsetVisScrollRect(
         spriteWorldP->visScrollRect.bottom += vertOffset;
     }
 
-    if ((long)spriteWorldP->visScrollRect.left + horizOffset <
+    if ((int32_t)spriteWorldP->visScrollRect.left + horizOffset <
             spriteWorldP->scrollRectMoveBounds.left)
     {
         spriteWorldP->visScrollRect.right -= spriteWorldP->visScrollRect.left -
             spriteWorldP->scrollRectMoveBounds.left;
         spriteWorldP->visScrollRect.left = spriteWorldP->scrollRectMoveBounds.left;
     }
-    else if ((long)spriteWorldP->visScrollRect.right + horizOffset >
+    else if ((int32_t)spriteWorldP->visScrollRect.right + horizOffset >
             spriteWorldP->scrollRectMoveBounds.right)
     {
         spriteWorldP->visScrollRect.left -= spriteWorldP->visScrollRect.right -
@@ -2194,7 +2194,7 @@ void SWResizeVisScrollRect(
     short           width,
     short           height)
 {
-    if ((long)spriteWorldP->visScrollRect.top + height >
+    if ((int32_t)spriteWorldP->visScrollRect.top + height >
         spriteWorldP->scrollRectMoveBounds.bottom)
     {
         spriteWorldP->visScrollRect.bottom = spriteWorldP->scrollRectMoveBounds.bottom;
@@ -2205,7 +2205,7 @@ void SWResizeVisScrollRect(
         spriteWorldP->visScrollRect.bottom = spriteWorldP->visScrollRect.top + height;
     }
 
-    if ((long)spriteWorldP->visScrollRect.left + width >
+    if ((int32_t)spriteWorldP->visScrollRect.left + width >
         spriteWorldP->scrollRectMoveBounds.right)
     {
         spriteWorldP->visScrollRect.right = spriteWorldP->scrollRectMoveBounds.right;

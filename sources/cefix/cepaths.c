@@ -19,7 +19,7 @@ static unsigned char cePlugInsFallback;     /* the plug-ins folder is "Plug-Ins"
 
 /* CE saves pilots plain. The first word of a plain record is a stellar index, which is
    below kMaxStellars; anything else is still encrypted. */
-long CE_DecryptIfNecessary(void *buf, unsigned long len, unsigned long key)
+int32_t CE_DecryptIfNecessary(void *buf, uint32_t len, uint32_t key)
 {
     if (*(unsigned short *)buf >= kMaxStellars)
         return DoEncryption(buf, len, key);

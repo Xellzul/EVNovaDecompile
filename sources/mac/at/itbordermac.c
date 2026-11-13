@@ -9,17 +9,17 @@
 extern unsigned char DT_IsRectReallyEmpty(const ITRect *r);                      /* itrect.c */
 extern void DT_ColorLighten(ITColor *color);                                /* itrect.c */
 extern void DT_ColorDarken(ITColor *color);                                /* itrect.c */
-extern long DT_GetFillColor(ITImage *image, ITColor *fore);                 /* itgfx.c */
-extern long DT_SetTextColor(ITImage *image, const ITColor *fore);           /* itgfx.c */
-extern long DT_SetTextSize(ITImage *image, long size);                     /* itgfx.c */
-extern long DT_GetTextInfo(ITImage *image, long *metrics);                 /* itgfx.c */
-extern long DT_SetPixel(ITImage *image, long x, long y, const ITColor *color);  /* itgfx.c */
-extern long DT_SetPenLocation(ITImage *image, long x, long y);                /* itgfx.c */
-extern long DT_DrawLineTo(ITImage *image, long x, long y);                /* itgfx.c */
-extern long DT_GetTextWidth(ITImage *image, const char *text, long length); /* itgfx.c */
-extern long DT_GetTextWidthUnicode(ITImage *image, const unsigned short *text, long length);
-extern long DT_DrawTextAtUnicode(ITImage *image, long x, long y, const unsigned short *text, ULong length);
-extern long DT_DrawText(ITImage *image, const char *text, long length); /* itgfx.c */
+extern int32_t DT_GetFillColor(ITImage *image, ITColor *fore);                 /* itgfx.c */
+extern int32_t DT_SetTextColor(ITImage *image, const ITColor *fore);           /* itgfx.c */
+extern int32_t DT_SetTextSize(ITImage *image, int32_t size);                     /* itgfx.c */
+extern int32_t DT_GetTextInfo(ITImage *image, int32_t *metrics);                 /* itgfx.c */
+extern int32_t DT_SetPixel(ITImage *image, int32_t x, int32_t y, const ITColor *color);  /* itgfx.c */
+extern int32_t DT_SetPenLocation(ITImage *image, int32_t x, int32_t y);                /* itgfx.c */
+extern int32_t DT_DrawLineTo(ITImage *image, int32_t x, int32_t y);                /* itgfx.c */
+extern int32_t DT_GetTextWidth(ITImage *image, const char *text, int32_t length); /* itgfx.c */
+extern int32_t DT_GetTextWidthUnicode(ITImage *image, const unsigned short *text, int32_t length);
+extern int32_t DT_DrawTextAtUnicode(ITImage *image, int32_t x, int32_t y, const unsigned short *text, ULong length);
+extern int32_t DT_DrawText(ITImage *image, const char *text, int32_t length); /* itgfx.c */
 
 /* the control's data handle */
 #pragma options align=mac68k
@@ -33,7 +33,7 @@ typedef struct ITBorder {
     unsigned char pad0f;
     unsigned short line;                         /* +0x10 LINE */
     short indent;                                /* +0x12 INDENT: raised above 0, sunk below */
-    long align;                                  /* +0x14 the title's ALIGN */
+    int32_t align;                                  /* +0x14 the title's ALIGN */
     ITRect bounds;                               /* +0x18 */
     unsigned char active;                        /* +0x28 */
     unsigned char visible;                       /* +0x29 */
@@ -53,20 +53,20 @@ typedef struct ITBorder {
 
 #define STEP(indent)        ((indent) < 0 ? -1 : 1)
 
-static long _IT_BorderDraw(void *hwnd, void *dc, ITBorder *border, unsigned char fill);
-static long IT_DrawBorderFrame(ITImage *image, ITRect *r, long indent, long gapLeft, long gapRight,
+static int32_t _IT_BorderDraw(void *hwnd, void *dc, ITBorder *border, unsigned char fill);
+static int32_t IT_DrawBorderFrame(ITImage *image, ITRect *r, int32_t indent, int32_t gapLeft, int32_t gapRight,
                   unsigned char chipped, unsigned char dotted, unsigned char fill,
                   const ITColor *lineColor, const ITColor *portBack, const ITColor *boxBack);
 
-long IT_BorderHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
+int32_t IT_BorderHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
                   void *b)
 {
     Point pt;
-    long e;
+    int32_t e;
     ITBorder *border;
     char *value;
     CGrafPtr savePort;
-    long err;
+    int32_t err;
     char text[256];
     GDHandle saveDevice;
     RGBColor color;
@@ -201,7 +201,7 @@ long IT_BorderHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
         err = kUnsupported;
         break;
     case kMsgGetValue:
-        *(long *)b = 0;
+        *(int32_t *)b = 0;
         break;
     case kMsgSetValue:
         err = kUnsupported;
@@ -252,25 +252,25 @@ long IT_BorderHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
     return err;
 }
 
-static long _IT_BorderDraw(void *hwnd, void *dc, ITBorder *border, unsigned char fill)
+static int32_t _IT_BorderDraw(void *hwnd, void *dc, ITBorder *border, unsigned char fill)
 {
-    long length;
-    long gapLeft;
-    long e;
-    long result;
+    int32_t length;
+    int32_t gapLeft;
+    int32_t e;
+    int32_t result;
     ITImage *image;
     const ITColor *lineColor;
-    long count;
-    long ltr;
-    long width;
-    long offset;
-    long err;
+    int32_t count;
+    int32_t ltr;
+    int32_t width;
+    int32_t offset;
+    int32_t err;
     unsigned short line;
-    long middle;
-    long half;
+    int32_t middle;
+    int32_t half;
     ITColor color;
     ITColor back;
-    long metrics[5];
+    int32_t metrics[5];
 
     err = 0;
     image = 0;
@@ -414,12 +414,12 @@ done:
     return result;
 }
 
-static long IT_DrawBorderFrame(ITImage *image, ITRect *r, long indent, long gapLeft, long gapRight,
+static int32_t IT_DrawBorderFrame(ITImage *image, ITRect *r, int32_t indent, int32_t gapLeft, int32_t gapRight,
                   unsigned char chipped, unsigned char dotted, unsigned char fill,
                   const ITColor *lineColor, const ITColor *portBack, const ITColor *boxBack)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong i;
     ITImage *port;
     unsigned char rule;

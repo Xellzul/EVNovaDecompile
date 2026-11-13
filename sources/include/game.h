@@ -25,7 +25,7 @@ extern void TableCos(short angle);
 #pragma cplusplus on
 EXTERN_CPP_BEGIN
 extern short commCount;
-extern unsigned long floatingMapStartTime;
+extern uint32_t floatingMapStartTime;
 extern short oldVolume;
 extern SpriteRec *masterStellarSprite[kMasterStellarSprites];
 extern SpriteRec *masterShotSprite[256];
@@ -121,16 +121,16 @@ extern void RedrawNebulaeOffscreen(void);
 extern void DisposeIntroProgressBar(void);
 extern void RT3_Close(void);
 #ifdef MACBUILD
-extern long RT3_Open(unsigned char tracked, unsigned short mode, const char *product,
+extern int32_t RT3_Open(unsigned char tracked, unsigned short mode, const char *product,
                          const char *company);
 #else
-extern long RT3_Open(unsigned char tracked, short mode, const char *product,
+extern int32_t RT3_Open(unsigned char tracked, short mode, const char *product,
                          const char *company);
 #endif
-extern unsigned long ST_GetSysVolume(void);
-extern long RT3_RunReminder(unsigned char force, unsigned char *registered);
+extern uint32_t ST_GetSysVolume(void);
+extern int32_t RT3_RunReminder(unsigned char force, unsigned char *registered);
 extern void *ReggieVersionCheck(void *ref, const char *name);
-extern long FirstKeyDown(void);
+extern int32_t FirstKeyDown(void);
 extern Boolean GovtSharedClass(short a, short b);
 extern void HandleAlertSprite(void);
 extern void HandleDoubleTimeSprite(void);
@@ -215,7 +215,7 @@ extern short firstShipWeapIndex;
 extern Boolean forceRandom;
 extern short fpsCounter;
 extern short frameCounter;
-extern long fullScreenRestore;
+extern int32_t fullScreenRestore;
 extern void *escapePodSnd;
 extern void *cloakSnd[2];
 extern Boolean redrawEscortMenu;
@@ -237,15 +237,15 @@ extern DateTimeRec gameTime;
 extern Image_t *greenMapArrow;
 extern Boolean ignoreKeys;
 extern Boolean keyPressedThisFrame;
-extern unsigned long lastEventLoopTime;
+extern uint32_t lastEventLoopTime;
 extern UnsignedWide lastFrameMicroseconds;
 extern FloatPoint lastFramePlayerPos;
-extern unsigned long lastKeypressTime;
-extern unsigned long lastLoMemWarningTime;
-extern unsigned long lastMouseMoveTime;
+extern uint32_t lastKeypressTime;
+extern uint32_t lastLoMemWarningTime;
+extern uint32_t lastMouseMoveTime;
 extern Point lastMousePos;
 extern short lastPortMissionLoc;
-extern unsigned long lastSmokeUpdateTime;
+extern uint32_t lastSmokeUpdateTime;
 extern Boolean mBarHidden;
 extern Rect mainWindRect;
 extern short menuFontID;
@@ -303,7 +303,7 @@ EXTERN_CPP_END
 #ifdef MACBUILD
 extern EventRecord gEvent;
 extern void MainScreenMouse(EventRecord *event);
-extern void DoMenuClick(long menuChoice);
+extern void DoMenuClick(int32_t menuChoice);
 extern void MainScreenActivate(Boolean activate);
 extern void AdjustMenus(void);
 extern void MainScreenClose(void);
@@ -324,8 +324,8 @@ extern short introPictDelay[4];
 #pragma cplusplus on
 EXTERN_CPP_BEGIN
 extern short menuTextSize;
-extern unsigned long lastCursorAnimTime;
-extern unsigned long lastFrameTime;
+extern uint32_t lastCursorAnimTime;
+extern uint32_t lastFrameTime;
 EXTERN_CPP_END
 #pragma cplusplus reset
 extern short TotalFleetHolds(void);

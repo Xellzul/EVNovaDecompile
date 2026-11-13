@@ -23,9 +23,9 @@ static short ReadShort(const void *data)
     return SWAP16(*(const short *)data);
 }
 
-static long ReadLong(const void *data)
+static int32_t ReadLong(const void *data)
 {
-    return SWAP32(*(const long *)data);
+    return SWAP32(*(const int32_t *)data);
 }
 
 /* The PixPat header, its PixMap, the pixels expanded to one byte each and the colour
@@ -46,9 +46,9 @@ int CE_ImageParsePPat(Image_t *image, const void *ppat)
     short depth;
     short count;
     short index;
-    long width;
-    long height;
-    long ctabOffset;
+    int32_t width;
+    int32_t height;
+    int32_t ctabOffset;
     int perByte;
     int mask;
     int x;

@@ -85,9 +85,9 @@
 	defined in the DNRCalls.h header file
 */
 
-void GetSystemFolder(short *vRefNumP, long *dirIDP);
-void GetCPanelFolder(short *vRefNumP, long *dirIDP);
-short SearchFolderForDNRP(long targetType, long targetCreator, short vRefNum, long dirID);
+void GetSystemFolder(short *vRefNumP, int32_t *dirIDP);
+void GetCPanelFolder(short *vRefNumP, int32_t *dirIDP);
+short SearchFolderForDNRP(int32_t targetType, int32_t targetCreator, short vRefNum, int32_t dirID);
 short OpenOurRF(void);
 short	NumToolboxTraps(void);
 TrapType	GetTrapType(short theTrap);
@@ -134,10 +134,10 @@ Boolean TrapExists(short theTrap)
 	return(NGetTrapAddress(_Unimplemented, ToolTrap) != NGetTrapAddress(theTrap, theTrapType));
 }
 
-void GetSystemFolder(short *vRefNumP, long *dirIDP)
+void GetSystemFolder(short *vRefNumP, int32_t *dirIDP)
 {
 	SysEnvRec info;
-	long wdProcID;
+	int32_t wdProcID;
 	
 	SysEnvirons(1, &info);
 	if (GetWDInfo(info.sysVRefNum, vRefNumP, dirIDP, &wdProcID) != noErr) 
@@ -147,10 +147,10 @@ void GetSystemFolder(short *vRefNumP, long *dirIDP)
 	}
 }
 
-void GetCPanelFolder(short *vRefNumP, long *dirIDP)
+void GetCPanelFolder(short *vRefNumP, int32_t *dirIDP)
 {
 	Boolean hasFolderMgr = false;
-	long feature;
+	int32_t feature;
 	
 	if (TrapExists(_GestaltDispatch)) if (Gestalt(gestaltFindFolderAttr, &feature) == noErr) hasFolderMgr = true;
 	if (!hasFolderMgr) 
@@ -170,7 +170,7 @@ void GetCPanelFolder(short *vRefNumP, long *dirIDP)
 	
 /* SearchFolderForDNRP is called to search a folder for files that might 
 	contain the 'dnrp' resource */
-short SearchFolderForDNRP(long targetType, long targetCreator, short vRefNum, long dirID)
+short SearchFolderForDNRP(int32_t targetType, int32_t targetCreator, short vRefNum, int32_t dirID)
 {
 	HParamBlockRec fi;
 	Str255 filename;
@@ -208,7 +208,7 @@ short OpenOurRF(void)
 {
 	short refnum;
 	short vRefNum;
-	long dirID;
+	int32_t dirID;
 	
 	/* first search Control Panels for MacTCP 1.1 */
 	GetCPanelFolder(&vRefNum, &dirID);
@@ -316,7 +316,7 @@ OSErr StrToAddr(char *hostName, struct hostInfo *rtnStruct,
 	return (CallStrToAddrProc((StrToAddrUPP)gDNRCodePtr, STRTOADDR, hostName, rtnStruct, resultproc, userDataPtr));
 }
 	
-OSErr AddrToStr(unsigned long addr, char *addrStr)
+OSErr AddrToStr(uint32_t addr, char *addrStr)
 {
 	OSErr	err;
 	if (gDNRCodePtr == nil)
@@ -344,7 +344,7 @@ OSErr EnumCache(EnumResultUPP resultproc, Ptr userDataPtr)
 }
 	
 	
-OSErr AddrToName(unsigned long addr, struct hostInfo *rtnStruct, 
+OSErr AddrToName(uint32_t addr, struct hostInfo *rtnStruct, 
 			ResultUPP resultproc, Ptr userDataPtr)
 {
 	if (gDNRCodePtr == nil)

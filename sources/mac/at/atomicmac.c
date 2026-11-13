@@ -6,34 +6,34 @@
 #define kDurationForever    0x7fffffff
 
 extern void *gPlatformMutex;
-extern long (*gCallUniversalProc)(UniversalProcPtr proc, ULong info, ...);
+extern int32_t (*gCallUniversalProc)(UniversalProcPtr proc, ULong info, ...);
 extern unsigned char _PlatformIsThreaded(void);
-extern long _MutexEnter(struct TaskMutex *mutex, long timeout);
-extern long _MutexLeave(struct TaskMutex *mutex);
-extern long _MutexDepth(struct TaskMutex *mutex, ULong *depth);
+extern int32_t _MutexEnter(struct TaskMutex *mutex, int32_t timeout);
+extern int32_t _MutexLeave(struct TaskMutex *mutex);
+extern int32_t _MutexDepth(struct TaskMutex *mutex, ULong *depth);
 
 extern void _AtomicEnter(void);
 extern void _AtomicLeave(void);
 
 static ULong gAtomicDepth;
 
-static long _AtomicExchange(long *word, long compare, long value);
-static long _AtomicAdd(long *word, long delta);
-static long _AtomicOr(ULong *word, ULong bit);
-static long _AtomicAnd(ULong *word, ULong bit);
+static int32_t _AtomicExchange(int32_t *word, int32_t compare, int32_t value);
+static int32_t _AtomicAdd(int32_t *word, int32_t delta);
+static int32_t _AtomicOr(ULong *word, ULong bit);
+static int32_t _AtomicAnd(ULong *word, ULong bit);
 
 void AtomicEnterCritical(void *token)
 {
     if (gAtomicDepth == 0) {
-        long code[3] = { 0x40c0007c, 0x07004e75, 0 };
+        int32_t code[3] = { 0x40c0007c, 0x07004e75, 0 };
 
 #if TARGET_API_MAC_CARBON
         if (_PlatformIsThreaded())
             _MutexEnter(gPlatformMutex, kDurationForever);
         else
-            *(long *)token = gCallUniversalProc((UniversalProcPtr)code, kProcDisable);
+            *(int32_t *)token = gCallUniversalProc((UniversalProcPtr)code, kProcDisable);
 #else
-        *(long *)token = CallUniversalProc((UniversalProcPtr)code, kProcDisable);
+        *(int32_t *)token = CallUniversalProc((UniversalProcPtr)code, kProcDisable);
 #endif
     }
     gAtomicDepth++;
@@ -48,17 +48,17 @@ void AtomicLeaveCritical(void *token)
         if (_PlatformIsThreaded())
             _MutexLeave(gPlatformMutex);
         else
-            gCallUniversalProc((UniversalProcPtr)code, kProcEnable, *(long *)token);
+            gCallUniversalProc((UniversalProcPtr)code, kProcEnable, *(int32_t *)token);
 #else
-        CallUniversalProc((UniversalProcPtr)code, kProcEnable, *(long *)token);
+        CallUniversalProc((UniversalProcPtr)code, kProcEnable, *(int32_t *)token);
 #endif
     }
 }
 
-long AtomicCompareSwap(void *word, long compare, long value)
+int32_t AtomicCompareSwap(void *word, int32_t compare, int32_t value)
 {
-    long old;
-    long state[4];
+    int32_t old;
+    int32_t state[4];
 
     if (((ULong)word & 3) == 0) {
         _AtomicEnter();
@@ -66,17 +66,17 @@ long AtomicCompareSwap(void *word, long compare, long value)
         _AtomicLeave();
     } else {
         AtomicEnterCritical(state);
-        old = *(long *)word;
-        *(long *)word = value;
+        old = *(int32_t *)word;
+        *(int32_t *)word = value;
         AtomicLeaveCritical(state);
     }
     return old;
 }
 
-long AtomicIncrement(long *value, long delta)
+int32_t AtomicIncrement(int32_t *value, int32_t delta)
 {
-    long old;
-    long state[4];
+    int32_t old;
+    int32_t state[4];
 
     if (((ULong)value & 3) == 0) {
         _AtomicEnter();
@@ -91,11 +91,11 @@ long AtomicIncrement(long *value, long delta)
     return old;
 }
 
-long AtomicMaskApply(ULong *word, ULong bit)
+int32_t AtomicMaskApply(ULong *word, ULong bit)
 {
-    long mask;
-    long state[4];
-    long result;
+    int32_t mask;
+    int32_t state[4];
+    int32_t result;
 
     mask = bit;
     result = 1;
@@ -112,12 +112,12 @@ long AtomicMaskApply(ULong *word, ULong bit)
     return result;
 }
 
-long AtomicMaskClear(ULong *word, ULong bit)
+int32_t AtomicMaskClear(ULong *word, ULong bit)
 {
     ULong old;
-    long mask;
-    long state[4];
-    long result;
+    int32_t mask;
+    int32_t state[4];
+    int32_t result;
 
     mask = bit;
     result = 0;
@@ -137,7 +137,7 @@ long AtomicMaskClear(ULong *word, ULong bit)
 
 unsigned char AtomicMaskTest(ULong *word, ULong bit)
 {
-    long err;
+    int32_t err;
     unsigned char result;
 
     err = 0;
@@ -146,9 +146,9 @@ unsigned char AtomicMaskTest(ULong *word, ULong bit)
     return result;
 }
 
-long _AtomicCheckCritical(void)
+int32_t _AtomicCheckCritical(void)
 {
-    long result;
+    int32_t result;
 #if TARGET_API_MAC_CARBON
     ULong depth;
 
@@ -186,7 +186,7 @@ void _AtomicResetCritical(void)
     gAtomicDepth = 0;
 }
 
-static asm long _AtomicExchange(long *word, long compare, long value)
+static asm int32_t _AtomicExchange(int32_t *word, int32_t compare, int32_t value)
 {
     nofralloc
     li      r0, 0
@@ -202,7 +202,7 @@ static asm long _AtomicExchange(long *word, long compare, long value)
     blr
 }
 
-static asm long _AtomicAdd(long *word, long delta)
+static asm int32_t _AtomicAdd(int32_t *word, int32_t delta)
 {
     nofralloc
     li      r0, 0
@@ -216,7 +216,7 @@ static asm long _AtomicAdd(long *word, long delta)
     blr
 }
 
-static asm long _AtomicOr(ULong *word, ULong bit)
+static asm int32_t _AtomicOr(ULong *word, ULong bit)
 {
     nofralloc
     li      r0, 0
@@ -234,7 +234,7 @@ static asm long _AtomicOr(ULong *word, ULong bit)
     blr
 }
 
-static asm long _AtomicAnd(ULong *word, ULong bit)
+static asm int32_t _AtomicAnd(ULong *word, ULong bit)
 {
     nofralloc
     li      r0, 0

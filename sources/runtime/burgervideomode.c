@@ -21,9 +21,9 @@ Word ScreenClipLeft;                             /* 0x00870d8c */
 Word ScreenClipTop;                              /* 0x0087091c */
 char *VideoPointer;                              /* 0x00870114 */
 char *Win95VideoPointer;                         /* 0x008706f4 */
-long Win95DestScreenX;                          /* 0x008701a4 */
-long Win95DestScreenY;                           /* 0x008701a8 */
-long VideoPageLocked;                            /* 0x008700c4 */
+int32_t Win95DestScreenX;                          /* 0x008701a4 */
+int32_t Win95DestScreenY;                           /* 0x008701a8 */
+int32_t VideoPageLocked;                            /* 0x008700c4 */
 DDrawSurface *Win95WorkBuffer;                   /* 0x0086ffa8 */
 void *Win95LockedMemory;                         /* 0x008705e0 */
 void *Direct3DViewPortPtr;
@@ -35,9 +35,9 @@ static void *DirectDrawInstance;                 /* 0x00866540 DDRAW.DLL */
 static void *DirectDrawCreatePtr;                /* 0x00866544 */
 static void *DirectDrawEnumerateAPtr;            /* 0x00866548 */
 static void *DirectDrawEnumerateExAPtr;          /* 0x0086654c */
-static long OldWindowXYValid;                    /* 0x00866550 */
-static long OldWindowX;                          /* 0x00866554 */
-static long OldWindowY;                          /* 0x00866558 */
+static int32_t OldWindowXYValid;                    /* 0x00866550 */
+static int32_t OldWindowX;                          /* 0x00866554 */
+static int32_t OldWindowY;                          /* 0x00866558 */
 static DDrawGammaControl *lpDDGammaControl;      /* 0x0086655c */
 static DDGammaRamp DDGammaOld;                   /* 0x00866560 */
 static DDGammaRamp DDGammaCurrent;               /* 0x00866b60 */
@@ -48,7 +48,7 @@ static unsigned char *Direct3DExecInstEndPtr;    /* 0x00867164 */
 static void *OpenGLContext;                      /* 0x00867168 */
 static void *OpenGLDeviceContext;                /* 0x0086716c */
 
-long VideoFullScreen;                            /* 0x00870054 */
+int32_t VideoFullScreen;                            /* 0x00870054 */
 ULong VideoTrueScreenWidth;                      /* 0x00870168 */
 ULong VideoTrueScreenHeight;                     /* 0x008707bc */
 DDraw *DirectDrawPtr;                           /* 0x008707c0 */
@@ -61,18 +61,18 @@ DDrawPalette *Win95WindowPalettePtr;             /* 0x008707d0 */
 void *BurgerHPalette;                            /* 0x00870db4 GDI palette */
 void *BurgerHBitMap;                             /* 0x008706f8 DIB section */
 char *VideoOffscreen;                            /* 0x00870dbc */
-long VideoHardWidth;                             /* 0x00870de8 */
+int32_t VideoHardWidth;                             /* 0x00870de8 */
 Word VideoColorDepth;
-long VideoTrueScreenDepth;                       /* 0x008700e0 */
-long VideoRedShift;                              /* 0x008707ac */
-long VideoRedMask;                               /* 0x008700fc */
-long VideoGreenBits;                             /* 0x00870978 */
-long VideoGreenMask;                             /* 0x00870dc0 */
-long VideoBlueShift;                             /* 0x00870dd8 */
-long VideoBlueMask;                              /* 0x0087092c */
-long VideoBlueBits;                              /* 0x008707d4 */
-long VideoGreenShift;                            /* 0x00870000 */
-long VideoRedBits;                               /* 0x008700e8 */
+int32_t VideoTrueScreenDepth;                       /* 0x008700e0 */
+int32_t VideoRedShift;                              /* 0x008707ac */
+int32_t VideoRedMask;                               /* 0x008700fc */
+int32_t VideoGreenBits;                             /* 0x00870978 */
+int32_t VideoGreenMask;                             /* 0x00870dc0 */
+int32_t VideoBlueShift;                             /* 0x00870dd8 */
+int32_t VideoBlueMask;                              /* 0x0087092c */
+int32_t VideoBlueBits;                              /* 0x008707d4 */
+int32_t VideoGreenShift;                            /* 0x00870000 */
+int32_t VideoRedBits;                               /* 0x008700e8 */
 unsigned char CurrentPalette[0x300];             /* 0x0086fab0 the palette bytes */
 
 #include "burgerplat.h"
@@ -168,7 +168,7 @@ int __stdcall FindDeviceCallback(Guid *guid, char *description, char *driverName
 void LockVideoPage(void)
 {
     DDrawSurface *surface;
-    long result;
+    int32_t result;
     DDSurfaceDesc desc;
     ULong offset;
 
@@ -364,7 +364,7 @@ void ReleaseVideo(void)
 static inline Word Win95VideoGetGuid(Guid **OutPtr, Guid *Output, Word DevNum)
 {
     DeviceSearch search;
-    long result;
+    int32_t result;
 
     if (!DevNum)
         DevNum = 1;
@@ -372,7 +372,7 @@ static inline Word Win95VideoGetGuid(Guid **OutPtr, Guid *Output, Word DevNum)
     GetDDRAWDLL();
     result = (DirectDrawEnumerateExAPtr == 0)
         ? kNoInterface
-        : ((long (__stdcall *)(void *, void *, ULong))DirectDrawEnumerateExAPtr)(
+        : ((int32_t (__stdcall *)(void *, void *, ULong))DirectDrawEnumerateExAPtr)(
               FindDeviceCallback, &search, kEnumAllDevices);
     if (result == 0 && search.remaining == 0) {
         if (search.guid != 0) {
@@ -390,15 +390,15 @@ static inline Word Win95VideoGetGuid(Guid **OutPtr, Guid *Output, Word DevNum)
 /* SetDisplayToSize (BurgerLib SetDisplayToSize). STATE: MATCH 100%, exe 1199 / obj 1199,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004ecbd0
-long SetDisplayToSize(ULong width, ULong height, ULong depth, ULong flags)
+int32_t SetDisplayToSize(ULong width, ULong height, ULong depth, ULong flags)
 {
     unsigned char *entryPtr;
     const unsigned char *src;
     DDSurfaceDesc desc;
     ULong gammaWanted;
-    long rect[4];
+    int32_t rect[4];
     ULong caps;
-    long workArea[4];
+    int32_t workArea[4];
     LogPalette palette;
     ULong style;
     ULong exStyle;
@@ -406,7 +406,7 @@ long SetDisplayToSize(ULong width, ULong height, ULong depth, ULong flags)
     Word device;
     ULong wantFifteen;
     DDSurfaceDesc probeDesc;
-    long result;
+    int32_t result;
     DDrawSurface *probe;
     void *probeDC;
     void *hdc;
@@ -478,9 +478,9 @@ long SetDisplayToSize(ULong width, ULong height, ULong depth, ULong flags)
                 windowRect[0] = OldWindowX;
                 windowRect[1] = OldWindowY;
             }
-            if ((long)windowRect[0] < workArea[0])
+            if ((int32_t)windowRect[0] < workArea[0])
                 windowRect[0] = workArea[0];
-            if ((long)windowRect[1] < workArea[1])
+            if ((int32_t)windowRect[1] < workArea[1])
                 windowRect[1] = workArea[1];
             SetWindowPos(Win95MainWindow, 0, windowRect[0], windowRect[1],
                          0, 0, 0x15);
@@ -497,7 +497,7 @@ long SetDisplayToSize(ULong width, ULong height, ULong depth, ULong flags)
             GetDDRAWDLL();
             result = (DirectDrawCreatePtr == 0)
                 ? kNoInterface
-                : ((long (__stdcall *)(void *, DDraw **, void *))DirectDrawCreatePtr)(
+                : ((int32_t (__stdcall *)(void *, DDraw **, void *))DirectDrawCreatePtr)(
                       deviceGuidPtr, &DirectDrawPtr, 0);
             if (result != 0) {
                 NonFatal(
@@ -513,7 +513,7 @@ long SetDisplayToSize(ULong width, ULong height, ULong depth, ULong flags)
         GetDDRAWDLL();
         result = (DirectDrawCreatePtr == 0)
             ? kNoInterface
-            : ((long (__stdcall *)(void *, DDraw **, void *))DirectDrawCreatePtr)(
+            : ((int32_t (__stdcall *)(void *, DDraw **, void *))DirectDrawCreatePtr)(
                   0, &DirectDrawPtr, 0);
         if (result != 0) {
             NonFatal("Couldn't create the direct draw buffer\n");

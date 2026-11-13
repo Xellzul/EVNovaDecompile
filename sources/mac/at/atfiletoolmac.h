@@ -13,9 +13,9 @@
 #endif
 
 /* the release build's empty error report */
-#define FT_ReportError(e) ((long)(e))
+#define FT_ReportError(e) ((int32_t)(e))
 
-typedef long (*FileProc)();
+typedef int32_t (*FileProc)();
 
 typedef struct FTProcs {
     FileProc proc[6];                            /* indexed by kFTRead .. kFTSeek */
@@ -29,15 +29,15 @@ typedef struct FTFile {
     FTLink link;                                 /* +0x000 open-file list */
     ULong size;                                  /* +0x004 */
     ULong position;                              /* +0x008 */
-    long refCount;                               /* +0x00c */
+    int32_t refCount;                               /* +0x00c */
     unsigned char mode;                          /* +0x010 */
     FTProcs procs;                               /* +0x014 one of the three FT_Open tables */
     short refNum;                                /* +0x02c */
     short vRefNum;                               /* +0x02e */
-    long dirID;                                  /* +0x030 */
+    int32_t dirID;                                  /* +0x030 */
     void **memHandle;                            /* +0x134 a file over a memory handle */
     struct FTFile *parent;                       /* +0x138 a file inside another file */
-    long origin;                                 /* +0x13c */
+    int32_t origin;                                 /* +0x13c */
     void **buffer;                               /* +0x140 */
     void **buffer2;                              /* +0x144 */
 } FTFile;
@@ -46,7 +46,7 @@ typedef struct FolderSpec {
     struct FolderSpec **next;                    /* +0x000 registered-spec list */
     FTFile *dir;                                 /* +0x004 */
     FTFile *file;                                /* +0x008 */
-    long volumeDate;                             /* +0x00c the volume's creation date */
+    int32_t volumeDate;                             /* +0x00c the volume's creation date */
     FSSpec spec;                                 /* +0x010 */
     short pad56;                                 /* +0x056 */
     unsigned char names[1];                      /* +0x058 Pascal names, 0-terminated */
@@ -84,76 +84,76 @@ extern FileProc gFT_FileHooks[6];                /* the native procedures */
 extern FileProc gFT_ChunkHooks[6];               /* the member procedures */
 
 /* atfilespec.c */
-long FT_FileClose(void *ref);
+int32_t FT_FileClose(void *ref);
 
 /* atfilespec2.c */
-long _FT_PathModify(FolderSpec **base, void *where, FolderSpec ***result, unsigned char create);
+int32_t _FT_PathModify(FolderSpec **base, void *where, FolderSpec ***result, unsigned char create);
 void _FT_PathInsert(FolderSpec **spec);
 unsigned char _FT_PathLookup(FolderSpec **spec);
 void _FT_PathDispose(void *ref);
-long _FT_PathAppend(FolderSpec **spec, const unsigned char *name);
+int32_t _FT_PathAppend(FolderSpec **spec, const unsigned char *name);
 ULong _FT_PathWalk(FolderSpec **spec, ULong offset);
-long _FT_PathNameInput(unsigned char *out, const char *in, ULong length);
-long _FT_PathNameOutput(char *out, const unsigned char *name);
-long _FT_FileOpenWrapper(FolderSpec **spec, unsigned char write, FTFile **result);
+int32_t _FT_PathNameInput(unsigned char *out, const char *in, ULong length);
+int32_t _FT_PathNameOutput(char *out, const unsigned char *name);
+int32_t _FT_FileOpenWrapper(FolderSpec **spec, unsigned char write, FTFile **result);
 unsigned char _FT_FileIsChunky(FolderSpec **spec, ULong *count);
 unsigned char _FT_IndirectIsChunky(void **handle);
-long _FT_FileUpdateRefCount(FTFile *file, long delta);
+int32_t _FT_FileUpdateRefCount(FTFile *file, int32_t delta);
 
 /* atfilespec3.c */
-long _FT_PathGoTo(FolderSpec **spec, long folder);
-long _FT_PathGoToVolume(FolderSpec **spec, ULong index);
-long _FT_PathGoToVolumeName(FolderSpec **spec, const unsigned char *volume);
+int32_t _FT_PathGoTo(FolderSpec **spec, int32_t folder);
+int32_t _FT_PathGoToVolume(FolderSpec **spec, ULong index);
+int32_t _FT_PathGoToVolumeName(FolderSpec **spec, const unsigned char *volume);
 #define kFTErrNoMoreEntries -7203
 typedef struct FTDirEntry {
-    long id;
+    int32_t id;
     short vRefNum;
 } FTDirEntry;
 
-long _FT_PathGoToParent(FolderSpec **spec, unsigned char *leaf);
-long _FT_PathGoToChild(FolderSpec **spec, const unsigned char *child, unsigned char last);
-long _FT_PathValidate(FolderSpec **spec);
-long _FT_PathGoToID(FolderSpec **spec, short vRefNum, long dirID);
-long _FT_PathClearNames(FolderSpec **spec);
-long _FT_FileSetFlags(FolderSpec **spec, FTFileInfo *info);
+int32_t _FT_PathGoToParent(FolderSpec **spec, unsigned char *leaf);
+int32_t _FT_PathGoToChild(FolderSpec **spec, const unsigned char *child, unsigned char last);
+int32_t _FT_PathValidate(FolderSpec **spec);
+int32_t _FT_PathGoToID(FolderSpec **spec, short vRefNum, int32_t dirID);
+int32_t _FT_PathClearNames(FolderSpec **spec);
+int32_t _FT_FileSetFlags(FolderSpec **spec, FTFileInfo *info);
 unsigned char _FT_IsPathAFile(FolderSpec **spec);
-long _FT_FileCreate(FolderSpec **spec, FTFileInfo *info);
-long _FT_FileDelete(FolderSpec **spec);
-long _FT_FileGetDates(FolderSpec **spec, ULong *created, ULong *modified);
-long _FT_FileGetFlags(FolderSpec **spec, FTFileInfo *info, unsigned char checkArchive);
+int32_t _FT_FileCreate(FolderSpec **spec, FTFileInfo *info);
+int32_t _FT_FileDelete(FolderSpec **spec);
+int32_t _FT_FileGetDates(FolderSpec **spec, ULong *created, ULong *modified);
+int32_t _FT_FileGetFlags(FolderSpec **spec, FTFileInfo *info, unsigned char checkArchive);
 FTFile *_FT_IsFileOpen(FolderSpec **spec);
-long _FT_FileOpen(FolderSpec **spec, unsigned char write, FTFile *file);
-long _FT_FileClose(FTFile *file);
+int32_t _FT_FileOpen(FolderSpec **spec, unsigned char write, FTFile *file);
+int32_t _FT_FileClose(FTFile *file);
 #if TARGET_API_MAC_CARBON
-long FT_DirGetEntry(long where, ULong index, FTFileInfo *info, unsigned char flags);
-long _FT_ChunkDirEntry(FTFile *archive, ULong index, FTFileInfo *info, FolderSpec **spec);
-long _FT_FileDirEntry(FolderSpec **spec, ULong index, FTFileInfo *info, FTDirEntry *out, unsigned char flags);
+int32_t FT_DirGetEntry(int32_t where, ULong index, FTFileInfo *info, unsigned char flags);
+int32_t _FT_ChunkDirEntry(FTFile *archive, ULong index, FTFileInfo *info, FolderSpec **spec);
+int32_t _FT_FileDirEntry(FolderSpec **spec, ULong index, FTFileInfo *info, FTDirEntry *out, unsigned char flags);
 #endif
-long _FT_RemapError(long err);
-long _FT_ChunkFilePreflight(FTFile *file, FTMark *mark);
-long _FT_ChunkFilePostflight(FTFile *file, FTMark *mark);
+int32_t _FT_RemapError(int32_t err);
+int32_t _FT_ChunkFilePreflight(FTFile *file, FTMark *mark);
+int32_t _FT_ChunkFilePostflight(FTFile *file, FTMark *mark);
 
 /* atfilearchive.c */
 FTFile *_FT_IsChunkOpen(FTFile *archive, const char *name);
-long _FT_ChunkOpenPath(FolderSpec **spec, unsigned char write, unsigned char toLast,
+int32_t _FT_ChunkOpenPath(FolderSpec **spec, unsigned char write, unsigned char toLast,
                   unsigned char mustBeArchive, FTFile **result, char *leaf);
-long _FT_ChunkOpen(FTFile *archive, FTFile *file, const char *name, unsigned char write,
+int32_t _FT_ChunkOpen(FTFile *archive, FTFile *file, const char *name, unsigned char write,
                   unsigned char nested);
-long _FT_ChunkClose(FTFile *file);
-long _FT_ChunkLoad(FTFile *file);
+int32_t _FT_ChunkClose(FTFile *file);
+int32_t _FT_ChunkLoad(FTFile *file);
 unsigned char _FT_ChunkLookup(FTFile *archive, const char *name, ULong *index,
                            FTArchiveEntry *entry);
-long _FT_ChunkFormat(FTFile *file, ULong entries);
-long _FT_ChunkResize(FTFile *archive, ULong offset, ULong length, ULong newLength,
+int32_t _FT_ChunkFormat(FTFile *file, ULong entries);
+int32_t _FT_ChunkResize(FTFile *archive, ULong offset, ULong length, ULong newLength,
                   ULong *newOffset);
-long _FT_ChunkCreate(FTFile *archive, FTFileInfo *info);
-long _FT_ChunkDelete(FTFile *archive, const char *name);
-long _FT_ChunkSetFlags(FTFile *archive, const char *name, FTFileInfo *info);
-long _FT_ChunkGetFlags(FTFile *archive, const char *name, const char *member, FTFileInfo *info,
+int32_t _FT_ChunkCreate(FTFile *archive, FTFileInfo *info);
+int32_t _FT_ChunkDelete(FTFile *archive, const char *name);
+int32_t _FT_ChunkSetFlags(FTFile *archive, const char *name, FTFileInfo *info);
+int32_t _FT_ChunkGetFlags(FTFile *archive, const char *name, const char *member, FTFileInfo *info,
                   FolderSpec **spec);
-long _FT_ChunkGetCount(FTFile *archive, const char *name, ULong *count);
+int32_t _FT_ChunkGetCount(FTFile *archive, const char *name, ULong *count);
 FTFile *_FT_IsBufferOpen(void **handle);
-long _FT_BufferClose(FTFile *file);
+int32_t _FT_BufferClose(FTFile *file);
 
 #define kSecondsPerDay      86400
 static inline ULong FTStrLen(const char *s)
@@ -199,7 +199,7 @@ static inline char *FTPToCStr(char *dst, const unsigned char *src)
     return dst;
 }
 
-static inline long FTStrCmp(const char *a, const char *b)
+static inline int32_t FTStrCmp(const char *a, const char *b)
 {
     ULong ca;
     const unsigned char *s1;

@@ -53,7 +53,7 @@ int vorbis_block_init(vorbis_dsp_state *v, vorbis_block *vb){
 /* _vorbis_block_alloc. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00531d20
-void *_vorbis_block_alloc(vorbis_block *vb,long bytes){
+void *_vorbis_block_alloc(vorbis_block *vb,int32_t bytes){
   bytes=(bytes+(WORD_ALIGN-1)) & ~(WORD_ALIGN-1);
   if(bytes+vb->localtop>vb->localalloc){
     if(vb->localstore){
@@ -382,7 +382,7 @@ int vorbis_synthesis_blockin(vorbis_dsp_state *v,vorbis_block *vb){
       if(vb->granulepos!=-1 && v->granulepos!=vb->granulepos){
 
 	if(v->granulepos>vb->granulepos){
-	  long extra=v->granulepos-vb->granulepos;
+	  int32_t extra=v->granulepos-vb->granulepos;
 
 	  if(vb->eofflag){
 	    centerW-=extra;

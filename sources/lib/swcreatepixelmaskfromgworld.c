@@ -23,10 +23,10 @@ short SWCreatePixelMaskFromGWorld(CGrafPtr pictureGWorld, CGrafPtr maskGWorld, R
     GDHandle saveDevice;
     Ptr baseAddr;
     Ptr maskAddr;
-    long rowBytes;
-    long width, height;
-    long depth;
-    long x, y;
+    int32_t rowBytes;
+    int32_t width, height;
+    int32_t depth;
+    int32_t x, y;
     unsigned short transparentValue;
     PixMapHandle pictPix;
     PixMapHandle maskPix;

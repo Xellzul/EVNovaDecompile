@@ -27,8 +27,8 @@ initial_setup (j_decompress_ptr cinfo)
   int ci;
   jpeg_component_info *compptr;
 
-  if ((long) cinfo->image_height > (long) JPEG_MAX_DIMENSION ||
-      (long) cinfo->image_width > (long) JPEG_MAX_DIMENSION)
+  if ((int32_t) cinfo->image_height > (int32_t) JPEG_MAX_DIMENSION ||
+      (int32_t) cinfo->image_width > (int32_t) JPEG_MAX_DIMENSION)
     ERREXIT1(cinfo, JERR_IMAGE_TOO_BIG, (unsigned int) JPEG_MAX_DIMENSION);
 
   if (cinfo->data_precision != BITS_IN_JSAMPLE)
@@ -58,18 +58,18 @@ initial_setup (j_decompress_ptr cinfo)
     compptr->DCT_scaled_size = DCTSIZE;
 
     compptr->width_in_blocks = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_width * (long) compptr->h_samp_factor,
-		    (long) (cinfo->max_h_samp_factor * DCTSIZE));
+      jdiv_round_up((int32_t) cinfo->image_width * (int32_t) compptr->h_samp_factor,
+		    (int32_t) (cinfo->max_h_samp_factor * DCTSIZE));
     compptr->height_in_blocks = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_height * (long) compptr->v_samp_factor,
-		    (long) (cinfo->max_v_samp_factor * DCTSIZE));
+      jdiv_round_up((int32_t) cinfo->image_height * (int32_t) compptr->v_samp_factor,
+		    (int32_t) (cinfo->max_v_samp_factor * DCTSIZE));
 
     compptr->downsampled_width = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_width * (long) compptr->h_samp_factor,
-		    (long) cinfo->max_h_samp_factor);
+      jdiv_round_up((int32_t) cinfo->image_width * (int32_t) compptr->h_samp_factor,
+		    (int32_t) cinfo->max_h_samp_factor);
     compptr->downsampled_height = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_height * (long) compptr->v_samp_factor,
-		    (long) cinfo->max_v_samp_factor);
+      jdiv_round_up((int32_t) cinfo->image_height * (int32_t) compptr->v_samp_factor,
+		    (int32_t) cinfo->max_v_samp_factor);
 
     compptr->component_needed = TRUE;
 
@@ -77,8 +77,8 @@ initial_setup (j_decompress_ptr cinfo)
   }
 
   cinfo->total_iMCU_rows = (JDIMENSION)
-    jdiv_round_up((long) cinfo->image_height,
-		  (long) (cinfo->max_v_samp_factor*DCTSIZE));
+    jdiv_round_up((int32_t) cinfo->image_height,
+		  (int32_t) (cinfo->max_v_samp_factor*DCTSIZE));
 
   if (cinfo->comps_in_scan < cinfo->num_components || cinfo->progressive_mode)
     cinfo->inputctl->has_multiple_scans = TRUE;
@@ -123,11 +123,11 @@ per_scan_setup (j_decompress_ptr cinfo)
 	       MAX_COMPS_IN_SCAN);
 
     cinfo->MCUs_per_row = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_width,
-		    (long) (cinfo->max_h_samp_factor*DCTSIZE));
+      jdiv_round_up((int32_t) cinfo->image_width,
+		    (int32_t) (cinfo->max_h_samp_factor*DCTSIZE));
     cinfo->MCU_rows_in_scan = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_height,
-		    (long) (cinfo->max_v_samp_factor*DCTSIZE));
+      jdiv_round_up((int32_t) cinfo->image_height,
+		    (int32_t) (cinfo->max_v_samp_factor*DCTSIZE));
 
     cinfo->blocks_in_MCU = 0;
 

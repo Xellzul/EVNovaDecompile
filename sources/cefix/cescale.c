@@ -97,15 +97,15 @@ void CE_ScaleOffsetRectBottom(Rect *r, int dh, int dv)
 /* The DLOG bounds, scaled and centred on the screen without the original's rounding of
    each half down to even; returns the DITL id. The screen size is taken signed, as CE
    does, so a dialog larger than the screen centres off its top-left edge. */
-long CE_SetDialogTemplateBounds(DialogPtr dlg, const unsigned short *tmpl)
+int32_t CE_SetDialogTemplateBounds(DialogPtr dlg, const unsigned short *tmpl)
 {
     short width;
     short height;
 
     width = CE_Scale(SwapShort(tmpl[3]) - SwapShort(tmpl[1]));
     height = CE_Scale(SwapShort(tmpl[2]) - SwapShort(tmpl[0]));
-    dlg->bounds.top = ((long)gVideoHeight - height) / 2;
-    dlg->bounds.left = ((long)gVideoWidth - width) / 2;
+    dlg->bounds.top = ((int32_t)gVideoHeight - height) / 2;
+    dlg->bounds.left = ((int32_t)gVideoWidth - width) / 2;
     dlg->bounds.bottom = dlg->bounds.top + height;
     dlg->bounds.right = dlg->bounds.left + width;
     return SwapShort(tmpl[9]);

@@ -154,9 +154,9 @@ static void setup_curve(float **c,
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00548180
 void _vp_psy_init(vorbis_look_psy *p,vorbis_info_psy *vi,
-		  vorbis_info_psy_global *gi,int n,long rate){
-  long i,j,k,lo=-99,hi=0;
-  long maxoc;
+		  vorbis_info_psy_global *gi,int n,int32_t rate){
+  int32_t i,j,k,lo=-99,hi=0;
+  int32_t maxoc;
   FastMemSet(p,0,sizeof(*p));
 
   p->eighth_octave_lines=gi->eighth_octave_lines;
@@ -168,8 +168,8 @@ void _vp_psy_init(vorbis_look_psy *p,vorbis_info_psy *vi,
 
   if(vi->ath)
     p->ath=(float *)_ogg_malloc(n*sizeof(*p->ath));
-  p->octave=(long *)_ogg_malloc(n*sizeof(*p->octave));
-  p->bark=(long *)_ogg_malloc(n*sizeof(*p->bark));
+  p->octave=(int32_t *)_ogg_malloc(n*sizeof(*p->octave));
+  p->bark=(int32_t *)_ogg_malloc(n*sizeof(*p->bark));
   p->vi=vi;
   p->n=n;
   p->rate=rate;
@@ -506,12 +506,12 @@ static void seed_loop(vorbis_look_psy *p,
 		      float *seed,
 		      float specmax){
   vorbis_info_psy *vi=p->vi;
-  long n=p->n,i;
+  int32_t n=p->n,i;
   float dBoffset=vi->max_curve_dB-specmax;
 
   for(i=0;i<n;i++){
     float max=f[i];
-    long oc=p->octave[i];
+    int32_t oc=p->octave[i];
     while(i+1<n && p->octave[i+1]==oc){
       i++;
       if(f[i]>max)max=f[i];
@@ -535,12 +535,12 @@ static void seed_loop(vorbis_look_psy *p,
 /* seed_chase. STATE: BurgerLib's libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x0054adc0
-static void seed_chase(float *seeds, int linesper, long n){
-  long  *posstack=(long *)_ogg_malloc(n*sizeof(*posstack));
+static void seed_chase(float *seeds, int linesper, int32_t n){
+  int32_t  *posstack=(int32_t *)_ogg_malloc(n*sizeof(*posstack));
   float *ampstack=(float *)_ogg_malloc(n*sizeof(*ampstack));
-  long   stack=0;
-  long   pos=0;
-  long   i;
+  int32_t   stack=0;
+  int32_t   pos=0;
+  int32_t   i;
 
   for(i=0;i<n;i++){
     if(stack<2){
@@ -569,7 +569,7 @@ static void seed_chase(float *seeds, int linesper, long n){
   }
 
   for(i=0;i<stack;i++){
-    long endpos;
+    int32_t endpos;
     if(i<stack-1 && ampstack[i+1]>ampstack[i]){
       endpos=posstack[i+1];
     }else{
@@ -590,17 +590,17 @@ static void seed_chase(float *seeds, int linesper, long n){
 static void max_seeds(vorbis_look_psy *p,
 		      float *seed,
 		      float *flr){
-  long   n=p->total_octave_lines;
+  int32_t   n=p->total_octave_lines;
   int    linesper=p->eighth_octave_lines;
-  long   linpos=0;
-  long   pos;
+  int32_t   linpos=0;
+  int32_t   pos;
 
   seed_chase(seed,linesper,n);
 
   pos=p->octave[0]-p->firstoc-(linesper>>1);
   while(linpos+1<p->n){
     float minV=seed[pos];
-    long end=((p->octave[linpos]+p->octave[linpos+1])>>1)-p->firstoc;
+    int32_t end=((p->octave[linpos]+p->octave[linpos+1])>>1)-p->firstoc;
     if(minV>p->vi->tone_abs_limit)minV=p->vi->tone_abs_limit;
     while(pos+1<=end){
       pos++;
@@ -623,12 +623,12 @@ static void max_seeds(vorbis_look_psy *p,
 /* bark_noise_hybridmp. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x0054b0b0
-static void bark_noise_hybridmp(int n,const long *b,
+static void bark_noise_hybridmp(int n,const int32_t *b,
 				const float *f,
 				float *noise,
 				const float offset,
 				const int fixed){
-  long i,hi=b[0]>>16,lo=b[0]>>16,hif=0,lof=0;
+  int32_t i,hi=b[0]>>16,lo=b[0]>>16,hif=0,lof=0;
   double xa=0,xb=0;
   double ya=0,yb=0;
   double x2a=0,x2b=0;

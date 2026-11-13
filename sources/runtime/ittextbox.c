@@ -9,12 +9,12 @@
 #include "ambrosia.h"
 #include "win32.h"
 
-extern long IT_ItemCallbackGrabFocus(long item);                                     /* interfacetool.c */
-extern void IT_ItemCallbackGetFont(char **face, long *size, ULong *style, ITColor *color,
+extern int32_t IT_ItemCallbackGrabFocus(int32_t item);                                     /* interfacetool.c */
+extern void IT_ItemCallbackGetFont(char **face, int32_t *size, ULong *style, ITColor *color,
                          char **href);                                   /* interfacetool.c */
-extern char *IT_ItemCallbackGetNextRun(const char *after, char **face, long *size, ULong *style,
+extern char *IT_ItemCallbackGetNextRun(const char *after, char **face, int32_t *size, ULong *style,
                           ITColor *color, char **href, ULong *order);    /* interfacetool.c */
-extern ITElement *IT_ItemCallbackGetNextNode(ITElement *after, char **face, long *size, ULong *style,
+extern ITElement *IT_ItemCallbackGetNextNode(ITElement *after, char **face, int32_t *size, ULong *style,
                                ITColor *color, char **href,
                                ULong *order);                            /* interfacetool.c */
 extern ITColor DT_GetColorARGB(ULong argb);                                 /* itrect.c */
@@ -28,8 +28,8 @@ typedef struct CHARFORMATA {
     ULong cbSize;                                /* +0x00 */
     ULong dwMask;                                /* +0x04 */
     ULong dwEffects;                             /* +0x08 */
-    long yHeight;                                /* +0x0c */
-    long yOffset;                                /* +0x10 */
+    int32_t yHeight;                                /* +0x0c */
+    int32_t yOffset;                                /* +0x10 */
     ULong crTextColor;                           /* +0x14 */
     unsigned char bCharSet;                      /* +0x18 */
     unsigned char bPitchAndFamily;               /* +0x19 */
@@ -42,8 +42,8 @@ typedef struct FORMATRANGE {
     void *hdcTarget;
     WinRect rc;
     WinRect rcPage;
-    long cpMin;
-    long cpMax;
+    int32_t cpMin;
+    int32_t cpMax;
 } FORMATRANGE;
 
 /* richedit.h's GETTEXTLENGTHEX */
@@ -76,7 +76,7 @@ typedef struct ITTextBox {
     unsigned char convert;                       /* +0x00f never set: text through 0x0050586e */
     unsigned char single;                        /* +0x010 SINGLE, or too low for two lines */
     unsigned char pad11[3];
-    long align;                                  /* +0x014 ALIGN */
+    int32_t align;                                  /* +0x014 ALIGN */
     unsigned char aligned;                       /* +0x018 */
     unsigned char allow[256];                    /* +0x019 ALLOW: the characters accepted */
     unsigned char pad119[3];
@@ -88,7 +88,7 @@ typedef struct ITTextBox {
     void **links;                                /* +0x130 ITTextLink */
     void *edit;                                  /* +0x134 the edit window */
     void *font;                                  /* +0x138 the plain EDIT's font */
-    long depth;                                  /* +0x13c the masks' bits per pixel */
+    int32_t depth;                                  /* +0x13c the masks' bits per pixel */
     WinRect maskRect;                            /* +0x140 */
     void *textDC;                                /* +0x150 */
     void *maskDC;                                /* +0x154 */
@@ -146,15 +146,15 @@ unsigned char gControlsInitialized;                      /* 0x00870e0b */
 unsigned char gRichEdit20;                      /* 0x00870e05 */
 void *gTBRichEditModule;                              /* 0x00870704 */
 
-long IT_TextBoxMakeBuffers(ITTextBox *tb);
-long IT_TextBoxPaint(ITTextBox *tb, void *dc);
+int32_t IT_TextBoxMakeBuffers(ITTextBox *tb);
+int32_t IT_TextBoxPaint(ITTextBox *tb, void *dc);
 void IT_TextBoxFreeBuffers(ITTextBox *tb);
-long IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb);
-long _IT_TextFormat(void *hwnd, void *dc, ITTextBox *tb, ITTextFormat *format, const char *face,
-                  long size, ULong style, const ITColor *color, ULong order);
-long IT_AppendText(void **out, unsigned char upper, const char *text, unsigned char convert,
+int32_t IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb);
+int32_t _IT_TextFormat(void *hwnd, void *dc, ITTextBox *tb, ITTextFormat *format, const char *face,
+                  int32_t size, ULong style, const ITColor *color, ULong order);
+int32_t IT_AppendText(void **out, unsigned char upper, const char *text, unsigned char convert,
                   unsigned char collapse, unsigned char afterSpace);
-long _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsigned char track,
+int32_t _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsigned char track,
                   ITClick *click);
 void _IT_HiliteLink(void *hwnd, void *dc, ITTextBox *tb, const ITRect *r1, const ITRect *r2,
                   const ITRect *r3);
@@ -167,11 +167,11 @@ static char sAllowable[] =
    then becomes 0; go on while it is not). STATE: MATCH 100%, exe 16 / obj 16, byte-identical
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00521fd0
-int __stdcall IT_EditIdEnumProc(void *child, long probe)
+int __stdcall IT_EditIdEnumProc(void *child, int32_t probe)
 {
-    long *id;
+    int32_t *id;
 
-    id = (long *)probe;
+    id = (int32_t *)probe;
     if (*id == GetDlgCtrlID(child))
         *id = 0;
     return *id != 0 ? true : false;
@@ -180,23 +180,23 @@ int __stdcall IT_EditIdEnumProc(void *child, long probe)
 /* IT_FindFreeChildId (a child window id for the edit). STATE: MATCH 100%, exe 19 / obj 19, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00521ff9
-long IT_FindFreeChildId(void *parent)
+int32_t IT_FindFreeChildId(void *parent)
 {
-    long id;
-    long probe;
+    int32_t id;
+    int32_t probe;
 
     id = kFirstChildId;
     /* BUG: probe starts at 0 and is overwritten after the first enumeration whatever it
        found, so the answer is always kFirstChildId + 1 */
     for (probe = 0; probe == 0; probe = ++id)
-        EnumChildWindows(parent, IT_EditIdEnumProc, (long)&probe);
+        EnumChildWindows(parent, IT_EditIdEnumProc, (int32_t)&probe);
     return probe;
 }
 
 /* IT_EditTextLength (the edit's text length: EM_GETTEXTLENGTHEX on a RichEdit 2.0, else
    WM_GETTEXTLENGTH). STATE: MATCH 100%, exe 22 / obj 22, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00522033
-long IT_EditTextLength(void *edit, unsigned char richEdit20)
+int32_t IT_EditTextLength(void *edit, unsigned char richEdit20)
 {
     GETTEXTLENGTHEX how = { GTL_PRECISE, 0 };
 
@@ -228,11 +228,11 @@ ITPoint IT_EditCharPos(void *edit, ULong index, unsigned char packed)
    link tracking and the hand cursor, keys, focus, bounds, text, show / enable, colours).
    STATE: MATCH 100%, exe 713 / obj 713, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005220d0
-long IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
+int32_t IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
                   void *b)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char dead;
     unsigned char update;
     ITTextBox *tb;
@@ -518,7 +518,7 @@ long IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong
             err = e;
         break;
     case kMsgGetValue:
-        *(long *)b = 0;
+        *(int32_t *)b = 0;
         break;
     case 0x47:
         break;
@@ -579,13 +579,13 @@ static void *sMaskBlt = (void *)-1;              /* 0x0057bc1c, looked up and ne
    depth, rebuilt when either changed). STATE: MATCH 100%, exe 106 / obj 106, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00522a7f
-long IT_TextBoxMakeBuffers(ITTextBox *tb)
+int32_t IT_TextBoxMakeBuffers(ITTextBox *tb)
 {
-    long err;
+    int32_t err;
     void *windowDC;
-    long depth;
-    long width;
-    long height;
+    int32_t depth;
+    int32_t width;
+    int32_t height;
     WinRect client;
 
     err = 0;
@@ -632,14 +632,14 @@ done:
    offscreen bitmap on white, a mask made from it, the background kept under the mask and the
    text drawn over it). STATE: MATCH 100%, exe 182 / obj 182, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00522bfc
-long IT_TextBoxPaint(ITTextBox *tb, void *dc)
+int32_t IT_TextBoxPaint(ITTextBox *tb, void *dc)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     void *windowDC;
     void *gdi;
     ULong width;
-    long height;
+    int32_t height;
     WinRect area;
     FORMATRANGE range;
 
@@ -680,7 +680,7 @@ long IT_TextBoxPaint(ITTextBox *tb, void *dc)
     range.rcPage = range.rc;
     range.cpMin = 0;
     range.cpMax = -1;
-    SendMessageA(tb->edit, EM_FORMATRANGE, 1, (long)&range);
+    SendMessageA(tb->edit, EM_FORMATRANGE, 1, (int32_t)&range);
     SendMessageA(tb->edit, EM_FORMATRANGE, 0, 0);
     SetBkColor(tb->textDC, 0xffffff);
     SetTextColor(tb->textDC, 0);
@@ -727,10 +727,10 @@ void IT_TextBoxFreeBuffers(ITTextBox *tb)
    by run from the element's text and P / BR / LI / DT / DD, each run formatted, A HREF runs
    recorded as links). STATE: MATCH 100%, exe 682 / obj 682, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00522f5f
-long IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb)
+int32_t IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char block;
     ITElement *node;
     unsigned char spareA;
@@ -743,16 +743,16 @@ long IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb)
     char *lastHref;
     unsigned char afterSpace;
     char *piece;
-    long length;
-    long start;
-    long end;
+    int32_t length;
+    int32_t start;
+    int32_t end;
     void *edit;
-    long editDC;
+    int32_t editDC;
     void *windowDC;
     unsigned char c;
     ITTextLink link;
     char *face;
-    long size;
+    int32_t size;
     ULong style;
     ITColor color;
     char *href;
@@ -859,7 +859,7 @@ long IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb)
         goto done;
     }
     edit = tb->edit;
-    editDC = (long)windowDC;
+    editDC = (int32_t)windowDC;
     tb->links = IndirectAllocate(0);
     if (tb->links == 0) {
         err = kOutOfMemory;
@@ -932,7 +932,7 @@ long IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb)
         start = IT_EditTextLength(tb->edit, gRichEdit20);
         link.start = start;
         SendMessageA(tb->edit, EM_SETSEL, start, start);
-        SendMessageA(tb->edit, EM_REPLACESEL, 0, (long)piece);
+        SendMessageA(tb->edit, EM_REPLACESEL, 0, (int32_t)piece);
         SendMessageA(tb->edit, EM_SETSEL, 0, 0);
         end = IT_EditTextLength(tb->edit, gRichEdit20);
         if (!tb->editable) {
@@ -962,7 +962,7 @@ long IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb)
             }
             count = IT_EditTextLength(tb->edit, gRichEdit20);
             SendMessageA(tb->edit, EM_SETSEL, start, end);
-            SendMessageA(tb->edit, EM_SETCHARFORMAT, SCF_SELECTION, (long)&format.cf);
+            SendMessageA(tb->edit, EM_SETCHARFORMAT, SCF_SELECTION, (int32_t)&format.cf);
             SendMessageA(tb->edit, EM_SETSEL, 0, 0);
         }
         lastHref = href;
@@ -994,7 +994,7 @@ long IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb)
     } else {
         count = IT_EditTextLength(tb->edit, gRichEdit20);
         SendMessageA(tb->edit, EM_SETSEL, count, count);
-        SendMessageA(tb->edit, EM_REPLACESEL, 0, (long)"\r\n");
+        SendMessageA(tb->edit, EM_REPLACESEL, 0, (int32_t)"\r\n");
         SendMessageA(tb->edit, EM_SETSEL, 0, 0);
         SendMessageA(tb->edit, EM_SETREADONLY, 1, 0);
     }
@@ -1012,12 +1012,12 @@ done:
    FGCOLOR or the box's, a link's colour and underline). STATE: MATCH 100%, exe 154 / obj 154,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052386d
-long _IT_TextFormat(void *hwnd, void *dc, ITTextBox *tb, ITTextFormat *format, const char *face,
-                  long size, ULong style, const ITColor *color, ULong order)
+int32_t _IT_TextFormat(void *hwnd, void *dc, ITTextBox *tb, ITTextFormat *format, const char *face,
+                  int32_t size, ULong style, const ITColor *color, ULong order)
 {
     CHARFORMATA *cf;
     LOGFONTA *lf;
-    long points;
+    int32_t points;
     char family[256];
     unsigned char flag;
 
@@ -1082,12 +1082,12 @@ long _IT_TextFormat(void *hwnd, void *dc, ITTextBox *tb, ITTextFormat *format, c
    the start after one; else tabs four spaces and line ends CR LF; NUL-terminated). STATE: MATCH
    100%, exe 106 / obj 106, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00523a35
-long IT_AppendText(void **out, unsigned char upper, const char *text, unsigned char convert,
+int32_t IT_AppendText(void **out, unsigned char upper, const char *text, unsigned char convert,
                   unsigned char collapse, unsigned char afterSpace)
 {
-    long err;
-    long e;
-    long c;
+    int32_t err;
+    int32_t e;
+    int32_t c;
     unsigned char space;
     const char *here;
     const char *piece;
@@ -1138,7 +1138,7 @@ long IT_AppendText(void **out, unsigned char upper, const char *text, unsigned c
         if (space) {
             n = IndirectGetSize(out);
             if (n != 0) {
-                if ((c = ((char *)*out)[(long)n - 1]) == ' ')
+                if ((c = ((char *)*out)[(int32_t)n - 1]) == ' ')
                     continue;
             } else if (afterSpace) {
                 continue;
@@ -1167,12 +1167,12 @@ done:
    the click when it is released over the link). STATE: MATCH 100%, exe 523 / obj 523,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00523b77
-long _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsigned char track,
+int32_t _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsigned char track,
                   ITClick *click)
 {
-    long err;
-    long e;
-    long windowDC;
+    int32_t err;
+    int32_t e;
+    int32_t windowDC;
     ULong count;
     ULong i;
     ULong index;
@@ -1183,12 +1183,12 @@ long _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsigned ch
     ULong lineStart;
     ULong next;
     ULong lineEnd;
-    long lastHeight;
+    int32_t lastHeight;
     unsigned char dead;
     unsigned char lit;
     unsigned char inside;
-    long near;
-    long firstHeight;
+    int32_t near;
+    int32_t firstHeight;
     WinRect client;
     POINT pos;
     ITPoint a;
@@ -1213,7 +1213,7 @@ long _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsigned ch
         err = e;
         goto done;
     }
-    if ((windowDC = (long)GetDC(tb->edit)) == 0) {
+    if ((windowDC = (int32_t)GetDC(tb->edit)) == 0) {
 failed:
         err = GetLastError();
         err = kOutOfMemory;
@@ -1225,7 +1225,7 @@ failed:
                  GetDeviceCaps(tb->textDC, LOGPIXELSX));
     pos.x = pt->h;
     pos.y = pt->v;
-    index = SendMessageA(tb->edit, EM_CHARFROMPOS, 0, (long)&pos);
+    index = SendMessageA(tb->edit, EM_CHARFROMPOS, 0, (int32_t)&pos);
     count = IndirectGetSize(tb->links) / sizeof(ITTextLink);
     for (i = 0; i < count; i++) {
         dead = 0;
@@ -1244,7 +1244,7 @@ failed:
         a = IT_EditCharPos(tb->edit, start, gRichEdit20);
         b = IT_EditCharPos(tb->edit, end, gRichEdit20);
         /* BUG: EM_LINEINDEX where EM_GETSEL was meant, so selStart / selEnd stay uninitialised */
-        SendMessageA(tb->edit, EM_LINEINDEX, (unsigned int)&selStart, (long)&selEnd);
+        SendMessageA(tb->edit, EM_LINEINDEX, (unsigned int)&selStart, (int32_t)&selEnd);
         lineStart = SendMessageA(tb->edit, EM_LINEINDEX, lastLine, 0);
         if (lastLine < SendMessageA(tb->edit, EM_GETLINECOUNT, 0, 0))
             lineEnd = SendMessageA(tb->edit, EM_LINEINDEX, lastLine + 1, 0);

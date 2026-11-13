@@ -8,9 +8,9 @@
 // FUNCTION: EVNOVA 0x00473fa0
 // MAC: _BlitPixieAddOverCopy8 i386 0x000c1879 ppc 0x000cd8f4
 void BlitPixieAddOverCopy8(unsigned char *dstPixels, unsigned char *srcPixels,
-                  long count)
+                  int32_t count)
 {
-    long i;
+    int32_t i;
     unsigned char *s;
     unsigned char *d;
 

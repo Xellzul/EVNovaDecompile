@@ -52,9 +52,9 @@ jpeg_free_large (j_common_ptr cinfo, void FAR * object, size_t sizeofobject)
 /* jpeg_mem_available. STATE: genuine libjpeg 6b; MATCH, byte-identical.
    OPEN: none. */
 // FUNCTION: EVNOVA 0x005614b1
-GLOBAL(long)
-jpeg_mem_available (j_common_ptr cinfo, long min_bytes_needed,
-		    long max_bytes_needed, long already_allocated)
+GLOBAL(int32_t)
+jpeg_mem_available (j_common_ptr cinfo, int32_t min_bytes_needed,
+		    int32_t max_bytes_needed, int32_t already_allocated)
 {
   return max_bytes_needed;
 }
@@ -64,7 +64,7 @@ jpeg_mem_available (j_common_ptr cinfo, long min_bytes_needed,
 // FUNCTION: EVNOVA 0x0056149b
 GLOBAL(void)
 jpeg_open_backing_store (j_common_ptr cinfo, backing_store_ptr info,
-			 long total_bytes_needed)
+			 int32_t total_bytes_needed)
 {
   ERREXIT(cinfo, JERR_NO_BACKING_STORE);
 }
@@ -72,7 +72,7 @@ jpeg_open_backing_store (j_common_ptr cinfo, backing_store_ptr info,
 /* jpeg_mem_init. STATE: genuine libjpeg 6b; MATCH, byte-identical.
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00561498
-GLOBAL(long)
+GLOBAL(int32_t)
 jpeg_mem_init (j_common_ptr cinfo)
 {
   return 0;

@@ -26,10 +26,10 @@ short SWFixImageGWorld(CGrafPtr pictureGWorld, CGrafPtr maskGWorld, Rect *rectP)
     GDHandle saveDevice;
     Ptr baseAddr;
     Ptr maskAddr;
-    long rowBytes;
-    long width, height;
-    long depth;
-    long x, y;
+    int32_t rowBytes;
+    int32_t width, height;
+    int32_t depth;
+    int32_t x, y;
     unsigned short transparentValue;
     PixMapHandle pictPix;
     PixMapHandle maskPix;
@@ -156,10 +156,10 @@ short SWFixImageGWorld(CGrafPtr pictureGWorld, CGrafPtr maskGWorld, Rect *rectP)
     void *saveDevice;
     char *baseAddr;
     char *maskAddr;
-    long rowBytes;
-    long width, height;
-    long depth;
-    long x, y;
+    int32_t rowBytes;
+    int32_t width, height;
+    int32_t depth;
+    int32_t x, y;
     unsigned short transparentValue;
     PixMapPtr pictPix;
     PixMapPtr maskPix;
@@ -242,8 +242,8 @@ short SWFixImageGWorld(CGrafPtr pictureGWorld, CGrafPtr maskGWorld, Rect *rectP)
 
         case 32:
             {
-                unsigned long *dst = (unsigned long *)baseAddr;
-                unsigned long *mask = (unsigned long *)maskAddr;
+                uint32_t *dst = (uint32_t *)baseAddr;
+                uint32_t *mask = (uint32_t *)maskAddr;
 
                 for (y = 0; y < height; y++) {
                     for (x = 0; x < width; x++) {
@@ -255,8 +255,8 @@ short SWFixImageGWorld(CGrafPtr pictureGWorld, CGrafPtr maskGWorld, Rect *rectP)
                             *mask++ = kSolid;
                         }
                     }
-                    dst = (unsigned long *)((char *)dst + rowBytes);
-                    mask = (unsigned long *)((char *)mask + rowBytes);
+                    dst = (uint32_t *)((char *)dst + rowBytes);
+                    mask = (uint32_t *)((char *)mask + rowBytes);
                 }
             }
             break;
@@ -281,10 +281,10 @@ OSErr SWCreateMaskAndFixImage(GWorldPtr pictureGWorld, GWorldPtr maskGWorld, Rec
     GDHandle saveDevice;
     Ptr baseAddr;
     Ptr maskAddr;
-    long rowBytes;
-    long width, height;
-    long depth;
-    long x, y;
+    int32_t rowBytes;
+    int32_t width, height;
+    int32_t depth;
+    int32_t x, y;
     unsigned short transparentValue;
     PixMapHandle pictPix;
     PixMapHandle maskPix;
@@ -443,10 +443,10 @@ OSErr SWFastWhitenGWorld(GWorldPtr pictureGWorld)
     GWorldPtr saveGWorld;
     GDHandle saveDevice;
     Ptr baseAddr;
-    long rowBytes;
-    long width, height;
-    long depth, bytes;
-    long x, y;
+    int32_t rowBytes;
+    int32_t width, height;
+    int32_t depth, bytes;
+    int32_t x, y;
     unsigned short transparentValue;
     PixMapHandle pictPix;
     GWorldFlags pictPixelsState;

@@ -28,7 +28,7 @@ typedef struct Quat_t {
 } Quat_t;
 
 typedef struct FixedVector3D_t {
-    long x, y, z;
+    int32_t x, y, z;
 } FixedVector3D_t;
 
 typedef struct Euler_t {
@@ -50,8 +50,8 @@ static const double kSqrtHalf = 0.70710677f;
 extern float FAngleArray[kTanTableSize + 1];
 extern int FloatToInt(float Input);
 extern float SqrtFast(float Input);
-extern long FloatArcSine(float s);
-extern long FloatArcCosine(float c);
+extern int32_t FloatArcSine(float s);
+extern int32_t FloatArcCosine(float c);
 
 float FloatATan2(float x, float y)
 {

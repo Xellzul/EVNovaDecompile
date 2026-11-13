@@ -61,7 +61,7 @@ void LoadMainScreenAnim(void)
     short spriteID;
     short xTiles;
     short i;
-    unsigned long tick;
+    uint32_t tick;
 
 #ifdef MACBUILD
     if (GetSpriteInfo(0x25e, &spriteID, NULL, &logoFrameSize.width, &logoFrameSize.height,

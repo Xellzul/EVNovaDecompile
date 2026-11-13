@@ -10,10 +10,10 @@ EXTERN(void) jpeg_free_large JPP((j_common_ptr cinfo, void FAR * object,
 
 #define MAX_ALLOC_CHUNK  1000000000L
 
-EXTERN(long) jpeg_mem_available JPP((j_common_ptr cinfo,
-				     long min_bytes_needed,
-				     long max_bytes_needed,
-				     long already_allocated));
+EXTERN(int32_t) jpeg_mem_available JPP((j_common_ptr cinfo,
+				     int32_t min_bytes_needed,
+				     int32_t max_bytes_needed,
+				     int32_t already_allocated));
 
 #define TEMP_NAME_LENGTH   64
 
@@ -24,11 +24,11 @@ typedef struct backing_store_struct {
   JMETHOD(void, read_backing_store, (j_common_ptr cinfo,
 				     backing_store_ptr info,
 				     void FAR * buffer_address,
-				     long file_offset, long byte_count));
+				     int32_t file_offset, int32_t byte_count));
   JMETHOD(void, write_backing_store, (j_common_ptr cinfo,
 				      backing_store_ptr info,
 				      void FAR * buffer_address,
-				      long file_offset, long byte_count));
+				      int32_t file_offset, int32_t byte_count));
   JMETHOD(void, close_backing_store, (j_common_ptr cinfo,
 				      backing_store_ptr info));
 
@@ -44,7 +44,7 @@ typedef struct backing_store_struct {
 
 EXTERN(void) jpeg_open_backing_store JPP((j_common_ptr cinfo,
 					  backing_store_ptr info,
-					  long total_bytes_needed));
+					  int32_t total_bytes_needed));
 
-EXTERN(long) jpeg_mem_init JPP((j_common_ptr cinfo));
+EXTERN(int32_t) jpeg_mem_init JPP((j_common_ptr cinfo));
 EXTERN(void) jpeg_mem_term JPP((j_common_ptr cinfo));

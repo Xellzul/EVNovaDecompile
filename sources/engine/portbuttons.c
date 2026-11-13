@@ -39,7 +39,7 @@ enum { kPortLeaveButton, kPortRefuelButton, kPortTradeButton, kPortOutfitButton,
 short TrackPlanetButtons(Point where)
 {
     Rect box[kPortButtons];
-    long conv;
+    int32_t conv;
     short itemType;
     Handle item;
     Point pt;

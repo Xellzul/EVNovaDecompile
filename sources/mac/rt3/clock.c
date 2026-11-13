@@ -56,8 +56,8 @@ typedef struct ClockQuery {
     struct ClockQuery *next;
     NetAddress address;
     char server[0x100];
-    long *errorOut;
-    long error;
+    int32_t *errorOut;
+    int32_t error;
     ULongLong *response;
     ULongLong *outA;
     ULongLong *outB;
@@ -102,8 +102,8 @@ typedef struct SNTPPacket {
 // MAC: __ClockSendPacket i386 0x000d63b8 ppc 0x000e14a0
 static void _ClockSendPacket(ClockQuery *query)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     NetPacket *packet;
     SNTPPacket *sntp;
     ULongLong now;
@@ -173,7 +173,7 @@ static void _ClockNetworkCallback(NetSocket *sock, void *ref, unsigned short eve
     NetAddress *address;
     unsigned short port;
     ULong ip;
-    long err;
+    int32_t err;
     ULongLong now;
     SNTPPacket *sntp;
     ClockQuery *match;
@@ -271,13 +271,13 @@ static void _ClockNetworkCallback(NetSocket *sock, void *ref, unsigned short eve
 extern void ClockQueryDispose(void);
 
 // MAC: _ClockQueryServer i386 0x000d6e95 ppc 0x000e1a50
-long ClockQueryServer(char *server, ULong timeout, ULongLong *outA, ULongLong *outB, ULongLong *response, long *errorOut)
+int32_t ClockQueryServer(char *server, ULong timeout, ULongLong *outA, ULongLong *outB, ULongLong *response, int32_t *errorOut)
 {
     char *name;
-    long err = 0;
+    int32_t err = 0;
     ClockQuery *query = 0;
     NetPacket *packet;
-    long e;
+    int32_t e;
     ULong deadline;
 
     SystemCheckCallback();

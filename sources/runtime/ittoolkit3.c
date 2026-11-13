@@ -19,15 +19,15 @@ ITControl *_IT_GetPreviousItem(ITControlList *list, ITControl *control);
 extern unsigned short *UnicodeFindDelimiter(const unsigned short *s, const unsigned short *set);
 extern ITElement *PT_ParseTreeRemove(ITElement *root, ITElement *node, unsigned char dispose,
                                unsigned char subtree);                   /* itmarkup.c */
-long _IT_ItemCreate(WindowNode *window, ITControlList *list, ITElement *element,
+int32_t _IT_ItemCreate(WindowNode *window, ITControlList *list, ITElement *element,
                   unsigned char front, unsigned char owns);
-long _IT_ParamCreate(WindowNode *window, ITControlList *list, ITElement *element);
+int32_t _IT_ParamCreate(WindowNode *window, ITControlList *list, ITElement *element);
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
 #define ParamWideArg unsigned char
 #else
-#define ParamWideArg long
+#define ParamWideArg int32_t
 #endif
-long _IT_ParamModify(WindowNode *window, ULong index, const char *value, ParamWideArg unused);
+int32_t _IT_ParamModify(WindowNode *window, ULong index, const char *value, ParamWideArg unused);
 extern ITControlProc IT_ItemHandlerLookup(WindowNode *owner, const char *name);  /* interfacetool.c */
 void _IT_ItemDispose(WindowNode *window, ITControlList *list, ITControl *control);
 void _IT_ParamDispose(WindowNode *window, ITControlList *list, ITInsert *insert);
@@ -59,13 +59,13 @@ extern ULong C2UGetByteCount(const char *s);
 // FUNCTION: EVNOVA 0x0051db65
 ITControlList *_IT_ItemListCreate(WindowNode *window, ITElement *first)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     ITInsert *ins;
-    long index;
+    int32_t index;
 #else
-    long index;
+    int32_t index;
 #endif
     ITControlList *list;
     ITElement *el;
@@ -206,8 +206,8 @@ void _IT_ItemListDispose(WindowNode *window, ITControlList *list)
 {
     WindowNode *root;
     unsigned char hit;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     e = _IT_ViewMoveFocus(window, 1, window, 0, 0);
@@ -236,11 +236,11 @@ void _IT_ItemListDispose(WindowNode *window, ITControlList *list)
 /* _IT_GetItemIndex (a control's index in a list, -1 when absent). STATE: MATCH 100%, exe 19 / obj 19,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051de05
-long _IT_GetItemIndex(ITControlList *list, ITControl *control)
+int32_t _IT_GetItemIndex(ITControlList *list, ITControl *control)
 {
-    long index;
+    int32_t index;
     ITControl *c;
-    long err;
+    int32_t err;
 
     err = 0;
     c = 0;
@@ -262,7 +262,7 @@ long _IT_GetItemIndex(ITControlList *list, ITControl *control)
 ITControl *_IT_GetPreviousItem(ITControlList *list, ITControl *control)
 {
     ITControl *prev;
-    long err;
+    int32_t err;
 
     err = 0;
     prev = 0;
@@ -277,11 +277,11 @@ ITControl *_IT_GetPreviousItem(ITControlList *list, ITControl *control)
 /* _IT_GetObjectItem (the window and control holding a focusable item, looking inside FRAME controls'
    child windows). STATE: MATCH 100%, exe 68 / obj 68, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051de58
-long _IT_GetObjectItem(WindowNode *window, ITControlList *list, ULong item, WindowNode **ownerOut,
+int32_t _IT_GetObjectItem(WindowNode *window, ITControlList *list, ULong item, WindowNode **ownerOut,
                   ITControl **controlOut)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char hit;
     WindowNode *child;
     ITControl *c;
@@ -320,10 +320,10 @@ long _IT_GetObjectItem(WindowNode *window, ITControlList *list, ULong item, Wind
 /* _IT_ItemListQueryFocus (collect the focusable items of a window's controls into a handle, each control's
    own list rebuilt first). STATE: MATCH 100%, exe 58 / obj 58, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051df05
-long _IT_ItemListQueryFocus(WindowNode *window, ITControlList *list, void **items)
+int32_t _IT_ItemListQueryFocus(WindowNode *window, ITControlList *list, void **items)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ITControl *c;
 
     err = 0;
@@ -357,10 +357,10 @@ done:
 /* _IT_ItemListHandleIdle (message 0x13 to every control of a list, up to the first error). STATE: MATCH
    100%, exe 26 / obj 26, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051df83
-long _IT_ItemListHandleIdle(WindowNode *window, ITControlList *list)
+int32_t _IT_ItemListHandleIdle(WindowNode *window, ITControlList *list)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ITControl *c;
 
     err = 0;
@@ -382,11 +382,11 @@ done:
    holds that character is activated (0x17); FRAME controls pass it on (0x16)). STATE: MATCH
    100%, exe 206 / obj 206, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051dfba
-long _IT_ItemListHandleKey(WindowNode *window, ITControlList *list, const ITKeyEvent *key,
+int32_t _IT_ItemListHandleKey(WindowNode *window, ITControlList *list, const ITKeyEvent *key,
                   ITClick *click)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 #ifdef MAC1010      /* 1.0.10 spelling */
     ULong param;
 #endif
@@ -499,12 +499,12 @@ done:
    is recorded with the focus's window and control). STATE: MATCH 100%, exe 54 / obj 54, byte-
    identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051e21d
-long _IT_ItemListHandleEdit(WindowNode *window, ITControlList *list, short event, ITClick *click)
+int32_t _IT_ItemListHandleEdit(WindowNode *window, ITControlList *list, short event, ITClick *click)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ITControl *control;
-    long msg;
+    int32_t msg;
     unsigned char b;
 
     err = 0;
@@ -529,11 +529,11 @@ long _IT_ItemListHandleEdit(WindowNode *window, ITControlList *list, short event
    reports what the click does (0x15): a link, recorded with its window and control). STATE: MATCH
    100%, exe 77 / obj 77, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051e2a3
-long _IT_ItemListHandleClick(WindowNode *window, ITControlList *list, ULong event,
+int32_t _IT_ItemListHandleClick(WindowNode *window, ITControlList *list, ULong event,
                   ITClick *click)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char hit;
     ITControl *c;
 
@@ -568,10 +568,10 @@ done:
 /* _IT_ItemListHandleTest (the controls of a list asked in turn whether they claim an item, up to the first
    that does). STATE: MATCH 100%, exe 33 / obj 33, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051e359
-long _IT_ItemListHandleTest(WindowNode *window, ITControlList *list, ULong item, unsigned char *hit)
+int32_t _IT_ItemListHandleTest(WindowNode *window, ITControlList *list, ULong item, unsigned char *hit)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ITControl *c;
 
     err = 0;
@@ -593,10 +593,10 @@ done:
 /* _IT_ItemListHandleDraw (paint the controls of a list that meet `area', or all of them). STATE: MATCH
    100%, exe 45 / obj 45, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051e3a0
-long _IT_ItemListHandleDraw(WindowNode *window, ITControlList *list, const ITRect *area)
+int32_t _IT_ItemListHandleDraw(WindowNode *window, ITControlList *list, const ITRect *area)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ITControl *c;
 #ifdef MAC1010      /* 1.0.10 spelling */
     ULong param;
@@ -628,10 +628,10 @@ done:
 /* _IT_ItemListHandleActivate (tell the controls of a list that the window activates (0x30) or deactivates
    (0x31)). STATE: MATCH 100%, exe 31 / obj 31, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051e403
-long _IT_ItemListHandleActivate(WindowNode *window, ITControlList *list, unsigned char active)
+int32_t _IT_ItemListHandleActivate(WindowNode *window, ITControlList *list, unsigned char active)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ITControl *c;
 
     err = 0;
@@ -650,11 +650,11 @@ done:
 /* _IT_ItemListHandleCursor (a mouse event to the last active control of a list whose bounds hold it). STATE:
    MATCH 100%, exe 49 / obj 49, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051e44c
-long _IT_ItemListHandleCursor(WindowNode *window, ITControlList *list, ITInputEvent *event,
+int32_t _IT_ItemListHandleCursor(WindowNode *window, ITControlList *list, ITInputEvent *event,
                   unsigned short *modifiers)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char found;
     ITControl *c;
 
@@ -674,7 +674,7 @@ long _IT_ItemListHandleCursor(WindowNode *window, ITControlList *list, ITInputEv
 
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
 static unsigned short kEmptyW[] = { 0 };
-extern long IndirectAddUnicodeTag(void **handle);
+extern int32_t IndirectAddUnicodeTag(void **handle);
 #endif
 
 /* _IT_ItemCreate (a control for an element: KEYS upper-cased in place, RECT parsed and moved by the
@@ -683,11 +683,11 @@ extern long IndirectAddUnicodeTag(void **handle);
    0x32 (list items); removed again on failure). STATE: MATCH 100%, exe 203 / obj 203, byte-
    identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051e4b1
-long _IT_ItemCreate(WindowNode *window, ITControlList *list, ITElement *element,
+int32_t _IT_ItemCreate(WindowNode *window, ITControlList *list, ITElement *element,
                   unsigned char front, unsigned char owns)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char ok;
     ITControl *c;
     ITControl **link;
@@ -832,8 +832,8 @@ done:
 // FUNCTION: EVNOVA 0x0051e6cc
 void _IT_ItemDispose(WindowNode *window, ITControlList *list, ITControl *control)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ITControl **link;
     WindowNode *root;
 
@@ -879,17 +879,17 @@ void _IT_ItemDispose(WindowNode *window, ITControlList *list, ITControl *control
    `file#anchor' a page of another file loaded from the page folder). STATE: MATCH 100%, exe
    199 / obj 199, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051e7b8
-long _IT_ItemExecute(WindowNode *window, ITControl *control, const char *link)
+int32_t _IT_ItemExecute(WindowNode *window, ITControl *control, const char *link)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     char *file;
     char *anchor;
     struct FolderSpec **folder;
     char *text;
     void *target;
     char command[256];
-    long spare;
+    int32_t spare;
 
     err = 0;
     text = 0;
@@ -992,14 +992,14 @@ done:
    0x10, 0x11 and 0x48 the control is asked whether it is active). STATE: MATCH 100%, exe 125 /
    obj 125, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051e9f8
-long _IT_ItemCallback(WindowNode *window, ITControl *control, ULong msg, ULong a, void *b)
+int32_t _IT_ItemCallback(WindowNode *window, ITControl *control, ULong msg, ULong a, void *b)
 {
-    long err;
+    int32_t err;
     void *hwnd;
-    long saved;
+    int32_t saved;
     void *dc;
     WindowNode *root;
-    long e;
+    int32_t e;
     WindowNode *savedWindow;
     ITControl *savedControl;
 
@@ -1060,11 +1060,11 @@ done:
 /* _IT_GetItemColor (offer an item to the controls of a list; the first that claims it gets 0x4c with
    `a' and then 0x4e with `b'). STATE: MATCH 100%, exe 59 / obj 59, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051eb7c
-long _IT_GetItemColor(WindowNode *window, ITControlList *list, ULong item, void *a, void *b,
+int32_t _IT_GetItemColor(WindowNode *window, ITControlList *list, ULong item, void *a, void *b,
                   unsigned char *hit)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char found;
     ITControl *c;
 
@@ -1098,12 +1098,12 @@ done:
 /* _IT_ParamCreate (record an element inserted into a window's document, at the end of the list's
    inserts). STATE: MATCH 100%, exe 40 / obj 40, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051ec01
-long _IT_ParamCreate(WindowNode *window, ITControlList *list, ITElement *element)
+int32_t _IT_ParamCreate(WindowNode *window, ITControlList *list, ITElement *element)
 {
-    long err;
+    int32_t err;
     ITInsert *insert;
     ITInsert **link;
-    long e;
+    int32_t e;
 
     err = 0;
     e = 0;
@@ -1131,7 +1131,7 @@ long _IT_ParamCreate(WindowNode *window, ITControlList *list, ITElement *element
 // FUNCTION: EVNOVA 0x0051ec5c
 void _IT_ParamDispose(WindowNode *window, ITControlList *list, ITInsert *insert)
 {
-    long err;
+    int32_t err;
     ITElement *after;
     ITInsert *i;
     ITElement *limit;
@@ -1187,12 +1187,12 @@ static inline unsigned char IsElement(ITElement *e)
    yes (647 bytes). OPEN: none; `link' / `child' are dead locals the exe's entry proves (names
    invented), the fourth argument is never read; notes/ittoolkit.md */
 // FUNCTION: EVNOVA 0x0051ed23
-long _IT_ParamModify(WindowNode *window, ULong index, const char *value, ParamWideArg unused)
+int32_t _IT_ParamModify(WindowNode *window, ULong index, const char *value, ParamWideArg unused)
 {
-    long err;
+    int32_t err;
     ITInsert **link;
     ITElement *child;
-    long e;
+    int32_t e;
     ITInsert *insert;
     ITInsert *p;
     ITElement *after;
@@ -1348,9 +1348,9 @@ done:
 }
 
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
-long IT_ViewGetPageElement(WindowNode *window, ITElement **element)
+int32_t IT_ViewGetPageElement(WindowNode *window, ITElement **element)
 {
-    long err;
+    int32_t err;
     ITPage *page;
 
     *element = 0;
@@ -1367,12 +1367,12 @@ long IT_ViewGetPageElement(WindowNode *window, ITElement **element)
 /* IT_ViewGetItemCount (how many controls a window has). STATE: MATCH 100%, exe 14 / obj 14, byte-
    identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051efaa
-long IT_ViewGetItemCount(void *windowRef)
+int32_t IT_ViewGetItemCount(void *windowRef)
 {
     WindowNode *window = windowRef;
-    long n;
+    int32_t n;
     ITControl *c;
-    long err;
+    int32_t err;
 
     err = 0;
     c = 0;
@@ -1385,10 +1385,10 @@ long IT_ViewGetItemCount(void *windowRef)
 /* IT_ViewGetNamedItem (the index of the control whose NAME attribute is `name', -1 when none). STATE:
    MATCH 100%, exe 66 / obj 66, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051efcb
-long IT_ViewGetNamedItem(WindowNode *window, const char *name)
+int32_t IT_ViewGetNamedItem(WindowNode *window, const char *name)
 {
     ITControl *c;
-    long index;
+    int32_t index;
     char *value;
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     unsigned short *wideValue;
@@ -1398,7 +1398,7 @@ long IT_ViewGetNamedItem(WindowNode *window, const char *name)
     char wanted[256];
     char have[256];
     WindowNode *w;
-    long err;
+    int32_t err;
     unsigned char isTag;
 
     w = window;

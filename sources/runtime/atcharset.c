@@ -72,7 +72,7 @@ static struct HashTable *gTextEncodingsHashRef;           /* 0x00867d9c names */
 static struct HashTable *gTextMappingsHashRef;           /* 0x00867d98 entities */
 
 /* 0x00578c4c */
-static const struct { CharEntry rows[kCharRows]; long unused; } kCharEntries = { {   /* 1.0.10 pad: `unused`, the zero word after the rows (every held build) */
+static const struct { CharEntry rows[kCharRows]; int32_t unused; } kCharEntries = { {   /* 1.0.10 pad: `unused`, the zero word after the rows (every held build) */
     { 0x0000, 0x00, 0x00, 0x00, "" },
     { 0x0026, 0x26, 0x26, 0x26, "amp" },
     { 0x003c, 0x3c, 0x3c, 0x3c, "lt" },
@@ -231,15 +231,15 @@ static const struct { CharEntry rows[kCharRows]; long unused; } kCharEntries = {
 AT_STATIC char gTextMappingSubstitute = kSubstitute;                 /* 0x0057937c */
 
 AT_STATIC void _EncodingPostflight(void);
-AT_STATIC long _EncodingPreflightMappings(struct HashTable *table);
+AT_STATIC int32_t _EncodingPreflightMappings(struct HashTable *table);
 
 /* _EncodingPreflight. STATE: MATCH 100%, exe 194 / obj 194, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005047d3
-long _EncodingPreflight(void)
+int32_t _EncodingPreflight(void)
 {
     CharsetInfo info;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     if (gTextEncodingsHashRef == 0) {
@@ -363,9 +363,9 @@ AT_STATIC void _EncodingPostflight(void)
 
 /* _EncodingPreflightMappings. STATE: MATCH 100%, exe 231 / obj 231, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00504b20
-AT_STATIC long _EncodingPreflightMappings(struct HashTable *table)
+AT_STATIC int32_t _EncodingPreflightMappings(struct HashTable *table)
 {
-    long err, e;
+    int32_t err, e;
     CharEntry entry;
     char name[256];
     unsigned char index;
@@ -480,7 +480,7 @@ CharsetInfo *_EncodingLookupByName(const char *name)
 {
     char key[256];
     char *p;
-    long err;
+    int32_t err;
 
     err = 0;
     p = 0;
@@ -496,7 +496,7 @@ CharsetInfo *_EncodingLookupByName(const char *name)
 CharEntry *_EncodingLookupTable(ULong tag)
 {
     CharEntry *table;
-    long err;
+    int32_t err;
 
     err = 0;
     table = 0;
@@ -535,7 +535,7 @@ char EncodingLookupTag(const char *entity)
     unsigned char *index;
     char c;
     ULong code;
-    long err;
+    int32_t err;
     const CharEntry *row;
 
     err = 0;
@@ -569,7 +569,7 @@ char EncodingLookupTag(const char *entity)
 // FUNCTION: EVNOVA 0x00504f8d
 const char *_IndirectGetUnicodeEncoding(void **handle, ULong *tag, ULong *bom)
 {
-    long err;
+    int32_t err;
     const char *name;
     ULong t;
     ULong mark;
@@ -657,7 +657,7 @@ const char *_IndirectGetUnicodeEncoding(void **handle, ULong *tag, ULong *bom)
 // FUNCTION: EVNOVA 0x005051f9
 ULong _IndirectGetEncoding(void **handle, char *nameOut, ULong *kindOut, ULong *bomOut)
 {
-    long err;
+    int32_t err;
     const char *name;
     ULong tag;
     const unsigned char *s;
@@ -868,7 +868,7 @@ unsigned char IndirectIsNormalizedEncoding(void **handle)
 /* IndirectNormalizeEncoding (a handle's 8-bit text re-coded to Windows-1252 in place, from `charset' or
    the detected set). STATE: MATCH 100%, exe 89 / obj 89, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005056a4
-long IndirectNormalizeEncoding(void **handle, const char *charset)
+int32_t IndirectNormalizeEncoding(void **handle, const char *charset)
 {
     CharEntry *table;
     CharsetInfo *info;
@@ -877,7 +877,7 @@ long IndirectNormalizeEncoding(void **handle, const char *charset)
     ULong i;
     unsigned char *p;
     unsigned char c;
-    long err;
+    int32_t err;
 
     err = 0;
     table = 0;
@@ -972,17 +972,17 @@ unsigned char IndirectIsNormalizedUnicode(void **handle)
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
 ULong count_UTF32_to_UTF16(const ULong *s, ULong limit);
 unsigned short *convert_UTF32_to_UTF16(unsigned short *dst, const ULong *src, ULong dstBytes,
-                             long budget, long terminate);
+                             int32_t budget, int32_t terminate);
 
 #define ATSwap16(v)     ((long long)((((v) >> 8) & 0xff) | (((v) & 0xff) << 8)))
 
 /* IndirectNormalizeUnicode (mac 1.1.1 framework _IndirectNormalizeUnicode; Carbon 0x101337e0). STATE: DIFF,
    eq 116 / blind 501, exe 508 / obj 511. OPEN: b199 keeps an offset IV in the three swap loops (b0167 gives the
    exe's pointer form); the switch's `lis; addi 0` constants are on no held build. */
-long IndirectNormalizeUnicode(void **handle, const char *charset)
+int32_t IndirectNormalizeUnicode(void **handle, const char *charset)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong tag;
     ULong kind;
     ULong bom;
@@ -1117,10 +1117,10 @@ done:
     return err;
 }
 
-long IndirectAddUnicodeTag(void **handle)
+int32_t IndirectAddUnicodeTag(void **handle)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned short tag;
 
     err = 0;
@@ -1145,11 +1145,11 @@ done:
 /* IndirectRemoveUnicodeTag (drop a UTF-16 byte-order mark from the handle). STATE: MATCH 100%, exe 53 /
    obj 53, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005057fa
-long IndirectRemoveUnicodeTag(void **handle)
+int32_t IndirectRemoveUnicodeTag(void **handle)
 {
     const char *name;
     ULong size;
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     IndirectGetLock(handle);
@@ -1180,7 +1180,7 @@ char UnicodePoint2Char8(ULong code)
 {
     char c;
     ULong i;
-    long err;
+    int32_t err;
     ULong nWin;
 
     err = 0;
@@ -1206,7 +1206,7 @@ ULong UnicodeLookupTag(const char *entity)
     char key[256];
     unsigned char *index;
     ULong code;
-    long err;
+    int32_t err;
     const CharEntry *row;
 
     err = 0;
@@ -1242,22 +1242,22 @@ static const unsigned char kPadWord[4] = { 0 };  /* 0x00579484 */
 
 ULong unicode_bytecount(const unsigned short *s);
 ULong unicode_charcount(const unsigned short *s);
-long unicode_strncmp(const unsigned short *a, ULong lenA,
+int32_t unicode_strncmp(const unsigned short *a, ULong lenA,
                   const unsigned short *b, ULong lenB);
 ULong unicode_bytecount_limit(const unsigned short *s, ULong index);
 ULong unicode_charcount_limit(const unsigned short *s, ULong bytes);
 unsigned short *unicode_strcpy(unsigned short *dst, const unsigned short *src);
-long _unicode_findmatch(const unsigned short *s, const unsigned short *set, long inSet);
+int32_t _unicode_findmatch(const unsigned short *s, const unsigned short *set, int32_t inSet);
 unsigned short *unicode_strpbrk(const unsigned short *s, const unsigned short *set);
 unsigned short *convert_UTF32_to_UTF16(unsigned short *dst, const ULong *src, ULong dstBytes,
-                             long budget, long terminate);
+                             int32_t budget, int32_t terminate);
 
 /* UnicodeGetByteCount. STATE: MATCH 100%, exe 8 / obj 8, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00505975
 ULong UnicodeGetByteCount(const unsigned short *s)
 {
-    long err;
+    int32_t err;
     ULong result;
 
     err = 0;
@@ -1271,7 +1271,7 @@ ULong UnicodeGetByteCount(const unsigned short *s)
 // FUNCTION: EVNOVA 0x00505988
 ULong UnicodeGetCharCount(const unsigned short *s)
 {
-    long err;
+    int32_t err;
     ULong result;
 
     err = 0;
@@ -1285,7 +1285,7 @@ ULong UnicodeGetCharCount(const unsigned short *s)
 // FUNCTION: EVNOVA 0x0050599b
 ULong UnicodeGetByteCountFromChars(const unsigned short *s, ULong index)
 {
-    long err;
+    int32_t err;
     ULong result;
 
     err = 0;
@@ -1299,7 +1299,7 @@ ULong UnicodeGetByteCountFromChars(const unsigned short *s, ULong index)
 // FUNCTION: EVNOVA 0x005059b3
 ULong UnicodeGetCharCountFromBytes(const unsigned short *s, ULong bytes)
 {
-    long err;
+    int32_t err;
     ULong result;
 
     err = 0;
@@ -1315,7 +1315,7 @@ ULong UnicodeGetCharByIndex(const unsigned short *s, ULong index)
 {
     ULong n;
     ULong c;
-    long err;
+    int32_t err;
 
     err = 0;
     n = unicode_bytecount_limit(s, index) >> 1;
@@ -1332,7 +1332,7 @@ unsigned short *UnicodeDuplicate(const unsigned short *s)
 {
     unsigned short *copy;
     ULong bytes;
-    long err;
+    int32_t err;
 
     err = 0;
     copy = 0;
@@ -1349,7 +1349,7 @@ unsigned short *UnicodeDuplicate(const unsigned short *s)
 // FUNCTION: EVNOVA 0x00505a4a
 unsigned short *UnicodeCopy(unsigned short *dst, const unsigned short *src)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     unicode_strcpy(dst, src);
@@ -1430,9 +1430,9 @@ unsigned short *UnicodeAppendSafe(unsigned short *dst, const unsigned short *src
 /* UnicodeCompare. STATE: MATCH 100%, exe 9 / obj 9, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00505b6f
-long UnicodeCompare(const unsigned short *a, const unsigned short *b)
+int32_t UnicodeCompare(const unsigned short *a, const unsigned short *b)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     return unicode_strncmp(a, kNoLength, b, kNoLength);
@@ -1441,11 +1441,11 @@ long UnicodeCompare(const unsigned short *a, const unsigned short *b)
 /* UnicodeCompareSafe (strncmp in characters). STATE: MATCH 100%, exe 33 / obj 33, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00505b88
-long UnicodeCompareSafe(const unsigned short *a, const unsigned short *b, ULong max)
+int32_t UnicodeCompareSafe(const unsigned short *a, const unsigned short *b, ULong max)
 {
     ULong lenA;
     ULong lenB;
-    long err;
+    int32_t err;
 
     err = 0;
     lenA = UnicodeGetCharCount(a);
@@ -1461,7 +1461,7 @@ long UnicodeCompareSafe(const unsigned short *a, const unsigned short *b, ULong 
 // FUNCTION: EVNOVA 0x00505bc9
 unsigned short *UnicodeFindDelimiter(const unsigned short *s, const unsigned short *set)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     return unicode_strpbrk(s, set);
@@ -1474,7 +1474,7 @@ const unsigned short *UnicodeAdvance(const unsigned short *s, ULong *code)
 {
     ULong c;
     ULong n;
-    long err;
+    int32_t err;
 
     err = 0;
     n = 0;
@@ -1494,7 +1494,7 @@ unsigned char UnicodeAdvancePtr(const unsigned short **cursor, ULong *code)
     ULong c;
     ULong n;
     const unsigned short *s;
-    long err;
+    int32_t err;
 
     err = 0;
     n = 0;
@@ -1521,7 +1521,7 @@ const unsigned short *UnicodeAdvanceCount(const unsigned short *s, ULong count)
 {
     ULong c;
     ULong i;
-    long err;
+    int32_t err;
 
     err = 0;
     i = 0;
@@ -1545,9 +1545,9 @@ const unsigned short *UnicodeAdvanceCount(const unsigned short *s, ULong count)
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00505ce5
 unsigned short *UTF32_2UStringCopySafe(unsigned short *dst, const ULong *src, ULong dstBytes,
-                             long maxChars)
+                             int32_t maxChars)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     dstBytes -= dstBytes % sizeof(unsigned short);
@@ -1561,7 +1561,7 @@ unsigned short *UTF32_2UStringCopySafe(unsigned short *dst, const ULong *src, UL
 unsigned char *U2CStringCopySafe(unsigned char *dst, const unsigned short *src, ULong dstBytes,
                             ULong maxChars)
 {
-    long err;
+    int32_t err;
     char substitute;
     unsigned char *p;
     ULong c;
@@ -1615,7 +1615,7 @@ ULong C2UGetByteCount(const char *s)
 unsigned short *C2UStringCopySafe(unsigned short *dst, const unsigned char *src,
                              ULong dstBytes, ULong maxChars)
 {
-    long err;
+    int32_t err;
     CharEntry *table;
     unsigned short *p;
     ULong c;
@@ -1699,7 +1699,7 @@ unsigned short *Unicode2UpperCopySafe(unsigned short *dst, const unsigned short 
     ULong i;
     ULong o;
     ULong c;
-    long err;
+    int32_t err;
 
     err = 0;
     dstBytes -= dstBytes & 1;

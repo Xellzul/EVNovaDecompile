@@ -25,7 +25,7 @@ typedef struct PilotRec {
     short legalStatus[0x800];   /* +0x0141a */
     short weapCount[0x100];     /* +0x0241a */
     short weapAmmo[0x100];      /* +0x0261a */
-    long credits;               /* +0x0281a */
+    int32_t credits;               /* +0x0281a */
     MissionState objectives[16];   /* +0x0281e */
     MissionRecord missions[16];        /* +0x0295e */
     char missionBits[0x2710];   /* +0x0b7be */
@@ -35,7 +35,7 @@ typedef struct PilotRec {
     short escortA[0x40];        /* +0x0e7ce */
     short escortB[0x40];        /* +0x0e84e */
     short fighterVoice[0x40];   /* +0x0e8ce */
-    long kills;                 /* +0x0e94e */
+    int32_t kills;                 /* +0x0e94e */
 } PilotRec;
 
 /* second resource: the galaxy record, 0x5efe bytes */

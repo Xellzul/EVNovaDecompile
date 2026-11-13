@@ -41,9 +41,9 @@ CGError CGAcquireDisplayFadeReservation(float seconds, CGDisplayFadeReservationT
 CGError CGDisplayFade(CGDisplayFadeReservationToken token, float duration, float startBlend,
                       float endBlend, float r, float g, float b, int synchronous)
 {
-    unsigned long ms;
-    unsigned long start;
-    unsigned long elapsed;
+    uint32_t ms;
+    uint32_t start;
+    uint32_t elapsed;
 
     VideoOSGammaInit();
     if (displayBlend == kCGDisplayBlendNormal) {
@@ -52,7 +52,7 @@ CGError CGDisplayFade(CGDisplayFadeReservationToken token, float duration, float
         if (normalGamma.Red[kGammaEntries - 1] == 0.0f)
             return kCGErrorSuccess;
     }
-    ms = (unsigned long)(duration * kMillisPerSecond);
+    ms = (uint32_t)(duration * kMillisPerSecond);
     start = ReadTickMilliseconds();
     for (;;) {
         elapsed = ReadTickMilliseconds() - start;

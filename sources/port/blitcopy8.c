@@ -11,16 +11,16 @@
 // FUNCTION: EVNOVA 0x004b7230
 void CopyBitsCopy8(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
 {
-    long width;
-    long height;
-    long srcRow;
-    long dstRow;
+    int32_t width;
+    int32_t height;
+    int32_t srcRow;
+    int32_t dstRow;
     unsigned char *dstP;
-    unsigned long rgb;
-    unsigned long rgb2;
+    uint32_t rgb;
+    uint32_t rgb2;
     unsigned char *srcP;
     unsigned char *table;
-    long n;
+    int32_t n;
 
     width = dstRect->right - dstRect->left;
     height = dstRect->bottom - dstRect->top;
@@ -40,9 +40,9 @@ void CopyBitsCopy8(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
                 do {
                 /* rgb (srcP[0]) first: the index-load order assigns the
                    whole function's colouring, prologue included. */
-                rgb = *(unsigned long *)(table + srcP[0] * 3);
-                rgb2 = *(unsigned long *)(table + srcP[1] * 3);
-                *(unsigned long *)dstP =
+                rgb = *(uint32_t *)(table + srcP[0] * 3);
+                rgb2 = *(uint32_t *)(table + srcP[1] * 3);
+                *(uint32_t *)dstP =
                     ((rgb << 7 & 0x7c00) + (rgb >> 6 & 0x3e0) +
                      (rgb >> 0x13 & 0x1f)) +
                     (((rgb2 << 7 & 0x7c00) + (rgb2 >> 6 & 0x3e0) +
@@ -52,7 +52,7 @@ void CopyBitsCopy8(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
                 } while ((n -= 2) > 1);
             }
             if (n != 0) {
-                rgb = *(unsigned long *)(table + *srcP * 3);
+                rgb = *(uint32_t *)(table + *srcP * 3);
                 *(unsigned short *)dstP = ((rgb << 7 & 0x7c00) +
                     (rgb >> 6 & 0x3e0) + (rgb >> 0x13 & 0x1f));
                 srcP++;
@@ -70,15 +70,15 @@ void CopyBitsCopy8(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
 void CopyBitsOr8(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
 {
     unsigned char *srcP;
-    long height;
-    long srcRow;
-    long dstRow;
+    int32_t height;
+    int32_t srcRow;
+    int32_t dstRow;
     unsigned short *dstP;
-    unsigned long rgb;
+    uint32_t rgb;
     unsigned char *table;
-    long width;
+    int32_t width;
     unsigned int idx;
-    long n;
+    int32_t n;
 
     width = dstRect->right - dstRect->left;
     height = dstRect->bottom - dstRect->top;
@@ -97,7 +97,7 @@ void CopyBitsOr8(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
             do {
                 idx = *srcP;
                 if (idx != 0) {
-                    rgb = *(unsigned long *)(table + idx * 3);
+                    rgb = *(uint32_t *)(table + idx * 3);
                     *dstP = ((rgb << 7 & 0x7c00) + (rgb >> 6 & 0x3e0) +
                                               (rgb >> 0x13 & 0x1f));
                 }

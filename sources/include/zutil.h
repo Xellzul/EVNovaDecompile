@@ -17,7 +17,7 @@ typedef unsigned char  uch;
 typedef uch FAR uchf;
 typedef unsigned short ush;
 typedef ush FAR ushf;
-typedef unsigned long  ulg;
+typedef uint32_t  ulg;
 
 extern const char * const z_errmsg[10];
 

@@ -111,7 +111,7 @@ void ClosePrefs(void)
 
 /* GetIniIndString. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004bd000
-void GetIniIndString(char *out, long listID, long index)
+void GetIniIndString(char *out, int32_t listID, int32_t index)
 {
     char group[kPrefStringMax];
     char key[0x40];

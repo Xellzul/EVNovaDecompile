@@ -21,8 +21,8 @@
 #define kMaxPath            260
 #define kBadFilePointer     0xffffffffUL         /* INVALID_SET_FILE_POINTER */
 
-long _FT_PathSplitLeaf(char *path, char *leaf);
-long _FT_BufferOpen(void **handle, unsigned char mode, FTFile *file);
+int32_t _FT_PathSplitLeaf(char *path, char *leaf);
+int32_t _FT_BufferOpen(void **handle, unsigned char mode, FTFile *file);
 
 /* _FT_IsIndirectBusy (the handle-release hook FT_Open installs). STATE: MATCH 100%, 9/9,
    byte-identical yes. OPEN: none */
@@ -41,16 +41,16 @@ unsigned char _FT_IsIndirectBusy(void *handle)
 /* _FT_PathGoTo (FT special-folder spec). STATE: MATCH 100%, exe 290 / obj 290,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00509fb7
-long _FT_PathGoTo(void *ref, long folder)
+int32_t _FT_PathGoTo(void *ref, int32_t folder)
 {
     char path[kPathMax];
     char full[kPathMax];
     void *token;
     char *filePart;
     ULong len;
-    long err;
+    int32_t err;
     FolderSpec **spec = ref;
-    long result;
+    int32_t result;
     ULong i;
     char *home;
     SHGetFolderPathProc getFolderPath;
@@ -265,17 +265,17 @@ static inline void ATCheckPathLength(const char *path)
    it is one letter; the name compare is case-folded). STATE: MATCH 100%, exe 199 / obj 199,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050a3b7
-long _FT_PathGoToVolumeName(FolderSpec **spec, const unsigned char *volume)
+int32_t _FT_PathGoToVolumeName(FolderSpec **spec, const unsigned char *volume)
 {
-    long err, e;
+    int32_t err, e;
     ULong drives, bit, pass, drive;
     unsigned int oldMode, type;
     char want[kMaxPath];
     char fsName[kMaxPath];
     char name[kMaxPath];
-    unsigned long serial;
-    unsigned long maxComponent;
-    unsigned long fsFlags;
+    uint32_t serial;
+    uint32_t maxComponent;
+    uint32_t fsFlags;
     char root[4];
     char *s;
 
@@ -365,16 +365,16 @@ done:
 /* _FT_PathGoToVolume (a spec for the root of the index-th mounted volume, from 1). STATE: MATCH
    100%, exe 96 / obj 96, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050a646
-long _FT_PathGoToVolume(FolderSpec **spec, ULong index)
+int32_t _FT_PathGoToVolume(FolderSpec **spec, ULong index)
 {
-    long err, e;
+    int32_t err, e;
     ULong drives, i, drive;
     unsigned int oldMode;
     char fsName[kMaxPath];
     char name[kMaxPath];
-    unsigned long serial;
-    unsigned long maxComponent;
-    unsigned long fsFlags;
+    uint32_t serial;
+    uint32_t maxComponent;
+    uint32_t fsFlags;
     char root[4];
 
     err = 0;
@@ -412,15 +412,15 @@ done:
     return err;
 }
 
-long _FT_PathSplitLeaf(char *path, char *leaf);
+int32_t _FT_PathSplitLeaf(char *path, char *leaf);
 
 /* _FT_PathGoToParent (a spec's parent folder, the left name into `leaf` as a Pascal string;
    kFTErrDirNotFound at a root). STATE: MATCH 100%, exe 185 / obj 185, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050a798
-long _FT_PathGoToParent(FolderSpec **spec, unsigned char *leaf)
+int32_t _FT_PathGoToParent(FolderSpec **spec, unsigned char *leaf)
 {
-    long err, e;
+    int32_t err, e;
     char path[kPathMax];
 
     err = 0;
@@ -460,11 +460,11 @@ static char kSlash[] = "/";
 /* _FT_PathGoToChild (step a spec into `name`: a folder joins the path, anything else is kept as
    a Pascal name). STATE: MATCH 100%, exe 163 / obj 163, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050a94b
-long _FT_PathGoToChild(FolderSpec **spec, const unsigned char *name, unsigned char last)
+int32_t _FT_PathGoToChild(FolderSpec **spec, const unsigned char *name, unsigned char last)
 {
-    long err, e;
+    int32_t err, e;
     char path[kPathMax];
-    unsigned long attributes;
+    uint32_t attributes;
 
     err = 0;
     e = 0;
@@ -501,10 +501,10 @@ done:
 // FUNCTION: EVNOVA 0x0050aad6
 unsigned char _FT_IsPathAFile(FolderSpec **spec)
 {
-    long err;
+    int32_t err;
     unsigned char isFile;
     char path[kPathMax];
-    unsigned long attributes;
+    uint32_t attributes;
 
     err = 0;
     attributes = 0;
@@ -528,10 +528,10 @@ unsigned char _FT_IsPathAFile(FolderSpec **spec)
 /* _FT_PathValidate (does a spec's folder exist). STATE: MATCH 100%, exe 86 / obj 86,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050aba9
-long _FT_PathValidate(FolderSpec **spec)
+int32_t _FT_PathValidate(FolderSpec **spec)
 {
-    long err;
-    unsigned long attributes;
+    int32_t err;
+    uint32_t attributes;
     char path[kPathMax];
 
     err = 0;
@@ -552,11 +552,11 @@ long _FT_PathValidate(FolderSpec **spec)
 /* _FT_PathGoToDrive (FT spec from drive and path). STATE: MATCH 100%, exe 79 / obj 79,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050ac6d
-long _FT_PathGoToDrive(FolderSpec **spec, char drive, const char *dirPath)
+int32_t _FT_PathGoToDrive(FolderSpec **spec, char drive, const char *dirPath)
 {
     char root[kPathMax];
-    long err;
-    long result;
+    int32_t err;
+    int32_t result;
 
     err = 0;
     IndirectGetSize((void **)spec);
@@ -586,9 +586,9 @@ long _FT_PathGoToDrive(FolderSpec **spec, char drive, const char *dirPath)
    folder; the spec then names it; a failure deletes the path). STATE: MATCH 100%, exe 181 /
    obj 181, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050ad3a
-long _FT_FileCreate(FolderSpec **spec, FTFileInfo *info)
+int32_t _FT_FileCreate(FolderSpec **spec, FTFileInfo *info)
 {
-    long err;
+    int32_t err;
     void *h;
     unsigned int oldMode;
     int ok;
@@ -635,18 +635,18 @@ cleanup:
         CloseHandle(h);
     /* BUG: passes the Windows path as FT_FileDelete's folder reference (exe 0x0050af1d) */
     if (err != 0)
-        FT_FileDelete((long)path, info->name);
+        FT_FileDelete((int32_t)path, info->name);
     return err;
 }
 
 /* _FT_FileDelete (delete the spec's file, or its folder when empty). STATE: MATCH 100%, exe
    105 / obj 105, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050af31
-long _FT_FileDelete(FolderSpec **spec)
+int32_t _FT_FileDelete(FolderSpec **spec)
 {
-    long err;
+    int32_t err;
     char path[kPathMax];
-    unsigned long attributes;
+    uint32_t attributes;
 
     err = 0;
     attributes = 0;
@@ -674,9 +674,9 @@ failed:
 /* _FT_FileGetDates (the spec's creation and modification times, seconds since 1970). STATE:
    MATCH 100%, exe 81 / obj 81, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050b029
-long _FT_FileGetDates(FolderSpec **spec, ULong *created, ULong *modified)
+int32_t _FT_FileGetDates(FolderSpec **spec, ULong *created, ULong *modified)
 {
-    long err;
+    int32_t err;
     void *find;
     char path[kPathMax];
     WIN32_FIND_DATAA data;
@@ -704,10 +704,10 @@ long _FT_FileGetDates(FolderSpec **spec, ULong *created, ULong *modified)
    files reads as a folder). STATE: MATCH 100%, exe 295 / obj 295, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050b109
-long _FT_FileGetFlags(FolderSpec **spec, FTFileInfo *info, unsigned char checkArchive)
+int32_t _FT_FileGetFlags(FolderSpec **spec, FTFileInfo *info, unsigned char checkArchive)
 {
-    long err;
-    unsigned long attributes;
+    int32_t err;
+    uint32_t attributes;
     void *find;
     char *p;
     char path[kPathMax];
@@ -795,8 +795,8 @@ done:
 FTFile *_FT_IsFileOpen(FolderSpec **spec)
 {
     char path[kPathMax];
-    long err;
-    long result;
+    int32_t err;
+    int32_t result;
     FTFile **link;
 
     err = 0;
@@ -816,11 +816,11 @@ FTFile *_FT_IsFileOpen(FolderSpec **spec)
 /* _FT_FileOpen (open the spec's path as a native FTFile, read-only or read-write). STATE:
    MATCH 100%, exe 159 / obj 159, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050b56a
-long _FT_FileOpen(FolderSpec **spec, unsigned char write, FTFile *file)
+int32_t _FT_FileOpen(FolderSpec **spec, unsigned char write, FTFile *file)
 {
-    long err;
+    int32_t err;
     unsigned int oldMode;
-    long e;
+    int32_t e;
     void *h;
     BY_HANDLE_FILE_INFORMATION info;
     char path[kPathMax];
@@ -863,9 +863,9 @@ done:
 /* _FT_FileClose (FT native file close). STATE: MATCH 100%, exe 23 / obj 23, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050b722
-long _FT_FileClose(FTFile *file)
+int32_t _FT_FileClose(FTFile *file)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (file->hFile != kNoFile) {
@@ -881,9 +881,9 @@ long _FT_FileClose(FTFile *file)
 /* _FT_FileFlush (FT native flush). STATE: MATCH 100%, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050b75d
-long _FT_FileFlush(FTFile *file)
+int32_t _FT_FileFlush(FTFile *file)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (!FlushFileBuffers(file->hFile))
@@ -894,10 +894,10 @@ long _FT_FileFlush(FTFile *file)
 /* _FT_FileRead (FT native read). STATE: MATCH 100%, exe 39 / obj 39, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050b784
-long _FT_FileRead(FTFile *file, ULong count, void *buffer)
+int32_t _FT_FileRead(FTFile *file, ULong count, void *buffer)
 {
     ULong got;
-    long err;
+    int32_t err;
 
     err = 0;
     got = 0;
@@ -914,10 +914,10 @@ long _FT_FileRead(FTFile *file, ULong count, void *buffer)
 /* _FT_FileWrite (FT native write). STATE: MATCH 100%, exe 85 / obj 85, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050b7e8
-long _FT_FileWrite(FTFile *file, ULong count, const void *buffer)
+int32_t _FT_FileWrite(FTFile *file, ULong count, const void *buffer)
 {
     ULong got;
-    long err;
+    int32_t err;
 
     err = 0;
     got = 0;
@@ -951,9 +951,9 @@ fail:
 /* _FT_FileGetEOF (FT native size). STATE: MATCH 100%, exe 12 / obj 12, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050b8d6
-long _FT_FileGetEOF(FTFile *file, ULong *size)
+int32_t _FT_FileGetEOF(FTFile *file, ULong *size)
 {
-    long err;
+    int32_t err;
     ULong eof;
 
     err = 0;
@@ -965,9 +965,9 @@ long _FT_FileGetEOF(FTFile *file, ULong *size)
 /* _FT_FileSetEOF (FT native set size). STATE: MATCH 100%, exe 81 / obj 81, byte-identical
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050b8f0
-long _FT_FileSetEOF(FTFile *file, ULong size)
+int32_t _FT_FileSetEOF(FTFile *file, ULong size)
 {
-    long err;
+    int32_t err;
     ULong pos;
 
     err = 0;
@@ -1005,9 +1005,9 @@ fail:
 /* _FT_FileGetMark (FT native position). STATE: MATCH 100%, exe 12 / obj 12, byte-identical
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050b9c8
-long _FT_FileGetMark(FTFile *file, ULong *position)
+int32_t _FT_FileGetMark(FTFile *file, ULong *position)
 {
-    long err;
+    int32_t err;
     ULong pos;
 
     err = 0;
@@ -1019,9 +1019,9 @@ long _FT_FileGetMark(FTFile *file, ULong *position)
 /* _FT_FileSetMark (FT native seek). STATE: MATCH 100%, exe 31 / obj 31, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050b9e2
-long _FT_FileSetMark(FTFile *file, ULong position)
+int32_t _FT_FileSetMark(FTFile *file, ULong position)
 {
-    long err;
+    int32_t err;
     ULong pos;
 
     err = 0;
@@ -1039,9 +1039,9 @@ long _FT_FileSetMark(FTFile *file, ULong position)
 /* _FT_RemapError (Win32 error to FT error). STATE: MATCH 100%, exe 124 / obj 124, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050ba2c
-long _FT_RemapError(ULong winError)
+int32_t _FT_RemapError(ULong winError)
 {
-    long err;
+    int32_t err;
 
     err = winError;
     switch (err) {
@@ -1129,7 +1129,7 @@ long _FT_RemapError(ULong winError)
 }
 
 /* Placement only: no reader in the exe. */
-static long sUnreadLong = 1;                    /* 0x00579908 */
+static int32_t sUnreadLong = 1;                    /* 0x00579908 */
 static const char kDot[] = ".";
 static const char kDotDot[] = "..";
 static const char kSeparators[] = "/:\\%";
@@ -1144,7 +1144,7 @@ ULong _FT_FileTimeToSeconds(const FILETIME *time)
         31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     };
     SYSTEMTIME st;
-    long years, days;
+    int32_t years, days;
     int month;
 
     days = 0;
@@ -1160,13 +1160,13 @@ ULong _FT_FileTimeToSeconds(const FILETIME *time)
 /* _FT_PathFullPath (FT full path of a directory relative to another). STATE: MATCH 100%, exe 92
    / obj 92, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050bc90
-long _FT_PathFullPath(char *dir, const char *relPath)
+int32_t _FT_PathFullPath(char *dir, const char *relPath)
 {
     char saved[kPathMax];
     char *filePart;
     ULong savedLen;
-    long len;
-    long err;
+    int32_t len;
+    int32_t err;
     unsigned char restore;
 
     err = 0;
@@ -1206,9 +1206,9 @@ badPath:
 /* _FT_PathSplitLeaf (cut a path at its last backslash, copying what follows to `leaf`). STATE:
    MATCH 100%, exe 87 / obj 87, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050bd8e
-long _FT_PathSplitLeaf(char *path, char *leaf)
+int32_t _FT_PathSplitLeaf(char *path, char *leaf)
 {
-    long len;
+    int32_t len;
     char found;
     char *last;
     char *start;
@@ -1237,9 +1237,9 @@ long _FT_PathSplitLeaf(char *path, char *leaf)
 /* _FT_ChunkFilePreflight (FT mark a file's position). STATE: MATCH 100%, exe 14 / obj 14, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050be45
-long _FT_ChunkFilePreflight(FTFile *file, FTMark *mark)
+int32_t _FT_ChunkFilePreflight(FTFile *file, FTMark *mark)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     mark->file = file;
@@ -1252,9 +1252,9 @@ long _FT_ChunkFilePreflight(FTFile *file, FTMark *mark)
 
 /* _FT_ChunkFilePostflight (FT return to a mark). STATE: MATCH 100%, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050be68
-long _FT_ChunkFilePostflight(FTFile *file, FTMark *mark)
+int32_t _FT_ChunkFilePostflight(FTFile *file, FTMark *mark)
 {
-    long err, result;
+    int32_t err, result;
     FTFile *marked;
 
     err = 0;

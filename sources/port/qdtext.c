@@ -18,23 +18,23 @@
 /* DrawTextRun. STATE: MATCH, byte-identical. OPEN: the walk's compare constant and counter
    name are guesses (both dead in the exe); see notes */
 // FUNCTION: EVNOVA 0x004bc760
-void DrawTextRun(const void *text, unsigned long byteCount, Rect *box, char clipped, int height)
+void DrawTextRun(const void *text, uint32_t byteCount, Rect *box, char clipped, int height)
 {
     void *oldBitmap;
     int oldBkMode;
     void *hdc;
-    unsigned long outLeft;
-    unsigned long color;
+    uint32_t outLeft;
+    uint32_t color;
     WinRect r;
-    unsigned long inLeft;
+    uint32_t inLeft;
     char *outPtr;
-    unsigned long flags;
+    uint32_t flags;
     char *buf;
-    long width;
-    long vpos;
+    int32_t width;
+    int32_t vpos;
     void *hrgn;
-    long n;
-    long lines;
+    int32_t n;
+    int32_t lines;
 
     if (text == NULL || byteCount == 0)
         return;

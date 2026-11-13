@@ -7,10 +7,10 @@
 // MAC: _BlitPixieFlip8Bit i386 0x000bfe69 ppc 0x000cba9c
 void BlitPixieFlip8Bit(
 	unsigned char *src,				unsigned char *dst,
-	unsigned long srcRowBytes,		unsigned long dstRowBytes,
+	uint32_t srcRowBytes,		uint32_t dstRowBytes,
 	unsigned short width,			unsigned short height)
 {
-	unsigned long		x,y;
+	uint32_t		x,y;
 
 	srcRowBytes += width;
 	dstRowBytes -= width;
@@ -31,10 +31,10 @@ void BlitPixieFlip8Bit(
 // MAC: _BlitPixieFlip16Bit i386 0x000bfebd ppc 0x000cbafc
 void BlitPixieFlip16Bit(
 	unsigned short *src,			unsigned short *dst,
-	unsigned long srcRowBytes,		unsigned long dstRowBytes,
+	uint32_t srcRowBytes,		uint32_t dstRowBytes,
 	unsigned short width,			unsigned short height)
 {
-	unsigned long			x,y;
+	uint32_t			x,y;
 
 	srcRowBytes += width << 1;
 	dstRowBytes -= width << 1;
@@ -54,11 +54,11 @@ void BlitPixieFlip16Bit(
 /* BlitPixieFlip32Bit (mac _BlitPixieFlip32Bit, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieFlip32Bit i386 0x000bff18 ppc 0x000cbb54
 void BlitPixieFlip32Bit(
-	unsigned long *src,				unsigned long *dst,
-	unsigned long srcRowBytes,		unsigned long dstRowBytes,
+	uint32_t *src,				uint32_t *dst,
+	uint32_t srcRowBytes,		uint32_t dstRowBytes,
 	unsigned short width,			unsigned short height)
 {
-	unsigned long			x,y;
+	uint32_t			x,y;
 
 	srcRowBytes += width << 2;
 	dstRowBytes -= width << 2;
@@ -70,8 +70,8 @@ void BlitPixieFlip32Bit(
 		for ( x = 0; x < width; x++ )
 			*dst++ = *--src;
 
-		src = (unsigned long *) ( (char *) src + srcRowBytes);
-		dst = (unsigned long *) ( (char *) dst + dstRowBytes);
+		src = (uint32_t *) ( (char *) src + srcRowBytes);
+		dst = (uint32_t *) ( (char *) dst + dstRowBytes);
 	}
 }
 
@@ -79,10 +79,10 @@ void BlitPixieFlip32Bit(
 // MAC: _BlitPixieFlipMask8Bit i386 0x000bff75 ppc 0x000cbbac
 void BlitPixieFlipMask8Bit(
 	unsigned char *src,				unsigned char *dst,			unsigned char *mask,
-	unsigned long srcRowBytes,		unsigned long dstRowBytes,
+	uint32_t srcRowBytes,		uint32_t dstRowBytes,
 	unsigned short width,			unsigned short height)
 {
-	unsigned long		x,y;
+	uint32_t		x,y;
 	unsigned char		m;
 
 	srcRowBytes += width;
@@ -109,10 +109,10 @@ void BlitPixieFlipMask8Bit(
 // MAC: _BlitPixieFlipMask16Bit i386 0x000bfff0 ppc 0x000cbc38
 void BlitPixieFlipMask16Bit(
 	unsigned short *src,			unsigned short *dst,			unsigned short *mask,
-	unsigned long srcRowBytes,		unsigned long dstRowBytes,
+	uint32_t srcRowBytes,		uint32_t dstRowBytes,
 	unsigned short width,			unsigned short height)
 {
-	unsigned long		x,y;
+	uint32_t		x,y;
 	unsigned short		m;
 
 	srcRowBytes += width << 1;
@@ -138,12 +138,12 @@ void BlitPixieFlipMask16Bit(
 /* BlitPixieFlipMask32Bit (mac _BlitPixieFlipMask32Bit, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieFlipMask32Bit i386 0x000c0088 ppc 0x000cbcb0
 void BlitPixieFlipMask32Bit(
-	unsigned long *src,				unsigned long *dst,				unsigned long *mask,
-	unsigned long srcRowBytes,		unsigned long dstRowBytes,
+	uint32_t *src,				uint32_t *dst,				uint32_t *mask,
+	uint32_t srcRowBytes,		uint32_t dstRowBytes,
 	unsigned short width,			unsigned short height)
 {
-	unsigned long		x,y;
-	unsigned long		m;
+	uint32_t		x,y;
+	uint32_t		m;
 
 	srcRowBytes += width << 2;
 	dstRowBytes -= width << 2;
@@ -159,9 +159,9 @@ void BlitPixieFlipMask32Bit(
 			*dst++ = (*dst & m) | (*--src &~ m);
 		}
 
-		src = (unsigned long *) ( (char *) src + srcRowBytes);
-		mask = (unsigned long *) ( (char *) mask + srcRowBytes);
-		dst = (unsigned long *) ( (char *) dst + dstRowBytes);
+		src = (uint32_t *) ( (char *) src + srcRowBytes);
+		mask = (uint32_t *) ( (char *) mask + srcRowBytes);
+		dst = (uint32_t *) ( (char *) dst + dstRowBytes);
 	}
 }
 
@@ -169,10 +169,10 @@ void BlitPixieFlipMask32Bit(
 // MAC: _BlitPixieFlipMaskCollision i386 0x000c011d ppc 0x000cbd28
 Boolean BlitPixieFlipMaskCollision(
 	unsigned char *maskPtr1,	unsigned char *maskPtr2,
-	unsigned long rowBytes1,	unsigned long rowBytes2,
+	uint32_t rowBytes1,	uint32_t rowBytes2,
 	unsigned short bytes, 		unsigned short rows)
 {
-	unsigned long	x;
+	uint32_t	x;
 
 	rowBytes1 -= bytes;
 	maskPtr2 += bytes;
@@ -195,12 +195,12 @@ Boolean BlitPixieFlipMaskCollision(
 /* BlitPixieFlipMaskColor (mac _BlitPixieFlipMaskColor, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieFlipMaskColor i386 0x000c017d ppc 0x000cbdac
 void BlitPixieFlipMaskColor(
-	unsigned long srcColor,			unsigned char *dstPixelP,		unsigned char *maskPixelP,
-	unsigned long srcRowBytes,		unsigned long dstRowBytes,
+	uint32_t srcColor,			unsigned char *dstPixelP,		unsigned char *maskPixelP,
+	uint32_t srcRowBytes,		uint32_t dstRowBytes,
 	unsigned short bytes,			unsigned short rows )
 {
-	unsigned long index;
-	unsigned long mask;
+	uint32_t index;
+	uint32_t mask;
 
 	srcRowBytes += bytes;
 	dstRowBytes -= bytes;
@@ -213,15 +213,15 @@ void BlitPixieFlipMaskColor(
 
 		for (index=0; index < (bytes>>2); index++)
 		{
-			maskPixelP -= sizeof(unsigned long);
+			maskPixelP -= sizeof(uint32_t);
 		#if USE_PPC_ASSEMBLY
 			mask = __lwbrx( maskPixelP, 0 );
 		#else
-			mask = *((unsigned long *) maskPixelP);
+			mask = *((uint32_t *) maskPixelP);
 			mask = ((mask >> 24) & 0xFF) | ((mask >> 8) & 0xFF00) | ((mask & 0xFF00) << 8) | ((mask & 0xFF) << 24);
 		#endif
-			*((unsigned long *) dstPixelP) = (*((unsigned long *) dstPixelP) & mask) | (srcColor &~ mask);
-			dstPixelP += sizeof(unsigned long);
+			*((uint32_t *) dstPixelP) = (*((uint32_t *) dstPixelP) & mask) | (srcColor &~ mask);
+			dstPixelP += sizeof(uint32_t);
 		}
 
 		if ( bytes & 2 )

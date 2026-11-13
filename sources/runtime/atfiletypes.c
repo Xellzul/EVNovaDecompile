@@ -18,7 +18,7 @@
 // FUNCTION: EVNOVA 0x00509d87
 void **_FT_FileTypesCreate(void)
 {
-    long err;
+    int32_t err;
     void **h;
     void *p;
 
@@ -75,7 +75,7 @@ ULong _FT_Suffix2Value(const char *name);
 // FUNCTION: EVNOVA 0x00509ded
 void _FT_FileTypesLookup(const char *name, ULong type, FileTypeMap *entry)
 {
-    long err;
+    int32_t err;
     ULong extension;
     ULong count;
     ULong i;
@@ -119,7 +119,7 @@ void _FT_FileTypesLookup(const char *name, ULong type, FileTypeMap *entry)
 // FUNCTION: EVNOVA 0x00509f08
 ULong _FT_Suffix2Value(const char *name)
 {
-    long err;
+    int32_t err;
     ULong code;
     const char *s;
     ULong i;

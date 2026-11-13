@@ -7,9 +7,9 @@
 // FUNCTION: EVNOVA 0x00473dc0
 // MAC: _BlitPixieTranslucentClearCopy8 i386 0x000c1bca ppc 0x000cdd30
 void BlitPixieTranslucentClearCopy8(unsigned char *dstPixels,
-        unsigned char *srcPixels, long numPixels, unsigned char clearValue)
+        unsigned char *srcPixels, int32_t numPixels, unsigned char clearValue)
 {
-    long i;
+    int32_t i;
     unsigned char *s;
     unsigned char *d;
 

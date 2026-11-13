@@ -12,7 +12,7 @@
 // MAC: _DrawTranslucentLine i386 0x000c3259 ppc 0x000cf604
 #ifdef MACBUILD
 void DrawTranslucentLine(FramePtr dstFrameP, Point srcPoint, Point dstPoint,
-                unsigned long color, short srcShade, short dstShade,
+                uint32_t color, short srcShade, short dstShade,
                 short srcRamp, short dstRamp)
 {
     Boolean thereIsALine;
@@ -117,7 +117,7 @@ void DrawTranslucentLine(FramePtr dstFrameP, Point srcPoint, Point dstPoint,
 }
 #else
 void DrawTranslucentLine(FramePtr dstFrameP, Point srcPoint, Point dstPoint,
-                unsigned long color, short srcShade, short dstShade,
+                uint32_t color, short srcShade, short dstShade,
                 short srcRamp, short dstRamp)
 {
     Boolean thereIsALine;
@@ -193,8 +193,8 @@ void DrawTranslucentLine(FramePtr dstFrameP, Point srcPoint, Point dstPoint,
 #define TRANS_PIXEL(x, y)     switch (depth)     {         case 8:             *SW_PIXELPTR8(dstFrameP, x, y) =                 Trans8Bit(color, *SW_PIXELPTR8(dstFrameP, x, y), alpha);             break;         case 16:             *SW_PIXELPTR16(dstFrameP, x, y) =                 Trans16Bit(color, *SW_PIXELPTR16(dstFrameP, x, y), alpha);             break;         case 32:             *SW_PIXELPTR32(dstFrameP, x, y) = color;             break;     }
 
 void BlitTranslucentLine(FramePtr dstFrameP, Point srcPoint, Point dstPoint,
-                         unsigned long color, unsigned long alpha, unsigned long dstShade,
-                         unsigned long srcRamp, unsigned long dstRamp)
+                         uint32_t color, uint32_t alpha, uint32_t dstShade,
+                         uint32_t srcRamp, uint32_t dstRamp)
 {
     short           x1, y1, x2, y2;
     short           curX, curY;
@@ -302,10 +302,10 @@ void BlitTranslucentLine(FramePtr dstFrameP, Point srcPoint, Point dstPoint,
 }
 #else
 void BlitTranslucentLine(FramePtr dstFrameP, Point srcPoint, Point dstPoint,
-                         unsigned long color, long srcShade, long dstShade,
-                         unsigned long srcRamp, unsigned long dstRamp)
+                         uint32_t color, int32_t srcShade, int32_t dstShade,
+                         uint32_t srcRamp, uint32_t dstRamp)
 {
-    unsigned long   alpha;
+    uint32_t   alpha;
     short           x1, y1, x2, y2;
     short           dx, dy, sx, sy;
     short           accum;
@@ -634,8 +634,8 @@ Point BresenhamWalk(Point srcPoint, Point dstPoint, short steps)
 // FUNCTION: EVNOVA 0x00479fe0
 // MAC: _DrawBeam i386 0x000c3b3c ppc 0x000cfe70
 #ifdef MACBUILD
-void DrawBeam(FramePtr dstFrameP, Point srcPoint, Point dstPoint, unsigned long color,
-              short halfWidth, unsigned long coronaColor, short fadeStep)
+void DrawBeam(FramePtr dstFrameP, Point srcPoint, Point dstPoint, uint32_t color,
+              short halfWidth, uint32_t coronaColor, short fadeStep)
 {
     Point   ptA;
     Point   ptB;
@@ -742,8 +742,8 @@ void DrawBeam(FramePtr dstFrameP, Point srcPoint, Point dstPoint, unsigned long 
     }
 }
 #else
-void DrawBeam(FramePtr dstFrameP, Point srcPoint, Point dstPoint, unsigned long color,
-              short halfWidth, unsigned long coronaColor, short fadeStep)
+void DrawBeam(FramePtr dstFrameP, Point srcPoint, Point dstPoint, uint32_t color,
+              short halfWidth, uint32_t coronaColor, short fadeStep)
 {
     Point   ptB;
     Point   ptA;
@@ -868,7 +868,7 @@ void DrawBeam(FramePtr dstFrameP, Point srcPoint, Point dstPoint, unsigned long 
 // MAC: _DrawLightningBeam i386 0x000c3f9d ppc 0x000d01fc
 #ifdef MACBUILD
 void DrawLightningBeam(FramePtr frameA, FramePtr frameB, Point srcPoint, Point dstPoint,
-                       unsigned long color, short width, short segPercent, short jitter,
+                       uint32_t color, short width, short segPercent, short jitter,
                        short shade)
 {
     Rect    clipRect;
@@ -1045,7 +1045,7 @@ void DrawLightningBeam(FramePtr frameA, FramePtr frameB, Point srcPoint, Point d
 }
 #else
 void DrawLightningBeam(FramePtr frameA, FramePtr frameB, Point srcPoint, Point dstPoint,
-                       unsigned long color, short width, short segPercent, short jitter,
+                       uint32_t color, short width, short segPercent, short jitter,
                        short shade)
 {
     int     srcV;

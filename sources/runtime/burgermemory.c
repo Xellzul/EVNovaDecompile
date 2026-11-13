@@ -558,7 +558,7 @@ void DeallocAPointer(void *MemPtr)
    no size (both inlined), else the handle behind the pointer resized. STATE: MATCH 100%,
    exe 52 / obj 52, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004d87f0
-void *ResizeAPointer(void *mem, unsigned long size)
+void *ResizeAPointer(void *mem, uint32_t size)
 {
     void **block;
 
@@ -584,7 +584,7 @@ void *ResizeAPointer(void *mem, unsigned long size)
    move the new memory into the OLD record so the caller's handle stays valid.
    STATE: MATCH 100%, exe 166 / obj 166, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004d8890
-Handle ResizeAHandle(Handle h, unsigned long size)
+Handle ResizeAHandle(Handle h, uint32_t size)
 {
     MyHandle *OldHand;
     MyHandle *NewHand;
@@ -693,7 +693,7 @@ Handle FindAHandle(void *Input)
 /* GetAHandleSize (BurgerLib MMMemoryManager). STATE: MATCH 100.0%, exe 7 / obj 7,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004d8ae0
-unsigned long GetAHandleSize(Handle h)
+uint32_t GetAHandleSize(Handle h)
 {
     if (h != 0)
         return ((MyHandle *)h)->Length;
@@ -703,7 +703,7 @@ unsigned long GetAHandleSize(Handle h)
 /* GetAPointerSize (BurgerLib MMMemoryManager). STATE: MATCH 100.0%, exe 8 / obj 8,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004d8b00
-unsigned long GetAPointerSize(void *mem)
+uint32_t GetAPointerSize(void *mem)
 {
     if (mem != 0)
         return ((MyHandle **)mem)[kPointerHandle]->Length;

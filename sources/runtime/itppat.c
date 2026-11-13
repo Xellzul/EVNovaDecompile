@@ -11,7 +11,7 @@
 
 /* the PixPat, its PixMap and its ColorTable, unpacked from the big-endian resource */
 typedef struct PpatPixMap {
-    long baseAddr;
+    int32_t baseAddr;
     unsigned short rowBytes;
     short top;
     short left;
@@ -19,7 +19,7 @@ typedef struct PpatPixMap {
     short right;
     short pmVersion;
     short packType;
-    long packSize;
+    int32_t packSize;
     ULong hRes;
     ULong vRes;
     short pixelType;
@@ -28,16 +28,16 @@ typedef struct PpatPixMap {
     short cmpSize;
     ULong planeBytes;
     ULong pmTable;
-    long pmReserved;
+    int32_t pmReserved;
 } PpatPixMap;
 
 typedef struct PpatRecord {
     short patType;
     ULong patMap;
     ULong patData;
-    long patXData;
+    int32_t patXData;
     short patXValid;
-    long patXMap;
+    int32_t patXMap;
     unsigned char pat1Data[8];
     PpatPixMap map;
     ULong unk54;
@@ -126,11 +126,11 @@ unsigned char PPAT_CheckFileType(const unsigned char *data, ULong size)
    unpacked rows at 1, 2, 4 or 8 bits through the palette, 16 or 32 bits direct). STATE: MATCH
    100%, exe 919 / obj 919, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00517979
-long PPAT_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
+int32_t PPAT_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                   ITTransparent *trans, ITBackground *bg)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong y;
     unsigned char locked;
     unsigned char *row;

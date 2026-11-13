@@ -9,14 +9,14 @@
 #ifdef MACBUILD
 #ifdef MACBUILD
 void BlitPixieAddOverCopy(unsigned char *dstPixels, unsigned char *srcPixels,
-                  long byteWidth)
+                  int32_t byteWidth)
 {
-    long i;
-    unsigned long *sp;
-    unsigned long *dp;
+    int32_t i;
+    uint32_t *sp;
+    uint32_t *dp;
 
-    sp = (unsigned long *)srcPixels;
-    dp = (unsigned long *)dstPixels;
+    sp = (uint32_t *)srcPixels;
+    dp = (uint32_t *)dstPixels;
     for (i = 0; i < (byteWidth >> 2); i++) {
         *dp |= *sp++;
         dp++;
@@ -33,9 +33,9 @@ void BlitPixieAddOverCopy(unsigned char *dstPixels, unsigned char *srcPixels,
 }
 #else
 void BlitPixieAddOverCopy(unsigned char *dstPixels, unsigned char *srcPixels,
-                  long byteWidth)
+                  int32_t byteWidth)
 {
-    long i;
+    int32_t i;
 
     for (i = 0; i < (byteWidth >> 2); i++) {
         *dstPixels |= *srcPixels;
@@ -52,9 +52,9 @@ void BlitPixieAddOverCopy(unsigned char *dstPixels, unsigned char *srcPixels,
 #endif
 #else
 void BlitPixieAddOverCopy(unsigned char *dstPixels, unsigned char *srcPixels,
-                  long byteWidth)
+                  int32_t byteWidth)
 {
-    long i;
+    int32_t i;
     unsigned char *s;
     unsigned char *d;
 
@@ -64,7 +64,7 @@ void BlitPixieAddOverCopy(unsigned char *dstPixels, unsigned char *srcPixels,
     d = dstPixels;
     s = srcPixels;
     for (i = 0; i < (byteWidth >> 2); i++) {
-        *(unsigned long *)d |= *(unsigned long *)s;
+        *(uint32_t *)d |= *(uint32_t *)s;
         s += 4;
         d += 4;
     }

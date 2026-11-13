@@ -91,7 +91,7 @@ void HandleShipDisplay(ShipObj *ship)
     short i;
     short n;
     short jitter;
-    long impact;
+    int32_t impact;
     FloatPoint explod;
     unsigned short red;
     unsigned short green;
@@ -1937,10 +1937,10 @@ void HandleBeams(unsigned char advance)
 #endif
     short best;
     short bestRoid;
-    long range;
-    long bestDist;
+    int32_t range;
+    int32_t bestDist;
 #ifdef MAC1010 /* 1.0.10 spelling */
-    long jOff;
+    int32_t jOff;
 #else
     Boolean notSelf;
 #endif
@@ -1951,15 +1951,15 @@ void HandleBeams(unsigned char advance)
     short ownerType;
     short shipAngle;
     short size;
-    long dist;
+    int32_t dist;
 #ifdef MAC1010 /* 1.0.10 spelling */
-    long len;
+    int32_t len;
     short energyDmg;
     short impact;
 #else
     short massDmg;
     short energyDmg;
-    long len;
+    int32_t len;
 #endif
     short hitAngle;
     short parent;
@@ -2126,7 +2126,7 @@ void HandleBeams(unsigned char advance)
                             notSelf = 1;
                             eligible = 1;
 #ifdef MAC1010
-                            jOff = (long)shipData; /* 1.0.10 pad: shipData read ahead of the offset; the parentShip test reuses the load */
+                            jOff = (int32_t)shipData; /* 1.0.10 pad: shipData read ahead of the offset; the parentShip test reuses the load */
                             jOff = j * sizeof(ShipObj); /* 1.0.10 pad: the stride product first defined in a named local, so it colours in the named band */
 #endif
                             if (shipData[j].parentShip != -1) {
@@ -2965,7 +2965,7 @@ void HandleStellarSystemVisibility(void)
             if (stellarSprite[n] == NULL) {
                 fresh = 1;
                 err = SWCreateEmptySprite(&stellarSprite[n], NULL);
-                if ((long)err != 0)
+                if ((int32_t)err != 0)
                     ReportSpriteLoadError(1, 0, err);
             }
             stellarData[i].sprite = stellarSprite[n];
@@ -3032,7 +3032,7 @@ void HandleStellarSystemVisibility(void)
 void HandleTimeAdjustment(void)
 {
     UnsignedWide now;
-    unsigned long ms;
+    uint32_t ms;
     float rate;
 
 #ifdef V111    /* POTENTIAL BUG (win V111): 1.1.1 drops the 21 ms frame wait; win may run uncapped */
@@ -3173,7 +3173,7 @@ void HandleShip(ShipObj *ship)
     short n;
     short j;
     Boolean spawn;
-    long inRange;
+    int32_t inRange;
 
     dir = 0;
     if (ship->type < 0 || ship->type >= kMaxShipTypes) {
@@ -4325,8 +4325,8 @@ void ShipCollisionHandler(SpriteRec *shipSpr, SpriteRec *otherSpr, Rect *sectRec
     ShipObj *ship;
     ShotObj *shot;
     BoxObj *box;
-    long index;
-    long index2;
+    int32_t index;
+    int32_t index2;
 
     index = shipSpr->userData;
     if (index < 0 || index >= kMaxShips)
@@ -4501,15 +4501,15 @@ void HandleShipHit(ShotObj *shot, ShipObj *ship, Boolean spawnSubs)
 // MAC: _CheckShotProximities i386 0x000371bc ppc 0x0003d0f0
 void CheckShotProximities(void)
 {
-    long range;
-    long dx;
-    long dy;
+    int32_t range;
+    int32_t dx;
+    int32_t dy;
 #ifdef MAC1010 /* 1.0.10 spelling */
-    long ax;
-    long ay;
+    int32_t ax;
+    int32_t ay;
 #else
-    long ay;
-    long ax;
+    int32_t ay;
+    int32_t ax;
 #endif
     float f;
     short i;
@@ -4585,8 +4585,8 @@ void CheckShotProximities(void)
                         range += GetSpriteXSize((SpriteRec *)shipData[j].sprite)
                                  * kProxSpriteFraction;
                         range *= range;
-                        dx = abs((long)shipData[j].pos.x - (long)shotData[i].pos.x);
-                        dy = abs((long)shipData[j].pos.y - (long)shotData[i].pos.y);
+                        dx = abs((int32_t)shipData[j].pos.x - (int32_t)shotData[i].pos.x);
+                        dy = abs((int32_t)shipData[j].pos.y - (int32_t)shotData[i].pos.y);
                         if (dx * dx + dy * dy <= range) {
                             HandleShipHit(&shotData[i], &shipData[j], 1);
                             hit = 1;
@@ -4989,8 +4989,8 @@ void BeamDrawOffscreenCallback(SpriteWorldPtr world)
 // MAC: _HandleSpriteMurkiness i386 0x0002b42f ppc 0x0002fa00
 void HandleSpriteMurkiness(short x, short y, SpriteRec *sprite)
 {
-    long dx, dy;
-    long dist;
+    int32_t dx, dy;
+    int32_t dist;
     float f;
 
 #ifdef MACBUILD
@@ -5730,9 +5730,9 @@ void HandleShipPointDefense(ShipObj *ship)
     short angle;
     short targetIsShip;
     short bestAngle;
-    long dist;
-    long bestDist;
-    long range;
+    int32_t dist;
+    int32_t bestDist;
+    int32_t range;
     short shot;
     short slot;
     Boolean fired;

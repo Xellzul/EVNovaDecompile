@@ -29,17 +29,17 @@
 // FUNCTION: EVNOVA 0x004b76d0
 void CopyBitsCopy24(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
 {
-    long width;
-    long height;
-    long srcRow;
-    long dstRow;
+    int32_t width;
+    int32_t height;
+    int32_t srcRow;
+    int32_t dstRow;
     unsigned char *srcP;
     unsigned short *dstP;
-    unsigned long rgb;
-    unsigned long rgb2;
-    long n;
-    unsigned long raw;
-    unsigned long raw2;
+    uint32_t rgb;
+    uint32_t rgb2;
+    int32_t n;
+    uint32_t raw;
+    uint32_t raw2;
 
     width = dstRect->right - dstRect->left;
     height = dstRect->bottom - dstRect->top;
@@ -56,20 +56,20 @@ void CopyBitsCopy24(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
             n = width;
             if (n > 1) {
                 do {
-                    raw = *(unsigned long *)srcP;
-                    raw2 = *(unsigned long *)(srcP + 3);
+                    raw = *(uint32_t *)srcP;
+                    raw2 = *(uint32_t *)(srcP + 3);
                     rgb = (raw << 7 & 0x7c00) + (raw >> 6 & 0x3e0) +
                         (raw >> 0x13 & 0x1f);
                     rgb2 = (raw2 << 7 & 0x7c00) + (raw2 >> 6 & 0x3e0) +
                         (raw2 >> 0x13 & 0x1f);
-                    *(unsigned long *)dstP = rgb + (rgb2 << 16);
+                    *(uint32_t *)dstP = rgb + (rgb2 << 16);
                     srcP += 6;
                     dstP += 2;
                     n -= 2;
                 } while (n > 1);
             }
             if (n != 0) {
-                rgb = *(unsigned long *)srcP;
+                rgb = *(uint32_t *)srcP;
                 *dstP = ((rgb << 7 & 0x7c00) +
                     (rgb >> 6 & 0x3e0) + (rgb >> 0x13 & 0x1f));
                 srcP += 3;
@@ -86,19 +86,19 @@ void CopyBitsCopy24(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
    OPEN: none */
 // FUNCTION: EVNOVA 0x004b7b90
 void CopyBitsScale8(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect,
-                    long xStep, long yStep, long xStart, long yStart)
+                    int32_t xStep, int32_t yStep, int32_t xStart, int32_t yStart)
 {
-    long width;
-    long height;
-    long srcRowBytes;
-    long dstRow;
+    int32_t width;
+    int32_t height;
+    int32_t srcRowBytes;
+    int32_t dstRow;
     unsigned short *dstP;
-    unsigned long rgb;
+    uint32_t rgb;
     unsigned char *table;
     unsigned char *srcBase;
     unsigned char *srcP;
-    long x;
-    unsigned long n;
+    int32_t x;
+    uint32_t n;
 
     width = dstRect->right - dstRect->left;
     height = dstRect->bottom - dstRect->top;
@@ -117,7 +117,7 @@ void CopyBitsScale8(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect,
             n = width;
             x = xStart;
             do {
-                rgb = *(unsigned long *)(table + srcP[x >> 16] * 3);
+                rgb = *(uint32_t *)(table + srcP[x >> 16] * 3);
                 *dstP = ((rgb << 7 & 0x7c00) + (rgb >> 6 & 0x3e0) +
                                           (rgb >> 0x13 & 0x1f));
                 dstP++;
@@ -135,19 +135,19 @@ void CopyBitsScale8(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect,
    before CopyBitsScale16Average took it over (1.0.6 still points it at a plain 16-bit scaler); it stays
    because CopyBitsScale16Average is compiled after it (Research/notes/blitscalearea.md) */
 void CopyBitsScale16(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect,
-                     long xStep, long yStep, long xStart, long yStart)
+                     int32_t xStep, int32_t yStep, int32_t xStart, int32_t yStart)
 {
-    long width;
-    long height;
-    long srcRowBytes;
-    long dstRow;
+    int32_t width;
+    int32_t height;
+    int32_t srcRowBytes;
+    int32_t dstRow;
     unsigned short *dstP;
     unsigned char *srcBase;
     unsigned short *srcP;
-    unsigned long a;
-    unsigned long b;
-    long x;
-    long n;
+    uint32_t a;
+    uint32_t b;
+    int32_t x;
+    int32_t n;
 
     width = dstRect->right - dstRect->left;
     height = dstRect->bottom - dstRect->top;
@@ -170,7 +170,7 @@ void CopyBitsScale16(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect,
                     x += xStep;
                     b = srcP[x >> 16];
                     x += xStep;
-                    *(unsigned long *)dstP = a + (b << 16);
+                    *(uint32_t *)dstP = a + (b << 16);
                     dstP += 2;
                     n -= 2;
                 } while (n > 1);
@@ -192,32 +192,32 @@ void CopyBitsScale16(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect,
    scaler, cell [1][1] of the mode-1 table. OPEN: none */
 // FUNCTION: EVNOVA 0x004b7cb0
 void CopyBitsScale16Average(PixMapPtr srcBits, PixMapPtr dstBits, Rect *srcRect,
-                  Rect *dstRect, long xStep, long yStep, long xFrac,
-                  long yFrac)
+                  Rect *dstRect, int32_t xStep, int32_t yStep, int32_t xFrac,
+                  int32_t yFrac)
 {
-    long rowBytes;
-    long dstP;
-    long width;
-    long height;
-    long srcRow;
+    int32_t rowBytes;
+    int32_t dstP;
+    int32_t width;
+    int32_t height;
+    int32_t srcRow;
     int dstRow;
-    long srcBase;
-    long n;
-    long x;
-    long y;
-    long xEnd;
-    long yEnd;
-    long xStart;
-    long cnt;
-    long yStart;
-    long xStartAligned;
-    long yStartAligned;
-    long xpos;
-    long yEndAligned;
-    long pixel;
-    long srcRow2;
-    long w;
-    long ys;
+    int32_t srcBase;
+    int32_t n;
+    int32_t x;
+    int32_t y;
+    int32_t xEnd;
+    int32_t yEnd;
+    int32_t xStart;
+    int32_t cnt;
+    int32_t yStart;
+    int32_t xStartAligned;
+    int32_t yStartAligned;
+    int32_t xpos;
+    int32_t yEndAligned;
+    int32_t pixel;
+    int32_t srcRow2;
+    int32_t w;
+    int32_t ys;
     int xs;
     float red;
     float green;
@@ -231,9 +231,9 @@ void CopyBitsScale16Average(PixMapPtr srcBits, PixMapPtr dstBits, Rect *srcRect,
     float rowTotal;
     unsigned short *rowP;
     unsigned short *rowP2;
-    long xEndAligned;
-    long dst;
-    long y2;
+    int32_t xEndAligned;
+    int32_t dst;
+    int32_t y2;
 
     n = dstRect->left;
     width = dstRect->right - n;
@@ -244,7 +244,7 @@ void CopyBitsScale16Average(PixMapPtr srcBits, PixMapPtr dstBits, Rect *srcRect,
     srcBase = srcRect->left - srcBits->bounds.left;
     srcBase *= 2;
     srcBase += (srcRect->top - srcBits->bounds.top) * srcRow
-        + (long)srcBits->baseAddr;
+        + (int32_t)srcBits->baseAddr;
 
     srcRow2 = srcRow;
     rowBytes = dstBits->rowBytes;
@@ -252,7 +252,7 @@ void CopyBitsScale16Average(PixMapPtr srcBits, PixMapPtr dstBits, Rect *srcRect,
     dstP *= 2;
     y -= dstBits->bounds.top;
     y *= rowBytes;
-    y += (long)dstBits->baseAddr;
+    y += (int32_t)dstBits->baseAddr;
     dstP += y;
     dstRow = rowBytes - width * 2;
 
@@ -350,8 +350,8 @@ scaled:
                     green /= total;
                     blue /= total;
                     *(unsigned short *)dst =
-                        (((long)red << 10) | ((long)green << 5)
-                        | (long)blue);
+                        (((int32_t)red << 10) | ((int32_t)green << 5)
+                        | (int32_t)blue);
                     dst += 2;
                     n--;
                 } while (n != 0);
@@ -369,18 +369,18 @@ done:
 /* CopyBitsScale24. STATE: MATCH 88/88 (2026-09-25). OPEN: none */
 // FUNCTION: EVNOVA 0x004b81e0
 void CopyBitsScale24(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect,
-                   long xStep, long yStep, long xFrac, long yFrac)
+                   int32_t xStep, int32_t yStep, int32_t xFrac, int32_t yFrac)
 {
-    long width;
-    long height;
-    long srcRow;
-    long dstRow;
+    int32_t width;
+    int32_t height;
+    int32_t srcRow;
+    int32_t dstRow;
     unsigned char *srcBase;
     unsigned short *dstP;
-    unsigned long pixel;
-    long n;
+    uint32_t pixel;
+    int32_t n;
     unsigned char *rowP;
-    long x;
+    int32_t x;
 
     width = dstRect->right - dstRect->left;
     height = dstRect->bottom - dstRect->top;
@@ -401,7 +401,7 @@ void CopyBitsScale24(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect,
             rowP = srcBase + (yFrac >> 16) * srcRow;
             x = xFrac;
             do {
-                pixel = *(unsigned long *)(rowP + (x >> 16) * 3);
+                pixel = *(uint32_t *)(rowP + (x >> 16) * 3);
                 *dstP = ((pixel << 7) & kRed555) + ((pixel >> 6) & kGreen555)
                       + ((pixel >> 0x13) & kBlue555);
                 dstP++;
@@ -421,14 +421,14 @@ void CopyBitsScale24(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect,
 // FUNCTION: EVNOVA 0x004b8300
 void CopyBitsAddOver16(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
 {
-    long width;
-    long height;
-    long srcRow;
-    long dstRow;
+    int32_t width;
+    int32_t height;
+    int32_t srcRow;
+    int32_t dstRow;
     unsigned short *srcP;
     unsigned short *dstP;
-    long n;
-    long srcPixel;
+    int32_t n;
+    int32_t srcPixel;
 
     width = dstRect->right - dstRect->left;
     height = dstRect->bottom - dstRect->top;
@@ -463,21 +463,21 @@ void CopyBitsAddOver16(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRec
 // FUNCTION: EVNOVA 0x004b8400
 void CopyBitsAdMax16(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
 {
-    long width;
-    long height;
-    long srcRow;
-    long dstRow;
+    int32_t width;
+    int32_t height;
+    int32_t srcRow;
+    int32_t dstRow;
     unsigned short *srcP;
     unsigned short *dstP;
-    long n;
-    unsigned long d;
-    unsigned long dr;
-    unsigned long dg;
-    unsigned long db;
-    unsigned long g;
-    unsigned long r;
-    unsigned long b;
-    unsigned long s;
+    int32_t n;
+    uint32_t d;
+    uint32_t dr;
+    uint32_t dg;
+    uint32_t db;
+    uint32_t g;
+    uint32_t r;
+    uint32_t b;
+    uint32_t s;
 
     width = dstRect->right - dstRect->left;
     height = dstRect->bottom - dstRect->top;
@@ -527,7 +527,7 @@ void CopyBitsNone(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
 
 typedef void (*BlitProc)(PixMapPtr srcBits, PixMapPtr dstBits,
                           Rect *srcRect, Rect *dstRect,
-                          long xStep, long yStep, long xFrac, long yFrac);
+                          int32_t xStep, int32_t yStep, int32_t xFrac, int32_t yFrac);
 
 #define BP (BlitProc)
 
@@ -583,19 +583,19 @@ BlitProc copyBitsAdMaxProcs[5][5] = {        /* 0x00575c54 same-size adMax */
    OPEN: none */
 // FUNCTION: EVNOVA 0x004b8530
 void CopyBits(BitMapPtr srcBits, BitMapPtr dstBits, const Rect *srcRect,
-              const Rect *dstRect, long mode, void *maskRgn)
+              const Rect *dstRect, int32_t mode, void *maskRgn)
 {
     Rect dst;
     Rect src;
-    long srcWidth;
-    long xStep;
-    long yStep;
-    long xFrac;
-    long yFrac;
+    int32_t srcWidth;
+    int32_t xStep;
+    int32_t yStep;
+    int32_t xFrac;
+    int32_t yFrac;
     PixMapPtr srcPix;
     PixMapPtr dstPix;
     BlitProc proc;
-    long scaled;
+    int32_t scaled;
 
     xStep = 0;
     yStep = 0;
@@ -952,13 +952,13 @@ PicHandle LoadPictResource(int picID, char gamma)
 {
     char **h;
     PicHandle img;
-    long err;
-    long advance;
+    int32_t err;
+    int32_t advance;
     unsigned char *p;
     unsigned short pix;
-    long bytes;
-    long pixels;
-    long rows;
+    int32_t bytes;
+    int32_t pixels;
+    int32_t rows;
 
     h = GetResource(kPictType, picID);
     if (h != NULL) {
@@ -1126,20 +1126,20 @@ void *GetCWindowVisRgn(void *window)
 // FUNCTION: EVNOVA 0x004b9180
 void CopyMaskScale16(PixMapPtr srcBits, PixMapPtr maskBits, PixMapPtr dstBits,
                    Rect *srcRect, Rect *maskRect, Rect *dstRect,
-                   long xStep, long yStep, long xFrac, long yFrac)
+                   int32_t xStep, int32_t yStep, int32_t xFrac, int32_t yFrac)
 {
-    long width;
-    long height;
-    long srcRow;
-    long maskRow;
-    long dstRow;
+    int32_t width;
+    int32_t height;
+    int32_t srcRow;
+    int32_t maskRow;
+    int32_t dstRow;
     unsigned char *srcBase;
     unsigned char *maskBase;
-    long n;
+    int32_t n;
     unsigned short *srcRowP;
     unsigned short *maskRowP;
     unsigned short *dstP;
-    long x;
+    int32_t x;
 
     width = dstRect->right - dstRect->left;
     height = dstRect->bottom - dstRect->top;
@@ -1186,17 +1186,17 @@ void CopyMaskScale16(PixMapPtr srcBits, PixMapPtr maskBits, PixMapPtr dstBits,
 void CopyMask16(PixMapPtr srcBits, PixMapPtr maskBits, PixMapPtr dstBits,
                 Rect *srcRect, Rect *maskRect, Rect *dstRect)
 {
-    long srcRow;
-    long dstLeft;
-    long dstTop;
-    long width;
-    long height;
-    long maskRow;
-    long dstRow;
+    int32_t srcRow;
+    int32_t dstLeft;
+    int32_t dstTop;
+    int32_t width;
+    int32_t height;
+    int32_t maskRow;
+    int32_t dstRow;
     unsigned short *srcP;
     unsigned short *maskP;
     unsigned short *dstP;
-    long n;
+    int32_t n;
 
     dstLeft = dstRect->left;
     width = dstRect->right - dstLeft;
@@ -1245,8 +1245,8 @@ void CopyMaskNone(PixMapPtr src, PixMapPtr mask, PixMapPtr dst,
 
 typedef void (*BlitMaskProc)(PixMapPtr srcBits, PixMapPtr maskBits,
                              PixMapPtr dstBits, Rect *srcRect, Rect *maskRect,
-                             Rect *dstRect, long xStep, long yStep,
-                             long xFrac, long yFrac);
+                             Rect *dstRect, int32_t xStep, int32_t yStep,
+                             int32_t xFrac, int32_t yFrac);
 
 BlitMaskProc copyMaskProcs[5][5] = {    /* 0x00575cb8 */
     { NULL, NULL,                      NULL,                      NULL,                      NULL                      },
@@ -1280,13 +1280,13 @@ void CopyMask(BitMapPtr srcBits, BitMapPtr maskBits, BitMapPtr dstBits,
     Rect mask;
     Rect src;
     Rect dst;
-    long srcWidth;
-    long dstWidth;
-    long xStep;
-    long yStep;
-    long yFrac;
-    long xFrac;
-    long delta;
+    int32_t srcWidth;
+    int32_t dstWidth;
+    int32_t xStep;
+    int32_t yStep;
+    int32_t yFrac;
+    int32_t xFrac;
+    int32_t delta;
     BlitMaskProc proc;
 
     xStep = 0;
@@ -1386,12 +1386,12 @@ void LineTo(short h, short v)
     int x0;
     char wide;
     int x1;
-    long clipTop;
+    int32_t clipTop;
     int clipBottom;
     int y1;
     unsigned int n;
     short boundsTop;
-    long color32;
+    int32_t color32;
     int yStep;
     int rowAdvance;
     int penH;
@@ -1484,7 +1484,7 @@ void LineTo(short h, short v)
                     n = penW;
                     if (n > 1) {
                         do {
-                            *(unsigned long *)p = color32;
+                            *(uint32_t *)p = color32;
                             p += 4;
                             n -= 2;
                         } while (n > 1);
@@ -1512,7 +1512,7 @@ void LineTo(short h, short v)
                 count -= i;
                 nRows = err / dx;
                 err = err % dx;
-                p = (char *)((long)p + yStep * nRows);
+                p = (char *)((int32_t)p + yStep * nRows);
                 y0 += nRows;
             }
             if (x1 < clipLeft) {
@@ -1527,7 +1527,7 @@ void LineTo(short h, short v)
                 count -= i;
                 nRows = err / dx;
                 err = err % dx;
-                p = (char *)((long)p + yStep * nRows);
+                p = (char *)((int32_t)p + yStep * nRows);
                 y0 += nRows;
             }
             if (x1 >= clipRight) {
@@ -1539,11 +1539,11 @@ void LineTo(short h, short v)
             i = clipTop - y0;
             i = (i * dx - err) / dy + 1;
             err += i * dy;
-            p = (char *)((long)p + i * xStep);
+            p = (char *)((int32_t)p + i * xStep);
             count -= i;
             nRows = err / dx;
             err = err % dx;
-            p = (char *)((long)p + yStep * nRows);
+            p = (char *)((int32_t)p + yStep * nRows);
         }
         if (y1 >= clipBottom) {
             i = (y1 - clipBottom) + 1;
@@ -1559,7 +1559,7 @@ void LineTo(short h, short v)
                     n = penW;
                     if (n > 1) {
                         do {
-                            *(unsigned long *)q = color32;
+                            *(uint32_t *)q = color32;
                             q += 4;
                             n -= 2;
                         } while (n > 1);
@@ -1568,7 +1568,7 @@ void LineTo(short h, short v)
                         *(unsigned short *)q = color32;
                         q += 2;
                     }
-                    q = (char *)((long)q + rowAdvance);
+                    q = (char *)((int32_t)q + rowAdvance);
                     rows--;
                 } while (rows != 0);
                 if (count != 0) {
@@ -1576,16 +1576,16 @@ void LineTo(short h, short v)
                         err += dy;
                         if (err >= dx) {
                             err -= dx;
-                            p = (char *)((long)p + yStep);
+                            p = (char *)((int32_t)p + yStep);
                         }
-                        p = (char *)((long)p + xStep);
+                        p = (char *)((int32_t)p + xStep);
                         q = p;
                         rows = penH;
                         do {
                             n = penW;
                             if (n > 1) {
                                 do {
-                                    *(unsigned long *)q = color32;
+                                    *(uint32_t *)q = color32;
                                     q += 4;
                                     n -= 2;
                                 } while (n > 1);
@@ -1606,9 +1606,9 @@ void LineTo(short h, short v)
                         err += dy;
                         if (err >= dx) {
                             err -= dx;
-                            p = (char *)((long)p + yStep);
+                            p = (char *)((int32_t)p + yStep);
                         }
-                        p = (char *)((long)p + xStep);
+                        p = (char *)((int32_t)p + xStep);
                         *(unsigned short *)p = color32;
                     } while (--count != 0);
                 }
@@ -1627,11 +1627,11 @@ void LineTo(short h, short v)
             rows = (rows * dy - err) / dx + 1;
             y0 += rows;
             err += rows * dx;
-            p = (char *)((long)p + rows * yStep);
+            p = (char *)((int32_t)p + rows * yStep);
             count -= rows;
             i = err / dy;
             err = err % dy;
-            p = (char *)((long)p + xStep * i);
+            p = (char *)((int32_t)p + xStep * i);
         }
         if (x1 < clipLeft) {
             i = clipLeft - x1;
@@ -1645,11 +1645,11 @@ void LineTo(short h, short v)
             i = (i * dy - err) / dx + 1;
             y0 += i;
             err += i * dx;
-            p = (char *)((long)p + i * yStep);
+            p = (char *)((int32_t)p + i * yStep);
             count -= i;
             nRows = err / dy;
             err = err % dy;
-            p = (char *)((long)p + xStep * nRows);
+            p = (char *)((int32_t)p + xStep * nRows);
         }
         if (x1 >= clipRight) {
             i = (x1 - clipRight) + 1;
@@ -1661,11 +1661,11 @@ void LineTo(short h, short v)
     if (y0 < clipTop) {
         skipped = clipTop - y0;
         err += skipped * dx;
-        p = (char *)((long)p + skipped * yStep);
+        p = (char *)((int32_t)p + skipped * yStep);
         count -= skipped;
         i = err / dy;
         err = err % dy;
-        p = (char *)((long)p + xStep * i);
+        p = (char *)((int32_t)p + xStep * i);
     }
     if (y1 >= clipBottom)
         count -= (y1 - clipBottom) + 1;
@@ -1677,7 +1677,7 @@ void LineTo(short h, short v)
                 n = penW;
                 if (n > 1) {
                     do {
-                        *(unsigned long *)q = color32;
+                        *(uint32_t *)q = color32;
                         q += 4;
                         n -= 2;
                     } while (n > 1);
@@ -1686,7 +1686,7 @@ void LineTo(short h, short v)
                     *(unsigned short *)q = color32;
                     q += 2;
                 }
-                q = (char *)((long)q + rowAdvance);
+                q = (char *)((int32_t)q + rowAdvance);
                 rows--;
             } while (rows != 0);
             if (count != 0) {
@@ -1694,16 +1694,16 @@ void LineTo(short h, short v)
                     err += dx;
                     if (err >= dy) {
                         err -= dy;
-                        p = (char *)((long)p + xStep);
+                        p = (char *)((int32_t)p + xStep);
                     }
-                    p = (char *)((long)p + yStep);
+                    p = (char *)((int32_t)p + yStep);
                     q = p;
                     rows = penH;
                     do {
                         n = penW;
                         if (n > 1) {
                             do {
-                                *(unsigned long *)q = color32;
+                                *(uint32_t *)q = color32;
                                 q += 4;
                                 n -= 2;
                             } while (n > 1);
@@ -1712,7 +1712,7 @@ void LineTo(short h, short v)
                             *(unsigned short *)q = color32;
                             q += 2;
                         }
-                        q = (char *)((long)q + rowAdvance);
+                        q = (char *)((int32_t)q + rowAdvance);
                         rows--;
                     } while (rows != 0);
                 } while (--count != 0);
@@ -1724,9 +1724,9 @@ void LineTo(short h, short v)
                     err += dx;
                     if (err >= dy) {
                         err -= dy;
-                        p = (char *)((long)p + xStep);
+                        p = (char *)((int32_t)p + xStep);
                     }
-                    p = (char *)((long)p + yStep);
+                    p = (char *)((int32_t)p + yStep);
                     *(unsigned short *)p = color32;
                 } while (--count != 0);
             }
@@ -1778,7 +1778,7 @@ void FrameOval(Rect *r)
     int x;
     int cx;
     int rowBytes;
-    unsigned long colour;
+    uint32_t colour;
     int radius;
     int cy;
     unsigned char *base;
@@ -1897,7 +1897,7 @@ void FrameOval(Rect *r)
                         n = fw;
                         if (n > 1) {
                             do {
-                                *(unsigned long *)q = colour;
+                                *(uint32_t *)q = colour;
                                 q++;    /* BUG: one pixel per two-pixel store, so about half of fw is painted (all eight blocks) */
                                 n -= 2;
                             } while (n > 1);
@@ -1931,7 +1931,7 @@ void FrameOval(Rect *r)
                         n = fw;
                         if (n > 1) {
                             do {
-                                *(unsigned long *)q = colour;
+                                *(uint32_t *)q = colour;
                                 q++;
                                 n -= 2;
                             } while (n > 1);
@@ -1965,7 +1965,7 @@ void FrameOval(Rect *r)
                         n = fw;
                         if (n > 1) {
                             do {
-                                *(unsigned long *)q = colour;
+                                *(uint32_t *)q = colour;
                                 q++;
                                 n -= 2;
                             } while (n > 1);
@@ -1999,7 +1999,7 @@ void FrameOval(Rect *r)
                         n = fw;
                         if (n > 1) {
                             do {
-                                *(unsigned long *)q = colour;
+                                *(uint32_t *)q = colour;
                                 q++;
                                 n -= 2;
                             } while (n > 1);
@@ -2033,7 +2033,7 @@ void FrameOval(Rect *r)
                         n = fw;
                         if (n > 1) {
                             do {
-                                *(unsigned long *)q = colour;
+                                *(uint32_t *)q = colour;
                                 q++;
                                 n -= 2;
                             } while (n > 1);
@@ -2067,7 +2067,7 @@ void FrameOval(Rect *r)
                         n = fw;
                         if (n > 1) {
                             do {
-                                *(unsigned long *)q = colour;
+                                *(uint32_t *)q = colour;
                                 q++;
                                 n -= 2;
                             } while (n > 1);
@@ -2101,7 +2101,7 @@ void FrameOval(Rect *r)
                         n = fw;
                         if (n > 1) {
                             do {
-                                *(unsigned long *)q = colour;
+                                *(uint32_t *)q = colour;
                                 q++;
                                 n -= 2;
                             } while (n > 1);
@@ -2135,7 +2135,7 @@ void FrameOval(Rect *r)
                         n = fw;
                         if (n > 1) {
                             do {
-                                *(unsigned long *)q = colour;
+                                *(uint32_t *)q = colour;
                                 q++;
                                 n -= 2;
                             } while (n > 1);
@@ -2164,35 +2164,35 @@ void FrameOval(Rect *r)
 // FUNCTION: EVNOVA 0x004bb260
 void PaintOval(Rect *r)
 {
-    long left;
-    long top;
-    long k;
-    long d;
-    long right;
-    unsigned long colour;
-    long x;
-    long y;
-    long bottom;
+    int32_t left;
+    int32_t top;
+    int32_t k;
+    int32_t d;
+    int32_t right;
+    uint32_t colour;
+    int32_t x;
+    int32_t y;
+    int32_t bottom;
     unsigned char *base;
-    long cy;
-    long bot;
-    long rowBytes;
-    long cx;
-    long radius;
-    long px0;
-    long px1;
-    long qx2;
-    long ybot;
-    long qx3;
-    long w2;
-    long qx0;
-    long qx1;
-    long x1;
-    long w4;
-    long x0;
-    long ytop;
-    long w1;
-    long w3;
+    int32_t cy;
+    int32_t bot;
+    int32_t rowBytes;
+    int32_t cx;
+    int32_t radius;
+    int32_t px0;
+    int32_t px1;
+    int32_t qx2;
+    int32_t ybot;
+    int32_t qx3;
+    int32_t w2;
+    int32_t qx0;
+    int32_t qx1;
+    int32_t x1;
+    int32_t w4;
+    int32_t x0;
+    int32_t ytop;
+    int32_t w1;
+    int32_t w3;
     unsigned short *q;
     unsigned short *q2;
 
@@ -2235,7 +2235,7 @@ void PaintOval(Rect *r)
                     q = (unsigned short *)(base + rowBytes * ybot + px0 * 2);
                     if (w1 > 1) {
                         do {
-                            *(unsigned long *)q = colour;
+                            *(uint32_t *)q = colour;
                             w1 -= 2;
                             q += 2;
                         } while (w1 > 1);
@@ -2258,7 +2258,7 @@ void PaintOval(Rect *r)
                     q = (unsigned short *)(base + rowBytes * ytop + qx0 * 2);
                     if (w2 > 1) {
                         do {
-                            *(unsigned long *)q = colour;
+                            *(uint32_t *)q = colour;
                             w2 -= 2;
                             q += 2;
                         } while (w2 > 1);
@@ -2283,7 +2283,7 @@ void PaintOval(Rect *r)
                     q2 = (unsigned short *)(base + rowBytes * ybot + px0 * 2);
                     if (w3 > 1) {
                         do {
-                            *(unsigned long *)q2 = colour;
+                            *(uint32_t *)q2 = colour;
                             w3 -= 2;
                             q2 += 2;
                         } while (w3 > 1);
@@ -2306,7 +2306,7 @@ void PaintOval(Rect *r)
                     q2 = (unsigned short *)(base + rowBytes * ytop + qx2 * 2);
                     if (w4 > 1) {
                         do {
-                            *(unsigned long *)q2 = colour;
+                            *(uint32_t *)q2 = colour;
                             w4 -= 2;
                             q2 += 2;
                         } while (w4 > 1);
@@ -2597,7 +2597,7 @@ void QDGetCIconBounds(Image_t *icon, Rect *r)
 
 /* NumToString. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004bbce0
-void NumToString(long value, unsigned char *str)
+void NumToString(int32_t value, unsigned char *str)
 {
     char text[256];
 
@@ -2769,7 +2769,7 @@ short Alert(short code, void *filterProc)
 
 /* Delay. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004bc0e0
-void Delay(unsigned long ticks, unsigned long *finalTicks)
+void Delay(uint32_t ticks, uint32_t *finalTicks)
 {
     LastTick = ReadTick();
     WaitTicks(ticks);
@@ -2777,16 +2777,16 @@ void Delay(unsigned long ticks, unsigned long *finalTicks)
 
 /* ReplaceInHandle. STATE: MATCH. OPEN: none. see notes */
 // FUNCTION: EVNOVA 0x004bc100
-long ReplaceInHandle(char **h, long offset, const char *find, long findLen,
-                      const char *repl, long replLen)
+int32_t ReplaceInHandle(char **h, int32_t offset, const char *find, int32_t findLen,
+                      const char *repl, int32_t replLen)
 {
     char *start;
-    long count;
+    int32_t count;
     char c;
     char *p;
-    long oldSize;
-    long newSize;
-    long n;
+    int32_t oldSize;
+    int32_t newSize;
+    int32_t n;
     int handleSize;
 
     LockAHandle(h);

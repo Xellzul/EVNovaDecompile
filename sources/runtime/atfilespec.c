@@ -44,9 +44,9 @@ ULong gFT_CopyLength;
 /* FT_Open. STATE: MATCH 100%, exe 79 / obj 79, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004da12a
-long FT_Open(void)
+int32_t FT_Open(void)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     if (gFT_Open != 0)
@@ -119,7 +119,7 @@ done:
 // FUNCTION: EVNOVA 0x004da2ad
 void FT_Close(void)
 {
-    long err;
+    int32_t err;
     FolderSpec **folder;
     FTFile *file;
 
@@ -153,33 +153,33 @@ void FT_Close(void)
     gFT_Open = 0;
 }
 
-long FT_FileCreate(long where, FTFileInfo *info);
-long FT_FileOpen(long where, const char *name, unsigned char write, FTFile **result);
-long FT_FileFlush(void *ref);
-long FT_FileRead(void *ref, ULong count, void *buffer);
-long FT_FileWrite(FTFile *file, ULong count, const void *buffer);
-long FT_FileGetEOF(FTFile *file, ULong *size);
-long FT_FileSetEOF(FTFile *file, ULong size);
-long FT_FileSetMark(FTFile *file, ULong position);
-long _FT_FileSaveAppend(long where, const char *name, unsigned char replace, unsigned char append,
+int32_t FT_FileCreate(int32_t where, FTFileInfo *info);
+int32_t FT_FileOpen(int32_t where, const char *name, unsigned char write, FTFile **result);
+int32_t FT_FileFlush(void *ref);
+int32_t FT_FileRead(void *ref, ULong count, void *buffer);
+int32_t FT_FileWrite(FTFile *file, ULong count, const void *buffer);
+int32_t FT_FileGetEOF(FTFile *file, ULong *size);
+int32_t FT_FileSetEOF(FTFile *file, ULong size);
+int32_t FT_FileSetMark(FTFile *file, ULong position);
+int32_t _FT_FileSaveAppend(int32_t where, const char *name, unsigned char replace, unsigned char append,
                   ULong type, ULong creator, void **handle);
 
-long FT_VirtualFileOpen(void **handle, unsigned char mode, FTFile **result);
+int32_t FT_VirtualFileOpen(void **handle, unsigned char mode, FTFile **result);
 
 /* FT_PathCreate (FT a registered spec for `name' in folder `where'; a folder number alone
    when no name is given). STATE: MATCH 100%, exe 62 / obj 62, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004da370
-long FT_PathCreate(FolderSpec **where, const char *name, FolderSpec ***result)
+int32_t FT_PathCreate(FolderSpec **where, const char *name, FolderSpec ***result)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     FolderSpec **spec;
 
     err = 0;
     spec = 0;
     *result = 0;
-    if ((long)where >= kFolderShared && (long)where <= kFolderApplication &&
+    if ((int32_t)where >= kFolderShared && (int32_t)where <= kFolderApplication &&
         name != (const char *)kNoLength && (name == 0 || *name == 0)) {
         *result = where;
     } else {
@@ -206,10 +206,10 @@ done:
 /* FT_PathCurrent (FT do both names resolve against the base spec). STATE: MATCH 100%, exe 24 / obj 24, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004da40f
-long FT_PathCurrent(const char *first, const char *second)
+int32_t FT_PathCurrent(const char *first, const char *second)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     e = _FT_PathModify(gFT_Path, (void *)first, 0, 0);
@@ -226,9 +226,9 @@ long FT_PathCurrent(const char *first, const char *second)
 /* FT_PathDispose (FT dispose a spec; kNotFound for a handle that is not a registered spec).
    STATE: MATCH 100%, exe 21 / obj 21, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004da450
-long FT_PathDispose(FolderSpec **spec)
+int32_t FT_PathDispose(FolderSpec **spec)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (!IsSpecID(spec) && !_FT_PathLookup(spec))
@@ -242,9 +242,9 @@ long FT_PathDispose(FolderSpec **spec)
    a file of files; a folder inside a file of files is a nested one). STATE: MATCH 100%,
    exe 197 / obj 197, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004da480
-long FT_FileCreate(long where, FTFileInfo *info)
+int32_t FT_FileCreate(int32_t where, FTFileInfo *info)
 {
-    long err, e;
+    int32_t err, e;
     ULong entries;
     char leaf[256];
     FTFile *archive;
@@ -342,9 +342,9 @@ done:
    native file held as a spec's `dir` is closed first). STATE: MATCH 100%, exe 127 / obj 127,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004da738
-long FT_FileDelete(long where, const char *name)
+int32_t FT_FileDelete(int32_t where, const char *name)
 {
-    long err, e, e2;
+    int32_t err, e, e2;
     int isFile;
     char leaf[256];
     FTFile *archive;
@@ -409,9 +409,9 @@ done:
    reads as the folder "_Virtual_"). STATE: MATCH 100%, exe 162 / obj 162, byte-identical.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004da8c8
-long FT_FileGetFlags(long where, const char *name, FTFileInfo *info, long flags)
+int32_t FT_FileGetFlags(int32_t where, const char *name, FTFileInfo *info, int32_t flags)
 {
-    long err, e;
+    int32_t err, e;
     int isFile;
     unsigned char probe, quiet;
     char leaf[256];
@@ -472,9 +472,9 @@ done:
 /* FT_FileOpen (FT open a file, or a member of a file of files, for reading or writing).
    STATE: MATCH 100%, exe 96 / obj 96, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004daaf0
-long FT_FileOpen(long where, const char *name, unsigned char write, FTFile **result)
+int32_t FT_FileOpen(int32_t where, const char *name, unsigned char write, FTFile **result)
 {
-    long err, e;
+    int32_t err, e;
     int isFile, hasName;
     FolderSpec **spec;
 
@@ -518,11 +518,11 @@ done:
 /* FT_FileClose (FT file close). STATE: MATCH 100%, exe 65 / obj 65, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004dabe9
-long FT_FileClose(FTFile *file)
+int32_t FT_FileClose(FTFile *file)
 {
     FTFile **link;
-    long err;
-    long result;
+    int32_t err;
+    int32_t result;
 
     err = 0;
     if (_FT_FileUpdateRefCount(file, -1) == 0) {
@@ -561,16 +561,16 @@ long FT_FileClose(FTFile *file)
     return err;
 }
 
-long _FT_FileFlush(FTFile *file);
-long _FT_BufferFlush(FTFile *file);
+int32_t _FT_FileFlush(FTFile *file);
+int32_t _FT_BufferFlush(FTFile *file);
 
 /* FT_FileFlush (FT flush: through the parent file, else the memory or native flush). STATE:
    MATCH 100%, exe 27 / obj 27, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004dac8a
-long FT_FileFlush(void *ref)
+int32_t FT_FileFlush(void *ref)
 {
     FTFile *file;
-    long err, e, result;
+    int32_t err, e, result;
 
     file = ref;
     err = 0;
@@ -593,10 +593,10 @@ long FT_FileFlush(void *ref)
 /* FT_FileRead (FT read; kFTErrPosition past the end). STATE: MATCH 100%, exe 23 / obj 23,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004daccc
-long FT_FileRead(void *ref, ULong count, void *buffer)
+int32_t FT_FileRead(void *ref, ULong count, void *buffer)
 {
     FTFile *file;
-    long err, e;
+    int32_t err, e;
 
     file = ref;
     err = 0;
@@ -612,9 +612,9 @@ long FT_FileRead(void *ref, ULong count, void *buffer)
 
 /* FT_FileWrite (FT write). STATE: MATCH 100%, exe 17 / obj 17, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004dad00
-long FT_FileWrite(FTFile *file, ULong count, const void *buffer)
+int32_t FT_FileWrite(FTFile *file, ULong count, const void *buffer)
 {
-    long err = 0, e = -1;
+    int32_t err = 0, e = -1;
 
     e = file->procs.proc[kFTWrite](file, count, buffer);
     if (e != 0)
@@ -625,9 +625,9 @@ long FT_FileWrite(FTFile *file, ULong count, const void *buffer)
 /* FT_FileGetEOF (FT through the size procedure). STATE: MATCH 100%, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004dad25
-long FT_FileGetEOF(FTFile *file, ULong *size)
+int32_t FT_FileGetEOF(FTFile *file, ULong *size)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     e = file->procs.proc[kFTSize](file, size);
@@ -639,9 +639,9 @@ long FT_FileGetEOF(FTFile *file, ULong *size)
 /* FT_FileSetEOF (FT through the set-size procedure). STATE: MATCH 100%, byte-identical
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004dad42
-long FT_FileSetEOF(FTFile *file, ULong size)
+int32_t FT_FileSetEOF(FTFile *file, ULong size)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     e = file->procs.proc[kFTSetSize](file, size);
@@ -653,9 +653,9 @@ long FT_FileSetEOF(FTFile *file, ULong size)
 /* FT_FileSetMark (FT seek; kFTErrPosition when already past the end). STATE: MATCH 100%,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004dad5f
-long FT_FileSetMark(FTFile *file, ULong position)
+int32_t FT_FileSetMark(FTFile *file, ULong position)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     if (file->position > file->size)
@@ -671,9 +671,9 @@ long FT_FileSetMark(FTFile *file, ULong position)
 /* FT_FileLoad (FT load a whole file into a new handle, refusing one over maxSize). STATE:
    MATCH 100%, exe 84 / obj 84, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004dad8b
-long FT_FileLoad(long where, const char *name, ULong maxSize, long flags, void ***handle)
+int32_t FT_FileLoad(int32_t where, const char *name, ULong maxSize, int32_t flags, void ***handle)
 {
-    long err, e;
+    int32_t err, e;
     FTFile *file;
     ULong size;
     void **(*alloc)(ULong size);
@@ -725,10 +725,10 @@ done:
    of files is saved as one). STATE: MATCH 100%, exe 219 / obj 219, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004dae5f
-long _FT_FileSaveAppend(long where, const char *name, unsigned char replace, unsigned char append,
+int32_t _FT_FileSaveAppend(int32_t where, const char *name, unsigned char replace, unsigned char append,
                   ULong type, ULong creator, void **handle)
 {
-    long err, e;
+    int32_t err, e;
     unsigned char locked;
     unsigned char create;
     unsigned char created;
@@ -837,7 +837,7 @@ done:
 /* FT_FileSave (FT save, replacing). STATE: MATCH 100%, exe 10 / obj 10, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004db160
-long FT_FileSave(long where, const char *name, long flags, ULong type, ULong creator,
+int32_t FT_FileSave(int32_t where, const char *name, int32_t flags, ULong type, ULong creator,
                   void **handle)
 {
     return _FT_FileSaveAppend(where, name, flags, 0, type, creator, handle);
@@ -855,10 +855,10 @@ void *FT_GetResFile(void)
    the Mac type and the sixth argument are not read). STATE: MATCH 100%, exe 68 / obj 68,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004db18c
-long FT_ResourceLoad(void *module, unsigned short id, const char *resType, ULong macType,
-                  ULong maxSize, long unused, void ***handle)
+int32_t FT_ResourceLoad(void *module, unsigned short id, const char *resType, ULong macType,
+                  ULong maxSize, int32_t unused, void ***handle)
 {
-    long err;
+    int32_t err;
     void *res;
     void *data;
     void *bytes;
@@ -904,8 +904,8 @@ done:
     return err;
 }
 
-long _FT_BufferOpenWrapper(void **handle, unsigned char mode, FTFile **result);
-long FT_VirtualFileOpen(void **handle, unsigned char mode, FTFile **result);
+int32_t _FT_BufferOpenWrapper(void **handle, unsigned char mode, FTFile **result);
+int32_t FT_VirtualFileOpen(void **handle, unsigned char mode, FTFile **result);
 
 #define kFolderSpecSize     0x115                /* up to the first byte of names */
 
@@ -913,9 +913,9 @@ long FT_VirtualFileOpen(void **handle, unsigned char mode, FTFile **result);
    as a file of files, an empty handle first made an empty one). STATE: MATCH 100%, exe 76 /
    obj 76, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004db23e
-long FT_VirtualPathMount(void **handle, unsigned char mode, FolderSpec ***result)
+int32_t FT_VirtualPathMount(void **handle, unsigned char mode, FolderSpec ***result)
 {
-    long err, e;
+    int32_t err, e;
     FTFile *file;
     FolderSpec **spec, **s;
 
@@ -956,9 +956,9 @@ done:
 /* FT_VirtualFileOpen (FT open a memory handle as a file). STATE: MATCH 100%, exe 16 / obj 16, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004db2f5
-long FT_VirtualFileOpen(void **handle, unsigned char mode, FTFile **result)
+int32_t FT_VirtualFileOpen(void **handle, unsigned char mode, FTFile **result)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     *result = 0;

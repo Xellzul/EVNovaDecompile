@@ -20,7 +20,7 @@
 // FUNCTION: EVNOVA 0x0050be8a
 FTFile *_FT_IsChunkOpen(FTFile *archive, const char *name)
 {
-    long err;
+    int32_t err;
     FTFile **link;
     FTFile *f;
     ULong index;
@@ -45,15 +45,15 @@ done:
    toLast, stop at the one holding the last name and return that name escaped in `leaf`).
    STATE: MATCH 100%, exe 275 / obj 275, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050beeb
-long _FT_ChunkOpenPath(FolderSpec **spec, unsigned char write, unsigned char toLast,
+int32_t _FT_ChunkOpenPath(FolderSpec **spec, unsigned char write, unsigned char toLast,
                   unsigned char mustBeArchive, FTFile **result, char *leaf)
 {
-    long err, e;
+    int32_t err, e;
     unsigned char locked;
     FTFile *parent;
     ULong offset, limit;
     unsigned char *name;
-    long saved;
+    int32_t saved;
     FTFile *root;
     FTFile *file;
     char cname[256];
@@ -156,10 +156,10 @@ done:
    refused when the entry's flags forbid; `nested` loads its own directory). STATE:
    MATCH 100%, exe 176 / obj 176, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050c226
-long _FT_ChunkOpen(FTFile *archive, FTFile *file, const char *name, unsigned char write,
+int32_t _FT_ChunkOpen(FTFile *archive, FTFile *file, const char *name, unsigned char write,
                   unsigned char nested)
 {
-    long err, result;
+    int32_t err, result;
     ULong index, flags;
 
     err = 0;
@@ -201,9 +201,9 @@ done:
 /* _FT_ChunkClose (FT file buffers release). STATE: MATCH 100%, exe 23 / obj 23, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050c433
-long _FT_ChunkClose(FTFile *file)
+int32_t _FT_ChunkClose(FTFile *file)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (file->buffer != 0) {
@@ -221,10 +221,10 @@ long _FT_ChunkClose(FTFile *file)
    header is kFTErrBadEntry). STATE: MATCH 100%, exe 236 / obj 236, byte-identical.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050c472
-long _FT_ChunkLoad(FTFile *file)
+int32_t _FT_ChunkLoad(FTFile *file)
 {
     const char *sig;
-    long err, e;
+    int32_t err, e;
     FTMark mark;
     FTArchiveHeader h;
     ULong table;
@@ -364,9 +364,9 @@ unsigned char _FT_ChunkLookup(FTFile *archive, const char *name, ULong *index,
    free entries, kDefaultEntries when 0 or over kMaxEntries). STATE: MATCH 100%, exe 133 /
    obj 133, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050c8b9
-long _FT_ChunkFormat(FTFile *file, ULong entries)
+int32_t _FT_ChunkFormat(FTFile *file, ULong entries)
 {
-    long err, e;
+    int32_t err, e;
     char *table;
     ULong size;
     FTArchiveHeader h;
@@ -427,17 +427,17 @@ done:
 /* _FT_ChunkResize (FT resize a member's extent inside an archive). STATE: MATCH 100%, exe 188 /
    obj 188, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0050ca24
-long _FT_ChunkResize(FTFile *archive, ULong offset, ULong length, ULong newLength,
+int32_t _FT_ChunkResize(FTFile *archive, ULong offset, ULong length, ULong newLength,
                   ULong *newOffset)
 {
     FTMark mark;
     char *buffer;
     ULong end;
     ULong done;
-    long err;
+    int32_t err;
     ULong chunk;
-    long result;
-    long e;
+    int32_t result;
+    int32_t e;
     ULong pos;
 
     err = 0;
@@ -539,9 +539,9 @@ done:
    table doubled at the end of the file and the old one zeroed; a folder becomes a nested
    file of files). STATE: MATCH 100%, exe 671 / obj 671, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050cc24
-long _FT_ChunkCreate(FTFile *archive, FTFileInfo *info)
+int32_t _FT_ChunkCreate(FTFile *archive, FTFileInfo *info)
 {
-    long err, e;
+    int32_t err, e;
     ULong entries;
     FTArchiveEntry *slot;
     FTArchiveEntry *entry;
@@ -739,9 +739,9 @@ done:
    its extent released; kFTErrBusy while it is open). STATE: MATCH 100%, exe 269 / obj 269,
    byte-identical. OPEN: none (an early failure returns to an unset mark, as the exe) */
 // FUNCTION: EVNOVA 0x0050d53a
-long _FT_ChunkDelete(FTFile *archive, const char *name)
+int32_t _FT_ChunkDelete(FTFile *archive, const char *name)
 {
-    long err, e;
+    int32_t err, e;
     unsigned char member[256];
     FTArchiveHeader h;
     FTMark mark;
@@ -823,10 +823,10 @@ done:
    file of files reads as a folder of its entry count). STATE: MATCH 100%, exe 322 / obj 322,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050d89f
-long _FT_ChunkGetFlags(FTFile *archive, const char *name, const char *member, FTFileInfo *info,
+int32_t _FT_ChunkGetFlags(FTFile *archive, const char *name, const char *member, FTFileInfo *info,
                   FolderSpec **spec)
 {
-    long err, e;
+    int32_t err, e;
     unsigned char pname[256];
     char cname[256];
     FileTypeMap map;
@@ -900,12 +900,12 @@ done:
 /* _FT_ChunkRead (FT member read). STATE: MATCH 100%, exe 106 / obj 106, byte-identical.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050dcf2
-long _FT_ChunkRead(FTFile *file, ULong count, void *buffer)
+int32_t _FT_ChunkRead(FTFile *file, ULong count, void *buffer)
 {
     FTMark mark;
-    long err;
+    int32_t err;
     FTFile *parent;
-    long result;
+    int32_t result;
 
     err = 0;
     parent = file->parent;
@@ -941,12 +941,12 @@ done:
 /* _FT_ChunkWrite (FT member write). STATE: MATCH 100%, exe 119 / obj 119, byte-identical.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050de0c
-long _FT_ChunkWrite(FTFile *file, ULong count, const void *buffer)
+int32_t _FT_ChunkWrite(FTFile *file, ULong count, const void *buffer)
 {
     FTMark mark;
-    long err;
+    int32_t err;
     FTFile *parent;
-    long result;
+    int32_t result;
 
     err = 0;
     parent = file->parent;
@@ -989,9 +989,9 @@ done:
 /* _FT_ChunkGetEOF (FT member size). STATE: MATCH 100%, exe 11 / obj 11, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050df49
-long _FT_ChunkGetEOF(FTFile *file, ULong *size)
+int32_t _FT_ChunkGetEOF(FTFile *file, ULong *size)
 {
-    long err;
+    int32_t err;
     FTFile *parent;
 
     err = 0;
@@ -1003,7 +1003,7 @@ long _FT_ChunkGetEOF(FTFile *file, ULong *size)
 /* _FT_ChunkSetEOF (FT member set size). STATE: MATCH 100%, exe 271 / obj 271, byte-identical
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050df65
-long _FT_ChunkSetEOF(FTFile *file, ULong size)
+int32_t _FT_ChunkSetEOF(FTFile *file, ULong size)
 {
     FTArchiveHeader header;
     FTMark mark;
@@ -1011,8 +1011,8 @@ long _FT_ChunkSetEOF(FTFile *file, ULong size)
     FTArchiveEntry *entry;
     ULong offset;
     ULong length;
-    long err;
-    long result;
+    int32_t err;
+    int32_t result;
 
     err = 0;
     parent = file->parent;
@@ -1064,9 +1064,9 @@ failed:
 /* _FT_ChunkGetMark (FT member position). STATE: MATCH 100%, exe 11 / obj 11, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050e2a9
-long _FT_ChunkGetMark(FTFile *file, ULong *position)
+int32_t _FT_ChunkGetMark(FTFile *file, ULong *position)
 {
-    long err;
+    int32_t err;
     FTFile *parent;
 
     err = 0;
@@ -1078,9 +1078,9 @@ long _FT_ChunkGetMark(FTFile *file, ULong *position)
 /* _FT_ChunkSetMark (FT member seek). STATE: MATCH 100%, exe 12 / obj 12, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050e2c5
-long _FT_ChunkSetMark(FTFile *file, ULong position)
+int32_t _FT_ChunkSetMark(FTFile *file, ULong position)
 {
-    long err;
+    int32_t err;
     FTFile *parent;
 
     err = 0;
@@ -1095,9 +1095,9 @@ long _FT_ChunkSetMark(FTFile *file, ULong position)
 /* _FT_ChunkGetCount (count the used entries of a file of files, or of its nested member `name`).
    STATE: MATCH 100%, exe 221 / obj 221, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050e2e7
-long _FT_ChunkGetCount(FTFile *archive, const char *name, ULong *count)
+int32_t _FT_ChunkGetCount(FTFile *archive, const char *name, ULong *count)
 {
-    long err, e;
+    int32_t err, e;
     FTFile *dir;
     FTFile *p;
     ULong i;
@@ -1163,14 +1163,14 @@ done:
 
 extern FileProc gFT_BufferHooks[6];                 /* atftopen.c: the memory procedures */
 
-long _FT_BufferOpen(void **handle, unsigned char mode, FTFile *file);
+int32_t _FT_BufferOpen(void **handle, unsigned char mode, FTFile *file);
 
 /* _FT_BufferOpenWrapper (FT file over a memory handle: the open one, ref-counted, or a new one on
    the open-file list). STATE: MATCH 100%, exe 60 / obj 60, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050e575
-long _FT_BufferOpenWrapper(void **handle, unsigned char mode, FTFile **result)
+int32_t _FT_BufferOpenWrapper(void **handle, unsigned char mode, FTFile **result)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     if ((*result = _FT_IsBufferOpen(handle)) == 0) {
@@ -1203,7 +1203,7 @@ FTFile *_FT_IsBufferOpen(void **handle)
 {
     FTFile **link;
     FTFile *file;
-    long err;
+    int32_t err;
 
     err = 0;
     link = 0;
@@ -1216,9 +1216,9 @@ FTFile *_FT_IsBufferOpen(void **handle)
 /* _FT_BufferOpen (set an FTFile over a memory handle: size, mode, the memory procedures).
    STATE: MATCH 100%, exe 27 / obj 27, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050e62e
-long _FT_BufferOpen(void **handle, unsigned char mode, FTFile *file)
+int32_t _FT_BufferOpen(void **handle, unsigned char mode, FTFile *file)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     file->memHandle = handle;
@@ -1232,9 +1232,9 @@ long _FT_BufferOpen(void **handle, unsigned char mode, FTFile *file)
 /* _FT_BufferClose (FT memory file close). STATE: MATCH 100%, exe 7 / obj 7, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050e670
-long _FT_BufferClose(FTFile *file)
+int32_t _FT_BufferClose(FTFile *file)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     file->memHandle = 0;
@@ -1244,9 +1244,9 @@ long _FT_BufferClose(FTFile *file)
 /* _FT_BufferFlush (FT memory flush: nothing to do). STATE: MATCH 100%, exe 4 / obj 4, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050e683
-long _FT_BufferFlush(FTFile *file)
+int32_t _FT_BufferFlush(FTFile *file)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     return 0;
@@ -1254,10 +1254,10 @@ long _FT_BufferFlush(FTFile *file)
 
 /* _FT_BufferRead (FT memory read). STATE: MATCH 100%, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050e68a
-long _FT_BufferRead(FTFile *file, ULong count, void *buffer)
+int32_t _FT_BufferRead(FTFile *file, ULong count, void *buffer)
 {
     char *src;
-    long err;
+    int32_t err;
 
     err = 0;
     if (file->position + count > file->size) {
@@ -1274,11 +1274,11 @@ long _FT_BufferRead(FTFile *file, ULong count, void *buffer)
 /* _FT_BufferWrite (FT memory write). STATE: MATCH 100%, exe 38 / obj 38, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050e6ce
-long _FT_BufferWrite(FTFile *file, ULong count, const void *buffer)
+int32_t _FT_BufferWrite(FTFile *file, ULong count, const void *buffer)
 {
     char *dst;
-    long err;
-    long result;
+    int32_t err;
+    int32_t result;
 
     err = 0;
     if (file->size < file->position + count) {
@@ -1300,9 +1300,9 @@ done:
 /* _FT_BufferGetEOF (FT memory size). STATE: MATCH 100%, exe 12 / obj 12, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050e729
-long _FT_BufferGetEOF(FTFile *file, ULong *size)
+int32_t _FT_BufferGetEOF(FTFile *file, ULong *size)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     *size = IndirectGetSize(file->memHandle);
@@ -1311,10 +1311,10 @@ long _FT_BufferGetEOF(FTFile *file, ULong *size)
 
 /* _FT_BufferSetEOF (FT memory set size). STATE: MATCH 100%, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050e748
-long _FT_BufferSetEOF(FTFile *file, ULong size)
+int32_t _FT_BufferSetEOF(FTFile *file, ULong size)
 {
-    long err;
-    long result;
+    int32_t err;
+    int32_t result;
 
     err = 0;
     result = IndirectSetSize(file->memHandle, size);
@@ -1331,9 +1331,9 @@ long _FT_BufferSetEOF(FTFile *file, ULong size)
 /* _FT_BufferGetMark (FT memory position). STATE: MATCH 100%, exe 10 / obj 10, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050e77c
-long _FT_BufferGetMark(FTFile *file, ULong *position)
+int32_t _FT_BufferGetMark(FTFile *file, ULong *position)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     *position = file->position;
@@ -1343,9 +1343,9 @@ long _FT_BufferGetMark(FTFile *file, ULong *position)
 /* _FT_BufferSetMark (FT memory seek). STATE: MATCH 100%, exe 7 / obj 7, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0050e792
-long _FT_BufferSetMark(FTFile *file, ULong position)
+int32_t _FT_BufferSetMark(FTFile *file, ULong position)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     file->position = position;

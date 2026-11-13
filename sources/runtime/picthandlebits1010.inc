@@ -1,8 +1,8 @@
 /* picthandlebits1010.inc -- _PICT_HandleBits' body on mac 1.0.10: the frame kept in imageBounds, bits under 8 deep unpacked, a packed 32-bit PixMap with or without its alpha plane; win and mac 1.1.1 keep theirs in itpict.c. */
 {
     void **packed;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong y;
     ULong x;
     ULong rowBytes;

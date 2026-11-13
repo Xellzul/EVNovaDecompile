@@ -14,11 +14,11 @@ typedef struct {
   IIR_state *iir;
   float    **filtered;
 
-  long storage;
-  long current;
-  long mark;
-  long prevmark;
-  long cursor;
+  int32_t storage;
+  int32_t current;
+  int32_t mark;
+  int32_t prevmark;
+  int32_t cursor;
 } envelope_lookup;
 
 #ifdef __cplusplus
@@ -27,8 +27,8 @@ extern "C" {
 
 extern void _ve_envelope_init(envelope_lookup *e,vorbis_info *vi);
 extern void _ve_envelope_clear(envelope_lookup *e);
-extern long _ve_envelope_search(vorbis_dsp_state *v);
-extern void _ve_envelope_shift(envelope_lookup *e,long shift);
+extern int32_t _ve_envelope_search(vorbis_dsp_state *v);
+extern void _ve_envelope_shift(envelope_lookup *e,int32_t shift);
 extern int  _ve_envelope_mark(vorbis_dsp_state *v);
 
 #ifdef __cplusplus

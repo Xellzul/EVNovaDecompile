@@ -7,12 +7,12 @@
     short hits;
     short found;
     short resID;
-    unsigned long resType;
+    uint32_t resType;
     short count;
     short k;
     short gunTally, turretTally;
     float base;
-    long sum;
+    int32_t sum;
     short mountID[8];
     short mountCount[8];
     RGBColor rgb;
@@ -828,7 +828,7 @@
     /* ---------------- shïp: ship classes ---------------- */
     {
         short shipCount;
-        long mass;
+        int32_t mass;
 
         shipCount = CountResources(kShipType);
         if (shipCount == 0)

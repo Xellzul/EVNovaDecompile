@@ -49,7 +49,7 @@ unsigned char CE_CheckDebugKeys(short scanCode)
 
 /* NumToString's digits, with a minus sign where the original prints a negative value
    as a large unsigned one (debug mode shows some). */
-char *CE_NumberToAscii(char *dst, long value, unsigned long flags)
+char *CE_NumberToAscii(char *dst, int32_t value, uint32_t flags)
 {
     if (value < 0) {
         *dst++ = '-';

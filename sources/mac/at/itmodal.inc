@@ -14,7 +14,7 @@ typedef struct ITSoundNode {
 #pragma options align=reset
 
 extern ITSoundNode *gIT_SoundList;
-extern long IT_HandleMacEvent(EventRecord *event, short edit, short *cursor);
+extern int32_t IT_HandleMacEvent(EventRecord *event, short edit, short *cursor);
 
 pascal void IT_FrameRectHook(signed char verb, const Rect *r)
 {

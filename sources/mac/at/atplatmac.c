@@ -34,7 +34,7 @@ typedef struct AbsTime {
 typedef void (*PlatformCallback)(void);
 
 extern void _TimerRunDeferred(void);
-extern long _SystemPatchTraps(void);
+extern int32_t _SystemPatchTraps(void);
 extern ULong ThreadsCount(void);
 extern void _AtomicResetCritical(void);
 extern void _AtomicEnter2(void);
@@ -42,7 +42,7 @@ extern void _AtomicLeave2(void);
 extern void ThreadYield(void);
 void SystemIdle(void);
 extern void *_PlatformFindSymbol(const char *library, const char *name);
-extern long ThreadsPreflight(long count, ULong stackSize);
+extern int32_t ThreadsPreflight(int32_t count, ULong stackSize);
 #if !TARGET_API_MAC_CARBON
 void SystemEnterCallback(int lock);
 void SystemLeaveCallback(int lock);
@@ -70,10 +70,10 @@ static void *sPatchA;
 static ULong gSystemQuitCount;
 static ULong gSystemIdleCount;
 #if TARGET_API_MAC_CARBON
-long *gErrno;
-long (*gExit)(long code);
-long (*gSignal)(long sig, void *handler);
-long (*gAtExit)(void *proc);
+int32_t *gErrno;
+int32_t (*gExit)(int32_t code);
+int32_t (*gSignal)(int32_t sig, void *handler);
+int32_t (*gAtExit)(void *proc);
 #else
 void (*gLeaveNotifier)(void *provider);
 unsigned char (*gEnterNotifier)(void *provider);
@@ -83,10 +83,10 @@ UnsignedWide (*gAbsoluteToNanosecondsProc)(UnsignedWide t);
 #if TARGET_API_MAC_CARBON
 void *gUnholdMemory;
 void *gHoldMemory;
-void (*gNSetTrapAddress)(void *address, ULong trap, long kind);
-ULong (*gNGetTrapAddress)(ULong trap, long kind);
-long (*gCallUniversalProc)(UniversalProcPtr proc, ULong info, ...);
-void *(*gNewRoutineDescriptor)(void *proc, ULong procInfo, long isa);
+void (*gNSetTrapAddress)(void *address, ULong trap, int32_t kind);
+ULong (*gNGetTrapAddress)(ULong trap, int32_t kind);
+int32_t (*gCallUniversalProc)(UniversalProcPtr proc, ULong info, ...);
+void *(*gNewRoutineDescriptor)(void *proc, ULong procInfo, int32_t isa);
 unsigned char gSignalsInstalled;
 unsigned char gAtExitInstalled;
 unsigned char gOTContextOpen;
@@ -117,10 +117,10 @@ unsigned char gPlatformOpen;
 #define kSystemTen          0x1000
 #define kIdleTimerSeconds   0.1
 
-extern long _MutexDispose(struct TaskMutex *mutex);
-extern long _MutexEnter(struct TaskMutex *mutex, long timeout);
-extern long _MutexLeave(struct TaskMutex *mutex);
-static long _SystemInstallSignals(void);
+extern int32_t _MutexDispose(struct TaskMutex *mutex);
+extern int32_t _MutexEnter(struct TaskMutex *mutex, int32_t timeout);
+extern int32_t _MutexLeave(struct TaskMutex *mutex);
+static int32_t _SystemInstallSignals(void);
 void *_PlatformFindBundleSymbol(CFStringRef bundleName, CFStringRef symbolName);
 void *_MachOForCFM(void *function);
 pascal void _SystemIdleTimer(EventLoopTimerRef timer, void *ref);
@@ -152,7 +152,7 @@ static unsigned short sTrapPatch[12] = { 0x203a, 0x000e, 0x6704, 0x2040, 0x4e90,
 #define kPlatformBackoff    1000
 #define kSeedBits           32
 
-extern long _EncodingPreflight(void);
+extern int32_t _EncodingPreflight(void);
 extern UnsignedWide ReadRTC(void);
 extern UnsignedWide ReadTB(void);
 
@@ -184,15 +184,15 @@ static void _PlatformInitDialogs(UniversalProcPtr resume)
 
 #if TARGET_API_MAC_CARBON
 
-extern long _MutexCreate(struct TaskMutex **out);
+extern int32_t _MutexCreate(struct TaskMutex **out);
 extern void _PlatformOpenLibraries(void);
 
 #define BUNDLE_SYMBOL(name) _PlatformFindBundleSymbol(CFSTR("System.framework"), CFSTR(name))
 
-long PlatformOpen(void)
+int32_t PlatformOpen(void)
 {
-    long err;
-    long response;
+    int32_t err;
+    int32_t response;
 
     err = 0;
     SystemCheckCallback();
@@ -320,7 +320,7 @@ long PlatformOpen(void)
         gRandomSeed = (gRandomSeed << shift) | (gRandomSeed >> (kSeedBits - shift));
     }
     {
-        long e;
+        int32_t e;
 
         e = _EncodingPreflight();
         if (e != 0)
@@ -334,11 +334,11 @@ done:
 
 #else
 
-long PlatformOpen(void)
+int32_t PlatformOpen(void)
 {
-    long err;
-    long e;
-    long response;
+    int32_t err;
+    int32_t e;
+    int32_t response;
 
     err = 0;
     SystemCheckCallback();
@@ -625,7 +625,7 @@ void SystemEnterCallback(unsigned char lock)
     } else {
         if (gCallbackDepth == 0)
             _AtomicEnter2();
-        AtomicIncrement((long *)&gCallbackDepth, 1);
+        AtomicIncrement((int32_t *)&gCallbackDepth, 1);
     }
 }
 
@@ -641,7 +641,7 @@ void SystemLeaveCallback(unsigned char lock)
             MPSetTaskStorageValue(gCallbackIndex, depth - 1);
     } else {
         if (gCallbackDepth != 0)
-            AtomicIncrement((long *)&gCallbackDepth, -1);
+            AtomicIncrement((int32_t *)&gCallbackDepth, -1);
         if (gCallbackDepth == 0)
             _AtomicLeave2();
     }
@@ -668,7 +668,7 @@ unsigned char SystemCheckCallback(void)
 unsigned char _PlatformIsThreaded(void)
 {
     unsigned char threaded;
-    long response;
+    int32_t response;
 
     threaded = 0;
     if (gPlatformOpen)
@@ -708,13 +708,13 @@ void SystemEnterCallback(int lock)
 {
     if (gCallbackDepth == 0)
         _AtomicEnter2();
-    AtomicIncrement((long *)&gCallbackDepth, 1);
+    AtomicIncrement((int32_t *)&gCallbackDepth, 1);
 }
 
 void SystemLeaveCallback(int lock)
 {
     if (gCallbackDepth != 0)
-        AtomicIncrement((long *)&gCallbackDepth, -1);
+        AtomicIncrement((int32_t *)&gCallbackDepth, -1);
     if (gCallbackDepth == 0)
         _AtomicLeave2();
 }
@@ -773,7 +773,7 @@ void *_PlatformFindBundleSymbol(CFStringRef bundleName, CFStringRef symbolName)
     base = 0;
     symbol = 0;
     if (!sFound) {
-        long e;
+        int32_t e;
 
         e = FSFindFolder(kOnAppropriateDisk, kFrameworksFolderType, kCreateFolder, &sFrameworks);
         if (e != 0) {
@@ -831,9 +831,9 @@ void *_MachOForCFM(void *function)
     return glue;
 }
 
-long _SystemPatchTraps(void)
+int32_t _SystemPatchTraps(void)
 {
-    long err, e;
+    int32_t err, e;
     ULong *patch;
     void *routine;
 
@@ -950,9 +950,9 @@ pascal void _SystemIdleTimer(EventLoopTimerRef timer, void *ref)
 
 #else
 
-long _SystemPatchTraps(void)
+int32_t _SystemPatchTraps(void)
 {
-    long err;
+    int32_t err;
     ULong *patch;
     void *routine;
 
@@ -1004,11 +1004,11 @@ done:
 void _SystemUnpatchTraps(void)
 {
     if (sPatchA != 0) {
-        ((long *)sPatchA)[4] = 0;
+        ((int32_t *)sPatchA)[4] = 0;
         sPatchA = 0;
     }
     if (sPatchB != 0) {
-        ((long *)sPatchB)[4] = 0;
+        ((int32_t *)sPatchB)[4] = 0;
         sPatchB = 0;
     }
 }
@@ -1044,8 +1044,8 @@ void _AtomicLeave2(void)
 
 void _SystemSignalHandler(ULong sig)
 {
-    long saved;
-    long i;
+    int32_t saved;
+    int32_t i;
 
     saved = *gErrno;
     for (i = 33; i != 0; i--)
@@ -1069,9 +1069,9 @@ void _SystemSignalHandler(ULong sig)
     SystemLeaveCallback(1);
 }
 
-static long _SystemInstallSignals(void)
+static int32_t _SystemInstallSignals(void)
 {
-    long err;
+    int32_t err;
     ULong sig;
     void *glue;
 

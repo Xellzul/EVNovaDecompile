@@ -32,7 +32,7 @@ typedef struct DDSurfaceDesc {                   /* 0x6c, asserted by the exe */
     ULong flags;                                 /* +0x04 */
     ULong height;                                /* +0x08 */
     ULong width;                                 /* +0x0c */
-    long pitch;                                  /* +0x10 */
+    int32_t pitch;                                  /* +0x10 */
     ULong backBufferCount;                       /* +0x14 */
     ULong refreshRate;                           /* +0x18 */
     ULong alphaBitDepth;                         /* +0x1c */
@@ -91,24 +91,24 @@ struct DDrawPalette;
 
 /* IDirectDraw (v1): SetDisplayMode has no refresh rate and no flags. */
 typedef struct DDrawVtbl {
-    long (__stdcall *QueryInterface)(void *self, const Guid *iid,
+    int32_t (__stdcall *QueryInterface)(void *self, const Guid *iid,
                                      void *out);            /* +0x00 */
     ULong (__stdcall *AddRef)(void *self);                   /* +0x04 */
     ULong (__stdcall *Release)(void *self);                  /* +0x08 */
     char pad0C[0x10 - 0x0c];
-    long (__stdcall *CreateClipper)(void *self, ULong flags,
+    int32_t (__stdcall *CreateClipper)(void *self, ULong flags,
                                     struct DDrawClipper **out,
                                     void *outer);            /* +0x10 */
-    long (__stdcall *CreatePalette)(void *self, ULong caps, void *entries,
+    int32_t (__stdcall *CreatePalette)(void *self, ULong caps, void *entries,
                                     struct DDrawPalette **out,
                                     void *outer);            /* +0x14 */
-    long (__stdcall *CreateSurface)(void *self, DDSurfaceDesc *desc,
+    int32_t (__stdcall *CreateSurface)(void *self, DDSurfaceDesc *desc,
                                     struct DDrawSurface **out,
                                     void *outer);            /* +0x18 */
     char pad1C[0x50 - 0x1c];
-    long (__stdcall *SetCooperativeLevel)(void *self, void *hWnd,
+    int32_t (__stdcall *SetCooperativeLevel)(void *self, void *hWnd,
                                           ULong flags);      /* +0x50 */
-    long (__stdcall *SetDisplayMode)(void *self, ULong w, ULong h,
+    int32_t (__stdcall *SetDisplayMode)(void *self, ULong w, ULong h,
                                      ULong bpp);             /* +0x54 */
 } DDrawVtbl;
 
@@ -118,7 +118,7 @@ typedef struct DDraw {
 
 /* IDirectDraw2: only released here. */
 typedef struct DDraw2Vtbl {
-    long (__stdcall *QueryInterface)(void *self, const Guid *iid,
+    int32_t (__stdcall *QueryInterface)(void *self, const Guid *iid,
                                      void *out);            /* +0x00 */
     ULong (__stdcall *AddRef)(void *self);                   /* +0x04 */
     ULong (__stdcall *Release)(void *self);                  /* +0x08 */
@@ -130,12 +130,12 @@ typedef struct DDraw2 {
 
 /* IDirectDraw4: the same slot takes a refresh rate and flags. */
 typedef struct DDraw4Vtbl {
-    long (__stdcall *QueryInterface)(void *self, const Guid *iid,
+    int32_t (__stdcall *QueryInterface)(void *self, const Guid *iid,
                                      void *out);            /* +0x00 */
     ULong (__stdcall *AddRef)(void *self);                   /* +0x04 */
     ULong (__stdcall *Release)(void *self);                  /* +0x08 */
     char pad0C[0x54 - 0x0c];
-    long (__stdcall *SetDisplayMode)(void *self, ULong w, ULong h,
+    int32_t (__stdcall *SetDisplayMode)(void *self, ULong w, ULong h,
                                      ULong bpp, ULong refresh,
                                      ULong flags);           /* +0x54 */
 } DDraw4Vtbl;
@@ -145,32 +145,32 @@ typedef struct DDraw4 {
 } DDraw4;
 
 typedef struct DDrawSurfaceVtbl {
-    long (__stdcall *QueryInterface)(void *self, const Guid *iid,
+    int32_t (__stdcall *QueryInterface)(void *self, const Guid *iid,
                                      void *out);            /* +0x00 */
     ULong (__stdcall *AddRef)(void *self);                   /* +0x04 */
     ULong (__stdcall *Release)(void *self);                  /* +0x08 */
     char pad0C[0x14 - 0x0c];
-    long (__stdcall *Blt)(void *self, void *destRect, void *src,
+    int32_t (__stdcall *Blt)(void *self, void *destRect, void *src,
                           void *srcRect, ULong flags, void *fx); /* +0x14 */
     char pad18[0x2c - 0x18];
-    long (__stdcall *Flip)(void *self, struct DDrawSurface *target,
+    int32_t (__stdcall *Flip)(void *self, struct DDrawSurface *target,
                            ULong flags);                     /* +0x2c */
-    long (__stdcall *GetAttachedSurface)(void *self, ULong *caps,
+    int32_t (__stdcall *GetAttachedSurface)(void *self, ULong *caps,
                                          struct DDrawSurface **out); /* +0x30 */
-    long (__stdcall *GetBltStatus)(void *self, ULong flags); /* +0x34 */
+    int32_t (__stdcall *GetBltStatus)(void *self, ULong flags); /* +0x34 */
     char pad38[0x44 - 0x38];
-    long (__stdcall *GetDC)(void *self, void **hdc);         /* +0x44 */
+    int32_t (__stdcall *GetDC)(void *self, void **hdc);         /* +0x44 */
     char pad48[0x64 - 0x48];
-    long (__stdcall *Lock)(void *self, void *rect, DDSurfaceDesc *desc,
+    int32_t (__stdcall *Lock)(void *self, void *rect, DDSurfaceDesc *desc,
                            ULong flags, void *event);        /* +0x64 */
-    long (__stdcall *ReleaseDC)(void *self, void *hdc);      /* +0x68 */
-    long (__stdcall *Restore)(void *self);                   /* +0x6c */
-    long (__stdcall *SetClipper)(void *self,
+    int32_t (__stdcall *ReleaseDC)(void *self, void *hdc);      /* +0x68 */
+    int32_t (__stdcall *Restore)(void *self);                   /* +0x6c */
+    int32_t (__stdcall *SetClipper)(void *self,
                                  struct DDrawClipper *clipper); /* +0x70 */
     char pad74[0x7c - 0x74];
-    long (__stdcall *SetPalette)(void *self,
+    int32_t (__stdcall *SetPalette)(void *self,
                                  struct DDrawPalette *palette); /* +0x7c */
-    long (__stdcall *Unlock)(void *self, void *ptr);          /* +0x80 */
+    int32_t (__stdcall *Unlock)(void *self, void *ptr);          /* +0x80 */
 } DDrawSurfaceVtbl;
 
 typedef struct DDrawSurface {
@@ -178,12 +178,12 @@ typedef struct DDrawSurface {
 } DDrawSurface;
 
 typedef struct DDrawClipperVtbl {
-    long (__stdcall *QueryInterface)(void *self, const Guid *iid,
+    int32_t (__stdcall *QueryInterface)(void *self, const Guid *iid,
                                      void *out);            /* +0x00 */
     ULong (__stdcall *AddRef)(void *self);                   /* +0x04 */
     ULong (__stdcall *Release)(void *self);                  /* +0x08 */
     char pad0C[0x20 - 0x0c];
-    long (__stdcall *SetHWnd)(void *self, ULong flags, void *hWnd); /* +0x20 */
+    int32_t (__stdcall *SetHWnd)(void *self, ULong flags, void *hWnd); /* +0x20 */
 } DDrawClipperVtbl;
 
 typedef struct DDrawClipper {
@@ -191,12 +191,12 @@ typedef struct DDrawClipper {
 } DDrawClipper;
 
 typedef struct DDrawPaletteVtbl {
-    long (__stdcall *QueryInterface)(void *self, const Guid *iid,
+    int32_t (__stdcall *QueryInterface)(void *self, const Guid *iid,
                                      void *out);            /* +0x00 */
     ULong (__stdcall *AddRef)(void *self);                   /* +0x04 */
     ULong (__stdcall *Release)(void *self);                  /* +0x08 */
     char pad0C[0x18 - 0x0c];
-    long (__stdcall *SetEntries)(void *self, ULong flags, ULong start,
+    int32_t (__stdcall *SetEntries)(void *self, ULong flags, ULong start,
                                  ULong count, void *entries); /* +0x18 */
 } DDrawPaletteVtbl;
 
@@ -212,13 +212,13 @@ typedef struct DDGammaRamp {
 } DDGammaRamp;
 
 typedef struct DDrawGammaControlVtbl {
-    long (__stdcall *QueryInterface)(void *self, const Guid *iid,
+    int32_t (__stdcall *QueryInterface)(void *self, const Guid *iid,
                                      void *out);            /* +0x00 */
     ULong (__stdcall *AddRef)(void *self);                   /* +0x04 */
     ULong (__stdcall *Release)(void *self);                  /* +0x08 */
-    long (__stdcall *GetGammaRamp)(void *self, ULong flags,
+    int32_t (__stdcall *GetGammaRamp)(void *self, ULong flags,
                                    DDGammaRamp *ramp);       /* +0x0c */
-    long (__stdcall *SetGammaRamp)(void *self, ULong flags,
+    int32_t (__stdcall *SetGammaRamp)(void *self, ULong flags,
                                    DDGammaRamp *ramp);       /* +0x10 */
 } DDrawGammaControlVtbl;
 

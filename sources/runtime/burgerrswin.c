@@ -47,7 +47,7 @@ typedef struct ReadFileStream_t {
 /* ReadFileStreamCallback (BurgerLib rswin32, static there). STATE: MATCH 100.0%, exe 99 /
    obj 99, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0054d690
-static unsigned long __stdcall ReadFileStreamCallback(void *Data)
+static uint32_t __stdcall ReadFileStreamCallback(void *Data)
 {
     ReadFileStream_t *Input;
     Word32 Length;

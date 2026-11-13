@@ -11,8 +11,8 @@
 void BlitPixieColorKey8Bit(
 	unsigned char *src,
 	unsigned char *dst,
-	unsigned long srcOffset,
-	unsigned long dstOffset,
+	uint32_t srcOffset,
+	uint32_t dstOffset,
 	unsigned short width,
 	unsigned short height,
 	unsigned char colorKey )
@@ -43,8 +43,8 @@ void BlitPixieColorKey8Bit(
 void BlitPixieColorKey16Bit(
 	unsigned short *src,
 	unsigned short *dst,
-	unsigned long srcOffset,
-	unsigned long dstOffset,
+	uint32_t srcOffset,
+	uint32_t dstOffset,
 	unsigned short width,
 	unsigned short height,
 	unsigned short colorKey )
@@ -74,13 +74,13 @@ void BlitPixieColorKey16Bit(
 /* BlitPixieColorKey32Bit (mac _BlitPixieColorKey32Bit, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieColorKey32Bit i386 0x000c0c17 ppc 0x000cc9f0
 void BlitPixieColorKey32Bit(
-	unsigned long *src,
-	unsigned long *dst,
-	unsigned long srcOffset,
-	unsigned long dstOffset,
+	uint32_t *src,
+	uint32_t *dst,
+	uint32_t srcOffset,
+	uint32_t dstOffset,
 	unsigned short width,
 	unsigned short height,
-	unsigned long colorKey )
+	uint32_t colorKey )
 {
 	int		x;
 
@@ -99,7 +99,7 @@ void BlitPixieColorKey32Bit(
 			dst++;
 		}
 
-		src = (unsigned long *) ( (char *) src + srcOffset );
-		dst = (unsigned long *) ( (char *) dst + dstOffset );
+		src = (uint32_t *) ( (char *) src + srcOffset );
+		dst = (uint32_t *) ( (char *) dst + dstOffset );
 	}
 }

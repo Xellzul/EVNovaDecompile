@@ -2230,7 +2230,7 @@ void HandlePlayer(ShipObj *player)
         }
     }
     for (i = 0; i < 4; i++) {
-        if (groupCount[i] == 0 && (long)playerEscortOrders[i] != kOrderFormation) {
+        if (groupCount[i] == 0 && (int32_t)playerEscortOrders[i] != kOrderFormation) {
             playerEscortOrders[i] = kOrderFormation;
             if (escortMenuOnscreen > 0)
                 ShowEscortMenu();
@@ -2270,8 +2270,8 @@ void HandlePlayer(ShipObj *player)
 
 #ifdef MACBUILD
         if (QuickKeyCheck(keyPrefs.cheatSpare) || QuickKeyCheck(kScanInfoCheat)) {
-            static long stealQty;
-            static long memFree;
+            static int32_t stealQty;
+            static int32_t memFree;
             static Size grow;
 
             memFree = MaxMem(&grow);
@@ -4092,7 +4092,7 @@ void HandlePlayerDockRequest(void)
     unsigned int distX;
     unsigned int distY;
     unsigned long long lic;
-    unsigned long hash;
+    uint32_t hash;
     unsigned char regBuf[17] = "";
     unsigned char *regName;
     int licSerial;
@@ -4105,7 +4105,7 @@ void HandlePlayerDockRequest(void)
         unsigned char blob[3] = { 0x49, 0x71, 0xad };
         unsigned char name[17] = "EV NovaEV NovaEV";
         unsigned char key[17] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-        long g;
+        int32_t g;
         char *p;
         long long mem;
         unsigned char x;
@@ -4257,7 +4257,7 @@ void HandlePlayerDockRequest(void)
         unsigned char blob[3] = { 0x49, 0x71, 0xad };
         unsigned char name[17] = "EV NovaEV NovaEV";
         unsigned char key[17] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-        unsigned long g;
+        uint32_t g;
         char *p;
         long long mem;
         unsigned char x;
@@ -5029,7 +5029,7 @@ void HandlePlayerDockApproach(void)
     Boolean canDock;
     Boolean inhabited;
     ShipObj *me;
-    long targ;
+    int32_t targ;
     short i;
     short dx;
     short dy;
@@ -5674,8 +5674,8 @@ void WrapPlayerPosition(void)
 // MAC: _WrapObject i386 0x00066065 ppc 0x0006e268
 void WrapObject(FloatPoint *pos)
 {
-    long dx;
-    long dy;
+    int32_t dx;
+    int32_t dy;
 
     dx = (pos->x - shipData->pos.x);
     dy = (pos->y - shipData->pos.y);
@@ -5774,8 +5774,8 @@ Boolean IssueNewEscortCommand(short aiTypeFilter, short cmd, Boolean quiet)
             if (cmd != shipData[i].escortOrder) {
                 shipData[i].escortMayAttack = 1;
                 if (shipData[i].aiType != kShipTypeFighter) {
-                    if ((long)cmd == kOrderRegroup) {
-                        if ((long)shipData[i].escortOrder != kOrderFormation) {
+                    if ((int32_t)cmd == kOrderRegroup) {
+                        if ((int32_t)shipData[i].escortOrder != kOrderFormation) {
                             shipData[i].escortOrder = kOrderFormation;
                             spoken = kOrderFormation;
                             changed = 1;
@@ -5802,7 +5802,7 @@ Boolean IssueNewEscortCommand(short aiTypeFilter, short cmd, Boolean quiet)
                 shipData[i].targetShip = shipData[0].targetShip;
                 changed = 1;
             }
-            if ((long)cmd != kOrderRegroup) {
+            if ((int32_t)cmd != kOrderRegroup) {
                 if (AIIsFighterReturning(&shipData[i]) != 0) {
                     shipData[i].targetShip = -1;
                     shipData[i].targetStellar = -1;
@@ -5836,26 +5836,26 @@ Boolean IssueNewEscortCommand(short aiTypeFilter, short cmd, Boolean quiet)
             StrcatIndCString((char *)msg, kGameStrList, kStrFilterAll);
         strcat((char *)msg, " ");
         if (shipData[0].jumpTimer > 0.0f) {
-            if ((long)spoken == kOrderRegroup)
+            if ((int32_t)spoken == kOrderRegroup)
                 StrcatIndCString((char *)msg, kGameStrList, kStrLoudBase);
-            else if ((long)spoken == kOrderFormation)
+            else if ((int32_t)spoken == kOrderFormation)
                 StrcatIndCString((char *)msg, kGameStrList, kStrLoudBase + 1);
-            else if ((long)spoken == kOrderHold)
+            else if ((int32_t)spoken == kOrderHold)
                 StrcatIndCString((char *)msg, kGameStrList, kStrLoudBase + 2);
-            else if ((long)spoken == kOrderDefend)
+            else if ((int32_t)spoken == kOrderDefend)
                 StrcatIndCString((char *)msg, kGameStrList, kStrLoudBase + 3);
-            else if ((long)spoken == kOrderAttack)
+            else if ((int32_t)spoken == kOrderAttack)
                 StrcatIndCString((char *)msg, kGameStrList, kStrAckAttack);
         } else {
-            if ((long)spoken == kOrderRegroup)
+            if ((int32_t)spoken == kOrderRegroup)
                 StrcatIndCString((char *)msg, kGameStrList, kStrQuietBase);
-            else if ((long)spoken == kOrderFormation)
+            else if ((int32_t)spoken == kOrderFormation)
                 StrcatIndCString((char *)msg, kGameStrList, kStrQuietBase + 1);
-            else if ((long)spoken == kOrderHold)
+            else if ((int32_t)spoken == kOrderHold)
                 StrcatIndCString((char *)msg, kGameStrList, kStrQuietBase + 2);
-            else if ((long)spoken == kOrderDefend)
+            else if ((int32_t)spoken == kOrderDefend)
                 StrcatIndCString((char *)msg, kGameStrList, kStrQuietBase + 3);
-            else if ((long)spoken == kOrderAttack) {
+            else if ((int32_t)spoken == kOrderAttack) {
                 if (shipData[0].targetShip != -1) {
                     if (shipData[shipData[0].targetShip].parentShip == 0)
                         StrcatIndCString((char *)msg, kGameStrList, kStrAckAttack);
@@ -5871,7 +5871,7 @@ Boolean IssueNewEscortCommand(short aiTypeFilter, short cmd, Boolean quiet)
         if (sawVoice != 0) {
             if (govt < -1)
                 govt = -1;
-            if ((long)spoken == kOrderAttack) {
+            if ((int32_t)spoken == kOrderAttack) {
                 if (shipData[0].targetShip == -1)
                     SpeakVoiceMessage(0, govt, voiceClass);
                 else if (shipData[shipData[0].targetShip].parentShip == 0)

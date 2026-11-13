@@ -65,7 +65,7 @@ static inline char *ATStrCat(char *dst, const char *src)
 
 #ifdef ATSTR_CMP
 /* StringCompare's body (atplatstr.c), which the file tool inlines */
-static inline long ATStrCmp(const char *a, const char *b)
+static inline int32_t ATStrCmp(const char *a, const char *b)
 {
     ULong ca;
     ULong cb;
@@ -98,7 +98,7 @@ static inline char *ATPToCStr(char *dst, const unsigned char *src)
 static inline unsigned char *ATCToPStr(unsigned char *dst, const char *src)
 {
     ULong n = -1;
-    long c;
+    int32_t c;
     unsigned char *start = dst;
 
     while ((dst++, ++n < 0xff) && (c = *src++) != 0)
@@ -114,7 +114,7 @@ static inline unsigned char *ATCToPStr(unsigned char *dst, const char *src)
 static inline unsigned char *ATCToPInPlace(char *s)
 {
     ULong n;
-    long next, c;
+    int32_t next, c;
     char *p;
 
     if ((c = *s) != 0) {

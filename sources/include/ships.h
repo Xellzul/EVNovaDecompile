@@ -49,7 +49,7 @@ extern void IonizeShip(ShipObj *ship, WeapRecord *weap, FloatPoint *pos);
 extern void SpawnEscapePod(ShipObj *ship);
 extern short MissionDudeSpawn(short dude, short wantType, short sys,
                               short mission);
-extern long PlayerShipTradeInPrice(void);
+extern int32_t PlayerShipTradeInPrice(void);
 extern short RandomShipSpawn(short sys, short reserve);
 extern float ShipArmorCapacity(ShipObj *ship);
 extern short ShipFuelCapacity(ShipObj *ship);
@@ -101,7 +101,7 @@ extern float ShipMaxSpeed(ShipObj *ship);
 extern float ShipTurnRate(ShipObj *ship);
 extern FloatPoint XYShortToFloat(ShortPoint pt);
 extern Boolean CanBuyFighter(short shipType, short outfitIndex, short weapIndex);
-extern long ApplyPriceAndTechnologyFlux(long cost, float multiplier, short itemTech,
+extern int32_t ApplyPriceAndTechnologyFlux(int32_t cost, float multiplier, short itemTech,
                             short portTech);
 extern void JettisonCargo(unsigned char withMissions);
 extern Boolean ShipCanCloak(ShipObj *ship);

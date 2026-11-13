@@ -22,7 +22,7 @@ static void _QueueEnqueue(MutexList *list, MutexNode *node);
 static void _QueueSteal(MutexList *dst, MutexList *src);
 static ULong _QueueCount(MutexList *list);
 
-long QueueCreate(void *ref)
+int32_t QueueCreate(void *ref)
 {
     SystemCheckCallback();
     MemoryClear(ref, sizeof(MutexList));
@@ -256,11 +256,11 @@ static asm ULong _QueueCount(MutexList *list)
 #else
 /* QueueCreate. STATE: MATCH 100%, exe 32 / obj 32, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052b99b
-long QueueCreate(void *ref)
+int32_t QueueCreate(void *ref)
 {
     MutexList *list;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     list = ref;
     err = 0;
@@ -279,8 +279,8 @@ long QueueCreate(void *ref)
 // FUNCTION: EVNOVA 0x0052b9e4
 void QueueDispose(MutexList *list)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     void *mutex;
     void *h;
 
@@ -305,7 +305,7 @@ void QueueInsert(void *ref, void *element)
 {
     MutexList *list;
     MutexNode *node;
-    long err;
+    int32_t err;
 
     list = ref;
     node = element;
@@ -327,7 +327,7 @@ void QueueInsert(void *ref, void *element)
 MutexNode *QueueRemove(MutexList *list)
 {
     MutexNode *node;
-    long err;
+    int32_t err;
 
     node = 0;
     err = 0;
@@ -356,7 +356,7 @@ MutexNode *QueueExtract(void *ref, void *element)
     MutexNode **link;
     MutexNode *p;
     MutexNode *found;
-    long err;
+    int32_t err;
 
     list = ref;
     found = element;
@@ -403,7 +403,7 @@ void QueueTransfer(void *dstRef, void *srcRef)
     MutexList *dst;
     MutexList *src;
     MutexNode *node;
-    long err;
+    int32_t err;
 
     dst = dstRef;
     src = srcRef;
@@ -422,7 +422,7 @@ void QueueTransfer(void *dstRef, void *srcRef)
 ULong QueueGetCount(void *ref)
 {
     MutexList *list;
-    long err;
+    int32_t err;
     ULong result;
 
     list = ref;
@@ -438,7 +438,7 @@ ULong QueueGetCount(void *ref)
 unsigned char QueueIsEmpty(void *ref)
 {
     MutexList *list;
-    long err;
+    int32_t err;
     unsigned char result;
 
     list = ref;
@@ -455,7 +455,7 @@ unsigned char QueueIsEmpty(void *ref)
 void QueueEmpty(MutexList *list)
 {
     MutexNode *node;
-    long err;
+    int32_t err;
 
     err = 0;
     node = 0;

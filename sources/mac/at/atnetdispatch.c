@@ -61,9 +61,9 @@ void ResolverDispose(void *ref)
     }
 }
 
-long ResolverOpen(void *ref)
+int32_t ResolverOpen(void *ref)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     switch (((NetSocket *)ref)->unk6) {
@@ -87,9 +87,9 @@ long ResolverOpen(void *ref)
     return err;
 }
 
-long ResolverControl(void *ref, NetLookup *lookup)
+int32_t ResolverControl(void *ref, NetLookup *lookup)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     switch (((NetSocket *)ref)->unk6) {
@@ -183,9 +183,9 @@ void DatagramDispose(void *ref)
     }
 }
 
-long DatagramControl(void *ref, void *out, ULong option, ULong value)
+int32_t DatagramControl(void *ref, void *out, ULong option, ULong value)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     switch (((NetSocket *)ref)->unk6) {
@@ -209,9 +209,9 @@ long DatagramControl(void *ref, void *out, ULong option, ULong value)
     return err;
 }
 
-long DatagramOpen(void *ref, NetAddress *address)
+int32_t DatagramOpen(void *ref, NetAddress *address)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     switch (((NetSocket *)ref)->unk6) {
@@ -235,9 +235,9 @@ long DatagramOpen(void *ref, NetAddress *address)
     return err;
 }
 
-long DatagramSend(void *ref, NetPacket *packet)
+int32_t DatagramSend(void *ref, NetPacket *packet)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     switch (((NetSocket *)ref)->unk6) {
@@ -261,7 +261,7 @@ long DatagramSend(void *ref, NetPacket *packet)
     return err;
 }
 
-void DatagramClose(void *ref, long unused)
+void DatagramClose(void *ref, int32_t unused)
 {
     switch (((NetSocket *)ref)->unk6) {
     case kStackInet:
@@ -279,7 +279,7 @@ void DatagramClose(void *ref, long unused)
     }
 }
 
-long DatagramGetAddress(void *ref, NetAddress *out)
+int32_t DatagramGetAddress(void *ref, NetAddress *out)
 {
     switch (((NetSocket *)ref)->unk6) {
     case kStackInet:
@@ -349,9 +349,9 @@ void StreamDispose(NetSocket *sock)
     }
 }
 
-long StreamAcceptServer(void *ref, void *other)
+int32_t StreamAcceptServer(void *ref, void *other)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     switch (((NetSocket *)ref)->unk6) {
@@ -375,9 +375,9 @@ long StreamAcceptServer(void *ref, void *other)
     return err;
 }
 
-long StreamOpenClient(void *ref, NetAddress *local, const NetAddress *remote, ULong timeout)
+int32_t StreamOpenClient(void *ref, NetAddress *local, const NetAddress *remote, ULong timeout)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     switch (((NetSocket *)ref)->unk6) {
@@ -401,10 +401,10 @@ long StreamOpenClient(void *ref, NetAddress *local, const NetAddress *remote, UL
     return err;
 }
 
-long StreamSend(void *ref, NetChunk *chunk)
+int32_t StreamSend(void *ref, NetChunk *chunk)
 {
-    long err, e;
-    long state;
+    int32_t err, e;
+    int32_t state;
 
     err = 0;
     state = ((NetStream *)ref)->state;
@@ -452,7 +452,7 @@ void StreamClose(NetSocket *sock, unsigned char graceful)
     }
 }
 
-long StreamGetAddress(void *ref, NetAddress *local, NetAddress *remote)
+int32_t StreamGetAddress(void *ref, NetAddress *local, NetAddress *remote)
 {
     switch (((NetSocket *)ref)->unk6) {
     case kStackInet:
@@ -488,9 +488,9 @@ void ResolverDispose(void *ref)
     ResolverDisposeOT(ref);
 }
 
-long ResolverOpen(void *ref)
+int32_t ResolverOpen(void *ref)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     e = ResolverOpenOT(ref);
@@ -499,9 +499,9 @@ long ResolverOpen(void *ref)
     return err;
 }
 
-long ResolverControl(void *ref, NetLookup *lookup)
+int32_t ResolverControl(void *ref, NetLookup *lookup)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     e = ResolverControlOT(ref, lookup);
@@ -530,9 +530,9 @@ void DatagramDispose(void *ref)
     DatagramDisposeOT(ref);
 }
 
-long DatagramControl(void *ref, void *out, ULong option, ULong value)
+int32_t DatagramControl(void *ref, void *out, ULong option, ULong value)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     e = DatagramControlOT(ref, out, option, value);
@@ -541,9 +541,9 @@ long DatagramControl(void *ref, void *out, ULong option, ULong value)
     return err;
 }
 
-long DatagramOpen(void *ref, NetAddress *address)
+int32_t DatagramOpen(void *ref, NetAddress *address)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     e = DatagramOpenOT(ref, address);
@@ -552,9 +552,9 @@ long DatagramOpen(void *ref, NetAddress *address)
     return err;
 }
 
-long DatagramSend(void *ref, NetPacket *packet)
+int32_t DatagramSend(void *ref, NetPacket *packet)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     e = DatagramSendOT(ref, packet);
@@ -563,12 +563,12 @@ long DatagramSend(void *ref, NetPacket *packet)
     return err;
 }
 
-void DatagramClose(void *ref, long unused)
+void DatagramClose(void *ref, int32_t unused)
 {
     DatagramCloseOT(ref, unused);
 }
 
-long DatagramGetAddress(void *ref, NetAddress *out)
+int32_t DatagramGetAddress(void *ref, NetAddress *out)
 {
     return DatagramGetAddressOT(ref, out);
 }
@@ -588,9 +588,9 @@ void StreamDispose(NetSocket *sock)
     StreamDisposeOT(sock);
 }
 
-long StreamAcceptServer(void *ref, void *other)
+int32_t StreamAcceptServer(void *ref, void *other)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     e = StreamAcceptServerOT(ref, other);
@@ -599,9 +599,9 @@ long StreamAcceptServer(void *ref, void *other)
     return err;
 }
 
-long StreamOpenClient(void *ref, NetAddress *local, const NetAddress *remote, ULong timeout)
+int32_t StreamOpenClient(void *ref, NetAddress *local, const NetAddress *remote, ULong timeout)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     e = StreamOpenClientOT(ref, local, remote, timeout);
@@ -610,10 +610,10 @@ long StreamOpenClient(void *ref, NetAddress *local, const NetAddress *remote, UL
     return err;
 }
 
-long StreamSend(void *ref, NetChunk *chunk)
+int32_t StreamSend(void *ref, NetChunk *chunk)
 {
-    long err, e;
-    long state;
+    int32_t err, e;
+    int32_t state;
 
     err = 0;
     state = ((NetStream *)ref)->state;
@@ -633,7 +633,7 @@ void StreamClose(NetSocket *sock, unsigned char graceful)
     StreamCloseOT(sock, graceful);
 }
 
-long StreamGetAddress(void *ref, NetAddress *local, NetAddress *remote)
+int32_t StreamGetAddress(void *ref, NetAddress *local, NetAddress *remote)
 {
     return StreamGetAddressOT(ref, local, remote);
 }

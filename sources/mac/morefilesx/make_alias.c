@@ -1,11 +1,12 @@
 /* make_alias.c -- FSSpec/POSIX path conversion and the relative alias file writer, the mac 1.1.1 make_alias.o (mac only). The first two are Apple's Kerberos FSpUtils.c (MIT licence). Notes: Research/notes/morefilesx.md */
 #if V111
+#include "int32.h"
 
 #define dprintf(...)
 
 /* FSSpecToPOSIXPath (mac _FSSpecToPOSIXPath, Kerberos FSpUtils.c). STATE: see the mac gate. */
 // MAC: _FSSpecToPOSIXPath i386 0x000cce45 ppc 0x000d8b88
-OSStatus FSSpecToPOSIXPath(const FSSpec *inSpec, char *ioPath, unsigned long inPathLength)
+OSStatus FSSpecToPOSIXPath(const FSSpec *inSpec, char *ioPath, uint32_t inPathLength)
 {
     OSStatus err = noErr;
     FSRef ref;

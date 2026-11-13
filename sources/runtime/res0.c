@@ -26,9 +26,9 @@ typedef struct vorbis_look_residue{
   int         partvals;
   int       **decodemap;
 
-  long      postbits;
-  long      phrasebits;
-  long      frames;
+  int32_t      postbits;
+  int32_t      phrasebits;
+  int32_t      frames;
 
   int       qoffsets[BITTRACK_DIVISOR+1];
 
@@ -197,11 +197,11 @@ vorbis_look_residue *res0_look(vorbis_dsp_state *vd,vorbis_info_mode *vm,
   look->decodemap=(int **)AllocAPointerClear(look->partvals*dim*sizeof(int)+look->partvals*sizeof(int *));
   entry=(int *)(look->decodemap+look->partvals);
   for(j=0;j<look->partvals;j++){
-    long val=j;
-    long mult=look->partvals/look->parts;
+    int32_t val=j;
+    int32_t mult=look->partvals/look->parts;
     look->decodemap[j]=entry;
     for(k=0;k<dim;k++){
-      long deco=val/mult;
+      int32_t deco=val/mult;
       val-=deco*mult;
       mult/=look->parts;
       entry[k]=deco;
@@ -257,7 +257,7 @@ static int _testhack(float *vec,int n,vorbis_look_residue0 *look,
    OPEN: none. */
 // FUNCTION: EVNOVA 0x005581e0
 static int _interleaved_encodepart(oggpack_buffer *opb,float *vec, int n,
-				   codebook *book,long *acc){
+				   codebook *book,int32_t *acc){
   int i,bits=0;
   int dim=book->dim;
   int step=n/dim;
@@ -275,7 +275,7 @@ static int _interleaved_encodepart(oggpack_buffer *opb,float *vec, int n,
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00558270
 static int _encodepart(oggpack_buffer *opb,float *vec, int n,
-		       codebook *book,long *acc){
+		       codebook *book,int32_t *acc){
   int i,bits=0;
   int dim=book->dim;
   int step=n/dim;
@@ -292,11 +292,11 @@ static int _encodepart(oggpack_buffer *opb,float *vec, int n,
 /* _01class. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00558310
-static long **_01class(vorbis_block *vb,vorbis_look_residue *vl,
+static int32_t **_01class(vorbis_block *vb,vorbis_look_residue *vl,
 		       float **in,int ch,
 		       int (*classify)(float *,int,vorbis_look_residue0 *,
 				       int,int)){
-  long i,j;
+  int32_t i,j;
   vorbis_look_residue0 *look=(vorbis_look_residue0 *)vl;
   vorbis_info_residue0 *info=look->info;
 
@@ -305,10 +305,10 @@ static long **_01class(vorbis_block *vb,vorbis_look_residue *vl,
   int n=info->end-info->begin;
 
   int partvals=n/samples_per_partition;
-  long **partword=(long **)_vorbis_block_alloc(vb,ch*sizeof(*partword));
+  int32_t **partword=(int32_t **)_vorbis_block_alloc(vb,ch*sizeof(*partword));
 
   for(i=0;i<ch;i++){
-    partword[i]=(long *)_vorbis_block_alloc(vb,n/samples_per_partition*sizeof(*partword[i]));
+    partword[i]=(int32_t *)_vorbis_block_alloc(vb,n/samples_per_partition*sizeof(*partword[i]));
     FastMemSet(partword[i],0,n/samples_per_partition*sizeof(*partword[i]));
   }
 
@@ -327,11 +327,11 @@ static long **_01class(vorbis_block *vb,vorbis_look_residue *vl,
 /* _2class. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x005584b0
-static long **_2class(vorbis_block *vb,vorbis_look_residue *vl,
+static int32_t **_2class(vorbis_block *vb,vorbis_look_residue *vl,
 		       float **in,int ch,
 		       int (*classify)(float *,int,vorbis_look_residue0 *,
 				       int,int)){
-  long i,j,k,l;
+  int32_t i,j,k,l;
   vorbis_look_residue0 *look=(vorbis_look_residue0 *)vl;
   vorbis_info_residue0 *info=look->info;
 
@@ -340,10 +340,10 @@ static long **_2class(vorbis_block *vb,vorbis_look_residue *vl,
   int n=info->end-info->begin;
 
   int partvals=n/samples_per_partition;
-  long **partword=(long **)_vorbis_block_alloc(vb,sizeof(*partword));
+  int32_t **partword=(int32_t **)_vorbis_block_alloc(vb,sizeof(*partword));
   float *work=(float *)alloca(sizeof(*work)*samples_per_partition);
 
-  partword[0]=(long *)_vorbis_block_alloc(vb,n*ch/samples_per_partition*sizeof(*partword[0]));
+  partword[0]=(int32_t *)_vorbis_block_alloc(vb,n*ch/samples_per_partition*sizeof(*partword[0]));
   FastMemSet(partword[0],0,n*ch/samples_per_partition*sizeof(*partword[0]));
 
   for(i=0,j=0,k=0,l=info->begin;i<partvals;i++){
@@ -370,11 +370,11 @@ static long **_2class(vorbis_block *vb,vorbis_look_residue *vl,
 // FUNCTION: EVNOVA 0x00558600
 static int _01forward(vorbis_block *vb,vorbis_look_residue *vl,
 		      float **in,int ch,
-		      int pass,long **partword,
+		      int pass,int32_t **partword,
 		      int (*encode)(oggpack_buffer *,float *,int,
-				    codebook *,long *),
+				    codebook *,int32_t *),
 		      ogg_uint32_t *stats){
-  long i,j,k,s;
+  int32_t i,j,k,s;
   vorbis_look_residue0 *look=(vorbis_look_residue0 *)vl;
   vorbis_info_residue0 *info=look->info;
 
@@ -388,8 +388,8 @@ static int _01forward(vorbis_block *vb,vorbis_look_residue *vl,
   int n=info->end-info->begin;
 
   int partvals=n/samples_per_partition;
-  long resbits[128];
-  long resvals[128];
+  int32_t resbits[128];
+  int32_t resvals[128];
 
   FastMemSet(resbits,0,sizeof(resbits));
   FastMemSet(resvals,0,sizeof(resvals));
@@ -403,7 +403,7 @@ static int _01forward(vorbis_block *vb,vorbis_look_residue *vl,
 
       if(s==0){
 	for(j=0;j<ch;j++){
-	  long val=partword[j][i];
+	  int32_t val=partword[j][i];
 	  for(k=1;k<partitions_per_word;k++){
 	    val*=possible_partitions;
 	    if(i+k<partvals)
@@ -416,7 +416,7 @@ static int _01forward(vorbis_block *vb,vorbis_look_residue *vl,
       }
 
       for(k=0;k<partitions_per_word && i<partvals;k++,i++){
-	long offset=i*samples_per_partition+info->begin;
+	int32_t offset=i*samples_per_partition+info->begin;
 
 	if(qptr)while(i>=look->qoffsets[bin])
 	  qptr[bin++]=oggpack_bits(&vb->opb);
@@ -427,7 +427,7 @@ static int _01forward(vorbis_block *vb,vorbis_look_residue *vl,
 	    codebook *statebook=look->partbooks[partword[j][i]][s];
 	    if(statebook){
 	      int ret;
-	      long *accumulator=NULL;
+	      int32_t *accumulator=NULL;
 
 	      ret=encode(&vb->opb,in[j]+offset,samples_per_partition,
 			 statebook,accumulator);
@@ -451,10 +451,10 @@ static int _01forward(vorbis_block *vb,vorbis_look_residue *vl,
 // FUNCTION: EVNOVA 0x00558b10
 static int _01inverse(vorbis_block *vb,vorbis_look_residue *vl,
 		      float **in,int ch,
-		      long (*decodepart)(codebook *, float *,
+		      int32_t (*decodepart)(codebook *, float *,
 					 oggpack_buffer *,int)){
 
-  long i,j,k,l,s;
+  int32_t i,j,k,l,s;
   vorbis_look_residue0 *look=(vorbis_look_residue0 *)vl;
   vorbis_info_residue0 *info=look->info;
 
@@ -483,7 +483,7 @@ static int _01inverse(vorbis_block *vb,vorbis_look_residue *vl,
 
       for(k=0;k<partitions_per_word && i<partvals;k++,i++)
 	for(j=0;j<ch;j++){
-	  long offset=info->begin+i*samples_per_partition;
+	  int32_t offset=info->begin+i*samples_per_partition;
 	  if(info->secondstages[partword[j][l][k]]&(1<<s)){
 	    codebook *stagebook=look->partbooks[partword[j][l][k]][s];
 	    if(stagebook){
@@ -503,7 +503,7 @@ static int _01inverse(vorbis_block *vb,vorbis_look_residue *vl,
 /* res0_class. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00558d60
-long **res0_class(vorbis_block *vb,vorbis_look_residue *vl,
+int32_t **res0_class(vorbis_block *vb,vorbis_look_residue *vl,
 		  float **in,int *nonzero,int ch){
   int i,used=0;
   for(i=0;i<ch;i++)
@@ -520,7 +520,7 @@ long **res0_class(vorbis_block *vb,vorbis_look_residue *vl,
 // FUNCTION: EVNOVA 0x00558df0
 int res0_forward(vorbis_block *vb,vorbis_look_residue *vl,
 		 float **in,float **out,int *nonzero,int ch,
-		 int pass, long **partword,ogg_uint32_t *stats){
+		 int pass, int32_t **partword,ogg_uint32_t *stats){
 
   int i,j,used=0,n=vb->pcmend/2;
   for(i=0;i<ch;i++)
@@ -568,7 +568,7 @@ int res0_inverse(vorbis_block *vb,vorbis_look_residue *vl,
 // FUNCTION: EVNOVA 0x00559260
 int res1_forward(vorbis_block *vb,vorbis_look_residue *vl,
 		 float **in,float **out,int *nonzero,int ch,
-		 int pass, long **partword, ogg_uint32_t *stats){
+		 int pass, int32_t **partword, ogg_uint32_t *stats){
   int i,j,used=0,n=vb->pcmend/2;
   for(i=0;i<ch;i++)
     if(nonzero[i]){
@@ -598,7 +598,7 @@ int res1_forward(vorbis_block *vb,vorbis_look_residue *vl,
 /* res1_class. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00559640
-long **res1_class(vorbis_block *vb,vorbis_look_residue *vl,
+int32_t **res1_class(vorbis_block *vb,vorbis_look_residue *vl,
 		  float **in,int *nonzero,int ch){
   int i,used=0;
   for(i=0;i<ch;i++)
@@ -628,7 +628,7 @@ int res1_inverse(vorbis_block *vb,vorbis_look_residue *vl,
 /* res2_class. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00559760
-long **res2_class(vorbis_block *vb,vorbis_look_residue *vl,
+int32_t **res2_class(vorbis_block *vb,vorbis_look_residue *vl,
 		  float **in,int *nonzero,int ch){
   int i,used=0;
   for(i=0;i<ch;i++)
@@ -645,8 +645,8 @@ long **res2_class(vorbis_block *vb,vorbis_look_residue *vl,
 // FUNCTION: EVNOVA 0x005597f0
 int res2_forward(vorbis_block *vb,vorbis_look_residue *vl,
 		 float **in,float **out,int *nonzero,int ch,
-		 int pass,long **partword,ogg_uint32_t *stats){
-  long i,j,k,n=vb->pcmend/2,used=0;
+		 int pass,int32_t **partword,ogg_uint32_t *stats){
+  int32_t i,j,k,n=vb->pcmend/2,used=0;
 
   float *work=(float *)_vorbis_block_alloc(vb,ch*n*sizeof(*work));
   for(i=0;i<ch;i++){
@@ -679,7 +679,7 @@ int res2_forward(vorbis_block *vb,vorbis_look_residue *vl,
 // FUNCTION: EVNOVA 0x00559b70
 int res2_inverse(vorbis_block *vb,vorbis_look_residue *vl,
 		 float **in,int *nonzero,int ch){
-  long i,k,l,s;
+  int32_t i,k,l,s;
   vorbis_look_residue0 *look=(vorbis_look_residue0 *)vl;
   vorbis_info_residue0 *info=look->info;
 

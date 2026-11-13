@@ -1613,7 +1613,7 @@ void InitButtons(void)
         if (buttonMaskPic[n] != 0)
             QDReleaseResource(buttonMaskPic[n]);
     }
-    for (n = 0; (long)n < kButtonLabelCount; n++)
+    for (n = 0; (int32_t)n < kButtonLabelCount; n++)
         GetIndString(buttonLabel[n], kButtonStrList, n + 1);
     buttonColor[0].red = buttonColor[0].green = buttonColor[0].blue = 0xffff;
     buttonColor[1].red = buttonColor[1].green = buttonColor[1].blue = 0x8000;
@@ -1661,7 +1661,7 @@ void DrawButton(CGrafPtr port, Rect *bounds, unsigned char *label,
     CGrafPtr savedPort;
     short mode;
     short size;
-    unsigned long glyph;
+    uint32_t glyph;
 
     if (state == 0) {
         if (selected == 0)

@@ -209,8 +209,8 @@ jinit_d_post_controller (j_decompress_ptr cinfo, boolean need_full_buffer)
       post->whole_image = (*cinfo->mem->request_virt_sarray)
 	((j_common_ptr) cinfo, JPOOL_IMAGE, FALSE,
 	 cinfo->output_width * cinfo->out_color_components,
-	 (JDIMENSION) jround_up((long) cinfo->output_height,
-				(long) post->strip_height),
+	 (JDIMENSION) jround_up((int32_t) cinfo->output_height,
+				(int32_t) post->strip_height),
 	 post->strip_height);
     } else {
 

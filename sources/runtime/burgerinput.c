@@ -12,16 +12,16 @@ extern "C" {
 #endif
 
 
-long Win95MouseX;                                /* 0x0087001c */
-long Win95MouseY;                                /* 0x00870020 */
-long MouseClicked;                               /* 0x0087017c */
+int32_t Win95MouseX;                                /* 0x0087001c */
+int32_t Win95MouseY;                                /* 0x00870020 */
+int32_t MouseClicked;                               /* 0x0087017c */
 
 #define kAlertStyle   0
 
 static Word Tested;                              /* 0x00865ad8 DbWin95Code's .bss, in order */
 static int (__stdcall *DebugTest)(void);
 static char Semi[24];                            /* 0x00865ae0 critsec, the log file's lock */
-static long Inited;                              /* 0x00865af8 lock state */
+static int32_t Inited;                              /* 0x00865af8 lock state */
 
 #define kDebugLockNone  0
 #define kDebugLockLive  1

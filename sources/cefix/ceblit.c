@@ -13,10 +13,10 @@
 #define kAlpha1555High      0x80        /* bit 15 of a 1555 pixel, in its high byte */
 
 typedef struct WinBitmap {              /* Win32 BITMAP */
-    long bmType;
-    long bmWidth;
-    long bmHeight;
-    long bmWidthBytes;
+    int32_t bmType;
+    int32_t bmWidth;
+    int32_t bmHeight;
+    int32_t bmWidthBytes;
     unsigned short bmPlanes;
     unsigned short bmBitsPixel;
     void *bmBits;
@@ -24,7 +24,7 @@ typedef struct WinBitmap {              /* Win32 BITMAP */
 
 __declspec(dllimport) int __stdcall GetObjectA(void *object, int size, void *out);
 
-static unsigned long ceGdiplusToken;
+static uint32_t ceGdiplusToken;
 
 static void StartupGdiplus(void)
 {
@@ -39,7 +39,7 @@ static void StartupGdiplus(void)
     GdiplusStartup(&ceGdiplusToken, &input, NULL);
 }
 
-static int PixelFormatOf(long pixelSize)
+static int PixelFormatOf(int32_t pixelSize)
 {
     switch (pixelSize) {
     case 16:
@@ -82,8 +82,8 @@ static void Blit16(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect, i
     unsigned char *out;
     unsigned char *in;
     int format;
-    long stride;
-    long y;
+    int32_t stride;
+    int32_t y;
 
     StartupGdiplus();
     format = alpha ? PixelFormat16bppARGB1555 : PixelFormat16bppRGB555;
@@ -123,9 +123,9 @@ void CE_Blit24(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
     unsigned char *buffer;
     unsigned char *out;
     unsigned char *in;
-    long stride;
-    long x;
-    long y;
+    int32_t stride;
+    int32_t x;
+    int32_t y;
 
     StartupGdiplus();
     stride = src->rowBytes;
@@ -170,8 +170,8 @@ void CE_Blit16Mask(PixMapPtr src, PixMapPtr mask, PixMapPtr dst, Rect *srcRect,
 {
     unsigned char *pixels;
     unsigned char *maskPixels;
-    long x;
-    long y;
+    int32_t x;
+    int32_t y;
 
     pixels = src->baseAddr;
     maskPixels = mask->baseAddr;

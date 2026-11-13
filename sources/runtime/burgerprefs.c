@@ -20,7 +20,7 @@ extern char *strchr(const char *s, int c);       /* MSL's, called */
 
 /* The file is a circular list of lines; the file record itself (type 0) is the sentinel. */
 typedef struct PrefsNode {
-    long Type;                                   /* +0x00 */
+    int32_t Type;                                   /* +0x00 */
     struct PrefsNode *Next;                      /* +0x04 */
     struct PrefsNode *Prev;                      /* +0x08 */
     char *ValueText;                             /* +0x0c, type 2 only */
@@ -83,7 +83,7 @@ extern void PrefFileSectionAddEntry(PrefsNode *group, const char *key, const cha
    sections, "key = value" entries and verbatim lines. STATE: MATCH 100%, exe 149 / obj 149,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004ffa00
-void *PrefFileNewFromMemory(const char *data, unsigned long length)
+void *PrefFileNewFromMemory(const char *data, uint32_t length)
 {
     char line[kLineSize];
     ULong used;
@@ -130,7 +130,7 @@ void *PrefFileNewFromMemory(const char *data, unsigned long length)
 void *OpenPrefsFile(const char *path)
 {
     void *text;
-    unsigned long size;
+    uint32_t size;
     void *file;
 
     text = LoadAFile(path, &size);
@@ -168,12 +168,12 @@ void ClosePrefsFile(PrefsNode *file)
 /* WritePrefsFile. STATE: MATCH 100%, exe 104 / obj 104 instrs, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004ffd30
-long WritePrefsFile(PrefsNode *file, const char *path)
+int32_t WritePrefsFile(PrefsNode *file, const char *path)
 {
     TextBuilder text;
     PrefsNode *node;
     FILE *out;
-    long result;                                /* never set on failure, as in the exe */
+    int32_t result;                                /* never set on failure, as in the exe */
 
     StreamHandleInitPut(&text);
 
@@ -314,7 +314,7 @@ double PrefFileSectionGetDouble(PrefsNode *group, const char *key, double dflt, 
    OPEN: none */
 // FUNCTION: EVNOVA 0x004fff90
 void PrefsGetString(PrefsNode *group, const char *key, const char *dflt,
-                    char *out, long outSize)
+                    char *out, int32_t outSize)
 {
     PrefsNode *node;
     char *value;

@@ -8,7 +8,7 @@
 
 #define BUFFER_INCREMENT 4096
 
-static const unsigned long mask[]=
+static const uint32_t mask[]=
 {0x00000000,0x00000001,0x00000003,0x00000007,0x0000000f,
  0x0000001f,0x0000003f,0x0000007f,0x000000ff,0x000001ff,
  0x000003ff,0x000007ff,0x00000fff,0x00001fff,0x00003fff,
@@ -53,10 +53,10 @@ void oggpack_readinit(oggpack_buffer *b,unsigned char *buf,int bytes){
 /* oggpack_write. STATE: BurgerLib's libogg 1.0rc3, the buffer fields in locals like its
    reader (MATCH, byte-identical). OPEN: none. */
 // FUNCTION: EVNOVA 0x00543dc0
-void oggpack_write(oggpack_buffer *b,unsigned long value,unsigned int bits){
-  unsigned long storage=b->storage;
-  unsigned long endbyte=b->endbyte;
-  unsigned long endbit;
+void oggpack_write(oggpack_buffer *b,uint32_t value,unsigned int bits){
+  uint32_t storage=b->storage;
+  uint32_t endbyte=b->endbyte;
+  uint32_t endbit;
   unsigned char *ptr;
 
   if(endbyte+4>=storage){
@@ -105,10 +105,10 @@ void oggpack_write(oggpack_buffer *b,unsigned long value,unsigned int bits){
 /* oggpack_look. STATE: BurgerLib's libogg 1.0rc3 (runtime band, a floor).
    OPEN: -proc pentium4 MATCH (pending the pin). */
 // FUNCTION: EVNOVA 0x00543f20
-long oggpack_look(oggpack_buffer *b,unsigned int bits){
-  unsigned long ret;
-  unsigned long m;
-  unsigned long storage;
+int32_t oggpack_look(oggpack_buffer *b,unsigned int bits){
+  uint32_t ret;
+  uint32_t m;
+  uint32_t storage;
 
   if(bits>32)bits=32;
   m=mask[bits];
@@ -147,12 +147,12 @@ void oggpack_adv(oggpack_buffer *b,unsigned int bits){
 /* oggpack_read. STATE: BurgerLib's libogg 1.0rc3 (runtime band, a floor).
    OPEN: -proc pentium4 MATCH (pending the pin). */
 // FUNCTION: EVNOVA 0x00544020
-long oggpack_read(oggpack_buffer *b,unsigned int bits){
-  unsigned long ret;
-  unsigned long m;
-  unsigned long endbit;
+int32_t oggpack_read(oggpack_buffer *b,unsigned int bits){
+  uint32_t ret;
+  uint32_t m;
+  uint32_t endbit;
   unsigned char *ptr;
-  unsigned long bytes;
+  uint32_t bytes;
 
   if(bits>32)bits=32;
   m=mask[bits];
@@ -192,10 +192,10 @@ long oggpack_read(oggpack_buffer *b,unsigned int bits){
 /* oggpack_read1. STATE: BurgerLib's libogg 1.0rc3 (runtime band, a floor).
    OPEN: -proc pentium4 MATCH (pending the pin). */
 // FUNCTION: EVNOVA 0x00544110
-long oggpack_read1(oggpack_buffer *b){
-  unsigned long ret;
-  unsigned long endbyte=b->endbyte;
-  unsigned long endbit=b->endbit;
+int32_t oggpack_read1(oggpack_buffer *b){
+  uint32_t ret;
+  uint32_t endbyte=b->endbyte;
+  uint32_t endbit=b->endbit;
 
   if(endbyte>=b->storage){
     ret=-1UL;
@@ -219,6 +219,6 @@ long oggpack_read1(oggpack_buffer *b){
 /* oggpack_bits. STATE: genuine libogg 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00544160
-long oggpack_bits(oggpack_buffer *b){
+int32_t oggpack_bits(oggpack_buffer *b){
   return(b->endbyte*8+b->endbit);
 }

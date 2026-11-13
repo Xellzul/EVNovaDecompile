@@ -6,6 +6,7 @@
 #include <TextUtils.h>
 #include <Gestalt.h>
 #include <MixedMode.h>
+#include "int32.h"
 
 #define kAdditionalDirs 20
 #define kPBDirBit       0x10
@@ -13,14 +14,14 @@
 
 /* a level of the directory walk, kept on a handle between calls */
 typedef struct LevelRec {
-    long dirModDate;
-    long dirID;
+    int32_t dirModDate;
+    int32_t dirID;
     short index;
 } LevelRec;
 typedef LevelRec **LevelRecHandle;
 
 typedef struct CatPosition {
-    long initialize;
+    int32_t initialize;
     unsigned short stackDepth;
     short priv[5];
 } CatPosition;
@@ -36,13 +37,13 @@ static short lastVRefNum[1];   /* 1.0.10 pad: a word-aligned hunk, as the exe's 
 static CatPositionRec catPosition;
 static RoutineDescriptor sTimeOutDescriptor;
 
-extern OSErr HGetVolParms(ConstStr255Param volName, short vRefNum, GetVolParmsInfoBuffer *volParmsInfo, long *infoSize);
+extern OSErr HGetVolParms(ConstStr255Param volName, short vRefNum, GetVolParmsInfoBuffer *volParmsInfo, int32_t *infoSize);
 extern Boolean hasCatSearch(GetVolParmsInfoBuffer *volParms);
-extern Ptr GetTempBuffer(long buffReqSize, long *buffActSize);
+extern Ptr GetTempBuffer(int32_t buffReqSize, int32_t *buffActSize);
 extern OSErr GetVolumeInfoNoName(ConstStr255Param pathname, short vRefNum, HParmBlkPtr pb);
 extern OSErr DetermineVRefNum(ConstStr255Param pathname, short vRefNum, short *realVRefNum);
 
-static OSErr CheckVol(ConstStr255Param pathname, short vRefNum, short *realVRefNum, long *volID)
+static OSErr CheckVol(ConstStr255Param pathname, short vRefNum, short *realVRefNum, int32_t *volID)
 {
     HParamBlockRec pb;
     OSErr error;
@@ -157,7 +158,7 @@ static Boolean IsSubString(ConstStr255Param aStringPtr, ConstStr255Param subStri
     return (found);
 }
 
-static Boolean CompareMasked(const long *vals, const long *cvals, const long *mvals, short nvals)
+static Boolean CompareMasked(const int32_t *vals, const int32_t *cvals, const int32_t *mvals, short nvals)
 {
     Boolean result = true;
 
@@ -173,7 +174,7 @@ static Boolean CompareMasked(const long *vals, const long *cvals, const long *mv
 
 static void CheckForMatches(CInfoPBPtr cPB, CSParamPtr pb, const Str63 matchName, Boolean includeFiles, Boolean includeDirs)
 {
-    long searchBits;
+    int32_t searchBits;
     CInfoPBRec *searchInfo1;
     CInfoPBRec *searchInfo2;
     Str63 itemName;
@@ -209,9 +210,9 @@ static void CheckForMatches(CInfoPBPtr cPB, CSParamPtr pb, const Str63 matchName
             goto hit;
     }
     if ((searchBits & fsSBFlParID) != 0) {
-        if (cPB->hFileInfo.ioFlParID < (unsigned long)searchInfo1->hFileInfo.ioFlParID)
+        if (cPB->hFileInfo.ioFlParID < (uint32_t)searchInfo1->hFileInfo.ioFlParID)
             goto check;
-        if (cPB->hFileInfo.ioFlParID > (unsigned long)searchInfo2->hFileInfo.ioFlParID)
+        if (cPB->hFileInfo.ioFlParID > (uint32_t)searchInfo2->hFileInfo.ioFlParID)
             goto check;
     }
     if ((searchBits & fsSBFlAttrib) != 0) {
@@ -225,18 +226,18 @@ static void CheckForMatches(CInfoPBPtr cPB, CSParamPtr pb, const Str63 matchName
             goto check;
     }
     if ((searchBits & fsSBFlFndrInfo) != 0) {
-        if (!CompareMasked((long *)&cPB->hFileInfo.ioFlFndrInfo, (long *)&searchInfo1->hFileInfo.ioFlFndrInfo, (long *)&searchInfo2->hFileInfo.ioFlFndrInfo, 4))
+        if (!CompareMasked((int32_t *)&cPB->hFileInfo.ioFlFndrInfo, (int32_t *)&searchInfo1->hFileInfo.ioFlFndrInfo, (int32_t *)&searchInfo2->hFileInfo.ioFlFndrInfo, 4))
             goto check;
     }
     if ((searchBits & fsSBFlXFndrInfo) != 0) {
-        if (!CompareMasked((long *)&cPB->hFileInfo.ioFlXFndrInfo, (long *)&searchInfo1->hFileInfo.ioFlXFndrInfo, (long *)&searchInfo2->hFileInfo.ioFlXFndrInfo, 4))
+        if (!CompareMasked((int32_t *)&cPB->hFileInfo.ioFlXFndrInfo, (int32_t *)&searchInfo1->hFileInfo.ioFlXFndrInfo, (int32_t *)&searchInfo2->hFileInfo.ioFlXFndrInfo, 4))
             goto check;
     }
 #define RANGE(bit, field)                                                                   \
     if ((searchBits & bit) != 0) {                                                          \
-        if ((unsigned long)cPB->hFileInfo.field < (unsigned long)searchInfo1->hFileInfo.field) \
+        if ((uint32_t)cPB->hFileInfo.field < (uint32_t)searchInfo1->hFileInfo.field) \
             goto check;                                                                     \
-        if ((unsigned long)cPB->hFileInfo.field > (unsigned long)searchInfo2->hFileInfo.field) \
+        if ((uint32_t)cPB->hFileInfo.field > (uint32_t)searchInfo2->hFileInfo.field) \
             goto check;                                                                     \
     }
     RANGE(fsSBFlLgLen, ioFlLgLen)
@@ -266,11 +267,11 @@ static void TimeOutTask(ExtendedTMTask *task)
     task->stopSearch = true;
 }
 
-static long GetDirModDate(short vRefNum, long dirID)
+static int32_t GetDirModDate(short vRefNum, int32_t dirID)
 {
     CInfoPBRec pb;
     Str31 tempName;
-    long modDate;
+    int32_t modDate;
 
     tempName[0] = 0;
     pb.dirInfo.ioNamePtr = tempName;
@@ -284,7 +285,7 @@ static long GetDirModDate(short vRefNum, long dirID)
     return modDate;
 }
 
-static OSErr IndexedSearch(CSParamPtr pb, long dirID)
+static OSErr IndexedSearch(CSParamPtr pb, int32_t dirID)
 {
     CatPosition *position;
     short index;
@@ -293,8 +294,8 @@ static OSErr IndexedSearch(CSParamPtr pb, long dirID)
     Boolean includeDirs;
     Boolean includeNames;
     short realVRefNum;
-    long volID;
-    long modDate;
+    int32_t volID;
+    int32_t modDate;
     ExtendedTMTask timerTask;
     Str63 itemName;
     Str63 upperName;
@@ -413,7 +414,7 @@ static OSErr PBCatSearchSyncCompat(CSParamPtr paramBlock)
 {
     OSErr result;
     GetVolParmsInfoBuffer volParmsInfo;
-    long infoSize;
+    int32_t infoSize;
     Boolean supportsCatSearch;
 
     supportsCatSearch = false;
@@ -430,7 +431,7 @@ static OSErr PBCatSearchSyncCompat(CSParamPtr paramBlock)
     return result;
 }
 
-OSErr NameFileSearch(ConstStr255Param volName, short vRefNum, ConstStr255Param fileName, FSSpecPtr matches, long reqMatchCount, long *actMatchCount, Boolean newSearch, Boolean partial)
+OSErr NameFileSearch(ConstStr255Param volName, short vRefNum, ConstStr255Param fileName, FSSpecPtr matches, int32_t reqMatchCount, int32_t *actMatchCount, Boolean newSearch, Boolean partial)
 {
     CInfoPBRec searchInfo1;
     CInfoPBRec searchInfo2;

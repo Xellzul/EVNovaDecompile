@@ -13,18 +13,18 @@
 #ifndef MACBUILD
 unsigned char DAT_007cdab8[4112];
 #endif
-unsigned long alpha;
-unsigned long alphaR;
-unsigned long alphaG;
-unsigned long alphaB;
-unsigned long overR;
-unsigned long overG;
-unsigned long overB;
-unsigned long overBias;
+uint32_t alpha;
+uint32_t alphaR;
+uint32_t alphaG;
+uint32_t alphaB;
+uint32_t overR;
+uint32_t overG;
+uint32_t overB;
+uint32_t overBias;
 short scaleR;
 short scaleG;
 short scaleB;
-unsigned long biasColor;
+uint32_t biasColor;
 unsigned char *alphaTable[5][256];
 #ifndef MACBUILD
 unsigned char DAT_007cfef4[1547];

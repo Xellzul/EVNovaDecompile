@@ -60,7 +60,7 @@ unsigned char DAT_0085d150[44];
 Rect gLoadBarBase;
 #endif
 RGBColor progressColor[3];
-unsigned long lastMoviesTaskTime;
+uint32_t lastMoviesTaskTime;
 #ifdef MACBUILD
 Boolean introMusicPaused = false;
 Movie introMusicMovie = NULL;
@@ -106,7 +106,7 @@ void SetupIntroMusic(void)
     short fileRef;
     short resID;
     short vRefNum;
-    long dirID;
+    int32_t dirID;
     FSSpec spec;
     Str255 songName;
     OSErr err;
@@ -268,7 +268,7 @@ void SetupIntroMusic(void)
 void StopIntroMusic(Boolean fade)
 {
     short volume;
-    long start;
+    int32_t start;
 #if defined(MACBUILD) && V111
     EventRecord event;
 #endif

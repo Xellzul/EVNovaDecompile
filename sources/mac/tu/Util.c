@@ -11,7 +11,7 @@
 #include "../../engine/engineutils.c"
 CTabHandle colorCluts[7];
 short mBarHiddenFlag;
-long oldMBarHeight;
+int32_t oldMBarHeight;
 CTabHandle origClut;
 CTabHandle pureWhiteClut;
 DialogPtr warningDialog;

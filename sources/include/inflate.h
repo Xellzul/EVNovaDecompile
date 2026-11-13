@@ -54,8 +54,8 @@ struct inflate_state {
     int wrap;
     int havedict;
     int flags;
-    unsigned long check;
-    unsigned long total;
+    uint32_t check;
+    uint32_t total;
 
     unsigned wbits;
     unsigned wsize;
@@ -63,7 +63,7 @@ struct inflate_state {
     unsigned write;
     unsigned char FAR *window;
 
-    unsigned long hold;
+    uint32_t hold;
     unsigned bits;
 
     unsigned length;

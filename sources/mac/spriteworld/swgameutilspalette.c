@@ -16,11 +16,11 @@ void	RestoreSystemPalette( void )
 // MAC: _HasSystem7 i386 0x000c959e ppc 0x000d5590
 Boolean		HasSystem7( void )
 {
-	long	gestaltResponse;
+	int32_t	gestaltResponse;
 	OSErr	err;
 
 	err = Gestalt( gestaltSystemVersion, &gestaltResponse );
-	return ( err == noErr && ((unsigned long)gestaltResponse >= 0x0700));
+	return ( err == noErr && ((uint32_t)gestaltResponse >= 0x0700));
 }
 
 /* HideControlStrip (mac _HideControlStrip, mac-only). STATE: see the mac gate. */
@@ -36,7 +36,7 @@ void SBShowHideControlStrip(Boolean showIt);
 void HideControlStrip( void )
 {
 #if TARGET_API_MAC_OS8
-	long	response;
+	int32_t	response;
 
 	if (Gestalt('sdev', &response) != noErr || (response & 1) == 0)
 		return;

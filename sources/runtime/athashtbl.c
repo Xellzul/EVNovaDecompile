@@ -36,8 +36,8 @@ struct HashTable {
     HashProc hash;                               /* +0x0c */
     CompareProc compare;                         /* +0x10 */
     ULong keyClass;                              /* +0x14 */
-    long cursorA;                                /* +0x18 */
-    long cursorB;                                /* +0x1c */
+    int32_t cursorA;                                /* +0x18 */
+    int32_t cursorB;                                /* +0x1c */
     HashEntry *first;                            /* +0x20 */
     HashEntry *last;                             /* +0x24 */
     HashEntry *bucket[1];                        /* +0x28 */
@@ -68,7 +68,7 @@ HashLocal ULong _Hash(const void *key, ULong len)
     HashByte *p;
     ULong h;
     HashChar c;
-    long err;
+    int32_t err;
 
     err = 0;
     p = key;
@@ -87,7 +87,7 @@ HashLocal ULong _HashUpper(const void *key, ULong len)
     HashByte *p;
     ULong h;
     HashChar c;
-    long err;
+    int32_t err;
 
     err = 0;
     p = key;
@@ -116,7 +116,7 @@ HashLocal unsigned char _MatchUpper(const void *a, ULong lenA, const void *b, UL
     const unsigned char *s1;
     const unsigned char *s2;
     ULong c;
-    long err;
+    int32_t err;
 
     err = 0;
     s1 = a;
@@ -134,7 +134,7 @@ HashLocal unsigned char _MatchUpper(const void *a, ULong lenA, const void *b, UL
     const char *s1;
     const char *s2;
     unsigned char c;
-    long err;
+    int32_t err;
 
     err = 0;
     s1 = a;
@@ -159,7 +159,7 @@ HashLocal ULong _HashUnicode(const void *key, ULong len)
     ULong h;
     ULong i;
     ULong c;
-    long err;
+    int32_t err;
 
     err = 0;
     p = key;
@@ -190,7 +190,7 @@ HashLocal ULong _HashUpperUnicode(const void *key, ULong len)
     ULong h;
     ULong i;
     ULong c;
-    long err;
+    int32_t err;
 
     err = 0;
     p = key;
@@ -226,7 +226,7 @@ HashLocal unsigned char _MatchUpperUnicode(const void *a, ULong lenA, const void
     ULong j;
     ULong ca;
     ULong cb;
-    long err;
+    int32_t err;
 
     err = 0;
     s1 = a;
@@ -259,7 +259,7 @@ HashLocal ULong _HashBinary(const void *key, ULong len)
     const unsigned char *s;
     ULong count;
     ULong h;
-    long err;
+    int32_t err;
 
     err = 0;
     s = key;
@@ -274,7 +274,7 @@ HashLocal ULong _HashBinary(const void *key, ULong len)
 }
 
 #ifdef MAC1010
-#define MatchResult long
+#define MatchResult int32_t
 #else
 #define MatchResult unsigned char
 #endif
@@ -283,7 +283,7 @@ HashLocal ULong _HashBinary(const void *key, ULong len)
 // FUNCTION: EVNOVA 0x004f9ea1
 HashLocal MatchResult _MatchBinary(const void *a, ULong lenA, const void *b, ULong lenB)
 {
-    long err;
+    int32_t err;
     const unsigned char *s1;
     const unsigned char *s2;
     ULong n;
@@ -351,16 +351,16 @@ AT_STATIC char gHashHexDigits[] = "0123456789ABCDEF";        /* 0x00578550 */
 /* _HashDataEncode (percent-escape a text handle in place). STATE: MATCH 100%, exe 84 / obj 84,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f9ed5
-long _HashDataEncode(void *ref)
+int32_t _HashDataEncode(void *ref)
 {
     unsigned char **h;
-    long err;
+    int32_t err;
     unsigned char leading;
     char escaped[16];
     ULong i;
     ULong length;
     ULong c;
-    long e;
+    int32_t e;
 
     err = 0;
     h = ref;
@@ -394,17 +394,17 @@ long _HashDataEncode(void *ref)
 /* _HashDataDecode (undo the percent escapes of a text handle in place; %00 becomes a space).
    STATE: MATCH 100%, exe 96 / obj 96, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f9fb9
-long _HashDataDecode(void *ref)
+int32_t _HashDataDecode(void *ref)
 {
     void **h;
-    long err;
+    int32_t err;
     ULong i;
     ULong d;
     ULong c;
     ULong length;
     char *p;
     ULong n;
-    long e;
+    int32_t e;
 
     err = 0;
     h = ref;
@@ -454,13 +454,13 @@ long _HashDataDecode(void *ref)
    exe 73 / obj 73, byte-identical. OPEN: none (the UTF-8 handle is never freed, as in the
    exe) */
 // FUNCTION: EVNOVA 0x004fa0ad
-long _HashDataUnicode(void **h, unsigned char escape)
+int32_t _HashDataUnicode(void **h, unsigned char escape)
 {
-    long err;
+    int32_t err;
     void **narrow;
     ULong length;
-    long e;
-    long e2;
+    int32_t e;
+    int32_t e2;
 
     err = 0;
     narrow = 0;
@@ -501,7 +501,7 @@ unsigned char HashIsValidRef(void *ref);
 // FUNCTION: EVNOVA 0x004fa149
 HashTable *HashCreate(ULong flags)
 {
-    long err;
+    int32_t err;
     HashTable *t;
     ULong n;
 
@@ -560,7 +560,7 @@ HashTable *HashInitialize(ULong flags, const char *text)
 {
     void **copy;
     HashTable *t;
-    long err;
+    int32_t err;
 
     err = 0;
     copy = 0;
@@ -594,7 +594,7 @@ HashTable *HashInitializeUnicode(ULong flags, const unsigned short *text)
 {
     void **copy;
     HashTable *t;
-    long err;
+    int32_t err;
 
     err = 0;
     copy = 0;
@@ -673,7 +673,7 @@ HashTable *HashLoad(ULong flags, void **text)
     ULong valueLen;
     ULong c;
     ULong state;
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     t = 0;
@@ -923,7 +923,7 @@ done:
 void **_HashSaveText(void *ref)
 {
     HashTable *t;
-    long err, r;
+    int32_t err, r;
     char *key;
     char *value;
     HashEntry *e;
@@ -1134,7 +1134,7 @@ void **_HashSaveUnicode(void *ref)
     ULong length;
     ULong n;
     ULong c;
-    long err, r;
+    int32_t err, r;
 
     t = ref;
     err = 0;
@@ -1353,7 +1353,7 @@ void **HashSave(void *ref)
 HashTable *HashClone(void *ref)
 {
     HashTable *from;
-    long err;
+    int32_t err;
     HashTable *t;
     HashEntry *e;
 
@@ -1394,7 +1394,7 @@ done:
 void HashDispose(void *ref)
 {
     HashTable *t;
-    long err;
+    int32_t err;
     HashTable **link;
     HashTable *p;
     HashEntry *e;
@@ -1428,7 +1428,7 @@ void HashDispose(void *ref)
 unsigned char HashIsEmpty(void *ref)
 {
     HashTable *t;
-    long err;
+    int32_t err;
 
     t = ref;
     err = 0;
@@ -1444,7 +1444,7 @@ unsigned char HashIsEmpty(void *ref)
 unsigned char HashIsValidRef(void *ref)
 {
     HashTable *t;
-    long err;
+    int32_t err;
     HashTable *p;
 
     t = ref;
@@ -1462,7 +1462,7 @@ unsigned char HashIsValidRef(void *ref)
 ULong HashGetFlags(void *ref)
 {
     HashTable *t;
-    long err;
+    int32_t err;
 
     t = ref;
     err = 0;
@@ -1472,14 +1472,14 @@ ULong HashGetFlags(void *ref)
 
 /* _HashInsertAppend. STATE: MATCH 100%, exe 264 / obj 264, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004fb6a9
-long _HashInsertAppend(void *ref, const void *key, ULong keyLen,
+int32_t _HashInsertAppend(void *ref, const void *key, ULong keyLen,
                   const void *value, ULong valueLen, unsigned char tag,
                   unsigned char front, ULong kind)
 {
     HashTable *t;
     ULong keySpace;
     ULong charSize;
-    long err;
+    int32_t err;
     ULong valueSpace;
     ULong size;
     HashEntry **link;
@@ -1641,7 +1641,7 @@ done:
    which inserts at the front). STATE: MATCH 100%, exe 40 / obj 40, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004fb9e4
-long HashAppend(HashTable *t, const char *key, const char *value)
+int32_t HashAppend(HashTable *t, const char *key, const char *value)
 {
     int hasValue;
     int tag;
@@ -1666,7 +1666,7 @@ long HashAppend(HashTable *t, const char *key, const char *value)
    order; HashInsertData's twin). STATE: MATCH 100%, exe 23 / obj 23, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004fba37
-long HashAppendData(HashTable *t, const char *key, const void *value,
+int32_t HashAppendData(HashTable *t, const char *key, const void *value,
                   ULong valueLen)
 {
     int tag;
@@ -1681,7 +1681,7 @@ long HashAppendData(HashTable *t, const char *key, const void *value,
 
 /* HashInsert. STATE: MATCH 100%, exe 40 / obj 40, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004fba6e
-long HashInsert(HashTable *t, const char *key, const char *value)
+int32_t HashInsert(HashTable *t, const char *key, const char *value)
 {
     int hasValue;
     int tag;
@@ -1705,7 +1705,7 @@ long HashInsert(HashTable *t, const char *key, const char *value)
 /* HashInsertData. STATE: MATCH 100%, exe 23 / obj 23, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004fbac1
-long HashInsertData(HashTable *t, const char *key, const void *value,
+int32_t HashInsertData(HashTable *t, const char *key, const void *value,
                   ULong valueLen)
 {
     int tag;
@@ -1721,7 +1721,7 @@ long HashInsertData(HashTable *t, const char *key, const void *value,
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
 extern ULong UnicodeGetCharCount(const unsigned short *s);
 
-long HashAppendUnicode(HashTable *t, const unsigned short *key, const unsigned short *value)
+int32_t HashAppendUnicode(HashTable *t, const unsigned short *key, const unsigned short *value)
 {
     int hasValue;
     int tag;
@@ -1745,7 +1745,7 @@ long HashAppendUnicode(HashTable *t, const unsigned short *key, const unsigned s
 /* HashAppendUnicodeData (set a UTF-16 key to a counted value at the back of the insertion order).
    STATE: MATCH 100%, exe 23 / obj 23, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004fbaf8
-long HashAppendUnicodeData(HashTable *t, const unsigned short *key, const void *value,
+int32_t HashAppendUnicodeData(HashTable *t, const unsigned short *key, const void *value,
                   ULong valueLen)
 {
     int tag;
@@ -1763,7 +1763,7 @@ long HashAppendUnicodeData(HashTable *t, const unsigned short *key, const void *
 unsigned char _HashRemove(void *ref, const void *key, ULong keyLen, ULong kind)
 {
     HashTable *t;
-    long err;
+    int32_t err;
     HashEntry **link;
     HashEntry *removed;
     HashEntry *e;
@@ -1830,7 +1830,7 @@ unsigned char HashRemoveUnicode(HashTable *t, const unsigned short *key)
 HashEntry *_HashLookup(void *ref, const void *key, ULong keyLen, void *after, ULong kind)
 {
     HashTable *t;
-    long err;
+    int32_t err;
     HashEntry *e;
 
     t = ref;
@@ -1896,7 +1896,7 @@ char *_HashIndex(void *ref, ULong index, char **key, ULong *keyLen, char **value
                    ULong *valueLen, ULong kind)
 {
     ULong i;
-    long err;
+    int32_t err;
     HashEntry *e;
     HashTable *t;
 
@@ -1932,7 +1932,7 @@ char *_HashIndex(void *ref, ULong index, char **key, ULong *keyLen, char **value
             *value = e->data;
         if (valueLen != 0)
             *keyLen = e->valueLen;      /* BUG: stores through keyLen, not valueLen */
-        t->cursorB = (long)e;
+        t->cursorB = (int32_t)e;
         t->cursorA = index;
     } else {
         if (key != 0)

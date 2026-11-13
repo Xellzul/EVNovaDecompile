@@ -84,11 +84,11 @@ double ConvertAiffExtended(const void *Input)
 /* SoundIterator (BurgerLib SnSoundManager). STATE: MATCH 100%, exe 45 / obj 45,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004fc4e0
-long SoundIterator(SoundProc proc, void *data, long cookie, long firstOnly)
+int32_t SoundIterator(SoundProc proc, void *data, int32_t cookie, int32_t firstOnly)
 {
     PrivSound *sound;
     ULong count;
-    long result;
+    int32_t result;
 
     result = 0;
     sound = BurgerSamples;
@@ -219,7 +219,7 @@ static __inline Word8 *FindSoundChunk(Word8 *data, ULong name, ULong size)
    byte-identical yes (1200 bytes). OPEN: none; the two chunk walks are two inline helpers with
    their parameters in different orders (see notes) */
 // FUNCTION: EVNOVA 0x004fc570
-long ParseSoundFileImage(AudioDesc *desc, Word8 *data, ULong size)
+int32_t ParseSoundFileImage(AudioDesc *desc, Word8 *data, ULong size)
 {
     Word8 *chunk;
     Word8 *comm;
@@ -228,7 +228,7 @@ long ParseSoundFileImage(AudioDesc *desc, Word8 *data, ULong size)
     ULong channels;
     ULong frames;
     float rate;
-    long failed;
+    int32_t failed;
 
     FastMemSet(desc, 0, sizeof(AudioDesc));
     failed = 1;
@@ -298,7 +298,7 @@ long ParseSoundFileImage(AudioDesc *desc, Word8 *data, ULong size)
             if (ssnd != 0) {
                 desc->SoundPtr = ssnd + 0x10;
                 desc->SoundLength = SwapLong(*(ULong *)(ssnd + 4)) - 8;
-                desc->SampleRate = (long)ConvertAiffExtended(comm + 0x12);
+                desc->SampleRate = (int32_t)ConvertAiffExtended(comm + 0x12);
                 if (SwapShort(*(unsigned short *)(comm + 0x10)) == 8)
                     desc->DataType = kFmt8Signed;
                 else

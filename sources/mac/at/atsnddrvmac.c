@@ -14,7 +14,7 @@
 
 extern ULong gSampleBits;
 extern ULong gNumChannels;
-extern long gSamplesPerBuffer;
+extern int32_t gSamplesPerBuffer;
 extern ULong gBytesPerBuffer;
 extern ULong gSampleRate;
 extern ULong gSoundManagerVersion;
@@ -24,12 +24,12 @@ SndChannelPtr gSoundChannel;
 
 void _ST_DisposeSoundPump(void);
 static SndChannelPtr _ST_NewChannel(void);
-static SndDoubleBufferPtr _ST_NewBuffer(long frames, ULong bytes);
+static SndDoubleBufferPtr _ST_NewBuffer(int32_t frames, ULong bytes);
 static pascal void _ST_DoubleBack(SndChannelPtr channel, SndDoubleBufferPtr buffer);
 
-long _ST_CreateSoundPump(void)
+int32_t _ST_CreateSoundPump(void)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     MemoryClear(&gDoubleHeader, sizeof(SndDoubleBufferHeader));
@@ -82,9 +82,9 @@ void _ST_DisposeSoundPump(void)
     }
 }
 
-long _ST_GetCurrentSampleRate(ULong *rate)
+int32_t _ST_GetCurrentSampleRate(ULong *rate)
 {
-    long err;
+    int32_t err;
     SndChannelPtr channel;
 
     err = 0;
@@ -104,10 +104,10 @@ done:
     return err;
 }
 
-long _ST_GetSystemVolume(ULong *left, ULong *right, ULong *max)
+int32_t _ST_GetSystemVolume(ULong *left, ULong *right, ULong *max)
 {
-    long err;
-    long volume;
+    int32_t err;
+    int32_t volume;
 
     err = 0;
     *left = 0;
@@ -131,9 +131,9 @@ unsigned char _ST_SupportsSystemVolume(void)
     return 1;
 }
 
-long _ST_SetSystemVolume(ULong left, ULong right)
+int32_t _ST_SetSystemVolume(ULong left, ULong right)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (left > 0xffff)
@@ -155,7 +155,7 @@ static SndChannelPtr _ST_NewChannel(void)
     return channel;
 }
 
-static SndDoubleBufferPtr _ST_NewBuffer(long frames, ULong bytes)
+static SndDoubleBufferPtr _ST_NewBuffer(int32_t frames, ULong bytes)
 {
     SndDoubleBufferPtr buffer;
 
@@ -238,7 +238,7 @@ extern unsigned char _PlatformIsThreaded(void);
 extern void *_PlatformFindBundleSymbol(CFStringRef bundleName, CFStringRef symbolName);
 extern void *_MachOForCFM(void *function);
 extern void _SystemUnpatchTraps(void);
-extern long _SystemPatchTraps(void);
+extern int32_t _SystemPatchTraps(void);
 extern ULong UInt32_To_UFix32(ULong value);
 extern void *MemoryAllocate(ULong size);
 extern void MemoryDeallocate(void *p);
@@ -249,30 +249,30 @@ ComponentInstance gSoundUnit;
 SoundPump gPumpIn;
 SoundPump gPumpOut;
 unsigned char gSoundOpen;
-long (*gAudioUnitInitialize)(ComponentInstance unit);
-long (*gAudioUnitUninitialize)(ComponentInstance unit);
-long (*gAudioUnitGetPropertyInfo)(ComponentInstance unit, ULong id, ULong scope, ULong element, ULong *size, unsigned char *writable);
-long (*gAudioUnitGetProperty)(ComponentInstance unit, ULong id, ULong scope, ULong element, void *data, ULong *size);
-long (*gAudioUnitSetProperty)(ComponentInstance unit, ULong id, ULong scope, ULong element, const void *data, ULong size);
-long (*gAudioOutputUnitStart)(ComponentInstance unit);
-long (*gAudioOutputUnitStop)(ComponentInstance unit);
-long (*gAudioUnitGetParameter)(ComponentInstance unit, ULong id, ULong scope, ULong element, float *value);
-long (*gAudioUnitSetParameter)(ComponentInstance unit, ULong id, ULong scope, ULong element, float value, ULong offset);
-long (*gAudioHardwareGetProperty)(ULong id, ULong *size, void *data);
-long (*gAudioDeviceGetProperty)(ULong device, ULong channel, unsigned char input, ULong id, ULong *size, void *data);
-long (*gAudioDeviceSetProperty)(ULong device, const void *when, ULong channel, unsigned char input, ULong id, ULong size, const void *data);
-long (*gAudioDeviceGetPropertyInfo)(ULong device, ULong channel, unsigned char input, ULong id, ULong *size, unsigned char *writable);
+int32_t (*gAudioUnitInitialize)(ComponentInstance unit);
+int32_t (*gAudioUnitUninitialize)(ComponentInstance unit);
+int32_t (*gAudioUnitGetPropertyInfo)(ComponentInstance unit, ULong id, ULong scope, ULong element, ULong *size, unsigned char *writable);
+int32_t (*gAudioUnitGetProperty)(ComponentInstance unit, ULong id, ULong scope, ULong element, void *data, ULong *size);
+int32_t (*gAudioUnitSetProperty)(ComponentInstance unit, ULong id, ULong scope, ULong element, const void *data, ULong size);
+int32_t (*gAudioOutputUnitStart)(ComponentInstance unit);
+int32_t (*gAudioOutputUnitStop)(ComponentInstance unit);
+int32_t (*gAudioUnitGetParameter)(ComponentInstance unit, ULong id, ULong scope, ULong element, float *value);
+int32_t (*gAudioUnitSetParameter)(ComponentInstance unit, ULong id, ULong scope, ULong element, float value, ULong offset);
+int32_t (*gAudioHardwareGetProperty)(ULong id, ULong *size, void *data);
+int32_t (*gAudioDeviceGetProperty)(ULong device, ULong channel, unsigned char input, ULong id, ULong *size, void *data);
+int32_t (*gAudioDeviceSetProperty)(ULong device, const void *when, ULong channel, unsigned char input, ULong id, ULong size, const void *data);
+int32_t (*gAudioDeviceGetPropertyInfo)(ULong device, ULong channel, unsigned char input, ULong id, ULong *size, unsigned char *writable);
 
 void _ST_DisposeSoundPump(void);
-long _ST_LoadCoreAudio(void);
-long _ST_OpenUnit(ComponentInstance *unit);
-long _ST_GetUnitFormat(ComponentInstance *unit, StreamFormat *format, void *spare);
-long _ST_SetRenderProc(ComponentInstance *unit, void *proc, void *refcon, ULong element);
-long _ST_RenderProc(void *refcon, void *flags, void *when, ULong bus, ULong frames, RenderBuffers *buffers);
+int32_t _ST_LoadCoreAudio(void);
+int32_t _ST_OpenUnit(ComponentInstance *unit);
+int32_t _ST_GetUnitFormat(ComponentInstance *unit, StreamFormat *format, void *spare);
+int32_t _ST_SetRenderProc(ComponentInstance *unit, void *proc, void *refcon, ULong element);
+int32_t _ST_RenderProc(void *refcon, void *flags, void *when, ULong bus, ULong frames, RenderBuffers *buffers);
 
-long _ST_CreateSoundPump(void)
+int32_t _ST_CreateSoundPump(void)
 {
-    long err;
+    int32_t err;
     ULong size;
     StreamFormat format;
 
@@ -329,7 +329,7 @@ long _ST_CreateSoundPump(void)
         goto done;
     }
     if (_PlatformIsThreaded()) {
-        long e;
+        int32_t e;
 
         _SystemUnpatchTraps();
         e = _SystemPatchTraps();
@@ -354,7 +354,7 @@ void _ST_DisposeSoundPump(void)
     MemoryDeallocate(gPumpOut.data);
 }
 
-long _ST_GetCurrentSampleRate(ULong *rate)
+int32_t _ST_GetCurrentSampleRate(ULong *rate)
 {
     if (gSoundOpen)
         *rate = UInt32_To_UFix32(gPumpOut.format.sampleRate);
@@ -363,9 +363,9 @@ long _ST_GetCurrentSampleRate(ULong *rate)
     return 0;
 }
 
-long _ST_GetAppVolume(ULong *left, ULong *right, ULong *max)
+int32_t _ST_GetAppVolume(ULong *left, ULong *right, ULong *max)
 {
-    long err;
+    int32_t err;
     float leftVolume;
     float rightVolume;
 
@@ -385,9 +385,9 @@ done:
     return err;
 }
 
-long _ST_SetAppVolume(ULong left, ULong right)
+int32_t _ST_SetAppVolume(ULong left, ULong right)
 {
-    long err;
+    int32_t err;
     float leftVolume;
     float rightVolume;
 
@@ -404,8 +404,8 @@ long _ST_SetAppVolume(ULong left, ULong right)
 
 unsigned char _ST_SupportsSystemVolume(void)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char writable;
     ULong size;
     ULong device;
@@ -452,10 +452,10 @@ done:
     return err == 0;
 }
 
-long _ST_GetSystemVolume(ULong *left, ULong *right, ULong *max)
+int32_t _ST_GetSystemVolume(ULong *left, ULong *right, ULong *max)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     float leftVolume;
     float rightVolume;
     ULong device;
@@ -513,10 +513,10 @@ done:
     return err;
 }
 
-long _ST_SetSystemVolume(ULong left, ULong right)
+int32_t _ST_SetSystemVolume(ULong left, ULong right)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong size;
     ULong device;
     float leftVolume;
@@ -586,7 +586,7 @@ done:
     return err;
 }
 
-long _ST_RenderProc(void *refcon, void *flags, void *when, ULong bus, ULong frames, RenderBuffers *buffers)
+int32_t _ST_RenderProc(void *refcon, void *flags, void *when, ULong bus, ULong frames, RenderBuffers *buffers)
 {
     _ST_MixerDispatch(buffers->data, frames);
     buffers->count = 1;
@@ -594,9 +594,9 @@ long _ST_RenderProc(void *refcon, void *flags, void *when, ULong bus, ULong fram
     return 0;
 }
 
-long _ST_OpenUnit(ComponentInstance *unit)
+int32_t _ST_OpenUnit(ComponentInstance *unit)
 {
-    long err = 0;
+    int32_t err = 0;
     ComponentDescription description;
     Component component;
 
@@ -616,9 +616,9 @@ done:
     return err;
 }
 
-long _ST_GetUnitFormat(ComponentInstance *unit, StreamFormat *format, void *spare)
+int32_t _ST_GetUnitFormat(ComponentInstance *unit, StreamFormat *format, void *spare)
 {
-    long err = 0;
+    int32_t err = 0;
     ULong size;
     unsigned char writable;
 
@@ -636,9 +636,9 @@ done:
     return err;
 }
 
-long _ST_SetRenderProc(ComponentInstance *unit, void *proc, void *refcon, ULong element)
+int32_t _ST_SetRenderProc(ComponentInstance *unit, void *proc, void *refcon, ULong element)
 {
-    long err = 0;
+    int32_t err = 0;
     RenderCallback callback;
 
     BlockZero(&callback, sizeof(callback));
@@ -658,9 +658,9 @@ long _ST_SetRenderProc(ComponentInstance *unit, void *proc, void *refcon, ULong 
         }                                                                       \
     }
 
-long _ST_LoadCoreAudio(void)
+int32_t _ST_LoadCoreAudio(void)
 {
-    long err = 0;
+    int32_t err = 0;
 
     LOAD_SYMBOL(gAudioUnitInitialize, "AudioUnit.framework", "AudioUnitInitialize")
     LOAD_SYMBOL(gAudioUnitUninitialize, "AudioUnit.framework", "AudioUnitUninitialize")

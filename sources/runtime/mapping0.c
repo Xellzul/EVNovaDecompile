@@ -32,7 +32,7 @@ typedef struct vorbis_look_mapping{
   vorbis_func_residue **residue_func;
 
   int ch;
-  long lastframe;
+  int32_t lastframe;
 
 } vorbis_look_mapping0;
 
@@ -264,7 +264,7 @@ static vorbis_info_mapping *mapping0_unpack(vorbis_info *vi,oggpack_buffer *opb)
 #include "psy.h"
 #include "scales.h"
 
-static long seq=0;
+static int32_t seq=0;
 /* mapping0_forward. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x0055a860
@@ -371,7 +371,7 @@ static int mapping0_forward(vorbis_block *vb,vorbis_look_mapping *l){
     float  **quantized=(float **)alloca(sizeof(*quantized)*vi->channels);
     float  **sofar=(float **)alloca(sizeof(*sofar)*vi->channels);
 
-    long  ***classifications=(long ***)alloca(sizeof(*classifications)*info->submaps);
+    int32_t  ***classifications=(int32_t ***)alloca(sizeof(*classifications)*info->submaps);
     float ***qbundle=(float ***)alloca(sizeof(*qbundle)*info->submaps);
     float ***pcmbundle=(float ***)alloca(sizeof(*pcmbundle)*info->submaps);
     float ***sobundle=(float ***)alloca(sizeof(*sobundle)*info->submaps);
@@ -486,7 +486,7 @@ static int mapping0_inverse(vorbis_block *vb,vorbis_look_mapping *l){
   vorbis_info_mapping0 *info=look->map;
   vorbis_info_mode     *mode=look->mode;
   int                   i,j;
-  long                  n=vb->pcmend=ci->blocksizes[vb->W];
+  int32_t                  n=vb->pcmend=ci->blocksizes[vb->W];
 
   float *window=b->window[vb->W][vb->lW][vb->nW][mode->windowtype];
   float **pcmbundle=(float **)alloca(sizeof(*pcmbundle)*vi->channels);

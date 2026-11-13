@@ -7,9 +7,9 @@
 void Randomize( void )
 {
 #if defined(MAC1010) && !TARGET_API_MAC_CARBON
-	GetDateTime( (unsigned long *)&qd.randSeed );
+	GetDateTime( (uint32_t *)&qd.randSeed );
 #else
-	unsigned long	secs;
+	uint32_t	secs;
 
 	GetDateTime( &secs );
 	SetQDGlobalsRandomSeed( secs );
@@ -21,7 +21,7 @@ void Randomize( void )
 short GetRandom(short min, short max)
 {
 	unsigned short		random;
-	long				range, temp;
+	int32_t				range, temp;
 
 	random = Random();
 	range = (max - min) + 1;
@@ -36,7 +36,7 @@ short GetRandom(short min, short max)
 unsigned short	GetUnsignedRandom(unsigned short min, unsigned short max)
 {
 	unsigned short	random;
-	unsigned long	range, temp;
+	uint32_t	range, temp;
 
 	random = Random();
 	range = (max - min) + 1;

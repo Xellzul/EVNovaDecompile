@@ -48,12 +48,12 @@ extern "C"
 typedef struct vorbis_info{
   int version;
   int channels;
-  long rate;
+  int32_t rate;
 
-  long bitrate_upper;
-  long bitrate_nominal;
-  long bitrate_lower;
-  long bitrate_window;
+  int32_t bitrate_upper;
+  int32_t bitrate_nominal;
+  int32_t bitrate_lower;
+  int32_t bitrate_window;
 
   void *codec_setup;
 } vorbis_info;
@@ -71,10 +71,10 @@ typedef struct vorbis_dsp_state{
   int  preextrapolate;
   int  eofflag;
 
-  long lW;
-  long W;
-  long nW;
-  long centerW;
+  int32_t lW;
+  int32_t W;
+  int32_t nW;
+  int32_t centerW;
 
   ogg_int64_t granulepos;
   ogg_int64_t sequence;
@@ -92,9 +92,9 @@ typedef struct vorbis_block{
   float  **pcm;
   oggpack_buffer opb;
 
-  long  lW;
-  long  W;
-  long  nW;
+  int32_t  lW;
+  int32_t  W;
+  int32_t  nW;
   int   pcmend;
   int   mode;
 
@@ -104,15 +104,15 @@ typedef struct vorbis_block{
   vorbis_dsp_state *vd;
 
   void               *localstore;
-  long                localtop;
-  long                localalloc;
-  long                totaluse;
+  int32_t                localtop;
+  int32_t                localalloc;
+  int32_t                totaluse;
   struct alloc_chain *reap;
 
-  long glue_bits;
-  long time_bits;
-  long floor_bits;
-  long res_bits;
+  int32_t glue_bits;
+  int32_t time_bits;
+  int32_t floor_bits;
+  int32_t res_bits;
 
   void *internal;
 
@@ -171,7 +171,7 @@ extern int      vorbis_synthesis(vorbis_block *vb,ogg_packet *op);
 extern int      vorbis_synthesis_blockin(vorbis_dsp_state *v,vorbis_block *vb);
 extern int      vorbis_synthesis_pcmout(vorbis_dsp_state *v,float ***pcm);
 extern int      vorbis_synthesis_read(vorbis_dsp_state *v,int samples);
-extern long     vorbis_packet_blocksize(vorbis_info *vi,ogg_packet *op);
+extern int32_t     vorbis_packet_blocksize(vorbis_info *vi,ogg_packet *op);
 
 #define OV_FALSE      -1
 #define OV_EOF        -2

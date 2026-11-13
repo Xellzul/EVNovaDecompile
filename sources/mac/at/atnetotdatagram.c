@@ -14,7 +14,7 @@
 #endif
 extern unsigned char _PlatformIsThreaded(void);
 
-extern long CriticalCreateFromProvider(void *lock, ProviderRef provider);
+extern int32_t CriticalCreateFromProvider(void *lock, ProviderRef provider);
 
 #if TARGET_API_MAC_CARBON
 #define OTOpenEndpoint(c, o, i, e) OTOpenEndpointInContext(c, o, i, e, 0)
@@ -89,22 +89,22 @@ typedef struct OTSocket {
     MutexList *recvList;
     MutexList *recvList2;
     NetAddress local;
-    long unk13c;
+    int32_t unk13c;
     EndpointRef endpoint;
     MapperRef mapper;
-    long nameID;
+    int32_t nameID;
     MutexList sendQueue;
     NetPacket *sending;
-    long sendBytes;
+    int32_t sendBytes;
     NetAddress reset;
     char reply[0x228];
     char name[0x100];
 } OTSocket;
 
-long gOTSocketCount = 0;
+int32_t gOTSocketCount = 0;
 
-extern long ConfigureDatagramOT(OTSocket *s, unsigned char reportReset);
-extern long GetNameResource(char *out);
+extern int32_t ConfigureDatagramOT(OTSocket *s, unsigned char reportReset);
+extern int32_t GetNameResource(char *out);
 extern void DatagramPostOT(OTSocket *s);
 extern void DatagramReceiveOT(void *ref);
 extern void DatagramLookOT(OTSocket *s);
@@ -135,10 +135,10 @@ static inline char *MslAppend(char *dst, const char *src)
     return dst;
 }
 
-static inline long MslLength(const char *s)
+static inline int32_t MslLength(const char *s)
 {
     const unsigned char *p;
-    long n;
+    int32_t n;
 
     p = (const unsigned char *)s - 1;
     n = -1;
@@ -150,7 +150,7 @@ static inline long MslLength(const char *s)
 
 NetSocket *DatagramCreateOT(NetStackID stack, void *ref, NetProc proc, MutexList *sentList, MutexList *freeList, MutexList *recvList, MutexList *recvList2)
 {
-    long err, e;
+    int32_t err, e;
     OTSocket *s;
 
     err = 0;
@@ -193,7 +193,7 @@ done:
 void DatagramTickleOT(NetSocket *ref)
 {
     OTSocket *s;
-    long state;
+    int32_t state;
     Boolean entered;
 
     s = (OTSocket *)ref;
@@ -226,11 +226,11 @@ void DatagramDisposeOT(OTSocket *s)
     gOTSocketCount--;
 }
 
-long DatagramControlOT(void *ref, void *out, ULong option, ULong value)
+int32_t DatagramControlOT(void *ref, void *out, ULong option, ULong value)
 {
     OTSocket *s;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     const char *name;
     char text[0x100];
     TOption ttl;
@@ -337,7 +337,7 @@ long DatagramControlOT(void *ref, void *out, ULong option, ULong value)
     return err;
 }
 
-long DatagramOpenOT(void *ref, NetAddress *address)
+int32_t DatagramOpenOT(void *ref, NetAddress *address)
 {
     OTSocket *s;
     OSStatus status;
@@ -357,7 +357,7 @@ long DatagramOpenOT(void *ref, NetAddress *address)
     Str255 unique;
     NetAddress any;
     OTConfigurationRef config;
-    long err;
+    int32_t err;
     ULong tries;
     unsigned char bind;
 
@@ -399,7 +399,7 @@ long DatagramOpenOT(void *ref, NetAddress *address)
         goto done;
     }
     {
-        long e;
+        int32_t e;
 
         e = CriticalCreateFromProvider(s->lock, s->endpoint);
         if (e != 0) {
@@ -514,7 +514,7 @@ long DatagramOpenOT(void *ref, NetAddress *address)
         AddressDuplicate(address, &s->local);
     }
     {
-        long e;
+        int32_t e;
 
         e = ConfigureDatagramOT(s, AtomicMaskTest(&s->flags, kFlagReset));
         if (e != 0)
@@ -536,12 +536,12 @@ done:
     return err;
 }
 
-long DatagramSendOT(OTSocket *s, NetPacket *packet)
+int32_t DatagramSendOT(OTSocket *s, NetPacket *packet)
 {
-    long err;
+    int32_t err;
     NetPacket *p;
     Boolean entered;
-    long state;
+    int32_t state;
 
     err = 0;
     state = s->state;
@@ -558,7 +558,7 @@ long DatagramSendOT(OTSocket *s, NetPacket *packet)
     return err;
 }
 
-void DatagramCloseOT(void *ref, long graceful)
+void DatagramCloseOT(void *ref, int32_t graceful)
 {
     OTSocket *s;
     OSStatus status, e;
@@ -634,10 +634,10 @@ void DatagramCloseOT(void *ref, long graceful)
     NetworkMakeCallback(s->proc, s->ref, (NetSocket *)s, kEventClosed);
 }
 
-long DatagramGetAddressOT(OTSocket *s, NetAddress *out)
+int32_t DatagramGetAddressOT(OTSocket *s, NetAddress *out)
 {
-    long err;
-    long state;
+    int32_t err;
+    int32_t state;
 
     err = 0;
     state = s->state;
@@ -660,7 +660,7 @@ static inline NetPacket *_DatagramNextPacket(OTSocket *s)
 void DatagramPostOT(OTSocket *s)
 {
     unsigned char held;
-    long state;
+    int32_t state;
     NetPacket *packet;
     TUnitData data;
     OTResult result;
@@ -740,8 +740,8 @@ void DatagramReceiveOT(void *ref)
     size_t count;
     OTFlags flags;
     TUnitData data;
-    long state;
-    long event;
+    int32_t state;
+    int32_t event;
 
     s = ref;
     err = 0;
@@ -833,14 +833,14 @@ void DatagramLookOT(OTSocket *s)
         DatagramNotifierOT(s, code, 0, s);
 }
 
-long ConfigureDatagramOT(OTSocket *s, unsigned char reportReset)
+int32_t ConfigureDatagramOT(OTSocket *s, unsigned char reportReset)
 {
-    long err;
+    int32_t err;
     TOption option;
     TOptMgmt request;
 
     err = 0;
-    if (s != 0 && (long)s->state == kStateOpen) {
+    if (s != 0 && (int32_t)s->state == kStateOpen) {
         option.len = kOTOneByteOptionSize;
         option.level = INET_UDP;
         option.name = 2;
@@ -938,7 +938,7 @@ pascal void DatagramNotifierOT(void *ref, OTEventCode code, OTResult result, voi
             break;
         case kOTProviderWillClose:
         case kOTProviderIsClosed: {
-            long state;
+            int32_t state;
             OSStatus e;
 
             state = s->state;

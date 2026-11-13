@@ -8,9 +8,9 @@
 void BlitPixieBlitClear(
 	unsigned char *src,
 	unsigned char *dst,
-	unsigned long color,
-	unsigned long srcRowBytes,
-	unsigned long dstRowBytes,
+	uint32_t color,
+	uint32_t srcRowBytes,
+	uint32_t dstRowBytes,
 	unsigned short bytes,
 	unsigned short rows)
 {

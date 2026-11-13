@@ -18,9 +18,9 @@ static ULong gStacks;
 void NetworkStackUnload(void);
 void NetworkStackTickle(void);
 
-long NetworkStackLoad(ULong wanted)
+int32_t NetworkStackLoad(ULong wanted)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     if (IsPlatformOpen() == 0) {
@@ -168,9 +168,9 @@ static ULong gStacks;
 void NetworkStackUnload(void);
 void NetworkStackTickle(void);
 
-long NetworkStackLoad(ULong wanted)
+int32_t NetworkStackLoad(ULong wanted)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     if (IsPlatformOpen() == 0) {

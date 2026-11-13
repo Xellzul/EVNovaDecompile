@@ -25,17 +25,17 @@ struct ThreadRec {
     ThreadRec *next;                             /* +0x00 list link */
     void *link;                                  /* +0x04 owner, or next */
     void *waitHandle;                            /* +0x08 */
-    long reserved0c;                             /* +0x0c */
-    long reserved10;                             /* +0x10 */
+    int32_t reserved0c;                             /* +0x0c */
+    int32_t reserved10;                             /* +0x10 */
     ThreadCleanup cleanup;                       /* +0x14 */
     void *cleanupArg;                            /* +0x18 */
-    long reserved1c;                             /* +0x1c */
+    int32_t reserved1c;                             /* +0x1c */
     ULong id;                                    /* +0x20 */
     unsigned short index;                        /* +0x24 */
     unsigned short reserved26;                   /* +0x26 */
     void *thread;                                /* +0x28 */
-    long reserved2c;                             /* +0x2c */
-    long reserved30;                             /* +0x30 */
+    int32_t reserved2c;                             /* +0x2c */
+    int32_t reserved30;                             /* +0x30 */
 };
 
 typedef struct ThreadSlot {
@@ -56,25 +56,25 @@ static ThreadRec *gThreadDying;                  /* 0x00867d40 dying list */
 static ULong gThreadCount;                       /* 0x00867d3c slot count */
 static ThreadSlot *gThreadList;                 /* 0x00867d38 slot table */
 
-long _ThreadRecordCreate(ULong stackSize);
+int32_t _ThreadRecordCreate(ULong stackSize);
 void _ThreadRecordFree(ThreadRec *rec);
-ThreadRec *_ThreadRecordLookup(long id);
+ThreadRec *_ThreadRecordLookup(int32_t id);
 ULong _ThreadRecordGetId(ThreadRec *rec);
 void *_ThreadRecordCurrent(void);
 void _ThreadTableLock(void);
 void _ThreadTableUnlock(void);
 
 void ThreadsPostflight(void);
-long ThreadDispose(ULong id);
-long _ThreadRecordClose(void *thread);
+int32_t ThreadDispose(ULong id);
+int32_t _ThreadRecordClose(void *thread);
 unsigned char _ThreadIsAlive(void *thread);
 void _ThreadListMove(void *thread, ThreadRec **head, ThreadRec **pushTo);
 
 /* ThreadsPreflight. STATE: MATCH 100%, exe 105 / obj 105, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00504026
-long ThreadsPreflight(long count, ULong stackSize)
+int32_t ThreadsPreflight(int32_t count, ULong stackSize)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     AtomicMaskTest(&gThreadFlags, kClosingBit);
@@ -178,11 +178,11 @@ void ThreadsPostflight(void)
 
 /* ThreadDispose. STATE: MATCH 100%, exe 102 / obj 102, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00504287
-long ThreadDispose(ULong id)
+int32_t ThreadDispose(ULong id)
 {
     ThreadRec *rec;
     MutexNode *node;
-    long err;
+    int32_t err;
 
     rec = _ThreadRecordLookup(id);
     err = 0;
@@ -227,10 +227,10 @@ done:
 
 /* _ThreadRecordClose. STATE: MATCH 100%, exe 57 / obj 57, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005043a1
-long _ThreadRecordClose(void *thread)
+int32_t _ThreadRecordClose(void *thread)
 {
     ThreadRec *rec;
-    long err;
+    int32_t err;
 
     rec = thread;
     _ThreadRecordCurrent();
@@ -260,7 +260,7 @@ long _ThreadRecordClose(void *thread)
 unsigned char _ThreadIsAlive(void *thread)
 {
     ThreadRec *rec;
-    long err;
+    int32_t err;
     unsigned char alive;
 
     rec = thread;
@@ -287,7 +287,7 @@ unsigned char _ThreadIsAlive(void *thread)
 // FUNCTION: EVNOVA 0x00504481
 void _ThreadListMove(void *thread, ThreadRec **head, ThreadRec **pushTo)
 {
-    long err;
+    int32_t err;
     ThreadRec *rec;
     ThreadRec **link;
     ThreadRec *p;
@@ -324,10 +324,10 @@ typedef struct Mutex {
 
 /* CriticalCreate. STATE: MATCH 100%, exe 45 / obj 45, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005044ce
-long CriticalCreate(void *lock)
+int32_t CriticalCreate(void *lock)
 {
     Mutex *m;
-    long err;
+    int32_t err;
 
     m = lock;
     err = 0;
@@ -356,10 +356,10 @@ failed:
 
 /* CriticalDispose. STATE: MATCH 100%, exe 29 / obj 29, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050454f
-long CriticalDispose(void *lock)
+int32_t CriticalDispose(void *lock)
 {
     Mutex *m;
-    long err;
+    int32_t err;
 
     m = lock;
     err = 0;
@@ -380,13 +380,13 @@ long CriticalDispose(void *lock)
 void CriticalEnter(void *lock)
 {
     Mutex *m;
-    long err;
+    int32_t err;
 
     m = lock;
     err = 0;
     EnterCriticalSection(m->section);
     if (TlsSetValue(gCriticalIndex,
-                    (void *)((long)TlsGetValue(gCriticalIndex) + 1)) == 0)
+                    (void *)((int32_t)TlsGetValue(gCriticalIndex) + 1)) == 0)
         err = GetLastError();
 }
 
@@ -395,13 +395,13 @@ void CriticalEnter(void *lock)
 void CriticalLeave(void *lock)
 {
     Mutex *m;
-    long held;
-    long err;
+    int32_t held;
+    int32_t err;
 
     m = lock;
     err = 0;
     TlsGetValue(gCriticalIndex);
-    held = (long)TlsGetValue(gCriticalIndex);
+    held = (int32_t)TlsGetValue(gCriticalIndex);
     if (held != 0) {
         if (TlsSetValue(gCriticalIndex, (void *)(held - 1)) == 0)
             err = GetLastError();
@@ -413,7 +413,7 @@ void CriticalLeave(void *lock)
 // FUNCTION: EVNOVA 0x00504616
 unsigned char _ThreadCheckCritical(void)
 {
-    long err;
+    int32_t err;
     unsigned char result;
 
     err = 0;
@@ -425,9 +425,9 @@ unsigned char _ThreadCheckCritical(void)
 
 /* _ThreadRecordCreate. STATE: MATCH 100%, exe 89 / obj 89, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050463d
-long _ThreadRecordCreate(ULong stackSize)
+int32_t _ThreadRecordCreate(ULong stackSize)
 {
-    long err;
+    int32_t err;
     ThreadRec *rec;
     ThreadSlot *slots;
     ThreadSlot *old;
@@ -472,7 +472,7 @@ fail:
 // FUNCTION: EVNOVA 0x00504723
 void _ThreadRecordFree(ThreadRec *rec)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     MemoryClear(&gThreadList[rec->index], sizeof(ThreadSlot));
@@ -481,9 +481,9 @@ void _ThreadRecordFree(ThreadRec *rec)
 
 /* _ThreadRecordLookup. STATE: MATCH 100%, exe 18 / obj 18, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0050474c
-ThreadRec *_ThreadRecordLookup(long id)
+ThreadRec *_ThreadRecordLookup(int32_t id)
 {
-    long err;
+    int32_t err;
     ULong key;
     ULong index;
     ULong generation;
@@ -503,7 +503,7 @@ ThreadRec *_ThreadRecordLookup(long id)
 // FUNCTION: EVNOVA 0x00504781
 ULong _ThreadRecordGetId(ThreadRec *rec)
 {
-    long err;
+    int32_t err;
     ULong index;
     ULong id;
 
@@ -519,7 +519,7 @@ ULong _ThreadRecordGetId(ThreadRec *rec)
 // FUNCTION: EVNOVA 0x005047a6
 void *_ThreadRecordCurrent(void)
 {
-    long err;
+    int32_t err;
     void *result;
 
     err = 0;

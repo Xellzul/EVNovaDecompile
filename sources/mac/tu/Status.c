@@ -9,5 +9,5 @@
 #include "../../engine/statusparts.c"
 #include "../../engine/statusbar.c"
 #endif
-long lastJumpFlash;
-long lastJumpHilite;
+int32_t lastJumpFlash;
+int32_t lastJumpHilite;

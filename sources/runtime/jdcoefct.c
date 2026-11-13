@@ -571,10 +571,10 @@ jinit_d_coef_controller (j_decompress_ptr cinfo, boolean need_full_buffer)
 	access_rows *= 3;
       coef->whole_image[ci] = (*cinfo->mem->request_virt_barray)
 	((j_common_ptr) cinfo, JPOOL_IMAGE, TRUE,
-	 (JDIMENSION) jround_up((long) compptr->width_in_blocks,
-				(long) compptr->h_samp_factor),
-	 (JDIMENSION) jround_up((long) compptr->height_in_blocks,
-				(long) compptr->v_samp_factor),
+	 (JDIMENSION) jround_up((int32_t) compptr->width_in_blocks,
+				(int32_t) compptr->h_samp_factor),
+	 (JDIMENSION) jround_up((int32_t) compptr->height_in_blocks,
+				(int32_t) compptr->v_samp_factor),
 	 (JDIMENSION) access_rows);
     }
     coef->pub.consume_data = consume_data;

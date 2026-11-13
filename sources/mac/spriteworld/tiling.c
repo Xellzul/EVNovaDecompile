@@ -151,7 +151,7 @@ OSErr SWInitTilingCache(
         {
             for (row = 0; row < numTilingCacheRows; row++)
                 spriteWorldP->tilingCache[row] =
-                    &tilingCacheData[(unsigned long)row * numTilingCacheCols];
+                    &tilingCacheData[(uint32_t)row * numTilingCacheCols];
 
             for (row = 0; row < numTilingCacheRows; row++)
                 for (col = 0; col < numTilingCacheCols; col++)

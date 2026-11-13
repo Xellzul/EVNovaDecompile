@@ -16,7 +16,7 @@
 /* the one-shot text drawer: erase, position, draw wrapped, done */
 /* TETextBox. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004bcd30
-void TETextBox(const void *text, long length, Rect *box, short just)
+void TETextBox(const void *text, int32_t length, Rect *box, short just)
 {
     if (CurrentGrafPort == NULL)
         return;
@@ -60,7 +60,7 @@ void TECalText(TEHandle hTE)
 
 /* TESetText. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004bce40
-void TESetText(const void *text, long length, TEHandle hTE)
+void TESetText(const void *text, int32_t length, TEHandle hTE)
 {
     if ((*hTE)->text != NULL)
         DeallocAPointer((*hTE)->text);

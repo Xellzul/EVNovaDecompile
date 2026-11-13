@@ -12,18 +12,18 @@
 #if (UINT_MAX == 0xffffffffUL)
    typedef unsigned int u4;
 #else
-   typedef unsigned long u4;
+   typedef uint32_t u4;
 #endif
 
 #define REV(w) (((w)>>24)+(((w)>>8)&0xff00)+ \
                 (((w)&0xff00)<<8)+(((w)&0xff)<<24))
-   local unsigned long crc32_little OF((unsigned long,
+   local uint32_t crc32_little OF((uint32_t,
                         const unsigned char FAR *, unsigned));
-   local unsigned long crc32_big OF((unsigned long,
+   local uint32_t crc32_big OF((uint32_t,
                         const unsigned char FAR *, unsigned));
 #define TBLS 8
 
-local const unsigned long FAR crc_table[TBLS][256] = {  /* 0x0057d3f8 */
+local const uint32_t FAR crc_table[TBLS][256] = {  /* 0x0057d3f8 */
     {
         0x00000000UL, 0x77073096UL, 0xee0e612cUL, 0x990951baUL, 0x076dc419UL,
         0x706af48fUL, 0xe963a535UL, 0x9e6495a3UL, 0x0edb8832UL, 0x79dcb8a4UL,
@@ -459,9 +459,9 @@ local const unsigned long FAR crc_table[TBLS][256] = {  /* 0x0057d3f8 */
 };
 
 /* not linked: dead-stripped in the exe; kept for the TU's data */
-const unsigned long FAR * ZEXPORT get_crc_table(void)
+const uint32_t FAR * ZEXPORT get_crc_table(void)
 {
-  return (const unsigned long FAR *)crc_table;
+  return (const uint32_t FAR *)crc_table;
 }
 
 #define DO1 crc = crc_table[0][((int)crc ^ (*buf++)) & 0xff] ^ (crc >> 8)
@@ -469,8 +469,8 @@ const unsigned long FAR * ZEXPORT get_crc_table(void)
 
 /* crc32. STATE: MATCH 100%, exe 27 / obj 27, byte-identical. OPEN: none. */
 // FUNCTION: EVNOVA 0x0052d4c8
-unsigned long ZEXPORT crc32(crc, buf, len)
-    unsigned long crc;
+uint32_t ZEXPORT crc32(crc, buf, len)
+    uint32_t crc;
     const unsigned char FAR *buf;
     unsigned len;
 {
@@ -503,8 +503,8 @@ unsigned long ZEXPORT crc32(crc, buf, len)
 
 /* crc32_little. STATE: MATCH 100%, exe 187 / obj 187, byte-identical. OPEN: none. */
 // FUNCTION: EVNOVA 0x0052d1f8
-local unsigned long crc32_little(crc, buf, len)
-    unsigned long crc;
+local uint32_t crc32_little(crc, buf, len)
+    uint32_t crc;
     const unsigned char FAR *buf;
     unsigned len;
 {
@@ -533,7 +533,7 @@ local unsigned long crc32_little(crc, buf, len)
         c = crc_table[0][(c ^ *buf++) & 0xff] ^ (c >> 8);
     } while (--len);
     c = ~c;
-    return (unsigned long)c;
+    return (uint32_t)c;
 }
 
 #define DOBIG4 c ^= *++buf4; \
@@ -543,8 +543,8 @@ local unsigned long crc32_little(crc, buf, len)
 
 /* crc32_big. STATE: MATCH 100%, exe 222 / obj 222, byte-identical. OPEN: none. */
 // FUNCTION: EVNOVA 0x0052cec0
-local unsigned long crc32_big(crc, buf, len)
-    unsigned long crc;
+local uint32_t crc32_big(crc, buf, len)
+    uint32_t crc;
     const unsigned char FAR *buf;
     unsigned len;
 {
@@ -575,5 +575,5 @@ local unsigned long crc32_big(crc, buf, len)
         c = crc_table[4][(c >> 24) ^ *buf++] ^ (c << 8);
     } while (--len);
     c = ~c;
-    return (unsigned long)(REV(c));
+    return (uint32_t)(REV(c));
 }

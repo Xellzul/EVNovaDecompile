@@ -241,10 +241,10 @@ Boolean DoNewPilotNameDialog(Boolean *strictPlay)
 Boolean DoNewPilotNameDialog(char *strictPlay)
 {
     short resID;
-    unsigned long resType;
+    uint32_t resType;
     Str255 name;
-    long selected;
-    long idx;
+    int32_t selected;
+    int32_t idx;
     short itemHit;
     Boolean result;
     Boolean done;
@@ -270,7 +270,7 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
             res = GetIndResource(kCharType, (i + 1));
             if (res != NULL) {
                 GetResInfo(res, &resID, &resType, savedName);
-                if ((long)savedName[1] != '.')
+                if ((int32_t)savedName[1] != '.')
                     count++;
                 ReleaseResource(res);
             }
@@ -319,7 +319,7 @@ Boolean DoNewPilotNameDialog(char *strictPlay)
                 res = GetIndResource(kCharType, (i + 1));
                 if (res != NULL) {
                     GetResInfo(res, &resID, &resType, name);
-                    if ((long)name[1] != '.') {
+                    if ((int32_t)name[1] != '.') {
                         idx++;
                         PtoCstr(name);
                         if (strcmp((char *)name, (char *)savedName) == 0) {

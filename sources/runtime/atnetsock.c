@@ -35,8 +35,8 @@ unsigned char (*gReggiePrejoinProc)(NetSocket *s, const NetAddress *local,
 unsigned char (*gReggiePacketProc)(NetSocket *s, const char *data, ULong length,
                                const NetAddress *from) = 0;
 unsigned char (*gReggieSharedProc)(NetSocket *s) = 0;
-long (*gNT_MatchedProc)(NetSocket *s, const NetAddress *peer) = 0;
-long (*gNT_InvitedProc)(NetSocket *s, const NetAddress *peer) = 0;
+int32_t (*gNT_MatchedProc)(NetSocket *s, const NetAddress *peer) = 0;
+int32_t (*gNT_InvitedProc)(NetSocket *s, const NetAddress *peer) = 0;
 #else
 NetSocket *gResolverList;                        /* 0x008707c8 */
 NetSocket *gDatagramList;                        /* 0x008705dc */
@@ -49,7 +49,7 @@ NetSocket *gStreamList;                          /* 0x008700c0 */
 // FUNCTION: EVNOVA 0x00528db4
 void NetworkMakeCallback(NetProc proc, void *ref, NetSocket *s, unsigned short event)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (proc == kNetProcBits)
@@ -68,20 +68,20 @@ void NetworkMakeCallback(NetProc proc, void *ref, NetSocket *s, unsigned short e
 
 typedef struct NetNode {
     MutexNode link;
-    long unk8[3];
+    int32_t unk8[3];
     ULong size;
 } NetNode;
 
-#define CLEAR_NODE(n) (memset((n), 0, 4 * sizeof(long)), (n)->unk8[2] = 0)
+#define CLEAR_NODE(n) (memset((n), 0, 4 * sizeof(int32_t)), (n)->unk8[2] = 0)
 
 /* NetworkQueueFill (put count new nodes of one kind on a free list). STATE: MATCH 100%, exe
    100 / obj 100, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00528ded
-long NetworkQueueFill(MutexList *list, unsigned short kind, ULong count, ULong size)
+int32_t NetworkQueueFill(MutexList *list, unsigned short kind, ULong count, ULong size)
 {
     ULong bytes;
     ULong type;
-    long err;
+    int32_t err;
     NetNode *node;
 
     err = 0;
@@ -135,7 +135,7 @@ done:
 // FUNCTION: EVNOVA 0x00528ed4
 void NetworkQueueEmpty(MutexList *list)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     QueueEmpty(list);
@@ -146,7 +146,7 @@ void NetworkQueueEmpty(MutexList *list)
 // FUNCTION: EVNOVA 0x00528ee3
 MutexNode *NetworkQueuePoll(MutexList *list)
 {
-    long err;
+    int32_t err;
     MutexNode *result;
 
     err = 0;
@@ -164,7 +164,7 @@ MutexNode *NetworkQueuePoll(MutexList *list)
 // FUNCTION: EVNOVA 0x00528ef6
 MutexNode *NetworkQueueWait(MutexList *list, ULong seconds)
 {
-    long err;
+    int32_t err;
     MutexNode *node;
     ULongLong now;
     ULongLong deadline;
@@ -201,7 +201,7 @@ void _EndpointTickleAll(void)
 {
     NetSocket **link;
     NetSocket *s;
-    long err;
+    int32_t err;
 
     err = 0;
     link = 0;
@@ -232,7 +232,7 @@ void _EndpointTickleAll(void)
 void _EndpointDisposeAll(void)
 {
     NetSocket *s;
-    long err;
+    int32_t err;
 
     err = 0;
     s = 0;
@@ -257,7 +257,7 @@ void _EndpointRegister(NetSocket *s, unsigned short kind)
 {
     char token[16];
     NetSocket **head;
-    long err;
+    int32_t err;
 
     err = 0;
     head = 0;
@@ -285,7 +285,7 @@ void _EndpointUnregister(NetSocket *s, unsigned short kind)
 {
     char token[16];
     NetSocket **link;
-    long err;
+    int32_t err;
 
     err = 0;
     link = 0;

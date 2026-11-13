@@ -43,7 +43,7 @@
 #ifdef MACBUILD
 void ShowIntroScreen(void)
 {
-    long startTick;
+    int32_t startTick;
     short i;
     Boolean pictSkipped;
     Boolean hit;
@@ -209,7 +209,7 @@ void ShowIntroScreen(void)
     void *snd;
     Rect rect;
     Point pt;
-    unsigned long startTick;
+    uint32_t startTick;
 
     HandleIntroMusic(1);
     FadeScreenOut();

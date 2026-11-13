@@ -94,14 +94,14 @@ typedef struct {
   float *noiseoffset;
 
   float *ath;
-  long  *octave;
-  long  *bark;
+  int32_t  *octave;
+  int32_t  *bark;
 
-  long  firstoc;
-  long  shiftoc;
+  int32_t  firstoc;
+  int32_t  shiftoc;
   int   eighth_octave_lines;
   int   total_octave_lines;
-  long  rate;
+  int32_t  rate;
 } vorbis_look_psy;
 
 #ifdef __cplusplus
@@ -109,7 +109,7 @@ extern "C" {
 #endif
 
 extern void   _vp_psy_init(vorbis_look_psy *p,vorbis_info_psy *vi,
-			   vorbis_info_psy_global *gi,int n,long rate);
+			   vorbis_info_psy_global *gi,int n,int32_t rate);
 extern void   _vp_psy_clear(vorbis_look_psy *p);
 extern void  *_vi_psy_dup(void *source);
 

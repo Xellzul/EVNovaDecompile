@@ -121,13 +121,13 @@ void RegisterHelpBook(void)
     }
 }
 
-static pascal OSErr openApplicationAEHandler(const AppleEvent *event, AppleEvent *reply, long refcon);
-static pascal OSErr quitApplicationAEHandler(const AppleEvent *event, AppleEvent *reply, long refcon);
+static pascal OSErr openApplicationAEHandler(const AppleEvent *event, AppleEvent *reply, int32_t refcon);
+static pascal OSErr quitApplicationAEHandler(const AppleEvent *event, AppleEvent *reply, int32_t refcon);
 static pascal OSStatus AppEventHandler(EventHandlerCallRef nextHandler, EventRef event, void *userData);
 
 /* openApplicationAEHandler (mac _openApplicationAEHandler, mac-only). STATE: see the mac gate. */
 // MAC: _openApplicationAEHandler i386 0x000cc643 ppc 0x000d825c
-static pascal OSErr openApplicationAEHandler(const AppleEvent *event, AppleEvent *reply, long refcon)
+static pascal OSErr openApplicationAEHandler(const AppleEvent *event, AppleEvent *reply, int32_t refcon)
 {
     DescType actualType;
     Size actualSize;
@@ -240,7 +240,7 @@ OSErr HandleQuitEvent(void)
 
 /* quitApplicationAEHandler (mac _quitApplicationAEHandler, mac-only). STATE: see the mac gate. */
 // MAC: _quitApplicationAEHandler i386 0x000cca24 ppc 0x000d8698
-static pascal OSErr quitApplicationAEHandler(const AppleEvent *event, AppleEvent *reply, long refcon)
+static pascal OSErr quitApplicationAEHandler(const AppleEvent *event, AppleEvent *reply, int32_t refcon)
 {
     DescType actualType;
     Size actualSize;

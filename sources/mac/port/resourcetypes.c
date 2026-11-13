@@ -577,7 +577,7 @@ static OSStatus FlipMprf(OSType dataDomain, OSType dataType, SInt16 id, void *da
 // MAC: _FlipCsum i386 0x000a5dfb ppc -
 static OSStatus FlipCsum(OSType dataDomain, OSType dataType, SInt16 id, void *dataPtr, ByteCount dataSize, Boolean currentlyNative, void *refcon)
 {
-    long csum = Endian32_Swap(*(long *)dataPtr);
+    int32_t csum = Endian32_Swap(*(int32_t *)dataPtr);
 
     return noErr;
 }
@@ -1164,7 +1164,7 @@ static void RGBColorSwap(RGBColor *color)
 /* FlipNpil (mac _FlipNpil, mac-only). STATE: MATCH on both slices (pilotfile.h carries unk59 as
    long[2] and flags2 unsigned on MACBUILD, priceFlux[2][2] everywhere). OPEN: none */
 // MAC: _FlipNpil i386 0x000a6b27 ppc 0x000b1110
-OSStatus FlipNpil(short resID, void *data, long size, Boolean toDisk)
+OSStatus FlipNpil(short resID, void *data, int32_t size, Boolean toDisk)
 {
     PilotRec *player = data;
     PilotRec2 *galaxy = data;

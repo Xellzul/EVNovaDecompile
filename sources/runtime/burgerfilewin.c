@@ -146,7 +146,7 @@ Word DeleteAFileNative(const char *name)
 }
 
 /* BurgerLib's DirCreate, inlined twice below: 0 when the directory is there afterwards. */
-static long DirCreate(const char *path)
+static int32_t DirCreate(const char *path)
 {
     SECURITY_ATTRIBUTES sa;
 
@@ -162,11 +162,11 @@ static long DirCreate(const char *path)
 /* CreateDirectoryPathNative (BurgerLib CreateDirectoryPathNative). STATE: MATCH 100%, exe 96 / obj 96
    instrs, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004d9530
-long CreateDirectoryPathNative(char *path)
+int32_t CreateDirectoryPathNative(char *path)
 {
     char *p;
     unsigned char saved;
-    long failed;
+    int32_t failed;
 
     if (DirCreate(path) == 0)
         return 0;
@@ -310,8 +310,8 @@ char *GetAVolumeName(Word driveNum)
 // FUNCTION: EVNOVA 0x004d9920
 ULong fgetfilesize(FILE *fp)
 {
-    long here;
-    long length;
+    int32_t here;
+    int32_t length;
 
     here = ftell(fp);
     fseek(fp, 0, SEEK_END);

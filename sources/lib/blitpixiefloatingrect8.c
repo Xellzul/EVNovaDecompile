@@ -12,13 +12,13 @@
 // MAC: _BlitPixieFloatingRect8 i386 0x000be5a8 ppc 0x000c9f6c
 void BlitPixieFloatingRect8(unsigned char *srcPixels, unsigned char *dstPixels,
 #ifdef MACBUILD
-        unsigned long srcRowBytes, unsigned long dstRowBytes, unsigned short byteWidth,
+        uint32_t srcRowBytes, uint32_t dstRowBytes, unsigned short byteWidth,
 #else
-        long srcRowBytes, long dstRowBytes, unsigned short byteWidth,
+        int32_t srcRowBytes, int32_t dstRowBytes, unsigned short byteWidth,
 #endif
         unsigned short numRows, unsigned short backgroundValue)
 {
-    long unused;
+    int32_t unused;
 
     while (numRows--) {
         BlitPixieTranslucentClearCopy8(dstPixels, srcPixels, byteWidth,

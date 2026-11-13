@@ -27,13 +27,13 @@ void InvertRect(Rect *r)
     short left;
     short portTop;
     short right;
-    long width;
-    long height;
-    long rowBytes;
-    long pixelSize;
+    int32_t width;
+    int32_t height;
+    int32_t rowBytes;
+    int32_t pixelSize;
     unsigned char *p;
-    unsigned long bytes;
-    unsigned long pixels;
+    uint32_t bytes;
+    uint32_t pixels;
 
     if (CurrentGrafPort == NULL || r == NULL)
         return;
@@ -74,7 +74,7 @@ void InvertRect(Rect *r)
                 bytes = width;
                 if (bytes > 3) {
                     do {
-                        *(unsigned long *)p = ~*(unsigned long *)p;
+                        *(uint32_t *)p = ~*(uint32_t *)p;
                         p += 4;
                         bytes -= 4;
                     } while (bytes > 3);
@@ -98,7 +98,7 @@ void InvertRect(Rect *r)
                 pixels = width;
                 if (pixels > 1) {
                     do {
-                        *(unsigned long *)p = ~*(unsigned long *)p & 0x7fff7fff;
+                        *(uint32_t *)p = ~*(uint32_t *)p & 0x7fff7fff;
                         p += 4;
                         pixels -= 2;
                     } while (pixels > 1);
@@ -132,10 +132,10 @@ void EraseRect(Rect *r)
 // FUNCTION: EVNOVA 0x004b6ef0
 void FrameRect(const Rect *r)
 {
-    long width;
-    long height;
+    int32_t width;
+    int32_t height;
     int rowBytes;
-    long pixelSize;
+    int32_t pixelSize;
     short portTop;
     short portLeft;
     short portBottom;
@@ -148,11 +148,11 @@ void FrameRect(const Rect *r)
     unsigned char rb;
     unsigned char gb;
     unsigned char bb;
-    unsigned long pixel;
-    long n;
+    uint32_t pixel;
+    int32_t n;
     RGBColor *fg;
-    long colStep;
-    long rowStep;
+    int32_t colStep;
+    int32_t rowStep;
 
     if (CurrentGrafPort == NULL)
         return;
@@ -203,7 +203,7 @@ void FrameRect(const Rect *r)
         n = width;
         if (n > 1) {
             do {
-                *(unsigned long *)p = pixel;
+                *(uint32_t *)p = pixel;
                 p += 4;
                 n -= 2;
             } while (n > 1);
@@ -232,7 +232,7 @@ void FrameRect(const Rect *r)
         n = width;
         if (n > 1) {
             do {
-                *(unsigned long *)p = pixel;
+                *(uint32_t *)p = pixel;
                 p += 4;
                 n -= 2;
             } while (n > 1);

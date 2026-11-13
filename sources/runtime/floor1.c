@@ -30,25 +30,25 @@ typedef struct vorbis_look_floor{
   int quant_q;
   vorbis_info_floor1 *vi;
 
-  long phrasebits;
-  long postbits;
-  long frames;
+  int32_t phrasebits;
+  int32_t postbits;
+  int32_t frames;
 } vorbis_look_floor1;
 
 typedef struct lsfit_acc{
-  long x0;
-  long x1;
+  int32_t x0;
+  int32_t x1;
 
-  long xa;
-  long ya;
-  long x2a;
-  long y2a;
-  long xya;
-  long n;
-  long an;
-  long un;
-  long edgey0;
-  long edgey1;
+  int32_t xa;
+  int32_t ya;
+  int32_t x2a;
+  int32_t y2a;
+  int32_t xya;
+  int32_t n;
+  int32_t an;
+  int32_t un;
+  int32_t edgey0;
+  int32_t edgey1;
 } lsfit_acc;
 
 /* floor1_copy_info. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
@@ -413,10 +413,10 @@ static void render_line0(int x0,int x1,int y0,int y1,float *d){
 static int accumulate_fit(const float *flr,const float *mdct,
 			  int x0, int x1,lsfit_acc *a,
 			  int n,vorbis_info_floor1 *info){
-  long i;
+  int32_t i;
   int quantized=vorbis_dBquant(flr+x0);
 
-  long xa=0,ya=0,x2a=0,y2a=0,xya=0,na=0, xb=0,yb=0,x2b=0,y2b=0,xyb=0,nb=0;
+  int32_t xa=0,ya=0,x2a=0,y2a=0,xya=0,na=0, xb=0,yb=0,x2b=0,y2b=0,xyb=0,nb=0;
 
   FastMemSet(a,0,sizeof(*a));
   a->x0=x0;
@@ -482,9 +482,9 @@ static int accumulate_fit(const float *flr,const float *mdct,
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00554250
 static int fit_line(lsfit_acc *a,int fits,int *y0,int *y1){
-  long x=0,y=0,x2=0,y2=0,xy=0,n=0,an=0,i;
-  long x0=a[0].x0;
-  long x1=a[fits-1].x1;
+  int32_t x=0,y=0,x2=0,y2=0,xy=0,n=0,an=0,i;
+  int32_t x0=a[0].x0;
+  int32_t x1=a[fits-1].x1;
 
   for(i=0;i<fits;i++){
     if(a[i].un){
@@ -613,12 +613,12 @@ static int floor1_forward(vorbis_block *vb,vorbis_look_floor *in,
 			  const float *logmask, const float *logmax,
 			  float *codedflr){
   static int seq=0;
-  long i,j,k,l;
+  int32_t i,j,k,l;
   vorbis_look_floor1 *look=(vorbis_look_floor1 *)in;
   vorbis_info_floor1 *info=look->vi;
-  long n=info->n;
-  long posts=look->posts;
-  long nonzero=0;
+  int32_t n=info->n;
+  int32_t posts=look->posts;
+  int32_t nonzero=0;
   lsfit_acc fits[VIF_POSIT+1];
   int fit_valueA[VIF_POSIT+2];
   int fit_valueB[VIF_POSIT+2];

@@ -13,7 +13,7 @@ extern char *P2CStringCopy(char *cstr, const unsigned char *pstr);
 extern struct HashTable *HashCreate(ULong flags);
 extern void HashDispose(void *ref);
 extern char *HashLookup(void *reply, const char *key, void *after);
-extern long HashAppend(struct HashTable *t, const char *key, const char *value);
+extern int32_t HashAppend(struct HashTable *t, const char *key, const char *value);
 
 static inline OSType GetProcessCreator(void)
 {
@@ -39,9 +39,9 @@ done:
 }
 
 // MAC: _GetHTTPSProxy i386 0x000d738b ppc 0x000e1e70
-long GetHTTPSProxy(char *host, char *user, char *password)
+int32_t GetHTTPSProxy(char *host, char *user, char *password)
 {
-    long err = 0;
+    int32_t err = 0;
     Boolean wantLogin;
     int enabled = 0;
     int port = 0;
@@ -125,14 +125,14 @@ done:
 }
 
 // MAC: _GetSOCKSServer i386 0x000d79c6 ppc 0x000e2408
-long GetSOCKSServer(char *host, char *user, char *password)
+int32_t GetSOCKSServer(char *host, char *user, char *password)
 {
     ICInstance ic = 0;
-    long err = 0;
+    int32_t err = 0;
     Boolean wantLogin;
     ICAttr attr;
     Str255 key;
-    long size;
+    int32_t size;
     Str255 hostName;
     Boolean useSocks;
 
@@ -208,14 +208,14 @@ done:
 }
 
 // MAC: _GetHTTPProxy i386 0x000d7d64 ppc 0x000e277c
-long GetHTTPProxy(char *host, char *user, char *password)
+int32_t GetHTTPProxy(char *host, char *user, char *password)
 {
     ICInstance ic = 0;
-    long err = 0;
+    int32_t err = 0;
     Boolean wantLogin;
     ICAttr attr;
     Str255 key;
-    long size;
+    int32_t size;
     Str255 hostName;
     Boolean useProxy;
 
@@ -296,8 +296,8 @@ struct HashTable *GetNoProxyList(Boolean *flag)
     ICInstance ic = 0;
     Handle prefs;
     struct HashTable *list;
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
     ICAttr attr;
     Str255 key;
     char name[256];

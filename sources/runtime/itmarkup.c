@@ -40,9 +40,9 @@ typedef struct ITParser {
 
 /* one parse error as appended to the error handle */
 typedef struct ITParseError {
-    long unk00;
-    long unk04;
-    long unk08;
+    int32_t unk00;
+    int32_t unk04;
+    int32_t unk08;
     ULong offset;
     ULong length;
     ULong line;
@@ -93,31 +93,31 @@ AT_STATIC unsigned char kCharClass[256] = {
     0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0
 };
 extern unsigned char IndirectIsNormalizedUnicode(void **handle);                        /* atcharset.c */
-extern long IndirectRemoveUnicodeTag(void **handle);                                 /* atcharset.c */
+extern int32_t IndirectRemoveUnicodeTag(void **handle);                                 /* atcharset.c */
 extern unsigned short *UnicodeDuplicate(const unsigned short *s);            /* atcharset.c */
-extern long UnicodeCompareSafe(const unsigned short *a, const unsigned short *b, ULong max);
+extern int32_t UnicodeCompareSafe(const unsigned short *a, const unsigned short *b, ULong max);
 extern const unsigned short *UnicodeAdvanceCount(const unsigned short *s, ULong count);
-AT_STATIC long _PT_ParseTreeLoadTag(ITParser *parser, void **errors, const char *start, const char *end,
+AT_STATIC int32_t _PT_ParseTreeLoadTag(ITParser *parser, void **errors, const char *start, const char *end,
                   char opener, unsigned char *raw);
 AT_STATIC const char *_PT_ParseFindDelim(ITParser *parser, const char *start, const char *end, char close);
 AT_STATIC unsigned char IT_SkipSlash(ITParser *parser, const char **cursor, const char *end);
-AT_STATIC long _PT_ParseTreeLoadText(ITParser *parser, void **errors, const char *start, const char *end);
-AT_STATIC long IT_ParseCommentNode(ITParser *parser, void **errors, const char *start, const char *end);
-AT_STATIC long IT_ParseSpecialNode(ITParser *parser, void **errors, const char *start, const char *end);
+AT_STATIC int32_t _PT_ParseTreeLoadText(ITParser *parser, void **errors, const char *start, const char *end);
+AT_STATIC int32_t IT_ParseCommentNode(ITParser *parser, void **errors, const char *start, const char *end);
+AT_STATIC int32_t IT_ParseSpecialNode(ITParser *parser, void **errors, const char *start, const char *end);
 AT_STATIC ULong _PT_ParseAdvance(const unsigned char *s, ULong *ch, ULong *code);
-AT_STATIC long _PT_ParseHashAppend(struct HashTable *table, const void *key, ULong keyLength, const void *value,
+AT_STATIC int32_t _PT_ParseHashAppend(struct HashTable *table, const void *key, ULong keyLength, const void *value,
                   ULong valueLength);
 
 extern ULong UnicodeGetCharCount(const unsigned short *s);                      /* atcharset.c */
 extern unsigned char UnicodeAdvancePtr(const unsigned short **cursor, ULong *code);  /* atcharset.c */
 AT_STATIC void _PT_ParseTreeLoad(ITParser *parser, ITElement *node, void **errors, unsigned char open,
                   unsigned char close);
-long PT_ParseDecode(void **text, unsigned char wide, unsigned char escapes);
-AT_STATIC long _PT_ParseError(void **text, void **errors, long unk00, long unk04, long unk08, ULong offset,
+int32_t PT_ParseDecode(void **text, unsigned char wide, unsigned char escapes);
+AT_STATIC int32_t _PT_ParseError(void **text, void **errors, int32_t unk00, int32_t unk04, int32_t unk08, ULong offset,
                   ULong length, const char *file, const char *format, const void *argument,
                   unsigned char wide);
-ITElement *PT_ParseTreeCreate(long tag, const char *text, ULong length);
-ITElement *PT_ParseTreeCreateUnicode(long tag, const unsigned short *text, ULong count);
+ITElement *PT_ParseTreeCreate(int32_t tag, const char *text, ULong length);
+ITElement *PT_ParseTreeCreateUnicode(int32_t tag, const unsigned short *text, ULong count);
 
 AT_STATIC ULong _PT_ParseTreeRenumber(ITElement *e, ULong n);
 
@@ -126,10 +126,10 @@ AT_STATIC ULong _PT_ParseTreeRenumber(ITElement *e, ULong n);
    NULL when out of memory). STATE: MATCH 100.0%, exe 145 / obj 145, byte-identical yes. OPEN:
    the seventh argument is never read */
 // FUNCTION: EVNOVA 0x0052489d
-ITElement *_PT_ParseTreeInsert(ITElement *root, ITElement *where, unsigned char before, long tag,
+ITElement *_PT_ParseTreeInsert(ITElement *root, ITElement *where, unsigned char before, int32_t tag,
                         const void *text, ULong length, ULong unused, unsigned char wide)
 {
-    long err;
+    int32_t err;
     ITElement *node;
     ULong size;
     const unsigned short *wtext;
@@ -218,7 +218,7 @@ done:
 /* PT_ParseTreeCreate (a new detached node from a C string). STATE: MATCH 100%, exe 12 / obj 12, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00524a2b
-ITElement *PT_ParseTreeCreate(long tag, const char *text, ULong length)
+ITElement *PT_ParseTreeCreate(int32_t tag, const char *text, ULong length)
 {
     return _PT_ParseTreeInsert(0, 0, 1, tag, text, length, length, 0);
 }
@@ -226,7 +226,7 @@ ITElement *PT_ParseTreeCreate(long tag, const char *text, ULong length)
 /* PT_ParseTreeCreateUnicode (a new detached node from UTF-16 text, `count' characters). STATE:
    MATCH 100%, exe 20 / obj 20, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00524a4a
-ITElement *PT_ParseTreeCreateUnicode(long tag, const unsigned short *text, ULong count)
+ITElement *PT_ParseTreeCreateUnicode(int32_t tag, const unsigned short *text, ULong count)
 {
     return _PT_ParseTreeInsert(0, 0, 1, tag, text, UnicodeGetByteCountFromChars(text, count), count, 1);
 }
@@ -271,7 +271,7 @@ ITElement *PT_ParseTreeGetParent(ITElement *root, ITElement *node)
     ITElement *e;
     ITElement *next;
     ITElement *parent;
-    long err;
+    int32_t err;
 
     err = 0;
     e = 0;
@@ -302,7 +302,7 @@ ITElement *PT_ParseTreeGetNext(ITElement *root, ITElement *node)
 #ifdef MAC1010 /* 1.0.10 spelling */
     ITElement *next;
 #endif
-    long err;
+    int32_t err;
 
     err = 0;
     e = 0;
@@ -334,7 +334,7 @@ ITElement *PT_ParseTreeRemove(ITElement *root, ITElement *node, unsigned char di
 {
     ITElement *parent;
     ITElement **link;
-    long err;
+    int32_t err;
 
     err = 0;
     parent = PT_ParseTreeGetParent(root, node);
@@ -366,11 +366,11 @@ ITElement *PT_ParseTreeRemove(ITElement *root, ITElement *node, unsigned char di
    closed; an empty text gives a lone text node). STATE: MATCH 100%, exe 710 / obj 710,
    byte-identical yes (2446 bytes). OPEN: none; notes/itmarkup.md */
 // FUNCTION: EVNOVA 0x00524bc7
-long PT_ParseTreeLoad(void **text, const char *rawTags, const char *emptyTags, void **errors,
+int32_t PT_ParseTreeLoad(void **text, const char *rawTags, const char *emptyTags, void **errors,
                   ITElement **out)
 {
-    long err;
-    long r;
+    int32_t err;
+    int32_t r;
     const char *base;
     unsigned char converted;
     unsigned char wide;
@@ -754,7 +754,7 @@ done:
 void PT_ParseTreeDispose(ITElement *e)
 {
     ITElement **link;
-    long err;
+    int32_t err;
     ITElement *cur;
 
     err = 0;
@@ -800,7 +800,7 @@ void PT_ParseTreeDispose(ITElement *e)
 // FUNCTION: EVNOVA 0x005255cd
 AT_STATIC ULong _PT_ParseTreeRenumber(ITElement *e, ULong n)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     for (; e != 0; e = e->next) {
@@ -816,11 +816,11 @@ AT_STATIC ULong _PT_ParseTreeRenumber(ITElement *e, ULong n)
    character, which becomes its tag; `raw' set for a tag whose content is not markup).
    STATE: MATCH 100%, exe 779 / obj 779, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005255f8
-AT_STATIC long _PT_ParseTreeLoadTag(ITParser *parser, void **errors, const char *start, const char *end,
+AT_STATIC int32_t _PT_ParseTreeLoadTag(ITParser *parser, void **errors, const char *start, const char *end,
                   char opener, unsigned char *raw)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char wide;
     const char *here;
     const char *p;
@@ -1153,11 +1153,11 @@ done:
    first (0x00526abd), its source offset kept, inserted by 0x0052624b). STATE: MATCH 100%, exe 95
    / obj 95, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00526076
-AT_STATIC long _PT_ParseTreeLoadText(ITParser *parser, void **errors, const char *start, const char *end)
+AT_STATIC int32_t _PT_ParseTreeLoadText(ITParser *parser, void **errors, const char *start, const char *end)
 {
-    long err;
+    int32_t err;
     ITElement *node;
-    long e;
+    int32_t e;
     void **text;
 
     err = 0;
@@ -1202,9 +1202,9 @@ done:
    offset kept, inserted by 0x0052624b). STATE: MATCH 100%, exe 56 / obj 56, byte-identical
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052614f
-AT_STATIC long IT_ParseCommentNode(ITParser *parser, void **errors, const char *start, const char *end)
+AT_STATIC int32_t IT_ParseCommentNode(ITParser *parser, void **errors, const char *start, const char *end)
 {
-    long err;
+    int32_t err;
     ITElement *node;
 
     err = 0;
@@ -1235,9 +1235,9 @@ done:
 /* IT_ParseSpecialNode (the same for a tag -3 node). STATE: MATCH 100%, exe 56 / obj 56,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005261cd
-AT_STATIC long IT_ParseSpecialNode(ITParser *parser, void **errors, const char *start, const char *end)
+AT_STATIC int32_t IT_ParseSpecialNode(ITParser *parser, void **errors, const char *start, const char *end)
 {
-    long err;
+    int32_t err;
     ITElement *node;
 
     err = 0;
@@ -1275,9 +1275,9 @@ done:
 AT_STATIC void _PT_ParseTreeLoad(ITParser *parser, ITElement *node, void **errors, unsigned char open,
                   unsigned char close)
 {
-    long err;
+    int32_t err;
     ITElement *e;
-    long result;
+    int32_t result;
 
     err = 0;
     e = 0;
@@ -1372,7 +1372,7 @@ AT_STATIC const char *_PT_ParseFindDelim(ITParser *parser, const char *start, co
 {
     const char *here;
     unsigned char wide;
-    long err;
+    int32_t err;
     unsigned char odd;
     char c;
     const char *p;
@@ -1465,7 +1465,7 @@ AT_STATIC unsigned char IT_SkipSlash(ITParser *parser, const char **cursor, cons
     ULong n;
     ULong ch;
     ULong code;
-    long err;
+    int32_t err;
 
     err = 0;
     slash = 0;
@@ -1494,11 +1494,11 @@ AT_STATIC unsigned char IT_SkipSlash(ITParser *parser, const char **cursor, cons
 /* _PT_ParseHashAppend (set an attribute from a counted name: copied NUL-terminated, as UTF-16 for a
    wide table). STATE: MATCH 100%, exe 81 / obj 81, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00526725
-AT_STATIC long _PT_ParseHashAppend(struct HashTable *table, const void *key, ULong keyLength, const void *value,
+AT_STATIC int32_t _PT_ParseHashAppend(struct HashTable *table, const void *key, ULong keyLength, const void *value,
                   ULong valueLength)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     char *name;
     unsigned short *wideName;
     ULong size;
@@ -1568,10 +1568,10 @@ static char kHexDigits[] = "0123456789ABCDEF";
 /* Escapes a handle's text in place, for a URL or for HTML. */
 /* PT_ParseEncode. STATE: MATCH 100%, exe 178 / obj 178, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052682e
-long PT_ParseEncode(void **h, unsigned char wide, unsigned char url,
+int32_t PT_ParseEncode(void **h, unsigned char wide, unsigned char url,
                   unsigned char spaces, unsigned char quotes)
 {
-    long err = 0;
+    int32_t err = 0;
     unsigned char digits;
     ULong mask;
     ULong size;
@@ -1581,7 +1581,7 @@ long PT_ParseEncode(void **h, unsigned char wide, unsigned char url,
     char text[kEscapeSize];
     unsigned short wideText[kEscapeSize];
     ULong code;
-    long e;
+    int32_t e;
     const void *out;
     ULong length;
     const unsigned char *start;
@@ -1678,11 +1678,11 @@ static unsigned char sMarkupPad[24];           /* 0x0086bdc0 */
    their digit counter is never advanced, as in the exe). STATE: MATCH 100%, exe 304 / obj 304,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00526abd
-long PT_ParseDecode(void **text, unsigned char wide, unsigned char escapes)
+int32_t PT_ParseDecode(void **text, unsigned char wide, unsigned char escapes)
 {
-    long err;
+    int32_t err;
     const void *entity;
-    long e;
+    int32_t e;
     ULong size;
     ULong pos;
     ULong n;
@@ -1801,15 +1801,15 @@ long PT_ParseDecode(void **text, unsigned char wide, unsigned char escapes)
    the file name and the message FORMAT). STATE: MATCH 100%, exe 213 / obj 213, byte-identical
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00526eac
-AT_STATIC long _PT_ParseError(void **text, void **errors, long unk00, long unk04, long unk08, ULong offset,
+AT_STATIC int32_t _PT_ParseError(void **text, void **errors, int32_t unk00, int32_t unk04, int32_t unk08, ULong offset,
                   ULong length, const char *file, const char *format, const void *argument,
                   unsigned char wide)
 {
     static ITString noArgument;
     static ITString noMessage;
-    long err;
-    long e;
-    long result;
+    int32_t err;
+    int32_t e;
+    int32_t result;
     ULong lineStart;
     ULong lineLength;
     ULong line;

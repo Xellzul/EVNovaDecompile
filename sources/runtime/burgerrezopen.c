@@ -108,7 +108,7 @@ Word ResourceFindName(RezFile *Input, const char *name, RezName **Result)
 /* RezGroupNew (BurgerLib RezGroupNew). STATE: MATCH 100.0%, exe 211 / obj 211,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00500910
-RezGroup **RezGroupNew(ULong *in, RezHeader *header, long flags, ULong base)
+RezGroup **RezGroupNew(ULong *in, RezHeader *header, int32_t flags, ULong base)
 {
     Word count;
     void *h;
@@ -322,13 +322,13 @@ void ResourceHashNames(RezFile *rez)
 /* ResourceInit (BurgerLib ResourceInit). STATE: MATCH 100%, exe 137 / obj 137 instrs,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00500d80
-long ResourceInit(RezFile *rez, const char *path, ULong start)
+int32_t ResourceInit(RezFile *rez, const char *path, ULong start)
 {
     RezHeader header;
     FILE *file;
     ULong *table;
     RezGroup **groups;
-    long flags;
+    int32_t flags;
 
     if (rez != 0) {
         FastMemSet(rez, 0, kRezStateSize);
@@ -391,8 +391,8 @@ extern Word ResourceAddName(struct RezFile *rez, const char *name); /* 0x005010f
 #define kMemIdShift     16                       /* the handle's memory id is the resource number */
 #define kReadChunk      0x10000
 
-typedef void (*RezDecompressor)(unsigned char *dst, unsigned char *src, unsigned long length,
-                                unsigned long packLength);
+typedef void (*RezDecompressor)(unsigned char *dst, unsigned char *src, uint32_t length,
+                                uint32_t packLength);
 
 #define kFirstEntry(g)  ((RezEntry *)((g) + 1))
 #define kNextGroup(g)   ((RezGroup *)(kFirstEntry(g) + (g)->count))
@@ -429,9 +429,9 @@ static RezEntry *ResourceScan(RezFile *rez, ULong rezNum)
 // FUNCTION: EVNOVA 0x00500f80
 void ResourceDestroy(RezFile *rez)
 {
-    long groups;
+    int32_t groups;
     char *group;
-    long entries;
+    int32_t entries;
     char *entry;
     /* read as `void **' here where burger.h says Handle / void * */
 
@@ -445,7 +445,7 @@ void ResourceDestroy(RezFile *rez)
             group = LockAHandle((Handle)rez->groups);
             do {
                 entry = group + kGroupHeader;
-                entries = ((long *)group)[1];
+                entries = ((int32_t *)group)[1];
                 do {
                     DeallocAHandle(*(void ***)entry);
                     entry = entry + kEntryStride;
@@ -696,7 +696,7 @@ char *ResourceLoadByName(struct RezFile *rez, const char *name)
    Sets ResourceJustLoaded when the data came off the disk. STATE: MATCH 100.0%, exe 410 /
    obj 410, byte-identical yes (1426 bytes); calls exact (23 sites). OPEN: none */
 // FUNCTION: EVNOVA 0x00501740
-Handle ResourceLoadHandle(RezFile *Input, long RezNum)
+Handle ResourceLoadHandle(RezFile *Input, int32_t RezNum)
 {
     void **BufferHand;
     ULong memFlags;
@@ -830,7 +830,7 @@ Handle ResourceLoadHandleByName(struct RezFile *rez, const char *name)
    unlocked and made purgeable, or freed outright for a don't-cache file. STATE: MATCH
    100.0%, exe 73 / obj 73, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00501d50
-void ResourceRelease(RezFile *rez, long index)
+void ResourceRelease(RezFile *rez, int32_t index)
 {
     RezEntry *entry;
     void **handle;
@@ -860,7 +860,7 @@ void ResourceRelease(RezFile *rez, long index)
 /* ResourceDetach (BurgerLib RzResourceManager): the caller keeps the handle; the file
    forgets it. STATE: MATCH 100.0%, exe 43 / obj 43, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00501e30
-void ResourceDetach(RezFile *rez, long index)
+void ResourceDetach(RezFile *rez, int32_t index)
 {
     RezEntry *entry;
 
@@ -887,7 +887,7 @@ Word ResourceGetRezNum(RezFile *Input, const char *name)
    and its name; 0 when found, 1 when not. STATE: MATCH 100.0%, exe 79 / obj 79,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00501ef0
-Word ResourceGetIDFromHandle(RezFile *rez, Handle h, long *idFound, char *nameBuf,
+Word ResourceGetIDFromHandle(RezFile *rez, Handle h, int32_t *idFound, char *nameBuf,
                              Word nameBufSize)
 {
     char *text;

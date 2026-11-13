@@ -5,18 +5,18 @@
 #include "ogg.h"
 
 typedef struct static_codebook{
-  long   dim;
-  long   entries;
-  long  *lengthlist;
+  int32_t   dim;
+  int32_t   entries;
+  int32_t  *lengthlist;
 
   int    maptype;
 
-  long     q_min;
-  long     q_delta;
+  int32_t     q_min;
+  int32_t     q_delta;
   int      q_quant;
   int      q_sequencep;
 
-  long     *quantlist;
+  int32_t     *quantlist;
 
   struct encode_aux_nearestmatch *nearest_tree;
   struct encode_aux_threshmatch  *thresh_tree;
@@ -27,18 +27,18 @@ typedef struct static_codebook{
 
 typedef struct encode_aux_nearestmatch{
 
-  long   *ptr0;
-  long   *ptr1;
+  int32_t   *ptr0;
+  int32_t   *ptr1;
 
-  long   *p;
-  long   *q;
-  long   aux;
-  long   alloc;
+  int32_t   *p;
+  int32_t   *q;
+  int32_t   aux;
+  int32_t   alloc;
 } encode_aux_nearestmatch;
 
 typedef struct encode_aux_threshmatch{
   float *quantthresh;
-  long   *quantmap;
+  int32_t   *quantmap;
   int     quantvals;
   int     threshvals;
 } encode_aux_threshmatch;
@@ -49,34 +49,34 @@ typedef struct encode_aux_pigeonhole{
 
   int  mapentries;
   int  quantvals;
-  long *pigeonmap;
+  int32_t *pigeonmap;
 
-  long fittotal;
-  long *fitlist;
-  long *fitmap;
-  long *fitlength;
+  int32_t fittotal;
+  int32_t *fitlist;
+  int32_t *fitmap;
+  int32_t *fitlength;
 } encode_aux_pigeonhole;
 
 typedef struct decode_aux{
-  long   *tab;
+  int32_t   *tab;
   int    *tabl;
   int    tabn;
 
-  long   *ptr0;
-  long   *ptr1;
-  long   aux;
+  int32_t   *ptr0;
+  int32_t   *ptr1;
+  int32_t   aux;
 } decode_aux;
 
 typedef struct codebook{
-  long dim;
-  long entries;
+  int32_t dim;
+  int32_t entries;
   const static_codebook *c;
 
   float  *valuelist;
-  long   *codelist;
+  int32_t   *codelist;
   struct decode_aux *decode_tree;
 
-  long zeroentry;
+  int32_t zeroentry;
 } codebook;
 
 #ifdef __cplusplus
@@ -91,15 +91,15 @@ extern void vorbis_book_clear(codebook *b);
 
 extern float *_book_unquantize(const static_codebook *b);
 extern float *_book_logdist(const static_codebook *b,float *vals);
-extern float _float32_unpack(long val);
-extern long   _float32_pack(float val);
+extern float _float32_unpack(int32_t val);
+extern int32_t   _float32_pack(float val);
 extern int  _best(codebook *book, float *a, int step);
 extern int _ilog(unsigned int v);
-extern long _book_maptype1_quantvals(const static_codebook *b);
+extern int32_t _book_maptype1_quantvals(const static_codebook *b);
 
 extern int vorbis_book_besterror(codebook *book,float *a,int step,int addmul);
-extern long vorbis_book_codeword(codebook *book,int entry);
-extern long vorbis_book_codelen(codebook *book,int entry);
+extern int32_t vorbis_book_codeword(codebook *book,int entry);
+extern int32_t vorbis_book_codelen(codebook *book,int entry);
 
 extern int vorbis_staticbook_pack(const static_codebook *c,oggpack_buffer *b);
 extern int vorbis_staticbook_unpack(oggpack_buffer *b,static_codebook *c);
@@ -111,15 +111,15 @@ extern int vorbis_book_encodev(codebook *book, int best,float *a,
 extern int vorbis_book_encodevs(codebook *book, float *a, oggpack_buffer *b,
 				int step,int stagetype);
 
-extern long vorbis_book_decode(codebook *book, oggpack_buffer *b);
-extern long vorbis_book_decodevs_add(codebook *book, float *a,
+extern int32_t vorbis_book_decode(codebook *book, oggpack_buffer *b);
+extern int32_t vorbis_book_decodevs_add(codebook *book, float *a,
 				     oggpack_buffer *b,int n);
-extern long vorbis_book_decodev_set(codebook *book, float *a,
+extern int32_t vorbis_book_decodev_set(codebook *book, float *a,
 				    oggpack_buffer *b,int n);
-extern long vorbis_book_decodev_add(codebook *book, float *a,
+extern int32_t vorbis_book_decodev_add(codebook *book, float *a,
 				    oggpack_buffer *b,int n);
-extern long vorbis_book_decodevv_add(codebook *book, float **a,
-				     long off,int ch,
+extern int32_t vorbis_book_decodevv_add(codebook *book, float **a,
+				     int32_t off,int ch,
 				    oggpack_buffer *b,int n);
 
 #ifdef __cplusplus

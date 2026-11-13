@@ -15,8 +15,8 @@
 #ifdef MACBUILD
 #define kTokenShift 24
 #define kSingleColorToken 4
-typedef unsigned long TokenDataType;
-#define ALIGN_PTR(p) ( (-((long) p)) & 3)
+typedef uint32_t TokenDataType;
+#define ALIGN_PTR(p) ( (-((int32_t) p)) & 3)
 #define kMinimumFillRun 32
 #define BLITPIXIE_USE_DRAW_SPANS 0
 enum RunFlags
@@ -35,14 +35,14 @@ enum RunFlags
 OSErr BlitPixieRLEParsePixels(
 	unsigned char *srcStartAddrP,
 	unsigned char *maskStartAddrP,
-	unsigned long rowBytes,
+	uint32_t rowBytes,
 	unsigned short numBytesPerRow,
 	unsigned short numberOfScanLines,
 	unsigned short depth,
 	void ***newPixCode)
 {
 	OSErr			err = noErr;
-	unsigned long	newSize;
+	uint32_t	newSize;
 	Handle			tempPixCodeH;
 
 	unsigned char	runFlag;
@@ -56,16 +56,16 @@ OSErr BlitPixieRLEParsePixels(
 	unsigned char	*sourceStartPtr;
 	unsigned char	*maskStartPtr;
 
-	unsigned long	xCounter;
-	unsigned long	yCounter;
+	uint32_t	xCounter;
+	uint32_t	yCounter;
 
-	unsigned long	thisPixel;
-	unsigned long	maskPixel;
-	unsigned long	lastPixel;
-	unsigned long	advance;
+	uint32_t	thisPixel;
+	uint32_t	maskPixel;
+	uint32_t	lastPixel;
+	uint32_t	advance;
 
-	unsigned long	runCounter;
-	unsigned long	sameCounter;
+	uint32_t	runCounter;
+	uint32_t	sameCounter;
 
 	Boolean			useDrawSpans = BLITPIXIE_USE_DRAW_SPANS;
 
@@ -76,7 +76,7 @@ OSErr BlitPixieRLEParsePixels(
 	if ( numBytesPerRow <= 0 || numberOfScanLines <= 0 )
 		return paramErr;
 
-	newSize = 2 * sizeof(TokenDataType) * (  numberOfScanLines * (long) numBytesPerRow) +
+	newSize = 2 * sizeof(TokenDataType) * (  numberOfScanLines * (int32_t) numBytesPerRow) +
 		 sizeof(TokenDataType) * numberOfScanLines + sizeof(TokenDataType);
 
 	advance = depth >> 3;
@@ -108,7 +108,7 @@ OSErr BlitPixieRLEParsePixels(
 				{
 					case 8:		maskPixel = *( maskPtr);	break;
 					case 16:	maskPixel = *((unsigned short *) maskPtr);	break;
-					case 32:	maskPixel = *((unsigned long  *) maskPtr);	break;
+					case 32:	maskPixel = *((uint32_t  *) maskPtr);	break;
 				}
 
 				if ( maskPixel != 0)
@@ -138,8 +138,8 @@ OSErr BlitPixieRLEParsePixels(
 							runTokenPtr += sizeof(TokenDataType);
 							if ( depth < 16 )	lastPixel |= lastPixel << 8;
 							if ( depth < 32 )	lastPixel |= lastPixel << 16;
-							*( ( unsigned long * )runTokenPtr ) = lastPixel;
-							runTokenPtr += sizeof(unsigned long);
+							*( ( uint32_t * )runTokenPtr ) = lastPixel;
+							runTokenPtr += sizeof(uint32_t);
 
 							runTokenPtr = dataPtr;
 							dataPtr += sizeof(TokenDataType);
@@ -161,7 +161,7 @@ OSErr BlitPixieRLEParsePixels(
 					{
 						case 8:		thisPixel = *( sourcePtr);	break;
 						case 16:	thisPixel = *((unsigned short *) sourcePtr);	break;
-						case 32:	thisPixel = *((unsigned long  *) sourcePtr);	break;
+						case 32:	thisPixel = *((uint32_t  *) sourcePtr);	break;
 					}
 
 					if ( useDrawSpans && (thisPixel == lastPixel) && (sameCounter + advance >= kMinimumFillRun) )
@@ -187,7 +187,7 @@ OSErr BlitPixieRLEParsePixels(
 								}
 
 								runTokenPtr = dataPtr;
-								dataPtr += sizeof(TokenDataType) + sizeof(unsigned long);
+								dataPtr += sizeof(TokenDataType) + sizeof(uint32_t);
 								runFlag = kRunFill;
 								runCounter = sameCounter + advance;
 								break;
@@ -213,8 +213,8 @@ OSErr BlitPixieRLEParsePixels(
 
 								if ( depth < 16 )	lastPixel |= lastPixel << 8;
 								if ( depth < 32 )	lastPixel |= lastPixel << 16;
-								*( ( unsigned long * )runTokenPtr ) = lastPixel;
-								runTokenPtr += sizeof(unsigned long);
+								*( ( uint32_t * )runTokenPtr ) = lastPixel;
+								runTokenPtr += sizeof(uint32_t);
 
 								runTokenPtr = dataPtr;
 								dataPtr += sizeof(TokenDataType);
@@ -243,7 +243,7 @@ OSErr BlitPixieRLEParsePixels(
 						{
 							case 8:		*( dataPtr) = thisPixel;	dataPtr += 1; break;
 							case 16:	*((unsigned short *) dataPtr) = thisPixel;	dataPtr += 2; break;
-							case 32:	*((unsigned long  *) dataPtr) = thisPixel;	dataPtr += 4; break;
+							case 32:	*((uint32_t  *) dataPtr) = thisPixel;	dataPtr += 4; break;
 						}
 
 						lastPixel = thisPixel;
@@ -272,13 +272,13 @@ OSErr BlitPixieRLEParsePixels(
 
 					if ( depth < 16 )	lastPixel |= lastPixel << 8;
 					if ( depth < 32 )	lastPixel |= lastPixel << 16;
-					*( ( unsigned long *) runTokenPtr) = lastPixel;
-					runTokenPtr += sizeof(unsigned long);
+					*( ( uint32_t *) runTokenPtr) = lastPixel;
+					runTokenPtr += sizeof(uint32_t);
 					break;
 			}
 
 			*( ( TokenDataType * )lineStartPtr ) = ( kLineStartToken << kTokenShift ) +
-								( (long) dataPtr - sizeof(TokenDataType) - (long) lineStartPtr);
+								( (int32_t) dataPtr - sizeof(TokenDataType) - (int32_t) lineStartPtr);
 
 			sourceStartPtr += rowBytes;
 			maskStartPtr += rowBytes;
@@ -308,30 +308,30 @@ OSErr BlitPixieRLEParsePixels(
 }
 #else
 short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixels,
-        unsigned long rowBytes, unsigned short byteWidth, unsigned short numRows,
+        uint32_t rowBytes, unsigned short byteWidth, unsigned short numRows,
         unsigned short depth, void ***frameData)
 {
     void **frameHandle;
-    long *rowHeader;
+    int32_t *rowHeader;
     unsigned char *srcRow;
     unsigned char *maskRow;
     unsigned char *srcPixel;
     unsigned char *maskPixel;
-    unsigned long row;
-    long *runToken;
-    long runCount;
-    long bytesPerPixel;
-    long sameCount;
-    long depthL;
-    unsigned long lastPixel;
-    unsigned long maskValue;
-    unsigned long pixelValue;
-    unsigned long width;
-    unsigned long rows;
+    uint32_t row;
+    int32_t *runToken;
+    int32_t runCount;
+    int32_t bytesPerPixel;
+    int32_t sameCount;
+    int32_t depthL;
+    uint32_t lastPixel;
+    uint32_t maskValue;
+    uint32_t pixelValue;
+    uint32_t width;
+    uint32_t rows;
     unsigned char *tokens;
-    unsigned long x;
+    uint32_t x;
     unsigned char state;
-    long size;
+    int32_t size;
     short err;
 
     *frameData = 0;
@@ -361,7 +361,7 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
             do {
                 srcPixel = srcRow;
 
-            rowHeader = (long *)tokens;
+            rowHeader = (int32_t *)tokens;
             tokens += 4;
 
             runCount = 0;
@@ -378,7 +378,7 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
                     maskValue = *(unsigned short *)maskPixel;
                     break;
                 case 32:
-                    maskValue = *(unsigned long *)maskPixel;
+                    maskValue = *(uint32_t *)maskPixel;
                     break;
                 }
 
@@ -392,8 +392,8 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
 
                     case 2:
                         *runToken = runCount + RLE_LITERAL;
-                        tokens += (-(long)tokens) & 3;
-                        runToken = (long *)tokens;
+                        tokens += (-(int32_t)tokens) & 3;
+                        runToken = (int32_t *)tokens;
                         tokens += 4;
                         state = 1;
                         runCount = bytesPerPixel;
@@ -406,14 +406,14 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
                         if (depth < 32)
                             lastPixel |= lastPixel << 16;
                         runToken[1] = lastPixel;
-                        runToken = (long *)tokens;
+                        runToken = (int32_t *)tokens;
                         tokens += 4;
                         state = 1;
                         runCount = bytesPerPixel;
                         break;
 
                     case 0:
-                        runToken = (long *)tokens;
+                        runToken = (int32_t *)tokens;
                         tokens += 4;
                         state = 1;
                         runCount = bytesPerPixel;
@@ -428,7 +428,7 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
                         pixelValue = *(unsigned short *)srcPixel;
                         break;
                     case 32:
-                        pixelValue = *(unsigned long *)srcPixel;
+                        pixelValue = *(uint32_t *)srcPixel;
                         break;
                     }
 
@@ -449,7 +449,7 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
                         if (depth < 32)
                             lastPixel |= lastPixel << 16;
                         runToken[1] = lastPixel;
-                        runToken = (long *)tokens;
+                        runToken = (int32_t *)tokens;
                         tokens += 4;
                         state = 2;
                         runCount = bytesPerPixel;
@@ -457,14 +457,14 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
 
                     case 1:
                         *runToken = runCount + RLE_TRANSPARENT;
-                        runToken = (long *)tokens;
+                        runToken = (int32_t *)tokens;
                         tokens += 4;
                         state = 2;
                         runCount = bytesPerPixel;
                         break;
 
                     case 0:
-                        runToken = (long *)tokens;
+                        runToken = (int32_t *)tokens;
                         tokens += 4;
                         state = 2;
                         runCount = bytesPerPixel;
@@ -481,7 +481,7 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
                         tokens += 2;
                         break;
                     case 32:
-                        *(unsigned long *)tokens = pixelValue;
+                        *(uint32_t *)tokens = pixelValue;
                         tokens += 4;
                         break;
                     }
@@ -500,7 +500,7 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
 
             case 2:
                 *runToken = runCount + RLE_LITERAL;
-                tokens += (-(long)tokens) & 3;
+                tokens += (-(int32_t)tokens) & 3;
                 break;
 
             case 3:
@@ -514,7 +514,7 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
                 break;
             }
 
-            *rowHeader = (long)(tokens - 4) + RLE_ROW - (long)rowHeader;
+            *rowHeader = (int32_t)(tokens - 4) + RLE_ROW - (int32_t)rowHeader;
 
             srcRow += rowBytes;
             maskRow += rowBytes;
@@ -522,7 +522,7 @@ short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixel
         } while (row < rows);
         }
 
-        *(long *)tokens = 0;
+        *(int32_t *)tokens = 0;
 
         size = (tokens + 4) - *frameHandle;
 

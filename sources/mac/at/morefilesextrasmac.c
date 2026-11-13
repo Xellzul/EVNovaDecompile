@@ -6,12 +6,13 @@
 #include <TextUtils.h>
 #include <Gestalt.h>
 #include <MixedMode.h>
+#include "int32.h"
 
 #define kMinBuffer      0x400
 #define kBufferRound    0xfffffc00
 #define kTempSlop       0x8000
 
-OSErr HGetVolParms(ConstStr255Param volName, short vRefNum, GetVolParmsInfoBuffer *volParmsInfo, long *infoSize)
+OSErr HGetVolParms(ConstStr255Param volName, short vRefNum, GetVolParmsInfoBuffer *volParmsInfo, int32_t *infoSize)
 {
     HParamBlockRec pb;
     OSErr error;
@@ -31,7 +32,7 @@ Boolean hasCatSearch(GetVolParmsInfoBuffer *volParms)
     return (volParms->vMAttrib & (1L << bHasCatSearch)) != 0;
 }
 
-Ptr GetTempBuffer(long buffReqSize, long *buffActSize)
+Ptr GetTempBuffer(int32_t buffReqSize, int32_t *buffActSize)
 {
     Ptr tempPtr;
 
@@ -40,7 +41,7 @@ Ptr GetTempBuffer(long buffReqSize, long *buffActSize)
         buffReqSize = kMinBuffer;
     tempPtr = NewPtr(buffReqSize);
     if (tempPtr == 0 && buffReqSize > kMinBuffer) {
-        long freeMemory = (FreeMem() - kTempSlop) & kBufferRound;
+        int32_t freeMemory = (FreeMem() - kTempSlop) & kBufferRound;
 
         buffReqSize = MaxBlock() & kBufferRound;
         if (buffReqSize > freeMemory)

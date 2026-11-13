@@ -19,7 +19,7 @@ extern "C" {
 #define kSampleMax          32767
 #define kSampleMin          (-32768)
 
-static const long gaiP4[46] = {
+static const int32_t gaiP4[46] = {
     230, 230, 230, 230, 307, 409, 512, 614,
     768, 614, 512, 409, 307, 230, 230, 230,
     0, 1, 2, 3, 4, 5, 6, 7,
@@ -30,20 +30,20 @@ static const long gaiP4[46] = {
 
 /* One channel's decoder state (the modern BurgerLib's ADPCMState_t). */
 typedef struct ADPCMState_t {
-    long sample1;                                /* the older of the two */
-    long sample2;
-    long Coef1;
-    long Coef2;
-    long index;                                  /* the adaptive step */
+    int32_t sample1;                                /* the older of the two */
+    int32_t sample2;
+    int32_t Coef1;
+    int32_t Coef2;
+    int32_t index;                                  /* the adaptive step */
 } ADPCMState_t;
 
 /* One nibble through one channel's predictor; the decoded sample. */
-static inline long ADPCMDecode(ADPCMState_t *State, Word DeltaCode)
+static inline int32_t ADPCMDecode(ADPCMState_t *State, Word DeltaCode)
 {
-    long Index;
-    long NewIndex;
-    long Predict;
-    long Sample;
+    int32_t Index;
+    int32_t NewIndex;
+    int32_t Predict;
+    int32_t Sample;
 
     DeltaCode = DeltaCode & 0xf;
     Index = State->index;

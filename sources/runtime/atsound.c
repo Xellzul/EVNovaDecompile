@@ -10,19 +10,19 @@
 
 #include "burgerchan.h"
 
-extern long _ST_GetCurrentSampleRate(ULong *device);
-extern long _ST_CreateSoundPump(void);
+extern int32_t _ST_GetCurrentSampleRate(ULong *device);
+extern int32_t _ST_CreateSoundPump(void);
 extern void _ST_SetSystemVolume(ULong a, ULong b);      /* 0x00507b10 */
 extern void _ST_DisposeSoundPump(void);                  /* 0x005076a0 */
 
 
 void *gDirectSoundModule;                              /* 0x00870dac DSOUND.DLL */
 void *gDirectSoundCreate;                              /* 0x00870de4 DirectSoundCreate */
-long gMaxVoices;                               /* 0x00870958 channels */
-long gCookieCounter;                               /* 0x00870df4 */
+int32_t gMaxVoices;                               /* 0x00870958 channels */
+int32_t gCookieCounter;                               /* 0x00870df4 */
 ULong gSampleBits;                               /* 0x0087000c bits */
 ULong gNumChannels;                              /* 0x008700e4 channels */
-long gSamplesPerBuffer;                          /* 0x00870920 buffer */
+int32_t gSamplesPerBuffer;                          /* 0x00870920 buffer */
 ULong gBytesPerBuffer;                           /* 0x00870068 */
 ULong gDurationBuffer;                           /* 0x00870010 */
 
@@ -34,9 +34,9 @@ ULong gDurationBuffer;                           /* 0x00870010 */
 
 /* ST_Open. STATE: MATCH 100%, exe 107 / obj 107, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004d6290
-long ST_Open(unsigned short channels, ULong device)
+int32_t ST_Open(unsigned short channels, ULong device)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     if (gSoundToolOpen != 0)
@@ -127,7 +127,7 @@ ULong gSaveMaxVolume;                              /* 0x00870dcc, 4 B */
 // FUNCTION: EVNOVA 0x004d6440
 void ST_Close(void)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     if (gSoundToolOpen != 0) {
@@ -151,7 +151,7 @@ void ST_Close(void)
 // FUNCTION: EVNOVA 0x004d64b0
 ULong ST_GetSysVolume(void)
 {
-    long err;
+    int32_t err;
     ULong level;
 
     err = 0;
@@ -166,21 +166,21 @@ ULong ST_GetSysVolume(void)
 // FUNCTION: EVNOVA 0x004d64d0
 void ST_DisposeSound(void *sound)
 {
-    long err;
+    int32_t err;
 
     err = 0;
-    if (sound != 0 && ((long)sound & 1) == 0)
+    if (sound != 0 && ((int32_t)sound & 1) == 0)
         MemoryDeallocate(sound);
 }
 
 /* ST_PlaySound (mac _ST_PlaySound). STATE: MATCH 100%, exe 20 / obj 20, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004d64f0
-long ST_PlaySound(void *snd, unsigned short priority, unsigned short level)
+int32_t ST_PlaySound(void *snd, unsigned short priority, unsigned short level)
 {
     SoundRequest req;
-    long err;
-    long result;
+    int32_t err;
+    int32_t result;
 
     err = 0;
     result = 0;
@@ -211,7 +211,7 @@ ULong ST_PlaySoundParam(SoundRequest *req)
     char preempt;
     SoundChannel *src;
     SoundChannel *dst;
-    long tail;
+    int32_t tail;
 
     tail = 0;
     id = 0;
@@ -285,7 +285,7 @@ ULong ST_PlaySoundParam(SoundRequest *req)
 #define kHaltReason    2
 
 unsigned char gSoundToolOpen;                      /* 0x00870e12, live flag */
-long gNumVoices;                               /* 0x00870db0, in use */
+int32_t gNumVoices;                               /* 0x00870db0, in use */
 SoundChannel gTheVoices[kSoundChannels];       /* 0x0086f718, 0x380 B */
 char gCriticalSection[16];                           /* 0x0086dc88, the lock */
 SoundRequest gSoundVoiceStatus;                       /* 0x008707dc, callback ref */
@@ -295,9 +295,9 @@ SoundRequest gSoundVoiceStatus;                       /* 0x008707dc, callback re
 // FUNCTION: EVNOVA 0x004d6770
 unsigned short ST_IsSoundPlaying(void *sound)
 {
-    long found;
+    int32_t found;
     ULong i;
-    long err;
+    int32_t err;
 
     err = 0;
     found = 0;
@@ -324,8 +324,8 @@ void ST_HaltSound(void *sound)
     SoundChannel *src;
     void *snd;
     SoundChannel *dst;
-    long tail;
-    void (*done)(long, void *, void *);
+    int32_t tail;
+    void (*done)(int32_t, void *, void *);
 
     snd = 0;
     if (gSoundToolOpen != 0) {
@@ -363,7 +363,7 @@ void _ST_HaltASound(short index)
     unsigned char ok;
     SoundChannel *src;
     SoundChannel *dst;
-    long tail;
+    int32_t tail;
 
     ok = 0;
     if (gSoundToolOpen != 0) {
@@ -430,7 +430,7 @@ typedef struct MemSound {
 // FUNCTION: EVNOVA 0x004d6900
 void *_ST_SoundRefCreate(SoundDesc *desc)
 {
-    long err = 0;
+    int32_t err = 0;
     short *pcm = 0;
     unsigned short *temp = 0;
     MemSound *block = 0;
@@ -541,14 +541,14 @@ void *_ST_SoundRefCreate(SoundDesc *desc)
 /* Mix every playing channel into a zeroed stereo 16-bit buffer, then tell
    each owner it ticked and retire the channels that ran out. Channels past
    the voice limit are decoded without being heard. */
-typedef void (*MixerNotifyProc)(long reason, ULong id, SoundRequest *request);
+typedef void (*MixerNotifyProc)(int32_t reason, ULong id, SoundRequest *request);
 
 /* _ST_MixVoices. STATE: MATCH 100%, exe 109 / obj 109, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004d6b90
 void _ST_MixVoices(short *buffer, ULong frames)
 {
-    long err = 0;
-    long i;
+    int32_t err = 0;
+    int32_t i;
     SoundChannel *chan;
     short *out;
     short *p;
@@ -608,10 +608,10 @@ void _ST_MixerDispatch(short *buffer, ULong frames)
 /* _ST_SndDataOffset. STATE: MATCH 100%, exe 96 / obj 96 instrs, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004d6d30
-long _ST_SndDataOffset(void **handle)
+int32_t _ST_SndDataOffset(void **handle)
 {
     short *p;
-    long offset;
+    int32_t offset;
     short count;
     unsigned char found;
     short bufferCmd;
@@ -642,7 +642,7 @@ long _ST_SndDataOffset(void **handle)
     while (count > 0 && found == 0) {
         cmd = Swap16(p[0]);
         if (cmd == bufferCmd || cmd == soundCmd) {
-            offset = Swap32(((long *)p)[1]);
+            offset = Swap32(((int32_t *)p)[1]);
             found = 1;
         } else {
             p = p + kSndCommandShorts;
@@ -702,20 +702,20 @@ typedef struct CmpSoundHeader {
 
 /* ST_LoadSndResourceIndirect. STATE: MATCH 100.0%, exe 315 / obj 315, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004d6e60
-void *ST_LoadSndResourceIndirect(void **handle, long flags)
+void *ST_LoadSndResourceIndirect(void **handle, int32_t flags)
 {
-    long err = 0;
+    int32_t err = 0;
     void *result = 0;
     SoundDesc desc;
     SoundHeader *header;
     ExtSoundHeader *ext;
     CmpSoundHeader *cmp;
     ULong compression;
-    long offset;
-    long count;
-    long i;
-    long handleSize;
-    long size;
+    int32_t offset;
+    int32_t count;
+    int32_t i;
+    int32_t handleSize;
+    int32_t size;
     ULong rateStatus;
     unsigned char stereo;
 

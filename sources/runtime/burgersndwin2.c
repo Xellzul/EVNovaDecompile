@@ -21,7 +21,7 @@ static void *DirectSoundProcPtr;                 /* 0x0086cb1c */
 /* IsIt (BurgerLib SnWinCode, static there). STATE: MATCH, exe 27 / obj 27, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0052c950
-static long IsIt(PrivSound *sound, void *data)
+static int32_t IsIt(PrivSound *sound, void *data)
 {
     ULong status;
 
@@ -35,7 +35,7 @@ static long IsIt(PrivSound *sound, void *data)
 /* StopIt (BurgerLib SnWinCode, static there). STATE: MATCH, exe 46 / obj 46, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x0052c9b0
-static long StopIt(PrivSound *sound, void *data)
+static int32_t StopIt(PrivSound *sound, void *data)
 {
     if (sound->SoundPtr != 0) {
         sound->SampleHandle->Stop();

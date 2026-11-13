@@ -19,16 +19,16 @@ LOCAL		unsigned short	matrixBytes;		// bytes (of screen pixels)
 LOCAL		unsigned short	matrixRows;			// rows
 LOCAL		unsigned short	matrixShift;		// bit positions (in depth)
 LOCAL		unsigned short	matrixBits;			// pixel blocks of 32 bytes - matrix bits
-LOCAL		unsigned long	matrixRowBytes;		// bytes per row (in matrix)
+LOCAL		uint32_t	matrixRowBytes;		// bytes per row (in matrix)
 
 /* BlitPixieBlitClearDirtyRects (mac _BlitPixieBlitClearDirtyRects, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieBlitClearDirtyRects i386 0x000bf267 ppc 0x000cae44
 void BlitPixieBlitClearDirtyRects(
 	unsigned char	*src,
 	unsigned char	*dst,
-	unsigned long	color,
-	unsigned long	srcBytes,
-	unsigned long	dstBytes)
+	uint32_t	color,
+	uint32_t	srcBytes,
+	uint32_t	dstBytes)
 {
 	int				x,y;
 	unsigned char	*p,*row;
@@ -79,8 +79,8 @@ void BlitPixieBlitEraseDirtyRects(
 	unsigned char	*src,
 	unsigned char	*dst,
 	unsigned char	*bkg,
-	unsigned long	srcBytes,
-	unsigned long	dstBytes)
+	uint32_t	srcBytes,
+	uint32_t	dstBytes)
 {
 	int				x,y;
 	unsigned char	*p,*row;
@@ -139,9 +139,9 @@ void BlitPixieClearDirtyRects( void )
 // MAC: _BlitPixieAddDirtyRect i386 0x000bf41b ppc 0x000cb040
 void BlitPixieAddDirtyRect( Rect *dirtyRect )
 {
-	long				top,left,bottom,right;
-	long				startBit,stopBit;
-	long				y,bit,grid;
+	int32_t				top,left,bottom,right;
+	int32_t				startBit,stopBit;
+	int32_t				y,bit,grid;
 	unsigned char		*row,*p;
 	unsigned char		m;
 
@@ -224,7 +224,7 @@ void BlitPixieExitDirtyRects(void)
 Boolean BlitPixieInitDirtyRects( unsigned char *src, unsigned char *dst,
 	unsigned short width, unsigned short height, unsigned short depth  )
 {
-	long	bytes;
+	int32_t	bytes;
 
 	bytes = ( width * depth ) >> 3;
 
@@ -240,7 +240,7 @@ Boolean BlitPixieInitDirtyRects( unsigned char *src, unsigned char *dst,
 		return false;
 	}
 
-	if ( (((unsigned long) src) & 3) != 0 || (((unsigned long) dst) & 3) != 0)
+	if ( (((uint32_t) src) & 3) != 0 || (((uint32_t) dst) & 3) != 0)
 	{
 		BLITPIXIE_DEBUGGER("DirtyRects: src and dst must be aligned");
 		return false;

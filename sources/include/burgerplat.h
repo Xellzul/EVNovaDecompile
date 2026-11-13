@@ -41,9 +41,9 @@ typedef struct TimerThread {
     void *event;                                 /* +0x04 */
     void *thread;                                /* +0x08 */
     ULong threadId;                              /* +0x0c */
-    long period;                                 /* +0x10 */
+    int32_t period;                                 /* +0x10 */
     ULong armedAt;                               /* +0x14 */
-    long request;                                /* +0x18 */
+    int32_t request;                                /* +0x18 */
     unsigned char armed;                         /* +0x1c */
     unsigned char quit;                          /* +0x1d */
 } TimerThread;
@@ -52,7 +52,7 @@ struct PlatformTimer {
     TimerThread *thread;                         /* +0x00 */
     TimerProc proc;                              /* +0x04 */
     void *arg;                                   /* +0x08 */
-    long reserved;                               /* +0x0c */
+    int32_t reserved;                               /* +0x0c */
 };
 
 /* a file's local time stamp, 12 bytes */
@@ -84,17 +84,17 @@ typedef struct DirectorySearch_t {
 
 /* Win32's BITMAPINFOHEADER and BITMAPINFO (one RGBQUAD) */
 typedef struct BitmapInfoHeader {
-    unsigned long biSize;
-    long biWidth;
-    long biHeight;                               /* negative means top-down */
+    uint32_t biSize;
+    int32_t biWidth;
+    int32_t biHeight;                               /* negative means top-down */
     unsigned short biPlanes;
     unsigned short biBitCount;
-    unsigned long biCompression;
-    unsigned long biSizeImage;
-    long biXPelsPerMeter;
-    long biYPelsPerMeter;
-    unsigned long biClrUsed;
-    unsigned long biClrImportant;
+    uint32_t biCompression;
+    uint32_t biSizeImage;
+    int32_t biXPelsPerMeter;
+    int32_t biYPelsPerMeter;
+    uint32_t biClrUsed;
+    uint32_t biClrImportant;
 } BitmapInfoHeader;
 
 /* Win32's RGBQUAD */
@@ -107,7 +107,7 @@ typedef struct RGBQuad {
 
 typedef struct BitmapInfo {
     BitmapInfoHeader bmiHeader;                  /* +0x00 */
-    unsigned long bmiColors[1];                  /* +0x28 */
+    uint32_t bmiColors[1];                  /* +0x28 */
 } BitmapInfo;
 
 /* BurgerLib's parsed-audio descriptor */
@@ -147,12 +147,12 @@ typedef struct DigitalMusicReadState_t {
 
 /* the MACE expanders' running state (PkMACE) */
 typedef struct MACEState_t {
-    long Sample1;                                /* +0x00 */
-    long Sample2;                                /* +0x04 */
-    long PrevVal;                                /* +0x08 */
-    long TableIndex;                             /* +0x0c */
-    long LastAmplitude;                          /* +0x10 */
-    long LastSlope;                              /* +0x14 */
+    int32_t Sample1;                                /* +0x00 */
+    int32_t Sample2;                                /* +0x04 */
+    int32_t PrevVal;                                /* +0x08 */
+    int32_t TableIndex;                             /* +0x0c */
+    int32_t LastAmplitude;                          /* +0x10 */
+    int32_t LastSlope;                              /* +0x14 */
 } MACEState_t;
 
 /* one MS ADPCM block to expand (PkADPCM) */
@@ -192,13 +192,13 @@ typedef struct TextBuilder {
     ULong length;                                /* +0x04 */
     ULong capacity;                             /* +0x08 */
     ULong extent;                                /* +0x0c */
-    long failed;                                 /* +0x10 */
+    int32_t failed;                                 /* +0x10 */
 } TextBuilder;
 
 struct ITElement;
 typedef struct ControlType {
     struct ControlType *next;                    /* +0x00 */
-    long (*proc)(void *hwnd, void *dc, struct ITElement *element, void **data, ULong msg,
+    int32_t (*proc)(void *hwnd, void *dc, struct ITElement *element, void **data, ULong msg,
                  ULong a, void *b);              /* +0x04 an ITControlProc */
     char name[0x100];                            /* +0x08 */
 } ControlType;
@@ -219,15 +219,15 @@ typedef struct WinEntry {
 } WinEntry;
 
 typedef struct ITPoint {
-    long h;
-    long v;
+    int32_t h;
+    int32_t v;
 } ITPoint;
 
 typedef struct ITRect {
-    long left;
-    long top;
-    long right;
-    long bottom;
+    int32_t left;
+    int32_t top;
+    int32_t right;
+    int32_t bottom;
 } ITRect;
 
 typedef struct ITColor {
@@ -292,12 +292,12 @@ typedef struct ITPort {
     CGrafPtr dc;
     void *window;
     unsigned char savedDC;
-    long textAlign;                              /* +0x18 */
-    long ascent;
-    long descent;
-    long leading;
-    long height;
-    long maxWidth;
+    int32_t textAlign;                              /* +0x18 */
+    int32_t ascent;
+    int32_t descent;
+    int32_t leading;
+    int32_t height;
+    int32_t maxWidth;
     Str255 fontFace;
     RgnHandle clip;                              /* +0x130 */
     RGBColor savedFore;
@@ -321,20 +321,20 @@ typedef struct ITPort {
     unsigned char pad1a[2];
     const unsigned char *pattern;                /* +0x1c the 8 x 8 fill pattern */
     const unsigned char *penPattern;             /* +0x20 NULL or the solid one: a plain pen */
-    long penWidth;                               /* +0x24 */
-    long fontId;                                 /* +0x28 a stock font number at reset */
-    long fontSize;
+    int32_t penWidth;                               /* +0x24 */
+    int32_t fontId;                                 /* +0x28 a stock font number at reset */
+    int32_t fontSize;
     ULong fontStyle;
-    long textAlign;                                  /* +0x34 the state 0x004ea43e swaps starts here */
-    long ascent;                                 /* +0x38 GetTextMetricsA's, at reset */
-    long descent;
-    long leading;
-    long height;
-    long maxWidth;
+    int32_t textAlign;                                  /* +0x34 the state 0x004ea43e swaps starts here */
+    int32_t ascent;                                 /* +0x38 GetTextMetricsA's, at reset */
+    int32_t descent;
+    int32_t leading;
+    int32_t height;
+    int32_t maxWidth;
     char fontFace[0x100];                        /* +0x4c the installed family, or "" */
     void *clip;
-    long savedIndex;
-    long unk154;
+    int32_t savedIndex;
+    int32_t unk154;
     ULong unk158;
 } ITPort;
 #endif
@@ -345,7 +345,7 @@ typedef struct ITDib {
     void *bits;
     BitmapInfoHeader header;
     RGBQuad colors[256];
-    long borrowedBits;
+    int32_t borrowedBits;
 } ITDib;
 
 typedef struct ITPixels {
@@ -353,7 +353,7 @@ typedef struct ITPixels {
     ULong bytesPerPixel;
     ULong depth;
     ULong flags;
-    long locks;
+    int32_t locks;
     ULong key;
     unsigned char formatFlag;
     unsigned char bits[4];
@@ -367,12 +367,12 @@ typedef struct ITPixels {
 #ifdef MAC1010
     ULong baseAddr;
 #else
-    long baseAddr;
+    int32_t baseAddr;
 #endif
     ITDib *dib;
-    long unk54;
+    int32_t unk54;
     void *window;
-    long drawDC;
+    int32_t drawDC;
 #ifdef MAC1010
     ULong info[2];
 #else
@@ -410,7 +410,7 @@ typedef struct ITDevice {
     ITPart link;
     CGrafPtr dc;
     char unk10[0x20 - 0x10];
-    long status;
+    int32_t status;
     char unk24[0x28 - 0x24];
     unsigned char docOpen;
     unsigned char pageOpen;
@@ -422,7 +422,7 @@ typedef struct ITDevice {
     ITPart link;
     void *dc;
     char unk10[0x20 - 0x10];
-    long status;
+    int32_t status;
     char unk24[0x30 - 0x24];
     void *devMode;
     char unk34[0x70 - 0x34];
@@ -450,7 +450,7 @@ struct ITControl;
 typedef struct ITElement {
     struct ITElement *next;
     struct ITElement *child;
-    long tag;
+    int32_t tag;
     char *name;
     struct HashTable *attributes;
     ULong order;
@@ -512,8 +512,8 @@ typedef struct ITFocus {
     struct WindowNode *root;
     struct WindowNode *window;
     struct ITControl *control;
-    long index;
-    long item;
+    int32_t index;
+    int32_t item;
 } ITFocus;
 
 typedef struct ITInputEvent {
@@ -532,10 +532,10 @@ typedef struct ITKeyEvent {
     ULong modifiers;
 } ITKeyEvent;
 
-typedef long (*ITControlProc)(void *hwnd, void *dc, ITElement *element, void **data, ULong msg,
+typedef int32_t (*ITControlProc)(void *hwnd, void *dc, ITElement *element, void **data, ULong msg,
                               ULong a, void *b);
-typedef long (*ITWindowProc)(struct WindowNode *window, long refcon, long event, void *where,
-                             long index, const char *name);
+typedef int32_t (*ITWindowProc)(struct WindowNode *window, int32_t refcon, int32_t event, void *where,
+                             int32_t index, const char *name);
 
 typedef struct ITControl {
     struct ITControl *next;
@@ -553,7 +553,7 @@ typedef struct WindowNode {
     struct WindowNode *next;
     struct WindowNode *parent;
     ITWindowProc proc;
-    long refcon;
+    int32_t refcon;
     ITRect bounds;
     unsigned char dirty;
     unsigned char unk21;
@@ -640,7 +640,7 @@ typedef struct ITClick {
 typedef struct RT3License {
     char name[256];
     char code[256];
-    long copies;
+    int32_t copies;
     ULong machine;
     ULong level;
     ULong user;
@@ -691,7 +691,7 @@ typedef struct FileTypeMap {
 #define kOctets         4
 
 typedef struct NetAddress {
-    long kind;
+    int32_t kind;
     unsigned short family;
     unsigned short port;
     unsigned char node[0xfc];
@@ -699,7 +699,7 @@ typedef struct NetAddress {
 
 typedef struct NetPacket {
     MutexNode link;
-    long unk8[3];
+    int32_t unk8[3];
     NetAddress from;
     ULong capacity;
     ULong length;
@@ -728,12 +728,12 @@ typedef struct NetSocket {
     unsigned char waitRecv;
     unsigned char waitSend;
     unsigned short pad36;
-    long socket;
+    int32_t socket;
     NetAddress local;
     NetAddress reset;
     MutexList queue;
-    long sendCount;
-    long sendBytes;
+    int32_t sendCount;
+    int32_t sendBytes;
     void *thread;
     void *thread2;
     unsigned char quit;
@@ -758,17 +758,17 @@ typedef struct NetStream {
     MutexList *freeList;
     MutexList *recvList;
     MutexList *recvList2;
-    long socket;
+    int32_t socket;
     NetAddress local;
     NetAddress remote;
-    long connectError;
+    int32_t connectError;
     MutexList queue;
-    long sendCount;
-    long sendBytes;
+    int32_t sendCount;
+    int32_t sendBytes;
     void *thread;
     void *thread2;
     void *event;
-    long accepted;
+    int32_t accepted;
     NetAddress acceptedPeer;
     unsigned char shutdownSend;
     unsigned char quit;
@@ -781,18 +781,18 @@ typedef struct NetStream {
 
 typedef struct NetChunk {
     MutexNode link;
-    long unk8[3];
+    int32_t unk8[3];
     ULong size;
     ULong length;
     char data[1];
 } NetChunk;
 
-typedef ULong (*FrameProc)(long unk0, void *ref, NetChunk *chunk, unsigned char second);
+typedef ULong (*FrameProc)(int32_t unk0, void *ref, NetChunk *chunk, unsigned char second);
 
 typedef struct NetFramed {
-    long unk0;
+    int32_t unk0;
     void *ref;
-    long frameMode;
+    int32_t frameMode;
     NetProc proc;
     ULong flags;
     NetChunk *partial;
@@ -806,7 +806,7 @@ typedef struct NetFramed {
 
 typedef struct NetLookup {
     MutexNode link;
-    long unk8[3];
+    int32_t unk8[3];
     NetAddress address;
     char name[0x100];
 } NetLookup;
@@ -825,8 +825,8 @@ typedef struct NetResolver {
 #endif
     MutexList *freeList;
     MutexList *doneList;
-    long wanted;
-    long pending;
+    int32_t wanted;
+    int32_t pending;
     unsigned char waiting;
     unsigned char pad35[3];
     MutexList requests;
@@ -847,7 +847,7 @@ typedef struct HostEnt {
 typedef struct ZState {
     ULong magic;
     struct z_stream_s *strm;
-    long reserved[2];
+    int32_t reserved[2];
 } ZState;
 
 #endif

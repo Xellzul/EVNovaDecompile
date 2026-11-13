@@ -25,10 +25,10 @@ unsigned short VT_CountDevices(void)
     return count;
 }
 
-long VT_DeviceOpen(VTDevice *device, unsigned short index)
+int32_t VT_DeviceOpen(VTDevice *device, unsigned short index)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     GDHandle gd;
     ULong i;
     ULong last;
@@ -142,10 +142,10 @@ void VT_DeviceClose(VTDevice *device)
     }
 }
 
-long VT_DeviceSwitch(VTDevice *device, VTMode *mode)
+int32_t VT_DeviceSwitch(VTDevice *device, VTMode *mode)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char faded;
     VTColor black;
 

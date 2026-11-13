@@ -10,19 +10,19 @@
 
 #define kFacesPerValue      3
 
-extern long IT_ItemCallbackDrawRect(void *unused, const ITRect *area);              /* interfacetool.c */
-extern long IT_ItemCallbackGetImage(const char *name, ITImage **image, ITImage **mask,
+extern int32_t IT_ItemCallbackDrawRect(void *unused, const ITRect *area);              /* interfacetool.c */
+extern int32_t IT_ItemCallbackGetImage(const char *name, ITImage **image, ITImage **mask,
                          ITTransparent *trans);                          /* interfacetool.c */
-extern long DT_SetFillAttributes(ITImage *image, const ITColor *fore, const ITColor *back,
+extern int32_t DT_SetFillAttributes(ITImage *image, const ITColor *fore, const ITColor *back,
                          const unsigned char *pattern);                  /* itgfx.c */
-extern long DT_DrawImage(ITImage *image, const ITRect *dstRect, ITImage *src, ITImage *mask,
+extern int32_t DT_DrawImage(ITImage *image, const ITRect *dstRect, ITImage *src, ITImage *mask,
                          const ITTransparent *trans, const ITRect *srcRect);  /* itgfx.c */
-extern long DT_FrameRect(ITImage *image, const ITRect *r);               /* itgfx.c */
-extern long DT_PaintRect(ITImage *image, const ITRect *r);               /* itgfx.c */
-extern long DT_InvertRect(ITImage *image, const ITRect *r);               /* itgfx.c */
+extern int32_t DT_FrameRect(ITImage *image, const ITRect *r);               /* itgfx.c */
+extern int32_t DT_PaintRect(ITImage *image, const ITRect *r);               /* itgfx.c */
+extern int32_t DT_InvertRect(ITImage *image, const ITRect *r);               /* itgfx.c */
 extern unsigned char InputReadMouseState(void *hwnd, ITInputEvent *event);          /* itinputmac.c */
 extern unsigned char gIT_HasAppearance;                                  /* atcursormac.c */
-extern OSErr (*gIT_SetControlData)(ControlHandle control, short part, ResType tag, long size, void *data);
+extern OSErr (*gIT_SetControlData)(ControlHandle control, short part, ResType tag, int32_t size, void *data);
 extern CQDProcs gIT_StdCProcs;
 
 typedef struct ITButtonFace {
@@ -38,8 +38,8 @@ typedef struct ITButton {
     unsigned char checkbox;
     unsigned char radio;
     ITRect bounds;
-    long value;
-    long face;
+    int32_t value;
+    int32_t face;
     unsigned char active;
     unsigned char visible;
     unsigned char enabled;                       /* it has an HREF or a SCRIPT */
@@ -65,7 +65,7 @@ typedef struct ITButton {
 #define SET_HILITE(h) do { \
         shown = IsControlVisible(button->control); \
         HiliteControl(button->control, (h)); \
-        if ((long)(UInt16)GetControlHilite(button->control) != (h)) \
+        if ((int32_t)(UInt16)GetControlHilite(button->control) != (h)) \
             HiliteControl(button->control, (h)); \
         if (shown) \
             SetControlVisibility(button->control, true, false); \
@@ -89,7 +89,7 @@ typedef struct ITButton {
     } while (0)
 extern CFStringRef IndirectCopyCFString(void **handle);
 extern RgnHandle DT_RegionCreate(void);
-extern long DT_SetRegionRect(void *region, const ITRect *r);
+extern int32_t DT_SetRegionRect(void *region, const ITRect *r);
 extern void DT_RegionDispose(void *region);
 #else
 #define SET_HILITE(h) ((*button->control)->contrlHilite = (h))
@@ -99,10 +99,10 @@ extern void DT_RegionDispose(void *region);
 #define COPY_NAME(d, s) StringCopySafe((d), (s), sizeof(face.name))
 #endif
 
-long IT_ButtonLoadFaces(void *hwnd, void *dc, ITElement *element, void ***faces)
+int32_t IT_ButtonLoadFaces(void *hwnd, void *dc, ITElement *element, void ***faces)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ITElement *image;
     char *value;
     ITButtonFace face;
@@ -228,11 +228,11 @@ static const ITColor kPlaceholderFore = { 0xff, 0xc0, 0x00, 0x00 };
 static const ITColor kPlaceholderBack = { 0xff, 0xff, 0xff, 0xff };
 static const ITColor kPlaceholderFrame = { 0xff, 0x00, 0x00, 0x00 };
 
-long _IT_ButtonDraw(void *dc, ITImage *image, const ITRect *r, void **faces, long value,
+int32_t _IT_ButtonDraw(void *dc, ITImage *image, const ITRect *r, void **faces, int32_t value,
                   ULong variant)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char made;
     ULong count;
     ITImage *picture;
@@ -319,12 +319,12 @@ done:
     return err;
 }
 
-long IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
+int32_t IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
                   void *b)
 {
     ITButton *button;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char update;
 #if TARGET_API_MAC_CARBON
     unsigned char wide;
@@ -332,14 +332,14 @@ long IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
     unsigned char now;
     char *value;
     ULong length;
-    long kind;
+    int32_t kind;
     ULong maximum;
     ITPoint *where;
     void *owner;
     void *procs;
     unsigned char prev;
     short hilite;
-    long on;
+    int32_t on;
     char text[256];
     Str255 name;
     char digits[256];
@@ -348,7 +348,7 @@ long IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
     Point pt;
     CGrafPtr savedPort;
     GDHandle savedDevice;
-    long number;
+    int32_t number;
     Boolean flag;
 #if TARGET_API_MAC_CARBON
     CFStringRef string;
@@ -720,9 +720,9 @@ long IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
         err = kUnsupported;
         goto done;
     case kMsgGetValue:
-        *(long *)b = button->value;
+        *(int32_t *)b = button->value;
         if (button->control != 0)
-            *(long *)b = GetControlValue(button->control);
+            *(int32_t *)b = GetControlValue(button->control);
         break;
     case kMsgSetValue:
         button->value = a;

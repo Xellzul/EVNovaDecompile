@@ -103,7 +103,7 @@ unsigned short *unicode_strcpy(unsigned short *dst, const unsigned short *src)
 
 /* unicode_strncmp. STATE: MATCH 100%, exe 134 / obj 134, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052c1de
-long unicode_strncmp(const unsigned short *a, ULong lenA,
+int32_t unicode_strncmp(const unsigned short *a, ULong lenA,
                   const unsigned short *b, ULong lenB)
 {
     const unsigned short *startA;
@@ -112,7 +112,7 @@ long unicode_strncmp(const unsigned short *a, ULong lenA,
     const unsigned short *endB;
     unsigned short ca;
     unsigned short cb;
-    long result;
+    int32_t result;
 
     startA = a;
     startB = b;
@@ -179,12 +179,12 @@ long unicode_strncmp(const unsigned short *a, ULong lenA,
    not in it; -1 - length when there is none). STATE: MATCH 100%, exe 147 / obj 147,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0052c381
-long _unicode_findmatch(const unsigned short *s, const unsigned short *set, long inSet)
+int32_t _unicode_findmatch(const unsigned short *s, const unsigned short *set, int32_t inSet)
 {
-    long setLen;
-    long firstPair;
-    long j;
-    long i;
+    int32_t setLen;
+    int32_t firstPair;
+    int32_t j;
+    int32_t i;
     ULong code;
     unsigned short c;
     unsigned short next;
@@ -256,7 +256,7 @@ nextChar:
 // FUNCTION: EVNOVA 0x0052c54a
 unsigned short *unicode_strpbrk(const unsigned short *s, const unsigned short *set)
 {
-    long i;
+    int32_t i;
 
     i = _unicode_findmatch(s, set, 1);
     if (i >= 0)
@@ -269,7 +269,7 @@ unsigned short *unicode_strpbrk(const unsigned short *s, const unsigned short *s
 ULong _unicode_tocase(ULong c, const FoldRange *table, ULong n)
 {
 #ifdef MAC1010 /* 1.0.10 spelling */
-    long info;
+    int32_t info;
     ULong first;
     unsigned char count;
     unsigned char stride;
@@ -283,7 +283,7 @@ ULong _unicode_tocase(ULong c, const FoldRange *table, ULong n)
     ULong hi;
     ULong mid;
     ULong first;
-    long found;
+    int32_t found;
     unsigned char count;
     unsigned char stride;
     short delta;
@@ -403,7 +403,7 @@ ULong count_UTF8_to_UTF16(const unsigned char *s, ULong limit)
     const unsigned char *srcEnd;
     unsigned short *d;
     unsigned short *end;
-    long budget;
+    int32_t budget;
 
     src = s;
     srcEnd = (const unsigned char *)kNoLength;
@@ -431,7 +431,7 @@ ULong count_UTF16_to_UTF8(const unsigned short *s, ULong limit)
     const unsigned short *srcEnd;
     unsigned char *d;
     unsigned char *end;
-    long budget;
+    int32_t budget;
 
     src = s;
     srcEnd = (const unsigned short *)kNoLength;
@@ -454,7 +454,7 @@ ULong count_UTF16_to_UTF8(const unsigned short *s, ULong limit)
    OPEN: none */
 // FUNCTION: EVNOVA 0x0052c7b7
 unsigned short *convert_UTF8_to_UTF16(unsigned short *dst, const unsigned char *src, ULong dstBytes,
-                             long budget, long terminate)
+                             int32_t budget, int32_t terminate)
 {
     const unsigned char *s;
     const unsigned char *sEnd;
@@ -485,7 +485,7 @@ unsigned short *convert_UTF8_to_UTF16(unsigned short *dst, const unsigned char *
    OPEN: none */
 // FUNCTION: EVNOVA 0x0052c842
 unsigned char *convert_UTF16_to_UTF8(unsigned char *dst, const unsigned short *src, ULong dstBytes,
-                            long budget, long terminate)
+                            int32_t budget, int32_t terminate)
 {
     const unsigned short *s;
     const unsigned short *sEnd;
@@ -518,7 +518,7 @@ ULong count_UTF32_to_UTF16(const ULong *s, ULong limit)
     const ULong *srcEnd;
     unsigned short *d;
     unsigned short *end;
-    long budget;
+    int32_t budget;
 
     src = s;
     srcEnd = (const ULong *)kNoLength;
@@ -541,7 +541,7 @@ ULong count_UTF32_to_UTF16(const ULong *s, ULong limit)
    OPEN: none */
 // FUNCTION: EVNOVA 0x0052c8c1
 unsigned short *convert_UTF32_to_UTF16(unsigned short *dst, const ULong *src, ULong dstBytes,
-                             long budget, long terminate)
+                             int32_t budget, int32_t terminate)
 {
     const ULong *s;
     const ULong *sEnd;

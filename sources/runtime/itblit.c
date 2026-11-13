@@ -23,7 +23,7 @@
 extern void *memset(void *dst, int c, unsigned int n);
 #endif
 
-long gGDIDIBSectionFunc;                               /* 0x00870dd0, 8 B bound */
+int32_t gGDIDIBSectionFunc;                               /* 0x00870dd0, 8 B bound */
 AT_EXTERN unsigned char gDT_Open;            /* 0x00870e0a, 1 B, the palettes-built guard */
 
 #define kCubeLevels     6
@@ -36,7 +36,7 @@ ITPalette gDT_DefaultPalette;                          /* 0x0087097c system: cou
 void *gMsimgTransparentBlit;                              /* 0x008706fc TransparentBlt */
 
 /* 0x00576d00: per channel width, the factor that widens it to 16 bits (low word). */
-unsigned long gDT_Mults[9] = {
+uint32_t gDT_Mults[9] = {
     0x00000000, 0x0000ffff, 0x00005555, 0x00002492, 0x00001111,
     0x00000842, 0x00000410, 0x00000204, 0x00000101
 };
@@ -74,19 +74,19 @@ unsigned char gDT_PatternBlack[16] = { 0 };          /* 0x00576d78 the solid pat
 
 /* DT_Open. STATE: MATCH 100%, exe 137 / obj 137, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004db31b
-long DT_Open(void)
+int32_t DT_Open(void)
 {
-    long err = 0;
+    int32_t err = 0;
     unsigned char cube[kCubeLevels] = { 0xff, 0xcc, 0x99, 0x66, 0x33, 0x00 };
     unsigned char levels[kRampSteps] = {
         0xee, 0xee, 0xbb, 0xaa, 0x88, 0x77, 0x55, 0x44, 0x22, 0x11
     };
-    long e;
-    long i;
+    int32_t e;
+    int32_t i;
     ULong r;
     ULong g;
     ULong b;
-    long ramp;
+    int32_t ramp;
     ULong step;
 
     if (gDT_Open != 0)
@@ -147,7 +147,7 @@ long DT_Open(void)
 #ifndef MAC1010
     gMsimgTransparentBlit = GetProcAddress(GetModuleHandleA("MSIMG32.DLL"),
                                   "TransparentBlt");
-    gGDIDIBSectionFunc = (long)GetProcAddress(GetModuleHandleA("GDI32.DLL"),
+    gGDIDIBSectionFunc = (int32_t)GetProcAddress(GetModuleHandleA("GDI32.DLL"),
                                         "CreateDIBSection");
 #endif
     gDT_Open = 1;
@@ -160,7 +160,7 @@ done:
 // FUNCTION: EVNOVA 0x004db4df
 void DT_Close(void)
 {
-    long err;
+    int32_t err;
 
     err = 0;
 #ifndef MAC1010
@@ -208,7 +208,7 @@ extern unsigned char TGA_CheckFileType(const void *data, ULong size);           
 // FUNCTION: EVNOVA 0x004db4f9
 ITImage *_DT_SurfaceCreate(ITPort **portOut, ITDevice **deviceOut, ITPixels **pixelsOut)
 {
-    long err;
+    int32_t err;
     ITImage *image;
     char *mem;
     ULong size;
@@ -311,10 +311,10 @@ done:
    which part's disposer is calling, are never read). STATE: MATCH 100%, exe 70 / obj 70, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004db721
-long _DT_SurfaceDispose(ITImage *image, unsigned char fromPort, unsigned char fromDevice,
+int32_t _DT_SurfaceDispose(ITImage *image, unsigned char fromPort, unsigned char fromDevice,
                   unsigned char fromPixels)
 {
-    long status;
+    int32_t status;
 
     status = 0;
     if (image->port != 0) {
@@ -353,7 +353,7 @@ long _DT_SurfaceDispose(ITImage *image, unsigned char fromPort, unsigned char fr
 ITPort *_DT_SurfaceGetContext(void *imageRef)
 {
     ITImage *image = imageRef;
-    long err;
+    int32_t err;
 
     err = 0;
     return image->port;
@@ -365,7 +365,7 @@ ITPort *_DT_SurfaceGetContext(void *imageRef)
 ITPixels *_DT_SurfaceGetImage(void *imageRef)
 {
     ITImage *image = imageRef;
-    long err;
+    int32_t err;
 
     err = 0;
     return image->pixels;
@@ -377,7 +377,7 @@ ITPixels *_DT_SurfaceGetImage(void *imageRef)
 ITPixels *_DT_SurfaceGetAlpha(void *imageRef)
 {
     ITImage *image = imageRef;
-    long err;
+    int32_t err;
 
     err = 0;
     if (image != 0 && image->pixels->key != kPixelsKey)
@@ -415,7 +415,7 @@ ULong DT_ImageFileFormat(void **handle)
     unsigned char ppat[kSniffPpat + 2];
     unsigned char tga[kSniffTga + 2];
     unsigned char head[kSniffHead];
-    long err;
+    int32_t err;
     ULong type;
 
     err = 0;
@@ -471,10 +471,10 @@ ULong DT_ImageFileFormat(void **handle)
    stream on it). STATE: MATCH 100%, exe 133 / obj 133, byte-identical (see the build). OPEN:
    none */
 // FUNCTION: EVNOVA 0x004db9b0
-long DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTransparent *trans,
+int32_t DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTransparent *trans,
                   ITBackground *bg)
 {
-    long err;
+    int32_t err;
     ITStream stream;
 
     err = 0;
@@ -492,7 +492,7 @@ long DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTr
     case 'BMP ':
     case 'BMPf':
     {
-        long e = BMP_Decode(&stream, imageOut, maskOut, trans, bg);
+        int32_t e = BMP_Decode(&stream, imageOut, maskOut, trans, bg);
 
         if (e != 0) {
             err = e;
@@ -503,7 +503,7 @@ long DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTr
     case 'GIF ':
     case 'GIFf':
     {
-        long e = GIF_Decode(&stream, imageOut, maskOut, trans, bg);
+        int32_t e = GIF_Decode(&stream, imageOut, maskOut, trans, bg);
 
         if (e != 0) {
             err = e;
@@ -514,7 +514,7 @@ long DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTr
     case 'JFIF':
     case 'JPEG':
     {
-        long e = JPEG_Decode(&stream, imageOut, maskOut, trans, bg);
+        int32_t e = JPEG_Decode(&stream, imageOut, maskOut, trans, bg);
 
         if (e != 0) {
             err = e;
@@ -524,7 +524,7 @@ long DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTr
     }
     case 'PICT':
     {
-        long e = PICT_Decode(&stream, imageOut, maskOut, trans, bg);
+        int32_t e = PICT_Decode(&stream, imageOut, maskOut, trans, bg);
 
         if (e != 0) {
             err = e;
@@ -535,7 +535,7 @@ long DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTr
     case 'PNG ':
     case 'PNGf':
     {
-        long e = PNG_Decode(&stream, imageOut, maskOut, trans, bg);
+        int32_t e = PNG_Decode(&stream, imageOut, maskOut, trans, bg);
 
         if (e != 0) {
             err = e;
@@ -545,7 +545,7 @@ long DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTr
     }
     case 'ppat':
     {
-        long e = PPAT_Decode(&stream, imageOut, maskOut, trans, bg);
+        int32_t e = PPAT_Decode(&stream, imageOut, maskOut, trans, bg);
 
         if (e != 0) {
             err = e;
@@ -556,7 +556,7 @@ long DT_ImageFileLoad(void **handle, ITImage **imageOut, ITImage **maskOut, ITTr
     case 'TGA ':
     case 'TPIC':
     {
-        long e = TGA_Decode(&stream, imageOut, maskOut, trans, bg);
+        int32_t e = TGA_Decode(&stream, imageOut, maskOut, trans, bg);
 
         if (e != 0) {
             err = e;
@@ -589,7 +589,7 @@ done:
 ITRect *DT_ImageGetRect(ITImage *image, ITRect *bounds)
 {
     ITPixels *pixels;
-    long err;
+    int32_t err;
 
     pixels = _DT_ImageGetImage(image);
     err = 0;
@@ -607,7 +607,7 @@ unsigned char DT_ImageGetInfo(void *imageRef, ITImage *other, ITPixelInfo *info)
     ITImage *image;
     ITPixels *pixels;
     ITPixels *otherPixels;
-    long err;
+    int32_t err;
     unsigned char locked;
     unsigned char isLocked;
     ULong i;
@@ -655,12 +655,12 @@ unsigned char DT_ImageGetInfo(void *imageRef, ITImage *other, ITPixelInfo *info)
    are read back from the bitmap first, the pixels marked changed, `info' filled when given).
    STATE: MATCH 100%, exe 54 / obj 54, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004dbc5e
-long DT_ImageLock(ITImage *image, ITImage *other, ITPixelInfo *info, unsigned char *rebuilt)
+int32_t DT_ImageLock(ITImage *image, ITImage *other, ITPixelInfo *info, unsigned char *rebuilt)
 {
     ITPixels *pixels;
-    long err;
-    long e;
-    long result;
+    int32_t err;
+    int32_t e;
+    int32_t result;
 
     pixels = _DT_ImageGetImage(image);
     _DT_ImageGetAlpha(other);
@@ -700,7 +700,7 @@ done:
 void DT_ImageUnlock(ITImage *image, ITImage *other)
 {
     ITPixels *pixels;
-    long err;
+    int32_t err;
 
     pixels = _DT_ImageGetImage(image);
     _DT_ImageGetAlpha(other);
@@ -716,8 +716,8 @@ void *DT_PeekAtSysContext(ITImage *image)
 {
     ITPort *port;
     ITPixels *pixels;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     port = _DT_ContextGetContext(image);
     err = 0;
@@ -1055,7 +1055,7 @@ skip:
 
 #define SPAN_LOCALS_R                                                           \
     unsigned char *s, *m, *d;                                                   \
-    long err;                                                                   \
+    int32_t err;                                                                   \
     ULong alpha, da, x, y, i, keyMask, alphaBits, v, dv;                        \
     ULong a, r, g, b, dr, dg, db, wv;
 #ifdef MAC1010 /* 1.0.10 spelling */
@@ -1064,18 +1064,18 @@ skip:
 #define SPAN_LOCALS_R15                                                         \
     ULong alpha, b, g, da, r;                                                   \
     unsigned char *d, *s, *m;                                                   \
-    long err;                                                                   \
+    int32_t err;                                                                   \
     ULong x, y, keyMask, alphaBits, v, dv, i;                                   \
     ULong a, dr, dg, db, wv;
 #endif
 #define SPAN_LOCALS_S                                                           \
     unsigned char *s, *m, *d;                                                   \
-    long err;                                                                   \
+    int32_t err;                                                                   \
     ULong da, x, y, i, keyMask, alphaBits, ye, xe, v, dv;                       \
     ULong a, r, g, b, dr, dg, db, alpha, wv;
 #define SPAN_LOCALS_T                                                           \
     unsigned char *s, *m, *d;                                                   \
-    long err;                                                                   \
+    int32_t err;                                                                   \
     ULong da, x, y, i, keyMask, alphaBits, ty, tx, v, dv;                       \
     ULong a, r, g, b, dr, dg, db, alpha, wv;
 
@@ -1508,17 +1508,17 @@ static ITSpanRows gRowsKey[7] = { SAME_FORMAT_COLUMNS(_DT_ImageBlitNoneColorKey,
    srcColumn is a write-only holder whose declaration slot numbers the group of srcPixels->
    bytesPerPixel's CSE below dstHeight, and dstWidth is declared first for the same tie (notes/itblit.md) */
 // FUNCTION: EVNOVA 0x004e8b5f
-long DT_ImageCopy(ITImage *dst, const ITRect *dstRect, unsigned char copy, ITImage *src,
+int32_t DT_ImageCopy(ITImage *dst, const ITRect *dstRect, unsigned char copy, ITImage *src,
                   ITImage *srcMask, const ITTransparent *trans, const ITRect *srcRect)
 {
     ITPixels *dstPixels;
     ITPixels *srcPixels;
     ITRect dr;
     ITRect sr;
-    long e;
+    int32_t e;
 #ifdef MAC1010 /* 1.0.10 spelling */
     ULong height;
-    long dstWidth, dstHeight;
+    int32_t dstWidth, dstHeight;
     ULong width;
 #else
     ULong kind;
@@ -1527,7 +1527,7 @@ long DT_ImageCopy(ITImage *dst, const ITRect *dstRect, unsigned char copy, ITIma
 #endif
     unsigned char *srcColumn;
     ITPixels *maskPixels;
-    long err;
+    int32_t err;
     ULong yErr, yDen, xErr, xDen;
     ULong column;
     ULong key;
@@ -1820,7 +1820,7 @@ done:
    frame exact, byte-identical yes. OPEN: none; the dead `e = key;` in the Key case is what makes
    the exe's push go through eax (a copy of key that is not pushed; notes/itblit.md) */
 // FUNCTION: EVNOVA 0x004e97fa
-long DT_ImageTile(ITImage *dst, const ITRect *dstRect, const ITPoint *origin, unsigned char copy,
+int32_t DT_ImageTile(ITImage *dst, const ITRect *dstRect, const ITPoint *origin, unsigned char copy,
                   ITImage *src, ITImage *srcMask, const ITTransparent *trans)
 {
     ULong srcHeight, srcWidth;
@@ -1830,13 +1830,13 @@ long DT_ImageTile(ITImage *dst, const ITRect *dstRect, const ITPoint *origin, un
     ITRect dr;
     ITRect sb;
     ITPoint home;
-    long e;
-    long phase;
-    long column;
+    int32_t e;
+    int32_t phase;
+    int32_t column;
     unsigned char *dstRow;
     ITPixels *maskPixels;
     ULong height, width;
-    long err;
+    int32_t err;
     ULong yPhase, xPhase;
     unsigned char alpha;
     unsigned char *srcRow;
@@ -1942,11 +1942,11 @@ long DT_ImageTile(ITImage *dst, const ITRect *dstRect, const ITPoint *origin, un
     for (phase = dr.top - origin->v; phase < 0; phase += sb.bottom - sb.top)
         ;
     srcHeight = sb.bottom - sb.top;
-    yPhase = phase % (long)srcHeight;
+    yPhase = phase % (int32_t)srcHeight;
     for (column = dr.left - origin->h; column < 0; column += sb.right - sb.left)
         ;
     srcWidth = sb.right - sb.left;
-    xPhase = column % (long)srcWidth;
+    xPhase = column % (int32_t)srcWidth;
 
     dstRow = (unsigned char *)dstPixels->baseAddr +
              (dr.left - dstPixels->bounds.left) * dstPixels->bytesPerPixel +
@@ -2019,7 +2019,7 @@ done:
 #define kFormatArgb8888     0x8888
 #define kFormatRgba4444     0x80004444
 #define kFormatRgba8888     0x80008888
-#define kFormatReversed     (long)0x80000000
+#define kFormatReversed     (int32_t)0x80000000
 #define kImageLocked        -7305
 #define kMinTileSide        128
 
@@ -2036,7 +2036,7 @@ void _DT_PaletteToInverse(unsigned char *table, const ITPalette *palette)
     ULong i;
     ULong j;
     ULong best;
-    long err;
+    int32_t err;
     ULong bestDist;
     ULong dist;
     unsigned short qb;
@@ -2074,11 +2074,11 @@ void _DT_PaletteToInverse(unsigned char *table, const ITPalette *palette)
    16-bit widening factors; -1 for an unknown key). STATE: MATCH 100%, exe 231 / obj 231,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004ea028
-long _DT_ImageCalcFormat(ULong format, unsigned char *flag, unsigned char *bits,
+int32_t _DT_ImageCalcFormat(ULong format, unsigned char *flag, unsigned char *bits,
                   unsigned char *shift, unsigned char *mask, unsigned short *scale)
 {
-    long err;
-    long bytes;
+    int32_t err;
+    int32_t bytes;
     ULong a;
     ULong r;
     ULong g;
@@ -2307,7 +2307,7 @@ void _DT_ImageReplace(ITImage *a, ITImage *b)
     ITPixels *pa;
     ITPixels *pb;
     ITPixels saved;
-    long err;
+    int32_t err;
 
     pa = _DT_ImageGetImage(a);
     pb = _DT_ImageGetImage(b);
@@ -2329,7 +2329,7 @@ void _DT_SurfaceReplace(ITImage *a, ITImage *b)
     ITPixels *pixB;
     ITPort savedPort;
     ITPixels savedPixels;
-    long err;
+    int32_t err;
 
     portA = _DT_SurfaceGetContext(a);
     portB = _DT_SurfaceGetContext(b);
@@ -2342,8 +2342,8 @@ void _DT_SurfaceReplace(ITImage *a, ITImage *b)
     memmove(&savedPixels, pixA, sizeof(savedPixels));
     memmove(&pixA->bytesPerPixel, &pixB->bytesPerPixel, kPixelsState);
     memmove(&pixB->bytesPerPixel, &savedPixels.bytesPerPixel, kPixelsState);
-    pixA->drawDC = (long)(portA->dc = portB->dc);
-    pixB->drawDC = (long)(portB->dc = savedPort.dc);
+    pixA->drawDC = (int32_t)(portA->dc = portB->dc);
+    pixB->drawDC = (int32_t)(portB->dc = savedPort.dc);
 }
 
 /* DT_ImageResize (re-frame an image and its mask to new bounds: a moved frame of the same size
@@ -2363,13 +2363,13 @@ extern unsigned char gDT_TempMem;
 #define TempMemRestore(v)
 #endif
 
-long DT_ImageResize(ITImage *image, ITImage *mask, const ITRect *bounds)
+int32_t DT_ImageResize(ITImage *image, ITImage *mask, const ITRect *bounds)
 {
     ITPixels *pixels;
     ITPixels *maskPixels;
     ULong format;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char saved;
     ITImage *fresh;
 
@@ -2429,16 +2429,16 @@ done:
    into a fresh image of its format, the pixel maps swapped). STATE: MATCH 100%, exe 144 / obj
    144, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004ea683
-long DT_ImagePreflightTile(ITImage *image, ITImage *mask)
+int32_t DT_ImagePreflightTile(ITImage *image, ITImage *mask)
 {
     ITPixels *pixels;
     ITPixels *maskPixels;
-    long err;
+    int32_t err;
     ITRect bounds;
     ULong format;
-    long e;
-    long nx;
-    long ny;
+    int32_t e;
+    int32_t nx;
+    int32_t ny;
     unsigned char saved;
     ITImage *fresh;
 
@@ -2501,9 +2501,9 @@ done:
 /* DT_BufferRead (read count bytes off a memory stream; kStreamOverrun past its end). STATE:
    MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ea80c
-long DT_BufferRead(ITStream *stream, void *dst, ULong count)
+int32_t DT_BufferRead(ITStream *stream, void *dst, ULong count)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (stream->pos + count > stream->size) {
@@ -2524,14 +2524,14 @@ long DT_BufferRead(ITStream *stream, void *dst, ULong count)
 // FUNCTION: EVNOVA 0x004ea850
 void DT_ImageSetRawPixels(ITImage *image, ITImage *mask, ULong row, const unsigned char *src)
 {
-    long e;
+    int32_t e;
     ULong i;
     unsigned char locked;
     ULong width;
     ULong count;
     unsigned char *dst;
     ITPixels *pixels;
-    long err;
+    int32_t err;
     ITPixels *maskPixels;
 
     pixels = _DT_ImageGetImage(image);
@@ -2566,8 +2566,8 @@ void DT_ImageSetRawColors(ITImage *image, ITImage *mask, ULong row, const ITColo
 {
     ITPixels *pixels;
     ITPixels *maskPixels;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char *maskRow;
     unsigned char *dst;
     ULong i;
@@ -2623,7 +2623,7 @@ void DT_ImageSetRawColors(ITImage *image, ITImage *mask, ULong row, const ITColo
 // FUNCTION: EVNOVA 0x004eaa61
 void DT_AlphaInfoDefaults(ITTransparent *t)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     memset(t, 0, sizeof(*t));
@@ -2636,7 +2636,7 @@ void DT_AlphaInfoDefaults(ITTransparent *t)
 // FUNCTION: EVNOVA 0x004eaa81
 void DT_FileInfoDefaults(ITBackground *bg)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     memset(bg, 0, sizeof(*bg));

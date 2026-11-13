@@ -8,14 +8,14 @@
 #include "burger.h"
 #include "ambrosia.h"
 
-extern long IT_ViewCreate(void *hwnd, const ITRect *bounds, ITWindowProc proc, long refcon,
-                         long unused, WindowNode **out);                 /* ittoolkit.c */
-extern long _IT_ViewHandleEdit(WindowNode *window, short event, ITClick *click);  /* ittoolkit.c */
-extern long _IT_ViewGetFocus(WindowNode *window, ITControl **control, long *index,
-                         long *item);                                    /* ittoolkit.c */
-extern long _IT_ViewInvalidate(WindowNode *window);                            /* ittoolkit.c */
-extern long _IT_ViewSetRect(WindowNode *window, const ITRect *bounds);      /* ittoolkit.c */
-extern long _IT_ViewSetEnabled(WindowNode *window, unsigned char visible,
+extern int32_t IT_ViewCreate(void *hwnd, const ITRect *bounds, ITWindowProc proc, int32_t refcon,
+                         int32_t unused, WindowNode **out);                 /* ittoolkit.c */
+extern int32_t _IT_ViewHandleEdit(WindowNode *window, short event, ITClick *click);  /* ittoolkit.c */
+extern int32_t _IT_ViewGetFocus(WindowNode *window, ITControl **control, int32_t *index,
+                         int32_t *item);                                    /* ittoolkit.c */
+extern int32_t _IT_ViewInvalidate(WindowNode *window);                            /* ittoolkit.c */
+extern int32_t _IT_ViewSetRect(WindowNode *window, const ITRect *bounds);      /* ittoolkit.c */
+extern int32_t _IT_ViewSetEnabled(WindowNode *window, unsigned char visible,
                          unsigned char enabled);                         /* ittoolkit.c */
 
 /* the control's data handle */
@@ -36,11 +36,11 @@ typedef struct ITFrame {
    none around the calls that paint or move it). STATE: MATCH 100%, exe 471 / obj 471,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005210da
-long IT_FrameHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
+int32_t IT_FrameHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
                   void *b)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ITFrame *frame;
     char *link;
     ITControl *focused;

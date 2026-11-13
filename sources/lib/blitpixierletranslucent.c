@@ -11,11 +11,11 @@
 // FUNCTION: EVNOVA 0x00472900
 // MAC: _BlitPixieRLETranslucent i386 0x000c1568 ppc 0x000cd4fc
 void BlitPixieRLETranslucent(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes)
+        int32_t dstRowBytes)
 {
-    unsigned long token, opcode, count;
+    uint32_t token, opcode, count;
     unsigned char *rowStart;
-    unsigned long redScale, greenScale, blueScale;
+    uint32_t redScale, greenScale, blueScale;
 
     alpha = gSWCurrentSpriteBeingDrawn->translucency;
     scaleR = gSWCurrentSpriteBeingDrawn->tintRed;
@@ -60,7 +60,7 @@ void BlitPixieRLETranslucent(unsigned char *rleTokens, unsigned char *dstPixel,
     rowStart = dstPixel;
 
     do {
-        token = *(unsigned long *)rleTokens;
+        token = *(uint32_t *)rleTokens;
         opcode = token >> 24;
         rleTokens += 4;
         count = token & 0xffffff;
@@ -70,9 +70,9 @@ void BlitPixieRLETranslucent(unsigned char *rleTokens, unsigned char *dstPixel,
             BlitPixieTranslucentCopy(dstPixel, rleTokens, count);
             rleTokens += count;
 #if defined(MACBUILD) && V111
-            (long)rleTokens += (-(long)rleTokens) & 3;
+            (int32_t)rleTokens += (-(int32_t)rleTokens) & 3;
 #else
-            rleTokens += (-(long)rleTokens) & 3;
+            rleTokens += (-(int32_t)rleTokens) & 3;
 #endif
             dstPixel += count;
             break;
@@ -82,7 +82,7 @@ void BlitPixieRLETranslucent(unsigned char *rleTokens, unsigned char *dstPixel,
             break;
 
         case 4:
-            BlitPixieMemSet(dstPixel, *(unsigned long *)rleTokens, count);
+            BlitPixieMemSet(dstPixel, *(uint32_t *)rleTokens, count);
             rleTokens += 4;
             dstPixel += count;
             break;

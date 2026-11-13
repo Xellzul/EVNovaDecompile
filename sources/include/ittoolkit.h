@@ -9,40 +9,40 @@
 #include "burgerplat.h"
 #include "ambrosia.h"
 
-extern long FT_PathCreate(struct FolderSpec **where, const char *name,
+extern int32_t FT_PathCreate(struct FolderSpec **where, const char *name,
                          struct FolderSpec ***result);                   /* atfilespec.c */
-extern long PT_ParseTreeLoad(void **text, const char *rawTags, const char *emptyTags,
+extern int32_t PT_ParseTreeLoad(void **text, const char *rawTags, const char *emptyTags,
                          void **errors, ITElement **out);                /* itmarkup.c */
 extern unsigned char *U2CStringCopySafe(unsigned char *dst, const unsigned short *src,
                                    ULong dstBytes, ULong maxChars);      /* atcharset.c */
 extern unsigned short *UTF32_2UStringCopySafe(unsigned short *dst, const ULong *src, ULong dstBytes,
-                                    long maxChars);                      /* atcharset.c */
-extern long DT_DrawTextAt(ITImage *image, long x, long y, const char *text,
-                         long length);                                   /* itgfx.c */
+                                    int32_t maxChars);                      /* atcharset.c */
+extern int32_t DT_DrawTextAt(ITImage *image, int32_t x, int32_t y, const char *text,
+                         int32_t length);                                   /* itgfx.c */
 
-long IT_ViewGoToPage(void *windowRef, const char *name);
-unsigned char _IT_ViewValidateFocus(WindowNode *window, long self);
+int32_t IT_ViewGoToPage(void *windowRef, const char *name);
+unsigned char _IT_ViewValidateFocus(WindowNode *window, int32_t self);
 
 ITControlList *_IT_ItemListCreate(WindowNode *window, ITElement *first);
 void _IT_ItemListDispose(WindowNode *window, ITControlList *list);
-long _IT_GetItemIndex(ITControlList *list, ITControl *control);
-long _IT_GetObjectItem(WindowNode *window, ITControlList *list, ULong item, WindowNode **ownerOut,
+int32_t _IT_GetItemIndex(ITControlList *list, ITControl *control);
+int32_t _IT_GetObjectItem(WindowNode *window, ITControlList *list, ULong item, WindowNode **ownerOut,
                   ITControl **controlOut);
-long _IT_ItemListQueryFocus(WindowNode *window, ITControlList *list, void **items);
-long _IT_ItemListHandleIdle(WindowNode *window, ITControlList *list);
-long _IT_ItemListHandleKey(WindowNode *window, ITControlList *list, const ITKeyEvent *key,
+int32_t _IT_ItemListQueryFocus(WindowNode *window, ITControlList *list, void **items);
+int32_t _IT_ItemListHandleIdle(WindowNode *window, ITControlList *list);
+int32_t _IT_ItemListHandleKey(WindowNode *window, ITControlList *list, const ITKeyEvent *key,
                   ITClick *click);
-long _IT_ItemListHandleEdit(WindowNode *window, ITControlList *list, short event, ITClick *click);
-long _IT_ItemListHandleClick(WindowNode *window, ITControlList *list, ULong event,
+int32_t _IT_ItemListHandleEdit(WindowNode *window, ITControlList *list, short event, ITClick *click);
+int32_t _IT_ItemListHandleClick(WindowNode *window, ITControlList *list, ULong event,
                   ITClick *click);
-long _IT_ItemListHandleTest(WindowNode *window, ITControlList *list, ULong item, unsigned char *hit);
-long _IT_ItemListHandleDraw(WindowNode *window, ITControlList *list, const ITRect *area);
-long _IT_ItemListHandleActivate(WindowNode *window, ITControlList *list, unsigned char active);
-long _IT_ItemListHandleCursor(WindowNode *window, ITControlList *list, ITInputEvent *event,
+int32_t _IT_ItemListHandleTest(WindowNode *window, ITControlList *list, ULong item, unsigned char *hit);
+int32_t _IT_ItemListHandleDraw(WindowNode *window, ITControlList *list, const ITRect *area);
+int32_t _IT_ItemListHandleActivate(WindowNode *window, ITControlList *list, unsigned char active);
+int32_t _IT_ItemListHandleCursor(WindowNode *window, ITControlList *list, ITInputEvent *event,
                   unsigned short *modifiers);
-long _IT_ItemExecute(WindowNode *window, ITControl *control, const char *link);
-long _IT_GetItemColor(WindowNode *window, ITControlList *list, ULong item, void *a, void *b,
+int32_t _IT_ItemExecute(WindowNode *window, ITControl *control, const char *link);
+int32_t _IT_GetItemColor(WindowNode *window, ITControlList *list, ULong item, void *a, void *b,
                   unsigned char *hit);
-long IT_ViewGetItemCount(void *windowRef);
+int32_t IT_ViewGetItemCount(void *windowRef);
 
 #endif

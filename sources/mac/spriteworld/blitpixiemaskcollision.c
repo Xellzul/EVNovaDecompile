@@ -8,12 +8,12 @@
 Boolean BlitPixieMaskCollision(
 	unsigned char *maskPtr1,
 	unsigned char *maskPtr2,
-	unsigned long rowBytes1,
-	unsigned long rowBytes2,
+	uint32_t rowBytes1,
+	uint32_t rowBytes2,
 	unsigned short bytes,
 	unsigned short rows)
 {
-	unsigned long	x;
+	uint32_t	x;
 
 	rowBytes1 -= bytes;
 	rowBytes2 -= bytes;

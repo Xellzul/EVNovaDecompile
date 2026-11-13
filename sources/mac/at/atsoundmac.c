@@ -10,22 +10,22 @@
 #define MemoryClear(p, n) BlockZero(p, n)
 #endif
 
-extern long _ST_GetCurrentSampleRate(ULong *device);
-extern long _ST_CreateSoundPump(void);
-extern long _ST_SetSystemVolume(ULong a, ULong b);      /* 0x00507b10 */
+extern int32_t _ST_GetCurrentSampleRate(ULong *device);
+extern int32_t _ST_CreateSoundPump(void);
+extern int32_t _ST_SetSystemVolume(ULong a, ULong b);      /* 0x00507b10 */
 extern void _ST_DisposeSoundPump(void);                  /* 0x005076a0 */
 
 
-long gMaxVoices;                               /* 0x00870958 channels */
-long gNumVoices;                               /* 0x00870db0, in use */
+int32_t gMaxVoices;                               /* 0x00870958 channels */
+int32_t gNumVoices;                               /* 0x00870db0, in use */
 SoundChannel gTheVoices[kSoundChannels];       /* 0x0086f718, 0x380 B */
-long gCookieCounter;                               /* 0x00870df4 */
+int32_t gCookieCounter;                               /* 0x00870df4 */
 SoundRequest gSoundVoiceStatus;                       /* 0x008707dc, callback ref */
 char gCriticalSection[16];                           /* 0x0086dc88, the lock */
 ULong gSoundManagerVersion;
 ULong gDurationBuffer;                           /* 0x00870010 */
 ULong gBytesPerBuffer;                           /* 0x00870068 */
-long gSamplesPerBuffer;                          /* 0x00870920 buffer */
+int32_t gSamplesPerBuffer;                          /* 0x00870920 buffer */
 ULong gNumChannels;                              /* 0x008700e4 channels */
 ULong gSampleBits;                               /* 0x0087000c bits */
 ULong gSampleRate;                                   /* 0x0086ff90 */
@@ -46,10 +46,10 @@ unsigned char gSoundToolOpen;                      /* 0x00870e12, live flag */
 #define kBufferBytes    0x400
 
 
-long ST_Open(unsigned short channels, ULong device)
+int32_t ST_Open(unsigned short channels, ULong device)
 {
-    long err, e;
-    long response;
+    int32_t err, e;
+    int32_t response;
     NumVersion version;
 
     err = 0;
@@ -137,7 +137,7 @@ static double DAT_00576b10[7] = {
 
 void ST_Close(void)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     if (gSoundToolOpen != 0) {
@@ -158,8 +158,8 @@ void ST_Close(void)
 
 ULong ST_GetSysVolume(void)
 {
-    long err;
-    long volume;
+    int32_t err;
+    int32_t volume;
     unsigned short level;
 
     err = 0;
@@ -172,18 +172,18 @@ ULong ST_GetSysVolume(void)
 
 void ST_DisposeSound(void *sound)
 {
-    long err;
+    int32_t err;
 
     err = 0;
-    if (sound != 0 && ((long)sound & 1) == 0)
+    if (sound != 0 && ((int32_t)sound & 1) == 0)
         MemoryDeallocate(sound);
 }
 
-long ST_PlaySound(void *snd, unsigned short priority, unsigned short level)
+int32_t ST_PlaySound(void *snd, unsigned short priority, unsigned short level)
 {
     SoundRequest req;
-    long err;
-    long result;
+    int32_t err;
+    int32_t result;
 
     err = 0;
     result = 0;
@@ -290,12 +290,12 @@ ULong ST_PlaySoundParam(SoundRequest *req)
 
 
 /* Counts the channels this sound occupies; a null sound counts them all. */
-long ST_IsSoundPlaying(void *sound)
+int32_t ST_IsSoundPlaying(void *sound)
 {
-    long found;
+    int32_t found;
     ULong i;
     ULong count;
-    long err;
+    int32_t err;
     SoundChannel *chan;
 
     err = 0;
@@ -319,7 +319,7 @@ void ST_HaltSound(void *sound)
     ULong i;
     SoundChannel *src;
     ULong tail;
-    void (*done)(long, void *, void *);
+    void (*done)(int32_t, void *, void *);
 
     if (gSoundToolOpen != 0) {
         i = 0;
@@ -421,7 +421,7 @@ static inline void MoveBytes(const void *src, void *dst, ULong n)
    data is already ADPCM and only loses each packet's two-byte header. */
 void *_ST_SoundRefCreate(SoundDesc *desc)
 {
-    long err = 0;
+    int32_t err = 0;
     short *pcm = 0;
     ULong count;
     ULong samples;
@@ -532,12 +532,12 @@ void *_ST_SoundRefCreate(SoundDesc *desc)
 /* Mix every playing channel into a zeroed stereo 16-bit buffer, then tell
    each owner it ticked and retire the channels that ran out. Channels past
    the voice limit are decoded without being heard. */
-typedef void (*MixerNotifyProc)(long reason, ULong id, SoundRequest *request);
+typedef void (*MixerNotifyProc)(int32_t reason, ULong id, SoundRequest *request);
 
 void _ST_MixVoices(short *buffer, ULong frames)
 {
-    long err = 0;
-    long i;
+    int32_t err = 0;
+    int32_t i;
     SoundChannel *chan;
     short *out;
     short *p;
@@ -600,10 +600,10 @@ void _ST_MixerDispatch(short *buffer, ULong frames)
 
 /* Where the sound header sits in a `snd ' resource: the data offset its
    first soundCmd or bufferCmd carries. 0 if there is none. */
-long _ST_SndDataOffset(void **handle)
+int32_t _ST_SndDataOffset(void **handle)
 {
     short *p;
-    long offset;
+    int32_t offset;
     short count;
     short formats;
     unsigned char found;
@@ -635,7 +635,7 @@ long _ST_SndDataOffset(void **handle)
     while (count > 0 && found == 0) {
         cmd = (p[0]);
         if (cmd == bufferCmd || cmd == soundCmd) {
-            offset = (((long *)p)[1]);
+            offset = (((int32_t *)p)[1]);
             found = 1;
         } else {
             p = p + kSndCommandShorts;
@@ -693,7 +693,7 @@ typedef struct STCmpSoundHeader {
     unsigned short sampleSize;                        /* +0x3e */
 } STCmpSoundHeader;
 
-void *ST_LoadSndResourceIndirect(void **handle, long flags);
+void *ST_LoadSndResourceIndirect(void **handle, int32_t flags);
 
 void *ST_LoadSndResource(short id)
 {
@@ -709,18 +709,18 @@ void *ST_LoadSndResource(short id)
     return result;
 }
 
-void *ST_LoadSndResourceIndirect(void **handle, long flags)
+void *ST_LoadSndResourceIndirect(void **handle, int32_t flags)
 {
-    long err = 0;
+    int32_t err = 0;
     void *result = 0;
     SoundDesc desc;
     STSoundHeader *header;
     STExtSoundHeader *ext;
     STCmpSoundHeader *cmp;
     ULong compression;
-    long offset;
-    long handleSize;
-    long size;
+    int32_t offset;
+    int32_t handleSize;
+    int32_t size;
     ULong rateStatus;
     unsigned char stereo;
 

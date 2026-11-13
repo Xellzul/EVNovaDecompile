@@ -74,13 +74,13 @@ unsigned char gIT_VirtKey2SysKey[256] = {
 
 static char kUnknownKey[] = "<Unknown>";
 
-long __stdcall IT_ButtonsUpEnumProc(void *hwnd, long lParam);
+int32_t __stdcall IT_ButtonsUpEnumProc(void *hwnd, int32_t lParam);
 
 /* IT_ButtonsUpEnumProc (an EnumWindows callback: a button-up message waiting for the window, or for
    any child of a top-level one, means the buttons are no longer down; enumeration goes on
    while they still are). STATE: MATCH 100%, exe 55 / obj 55, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00524337
-long __stdcall IT_ButtonsUpEnumProc(void *hwnd, long lParam)
+int32_t __stdcall IT_ButtonsUpEnumProc(void *hwnd, int32_t lParam)
 {
     ULong *flags;
     WinMsg msg;
@@ -102,7 +102,7 @@ long __stdcall IT_ButtonsUpEnumProc(void *hwnd, long lParam)
 ULong _InputReadModifiers(void *hwnd)
 {
     ULong flags;
-    long lParam;
+    int32_t lParam;
 
     flags = 0;
     if (GetAsyncKeyState(VK_LWIN) < 0 || GetAsyncKeyState(VK_RWIN) < 0)
@@ -130,7 +130,7 @@ ULong _InputReadModifiers(void *hwnd)
     if (GetSystemMetrics(SM_MOUSEPRESENT) != 0)
         flags |= kModMouse;
     if ((flags & kModButtons) != 0) {
-        lParam = (long)&flags;
+        lParam = (int32_t)&flags;
         flags |= kModStillDown;
         if (hwnd == kAllWindows)
             EnumWindows(IT_ButtonsUpEnumProc, lParam);
@@ -149,7 +149,7 @@ unsigned char InputReadMouseState(void *hwnd, ITInputEvent *event)
     POINT pt;
     void *under;
     void *child;
-    long err;
+    int32_t err;
 
     err = 0;
     MemoryClear(event, sizeof(ITInputEvent));
@@ -177,10 +177,10 @@ unsigned char InputReadMouseState(void *hwnd, ITInputEvent *event)
    read off the same word as the position, as the exe does. STATE: MATCH 100%, exe 100 / obj 100,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005245e7
-unsigned char MacEventToMouseEvent(void *hwnd, unsigned int msg, unsigned int unused, long lParam,
+unsigned char MacEventToMouseEvent(void *hwnd, unsigned int msg, unsigned int unused, int32_t lParam,
                            ITInputEvent *event)
 {
-    long err;
+    int32_t err;
     unsigned char press;
     POINT pt;
 
@@ -246,7 +246,7 @@ unsigned char MacEventToKeyEvent(void *hwnd, unsigned int msg, unsigned int vk, 
 {
     unsigned char got;
     WinMsg chr;
-    long err;
+    int32_t err;
 
     err = 0;
     got = 0;

@@ -15,7 +15,7 @@ extern "C" {
 
 #define kFirstHardDrive 2                        /* C: */
 
-long SaveAFileFP(evn_FILE *file, const void *data, unsigned long length);
+int32_t SaveAFileFP(evn_FILE *file, const void *data, uint32_t length);
 void *LoadAFileHandleFP(evn_FILE *file);
 
 Handle PrefixHandles[PREFIXMAX];                /* 0x0087071c */
@@ -50,7 +50,7 @@ Word DoesFileExist(const char *name)
 /* CreateDirectoryPath (BurgerLib CreateDirectoryPath). STATE: MATCH 100.0%, exe 12 / obj 12,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f1d30
-long CreateDirectoryPath(const char *path)
+int32_t CreateDirectoryPath(const char *path)
 {
     char expanded[kPathBufferSize];
 
@@ -324,7 +324,7 @@ void PopAPrefix(unsigned int num)
 /* fwritelong (BurgerLib's void signature). STATE: MATCH 100.0%, exe 10 / obj 10, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f22b0
-void fwritelong(long value, evn_FILE *stream)
+void fwritelong(int32_t value, evn_FILE *stream)
 {
     fwrite(&value, 1, 4, stream);
 }
@@ -341,9 +341,9 @@ void fwritestr(const char *s, evn_FILE *stream)
 /* fgetlong (BurgerLib fgetlong). STATE: MATCH 100.0%, exe 12 / obj 12, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f2310
-long fgetlong(evn_FILE *stream)
+int32_t fgetlong(evn_FILE *stream)
 {
-    long value;
+    int32_t value;
 
     fread(&value, 1, 4, stream);
     return value;
@@ -352,10 +352,10 @@ long fgetlong(evn_FILE *stream)
 /* Reads to the NUL whatever the buffer holds; 1 on the NUL, 0 on EOF. */
 /* fgetstr. STATE: MATCH 100%, exe 39 / obj 39 instrs, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f2350
-long fgetstr(char *buf, long size, FILE *stream)
+int32_t fgetstr(char *buf, int32_t size, FILE *stream)
 {
     char *end;
-    long c;
+    int32_t c;
 
     end = buf + size;
     for (;;) {
@@ -374,7 +374,7 @@ long fgetstr(char *buf, long size, FILE *stream)
 
 /* SaveAFile. STATE: MATCH 100%, exe 23 / obj 23 instrs, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f23d0
-long SaveAFile(const char *path, const void *data, unsigned long length)
+int32_t SaveAFile(const char *path, const void *data, uint32_t length)
 {
     FILE *file;
 
@@ -388,9 +388,9 @@ long SaveAFile(const char *path, const void *data, unsigned long length)
 
 /* SaveAFileFP. STATE: MATCH 100%, exe 39 / obj 39 instrs, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f2430
-long SaveAFileFP(evn_FILE *file, const void *data, unsigned long length)
+int32_t SaveAFileFP(evn_FILE *file, const void *data, uint32_t length)
 {
-    unsigned long written;
+    uint32_t written;
     int closed;
 
     if (file != 0) {
@@ -404,10 +404,10 @@ long SaveAFileFP(evn_FILE *file, const void *data, unsigned long length)
 }
 
 /* SaveATextFile (BurgerLib FmFileManager): SaveAFile in text mode. Not linked. */
-Word SaveATextFile(const char *name, const void *data, unsigned long length)
+Word SaveATextFile(const char *name, const void *data, uint32_t length)
 {
     FILE *file;
-    unsigned long written;
+    uint32_t written;
     int closed;
 
     file = (FILE *)FOpenExpandedPath(name, "w");
@@ -426,7 +426,7 @@ Word SaveATextFile(const char *name, const void *data, unsigned long length)
 /* LoadAFile (BurgerLib FmFileManager). STATE: MATCH 100.0%, exe 33 / obj 33,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f24c0
-void *LoadAFile(const char *name, unsigned long *length)
+void *LoadAFile(const char *name, uint32_t *length)
 {
     FILE *fp;
 
@@ -440,7 +440,7 @@ void *LoadAFile(const char *name, unsigned long *length)
 }
 
 /* LoadAFileNative (BurgerLib FmFileManager): LoadAFile for a name already expanded. Not linked. */
-void *LoadAFileNative(const char *name, unsigned long *length)
+void *LoadAFileNative(const char *name, uint32_t *length)
 {
     FILE *fp;
 
@@ -456,7 +456,7 @@ void *LoadAFileNative(const char *name, unsigned long *length)
 /* LoadAFileFP (BurgerLib FmFileManager): the whole of an open file in a new pointer; closes
    it. STATE: MATCH 100.0%, exe 60 / obj 60, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f2530
-void *LoadAFileFP(FILE *fp, unsigned long *length)
+void *LoadAFileFP(FILE *fp, uint32_t *length)
 {
     ULong size;
     void *data;

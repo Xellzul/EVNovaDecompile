@@ -1,7 +1,7 @@
 /* indirectdecompress1010.inc -- IndirectDecompress's body on mac 1.0.10; win and mac 1.1.1 keep theirs in atplatheap.c. */
 {
     void **out;
-    long err;
+    int32_t err;
     ULong size;
     ULong step;
     ULong w;
@@ -20,7 +20,7 @@
     unsigned int c;
     unsigned int b0;
     unsigned int b1;
-    long r;
+    int32_t r;
     z_stream z;
 
     err = 0;

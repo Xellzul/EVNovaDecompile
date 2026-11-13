@@ -8,7 +8,7 @@
 #include "burgerplat.h"
 #include "win32.h"
 
-typedef long (*FileProc)();
+typedef int32_t (*FileProc)();
 
 typedef struct FTProcs {
     FileProc proc[6];                            /* indexed by kFTRead .. kFTSeek */
@@ -18,14 +18,14 @@ typedef struct FTFile {
     struct FTFile *next;                         /* +0x000 open-file list */
     ULong size;                                  /* +0x004 */
     ULong position;                              /* +0x008 */
-    long refCount;                               /* +0x00c */
+    int32_t refCount;                               /* +0x00c */
     unsigned char mode;                          /* +0x010 */
     FTProcs procs;                               /* +0x014 one of the three FT_Open tables */
     void *hFile;                                 /* +0x02c native file, or kNoFile */
     char path[260];                              /* +0x030 */
     void **memHandle;                            /* +0x134 a file over a memory handle */
     struct FTFile *parent;                       /* +0x138 a file inside another file */
-    long origin;                                 /* +0x13c */
+    int32_t origin;                                 /* +0x13c */
     void **buffer;                               /* +0x140 */
     void **buffer2;                              /* +0x144 */
 } FTFile;
@@ -64,23 +64,23 @@ typedef struct FTMark {
 #define kArchiveHeaderSize  sizeof(FTArchiveHeader)
 
 /* the special-folder lookups, resolved from shell32 / advapi32 / userenv at run time */
-typedef long (__stdcall *SHGetFolderPathProc)(void *hwnd, int csidl, void *token,
+typedef int32_t (__stdcall *SHGetFolderPathProc)(void *hwnd, int csidl, void *token,
                                               ULong flags, char *path);
 typedef int (__stdcall *OpenProcessTokenProc)(void *process, ULong access, void **token);
 typedef int (__stdcall *UserProfileDirProc)(void *token, char *path, ULong *size);
 typedef int (__stdcall *AllUsersProfileDirProc)(char *path, ULong *size);
 
 typedef struct BY_HANDLE_FILE_INFORMATION {
-    unsigned long dwFileAttributes;
+    uint32_t dwFileAttributes;
     FILETIME ftCreationTime;
     FILETIME ftLastAccessTime;
     FILETIME ftLastWriteTime;
-    unsigned long dwVolumeSerialNumber;
-    unsigned long nFileSizeHigh;
-    unsigned long nFileSizeLow;
-    unsigned long nNumberOfLinks;
-    unsigned long nFileIndexHigh;
-    unsigned long nFileIndexLow;
+    uint32_t dwVolumeSerialNumber;
+    uint32_t nFileSizeHigh;
+    uint32_t nFileSizeLow;
+    uint32_t nNumberOfLinks;
+    uint32_t nFileIndexHigh;
+    uint32_t nFileIndexLow;
 } BY_HANDLE_FILE_INFORMATION;
 
 /* atftopen.c */
@@ -91,59 +91,59 @@ extern FileProc gFT_FileHooks[6];                /* the native procedures */
 extern FileProc gFT_ChunkHooks[6];               /* the member procedures */
 
 /* atfilespec.c */
-long FT_FileClose(FTFile *file);
+int32_t FT_FileClose(FTFile *file);
 
 /* atfilespec2.c */
-long _FT_PathModify(FolderSpec **base, void *where, FolderSpec ***result, unsigned char create);
+int32_t _FT_PathModify(FolderSpec **base, void *where, FolderSpec ***result, unsigned char create);
 void _FT_PathInsert(FolderSpec **spec);
 unsigned char _FT_PathLookup(FolderSpec **spec);
-long _FT_PathDispose(void *ref);
-long _FT_PathAppend(FolderSpec **spec, const unsigned char *name);
+int32_t _FT_PathDispose(void *ref);
+int32_t _FT_PathAppend(FolderSpec **spec, const unsigned char *name);
 ULong _FT_PathWalk(FolderSpec **spec, ULong offset);
-long _FT_PathNameInput(unsigned char *out, const char *in, ULong length);
-long _FT_PathNameOutput(char *out, const unsigned char *name);
-long _FT_FileOpenWrapper(FolderSpec **spec, unsigned char write, FTFile **result);
+int32_t _FT_PathNameInput(unsigned char *out, const char *in, ULong length);
+int32_t _FT_PathNameOutput(char *out, const unsigned char *name);
+int32_t _FT_FileOpenWrapper(FolderSpec **spec, unsigned char write, FTFile **result);
 unsigned char _FT_FileIsChunky(FolderSpec **spec, ULong *count);
 unsigned char _FT_IndirectIsChunky(void **handle);
-long _FT_FileUpdateRefCount(FTFile *file, long delta);
+int32_t _FT_FileUpdateRefCount(FTFile *file, int32_t delta);
 
 /* atfilespec3.c */
-long _FT_PathGoTo(void *ref, long folder);
+int32_t _FT_PathGoTo(void *ref, int32_t folder);
 unsigned char _FT_IsPathAFile(FolderSpec **spec);
-long _FT_PathGoToDrive(FolderSpec **spec, char drive, const char *dirPath);
-long _FT_FileCreate(FolderSpec **spec, FTFileInfo *info);
-long _FT_FileDelete(FolderSpec **spec);
-long _FT_FileGetDates(FolderSpec **spec, ULong *created, ULong *modified);
-long _FT_FileGetFlags(FolderSpec **spec, FTFileInfo *info, unsigned char checkArchive);
+int32_t _FT_PathGoToDrive(FolderSpec **spec, char drive, const char *dirPath);
+int32_t _FT_FileCreate(FolderSpec **spec, FTFileInfo *info);
+int32_t _FT_FileDelete(FolderSpec **spec);
+int32_t _FT_FileGetDates(FolderSpec **spec, ULong *created, ULong *modified);
+int32_t _FT_FileGetFlags(FolderSpec **spec, FTFileInfo *info, unsigned char checkArchive);
 FTFile *_FT_IsFileOpen(FolderSpec **spec);
-long _FT_FileOpen(FolderSpec **spec, unsigned char write, FTFile *file);
-long _FT_FileClose(FTFile *file);
-long _FT_RemapError(ULong winError);
+int32_t _FT_FileOpen(FolderSpec **spec, unsigned char write, FTFile *file);
+int32_t _FT_FileClose(FTFile *file);
+int32_t _FT_RemapError(ULong winError);
 ULong _FT_FileTimeToSeconds(const FILETIME *time);
-long _FT_PathFullPath(char *dir, const char *relPath);
-long _FT_ChunkFilePreflight(FTFile *file, FTMark *mark);
-long _FT_ChunkFilePostflight(FTFile *file, FTMark *mark);
+int32_t _FT_PathFullPath(char *dir, const char *relPath);
+int32_t _FT_ChunkFilePreflight(FTFile *file, FTMark *mark);
+int32_t _FT_ChunkFilePostflight(FTFile *file, FTMark *mark);
 
 /* atfilearchive.c */
 FTFile *_FT_IsChunkOpen(FTFile *archive, const char *name);
-long _FT_ChunkOpenPath(FolderSpec **spec, unsigned char write, unsigned char toLast,
+int32_t _FT_ChunkOpenPath(FolderSpec **spec, unsigned char write, unsigned char toLast,
                   unsigned char mustBeArchive, FTFile **result, char *leaf);
-long _FT_ChunkOpen(FTFile *archive, FTFile *file, const char *name, unsigned char write,
+int32_t _FT_ChunkOpen(FTFile *archive, FTFile *file, const char *name, unsigned char write,
                   unsigned char nested);
-long _FT_ChunkClose(FTFile *file);
-long _FT_ChunkLoad(FTFile *file);
+int32_t _FT_ChunkClose(FTFile *file);
+int32_t _FT_ChunkLoad(FTFile *file);
 unsigned char _FT_ChunkLookup(FTFile *archive, const char *name, ULong *index,
                            FTArchiveEntry *entry);
-long _FT_ChunkFormat(FTFile *file, ULong entries);
-long _FT_ChunkResize(FTFile *archive, ULong offset, ULong length, ULong newLength,
+int32_t _FT_ChunkFormat(FTFile *file, ULong entries);
+int32_t _FT_ChunkResize(FTFile *archive, ULong offset, ULong length, ULong newLength,
                   ULong *newOffset);
-long _FT_ChunkCreate(FTFile *archive, FTFileInfo *info);
-long _FT_ChunkDelete(FTFile *archive, const char *name);
-long _FT_ChunkGetFlags(FTFile *archive, const char *name, const char *member, FTFileInfo *info,
+int32_t _FT_ChunkCreate(FTFile *archive, FTFileInfo *info);
+int32_t _FT_ChunkDelete(FTFile *archive, const char *name);
+int32_t _FT_ChunkGetFlags(FTFile *archive, const char *name, const char *member, FTFileInfo *info,
                   FolderSpec **spec);
-long _FT_ChunkGetCount(FTFile *archive, const char *name, ULong *count);
+int32_t _FT_ChunkGetCount(FTFile *archive, const char *name, ULong *count);
 FTFile *_FT_IsBufferOpen(void **handle);
-long _FT_BufferClose(FTFile *file);
+int32_t _FT_BufferClose(FTFile *file);
 
 #define kCopyChunk          0x8000
 #define kArchiveEntrySize   sizeof(FTArchiveEntry)

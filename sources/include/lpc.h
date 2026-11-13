@@ -18,14 +18,14 @@ typedef struct lpclook{
 extern "C" {
 #endif
 
-extern void lpc_init(lpc_lookup *l,long mapped, int m);
+extern void lpc_init(lpc_lookup *l,int32_t mapped, int m);
 extern void lpc_clear(lpc_lookup *l);
 
 extern float vorbis_lpc_from_data(float *data,float *lpc,int n,int m);
 extern float vorbis_lpc_from_curve(float *curve,float *lpc,lpc_lookup *l);
 
 extern void vorbis_lpc_predict(float *coeff,float *prime,int m,
-			       float *data,long n);
+			       float *data,int32_t n);
 
 #ifdef __cplusplus
 }

@@ -8,7 +8,7 @@
 #ifdef MACBUILD
 /* DebugInteger (mac _DebugInteger, mac-only). STATE: see the mac gate. */
 // MAC: _DebugInteger i386 0x000a8b30 ppc 0x000b3b20
-void DebugInteger(long n)
+void DebugInteger(int32_t n)
 {
     Str255 s;
 
@@ -24,7 +24,7 @@ short SWCreateSprite(SpritePtr *newSpriteP, void *spriteStorageP, short maxFrame
 {
     short err = 0;
     SpritePtr tempSpriteP;
-    long frameArraySize;
+    int32_t frameArraySize;
 
     *newSpriteP = 0;
 
@@ -32,7 +32,7 @@ short SWCreateSprite(SpritePtr *newSpriteP, void *spriteStorageP, short maxFrame
                                         : (SpritePtr)spriteStorageP;
 
     if (tempSpriteP != 0) {
-        frameArraySize = (long)maxFrames * sizeof(FramePtr);
+        frameArraySize = (int32_t)maxFrames * sizeof(FramePtr);
 
         tempSpriteP->frameArray = (FramePtr *)AllocAPointerClear(frameArraySize);
 

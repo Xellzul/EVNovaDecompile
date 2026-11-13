@@ -88,13 +88,13 @@ typedef struct GIFRows {
 #define kFormatGif          0x47494666    /* 'GIFf' */
 #define kGifBadData         -7301
 
-AT_STATIC long DT_GifReadByte(struct ITStream *stream, unsigned char *b);
-AT_STATIC long DT_GifReadSignature(struct ITStream *stream, char *signature);
-AT_STATIC long DT_GifReadScreen(struct ITStream *stream, GIFScreen *screen);
-AT_STATIC long DT_GifReadImageDesc(struct ITStream *stream, GIFImage *image);
-AT_STATIC long _ReadNextCode(struct ITStream *stream, GIFCodeReader *r, short *code);
-AT_STATIC long _WriteImageLine(GIFRows *rows, ITImage *image, const unsigned char *pixels, short count);
-AT_STATIC long DT_GifDecodeLZW(GIFRows *rows, ITStream *stream, ITImage *image);
+AT_STATIC int32_t DT_GifReadByte(struct ITStream *stream, unsigned char *b);
+AT_STATIC int32_t DT_GifReadSignature(struct ITStream *stream, char *signature);
+AT_STATIC int32_t DT_GifReadScreen(struct ITStream *stream, GIFScreen *screen);
+AT_STATIC int32_t DT_GifReadImageDesc(struct ITStream *stream, GIFImage *image);
+AT_STATIC int32_t _ReadNextCode(struct ITStream *stream, GIFCodeReader *r, short *code);
+AT_STATIC int32_t _WriteImageLine(GIFRows *rows, ITImage *image, const unsigned char *pixels, short count);
+AT_STATIC int32_t DT_GifDecodeLZW(GIFRows *rows, ITStream *stream, ITImage *image);
 
 /* GIF_CheckFileType (a "GIF87a" or "GIF89a" signature). STATE: MATCH 100%, exe 32 / obj 32,
    byte-identical yes. OPEN: none */
@@ -127,11 +127,11 @@ AT_STATIC ULong gDT_GifCodeMask[17] = {
 /* GIF_Decode (load the first image of a GIF off a stream into an 8-bit image over its local or
    global colour map). STATE: MATCH 100%, exe 263 / obj 263, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005137eb
-long GIF_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
+int32_t GIF_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                   ITTransparent *trans, ITBackground *bg)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong useTransparent;
     unsigned short mapSize;
     unsigned char locked;
@@ -253,14 +253,14 @@ done:
 /* DT_GifDecodeLZW (the LZW decoder: codes off the image's data sub-blocks, pixels a row at a
    time to the row writer). STATE: MATCH 100%, exe 239 / obj 239, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00513bb1
-AT_STATIC long DT_GifDecodeLZW(GIFRows *rows, ITStream *stream, ITImage *image)
+AT_STATIC int32_t DT_GifDecodeLZW(GIFRows *rows, ITStream *stream, ITImage *image)
 {
-    long err;
+    int32_t err;
     GIFCodeReader *d;
     short bad;
     unsigned char *sp;
     unsigned char *out;
-    long e;
+    int32_t e;
     short firstChar;
     unsigned char codeSize;
     short code;
@@ -379,7 +379,7 @@ done:
 /* DT_GifReadByte (one byte off the stream). STATE: MATCH 100%, exe 6 / obj 6, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00513ebd
-AT_STATIC long DT_GifReadByte(struct ITStream *stream, unsigned char *b)
+AT_STATIC int32_t DT_GifReadByte(struct ITStream *stream, unsigned char *b)
 {
     return DT_BufferRead(stream, b, 1);
 }
@@ -393,10 +393,10 @@ AT_STATIC long DT_GifReadByte(struct ITStream *stream, unsigned char *b)
 /* DT_GifReadWord (a little-endian word off the stream). STATE: MATCH 100%, exe 13 / obj 13, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00513ed0
-long DT_GifReadWord(struct ITStream *stream, unsigned short *w)
+int32_t DT_GifReadWord(struct ITStream *stream, unsigned short *w)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     e = DT_BufferRead(stream, w, 2);
@@ -410,7 +410,7 @@ long DT_GifReadWord(struct ITStream *stream, unsigned short *w)
 /* DT_GifReadBytes (n bytes off the stream). STATE: MATCH 100%, exe 6 / obj 6, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00513eef
-long DT_GifReadBytes(struct ITStream *stream, void *dst, ULong count)
+int32_t DT_GifReadBytes(struct ITStream *stream, void *dst, ULong count)
 {
     return DT_BufferRead(stream, dst, count);
 }
@@ -418,10 +418,10 @@ long DT_GifReadBytes(struct ITStream *stream, void *dst, ULong count)
 /* DT_GifReadSignature (the six signature bytes off the stream, terminated). STATE: MATCH 100%, exe 19 /
    obj 19, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00513f04
-AT_STATIC long DT_GifReadSignature(struct ITStream *stream, char *signature)
+AT_STATIC int32_t DT_GifReadSignature(struct ITStream *stream, char *signature)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     e = DT_BufferRead(stream, signature, kGifSignatureSize);
@@ -435,10 +435,10 @@ AT_STATIC long DT_GifReadSignature(struct ITStream *stream, char *signature)
 /* DT_GifReadScreen (the logical screen descriptor and its global colour map). STATE: MATCH 100%, exe
    88 / obj 88, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00513f2d
-AT_STATIC long DT_GifReadScreen(struct ITStream *stream, GIFScreen *screen)
+AT_STATIC int32_t DT_GifReadScreen(struct ITStream *stream, GIFScreen *screen)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char flags;
     unsigned char hasMap;
 
@@ -489,10 +489,10 @@ done:
    graphic control extension's transparent index is kept). STATE: MATCH 100%, exe 168 / obj 168,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00513ff7
-AT_STATIC long DT_GifReadImageDesc(struct ITStream *stream, GIFImage *image)
+AT_STATIC int32_t DT_GifReadImageDesc(struct ITStream *stream, GIFImage *image)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char hasTransparent;
     unsigned char transparent;
     unsigned char b;
@@ -607,10 +607,10 @@ done:
 /* _ReadNextCode (the next LZW code, codeSize bits taken low bit first across the image's data
    sub-blocks). STATE: MATCH 100%, exe 88 / obj 88, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005141b8
-AT_STATIC long _ReadNextCode(struct ITStream *stream, GIFCodeReader *r, short *code)
+AT_STATIC int32_t _ReadNextCode(struct ITStream *stream, GIFCodeReader *r, short *code)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong bits;
 
     err = 0;
@@ -662,9 +662,9 @@ done:
 /* _WriteImageLine (store one decoded row, stepping through the four interlace passes; count is
    passed and never read). STATE: MATCH 100%, exe 51 / obj 51, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005142be
-AT_STATIC long _WriteImageLine(GIFRows *rows, ITImage *image, const unsigned char *pixels, short count)
+AT_STATIC int32_t _WriteImageLine(GIFRows *rows, ITImage *image, const unsigned char *pixels, short count)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (rows->rowsDone >= rows->height) {

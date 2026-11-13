@@ -51,9 +51,9 @@ short salvageAmmoQty;
 short salvageFuelQty;
 short captureOdds;
 short bribeRandom;
-long salvageCredits;
-long initialHaggleVal;
-long haggleVal;
+int32_t salvageCredits;
+int32_t initialHaggleVal;
+int32_t haggleVal;
 float bribeFlux;
 Boolean hatesPlayer;
 #ifndef MACBUILD
@@ -109,7 +109,7 @@ void DoCommDialog(short shipIndex)
     unsigned char buf[256];
     short n;
     short r;
-    long amount;
+    int32_t amount;
     short halfW;
     short halfH;
 #ifdef MACBUILD
@@ -515,7 +515,7 @@ short DoShipCommPayment(void)
 /* CommFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047fa40
 // MAC: _CommFilter i386 0x000908ed ppc 0x0009c440
-Boolean CommFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean CommFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Point where;
     short button;
@@ -1005,7 +1005,7 @@ void DoPlanetCommDialog(short stellar)
 /* PlanetCommFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00481140
 // MAC: _PlanetCommFilter i386 0x000911a9 ppc 0x0009cc58
-Boolean PlanetCommFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean PlanetCommFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Point where;
     short button;
@@ -1509,9 +1509,9 @@ void LoadAdvice(void)
 short DoHaggleDialog(Boolean raise, short chance)
 {
     float scratch;
-    long fscratch;
+    int32_t fscratch;
     short itemHit;
-    long conv;
+    int32_t conv;
     short result;
     Boolean canHaggle;
     Boolean done;
@@ -1592,7 +1592,7 @@ short DoHaggleDialog(Boolean raise, short chance)
 /* HaggleFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004825d0
 // MAC: _HaggleFilter i386 0x00091d9d ppc 0x0009d8e8
-Boolean HaggleFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean HaggleFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
 #if V111
     short key;
@@ -2238,8 +2238,8 @@ void SetPlunderValues(void)
     short i;
     short j;
     short fuel;
-    long crew;
-    long mass;
+    int32_t crew;
+    int32_t mass;
     Boolean ok;
 #ifdef MAC1010
     extern Boolean PlayerCanUseAmmoType(short weapon);
@@ -2382,7 +2382,7 @@ void SetPlunderValues(void)
 /* PlunderFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00484c20
 // MAC: _PlunderFilter i386 0x00092f20 ppc 0x0009ee40
-Boolean PlunderFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean PlunderFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
 #if V111
     short key;
@@ -2705,7 +2705,7 @@ void DoEscortDialog(ShipObj *ship)
 /* EscortFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00485840
 // MAC: _EscortFilter i386 0x000950e9 ppc 0x000a0d7c
-Boolean EscortFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean EscortFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Point where;
     short button;

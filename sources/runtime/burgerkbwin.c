@@ -11,18 +11,18 @@ extern "C" {
 #endif
 
 static ULong RWMMouseWheel;                      /* 0x008658a0 */
-static long BurgerKeyStart;                      /* 0x008658a4 */
-static long BurgerKeyEnd;                        /* 0x008658a8 */
+static int32_t BurgerKeyStart;                      /* 0x008658a4 */
+static int32_t BurgerKeyEnd;                        /* 0x008658a8 */
 static Word32 BurgerKeyBuffer[128];              /* 0x008658ac */
 Word (*KeyboardGetchCallBack)(Word key);         /* 0x0087070c */
 Word Win95NoProcess;                             /* 0x00870de0 */
 static Word Recurse;                             /* 0x00865aac */
 Word32 Win95MouseButton;                         /* 0x008701a0 */
-long Win95MouseWheel;                            /* 0x008700a8 */
-long Win95LastMouseX;                            /* 0x008700b0 */
-long Win95LastMouseY;                            /* 0x008700b4 */
-long Win95MouseXDelta;                           /* 0x00870190 */
-long Win95MouseYDelta;                           /* 0x00870180 */
+int32_t Win95MouseWheel;                            /* 0x008700a8 */
+int32_t Win95LastMouseX;                            /* 0x008700b0 */
+int32_t Win95LastMouseY;                            /* 0x008700b4 */
+int32_t Win95MouseXDelta;                           /* 0x00870190 */
+int32_t Win95MouseYDelta;                           /* 0x00870180 */
 
 /* Windows scan code (bit 7 = extended) to BurgerLib scan code. */
 Word8 NormalScan[256] = {                        /* 0x00576b50 */
@@ -63,8 +63,8 @@ Word8 NormalScan[256] = {                        /* 0x00576b50 */
 /* Queue one key; a full queue drops it. */
 static void BurgerPostKey(Word32 key)
 {
-    long end;
-    long next;
+    int32_t end;
+    int32_t next;
 
     if (key != 0) {
         end = BurgerKeyEnd;
@@ -138,7 +138,7 @@ static inline Word32 SpecialKey(Word32 code, const WinMsg *msg)
 // FUNCTION: EVNOVA 0x004d7240
 unsigned int KeyboardGetch(void)
 {
-    long i;
+    int32_t i;
     Word32 key;
 
     do {
@@ -161,7 +161,7 @@ unsigned int KeyboardGetch(void)
 // FUNCTION: EVNOVA 0x004d72a0
 unsigned int KeyboardKbhit(void)
 {
-    long i;
+    int32_t i;
     Word32 key;
 
     ProcessSystemEvents();
@@ -180,9 +180,9 @@ unsigned int KeyboardKbhit(void)
 /* KeyboardGet2 (BurgerLib InKeyboardWin95). STATE: MATCH 100%, exe 14 / obj 14,
    byte-identical yes. OPEN: none. */
 // FUNCTION: EVNOVA 0x004d72f0
-long KeyboardGet2(void)
+int32_t KeyboardGet2(void)
 {
-    long i;
+    int32_t i;
 
     ProcessSystemEvents();
     KeyboardCallPollingProcs();
@@ -261,7 +261,7 @@ Word Win95ProcessMessage(WinMsg *msg)
         ReleaseCapture();
         break;
     case WM_MOUSEWHEEL:
-        Win95MouseWheel += (long)msg->wParam >> 16;
+        Win95MouseWheel += (int32_t)msg->wParam >> 16;
         break;
     case WM_MOUSEMOVE:
         Win95MouseX = (Word16)msg->lParam;

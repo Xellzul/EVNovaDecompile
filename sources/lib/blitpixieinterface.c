@@ -34,10 +34,10 @@ void BlitPixieClearDrawProc(FramePtr srcFrameP, FramePtr dstFrameP, Rect* srcRec
     RectPtr frameRectP = &dstFrameP->frameRect;
     Rect srcBlitRect = {0,0,0,0};
     Rect dstBlitRect = *dstRect;
-    long dstRowBytes = dstFrameP->frameRowBytes;
+    int32_t dstRowBytes = dstFrameP->frameRowBytes;
     int numPixelsPerRow,numRowsToCopy;
 
-    unsigned long clearColor;
+    uint32_t clearColor;
 
     SW_ASSERT(dstFrameP->framePort != NULL , 93);
     SW_ASSERT(dstFrameP->isFrameLocked , 94);
@@ -84,8 +84,8 @@ void BlitPixieRectDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP,
     Rect *frameRectP = &dstFrameP->frameRect;
     Rect srcBlitRect = *srcRect;
     Rect dstBlitRect = *dstRect;
-    long srcRowBytes = srcFrameP->frameRowBytes;
-    long dstRowBytes = dstFrameP->frameRowBytes;
+    int32_t srcRowBytes = srcFrameP->frameRowBytes;
+    int32_t dstRowBytes = dstFrameP->frameRowBytes;
     int numPixelsPerRow, numRowsToCopy;
 
     if (srcFrameP->framePort == 0)
@@ -143,13 +143,13 @@ void BlitPixieRectDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP,
 // MAC: _BlitPixieFloatingRectDrawProc i386 0x000ba405 ppc 0x000c63a4
 void BlitPixieFloatingRectDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP,
                                    Rect *srcRect, Rect *dstRect, short level,
-                                   long backgroundValue)
+                                   int32_t backgroundValue)
 {
     Rect *frameRectP = &dstFrameP->frameRect;
     Rect srcBlitRect = *srcRect;
     Rect dstBlitRect = *dstRect;
-    long srcRowBytes = srcFrameP->frameRowBytes;
-    long dstRowBytes = dstFrameP->frameRowBytes;
+    int32_t srcRowBytes = srcFrameP->frameRowBytes;
+    int32_t dstRowBytes = dstFrameP->frameRowBytes;
     int numPixelsPerRow, numRowsToCopy;
 
     if (srcFrameP->framePort == 0)
@@ -206,9 +206,9 @@ void BlitPixieMaskDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP,
     Rect *frameRectP = &dstFrameP->frameRect;
     Rect srcBlitRect = *srcRect;
     Rect dstBlitRect = *dstRect;
-    unsigned long srcRowBytes = srcFrameP->frameRowBytes;
-    unsigned long dstRowBytes = dstFrameP->frameRowBytes;
-    long srcBaseOffset;
+    uint32_t srcRowBytes = srcFrameP->frameRowBytes;
+    uint32_t dstRowBytes = dstFrameP->frameRowBytes;
+    int32_t srcBaseOffset;
     int numPixelsPerRow, numRowsToCopy;
 
     if (srcFrameP->framePort == 0)
@@ -272,9 +272,9 @@ void BlitPixiePartialMaskDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP,
     Rect *frameRectP = &dstFrameP->frameRect;
     Rect srcBlitRect = *srcRect;
     Rect dstBlitRect = *dstRect;
-    long srcRowBytes = srcFrameP->frameRowBytes;
-    long dstRowBytes = dstFrameP->frameRowBytes;
-    long srcBaseOffset;
+    int32_t srcRowBytes = srcFrameP->frameRowBytes;
+    int32_t dstRowBytes = dstFrameP->frameRowBytes;
+    int32_t srcBaseOffset;
     int numPixelsPerRow, numRowsToCopy;
 
     if (srcFrameP->framePort == 0)
@@ -338,7 +338,7 @@ Boolean BlitPixieMaskCollisionProc(
     Rect* srcRect,
     Rect* dstRect)
 {
-    unsigned long srcBaseOffset,
+    uint32_t srcBaseOffset,
                     dstBaseOffset;
     unsigned char* srcPixelPtr;
     unsigned char* dstPixelPtr;
@@ -389,11 +389,11 @@ void BlitPixieMaskColorDrawProc(
     RectPtr frameRectP = &dstFrameP->frameRect;
     Rect srcBlitRect = *srcRect;
     Rect dstBlitRect = *dstRect;
-    unsigned long srcRowBytes = srcFrameP->frameRowBytes;
-    unsigned long dstRowBytes = dstFrameP->frameRowBytes;
-    long srcBaseOffset;
+    uint32_t srcRowBytes = srcFrameP->frameRowBytes;
+    uint32_t dstRowBytes = dstFrameP->frameRowBytes;
+    int32_t srcBaseOffset;
     int numPixelsPerRow,numRowsToCopy;
-    unsigned long color;
+    uint32_t color;
 
     SW_ASSERT(srcFrameP->framePort != NULL , 487);
     SW_ASSERT(srcFrameP->maskPort != NULL , 488);
@@ -458,7 +458,7 @@ void BlitPixieRLEDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP,
     Rect srcBlitRect = *srcRect;
     Rect dstBlitRect = *dstRect;
     unsigned char *dstPixel;
-    unsigned long dstRowBytes;
+    uint32_t dstRowBytes;
 
     if (srcFrameP->rleTokenStart == 0)
         SW_ASSERT_FAIL("BlitPixieInterface.c", 565, 567);
@@ -530,7 +530,7 @@ void BlitPixieRLETranslucentDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrame
     Rect srcBlitRect = *srcRect;
     Rect dstBlitRect = *dstRect;
     unsigned char *dstPixel;
-    unsigned long dstRowBytes;
+    uint32_t dstRowBytes;
 
     if (srcFrameP->rleTokenStart == 0)
         SW_ASSERT_FAIL("BlitPixieInterface.c", 640, 642);
@@ -732,8 +732,8 @@ void BlitPixieRLEColorDrawProc(FramePtr srcFrameP, FramePtr dstFrameP, Rect* src
     Rect srcBlitRect = *srcRect;
     Rect dstBlitRect = *dstRect;
     UInt8 *dstPixel;
-    unsigned long dstRowBytes;
-    unsigned long color;
+    uint32_t dstRowBytes;
+    uint32_t color;
 
     SW_ASSERT(srcFrameP->rleTokenStart != NULL , 892);
     SW_ASSERT(dstFrameP->framePort != NULL , 893);
@@ -795,8 +795,8 @@ void BlitPixieDoubleRectDrawProc(
                         dstBlitRectA = *dstRectA,
                         srcBlitRectB = *srcRectB,
                         dstBlitRectB = *dstRectB;
-    long srcRowBytes = srcFrameP->frameRowBytes;
-    long dstRowBytes = dstFrameP->frameRowBytes;
+    int32_t srcRowBytes = srcFrameP->frameRowBytes;
+    int32_t dstRowBytes = dstFrameP->frameRowBytes;
     BlitPixieOffsetInfo info;
     int numPixelsPerRowA,numPixelsPerRowB,numRowsToCopy;
 
@@ -869,8 +869,8 @@ void BlitPixieFlipRectDrawProc(FramePtr srcFrameP, FramePtr dstFrameP, Rect* src
     RectPtr frameRectP = &dstFrameP->frameRect;
     Rect srcBlitRect = *srcRect;
     Rect dstBlitRect = *dstRect;
-    unsigned long srcRowBytes = srcFrameP->frameRowBytes;
-    unsigned long dstRowBytes = dstFrameP->frameRowBytes;
+    uint32_t srcRowBytes = srcFrameP->frameRowBytes;
+    uint32_t dstRowBytes = dstFrameP->frameRowBytes;
     int numPixelsPerRow, numRowsToCopy;
 
     SW_ASSERT(srcFrameP->framePort != NULL , 1064);
@@ -955,9 +955,9 @@ void BlitPixieFlipMaskDrawProc(FramePtr srcFrameP, FramePtr dstFrameP, Rect* src
     RectPtr frameRectP = &dstFrameP->frameRect;
     Rect srcBlitRect = *srcRect;
     Rect dstBlitRect = *dstRect;
-    unsigned long srcRowBytes = srcFrameP->frameRowBytes;
-    unsigned long dstRowBytes = dstFrameP->frameRowBytes;
-    long srcBaseOffset;
+    uint32_t srcRowBytes = srcFrameP->frameRowBytes;
+    uint32_t dstRowBytes = dstFrameP->frameRowBytes;
+    int32_t srcBaseOffset;
     int numPixelsPerRow,numRowsToCopy;
 
     SW_ASSERT(srcFrameP->framePort != NULL , 1178);
@@ -1055,14 +1055,14 @@ Boolean BlitPixieFlipMaskCollisionProc(
     Rect* srcRect,
     Rect* dstRect)
 {
-    unsigned long srcBaseOffset,
+    uint32_t srcBaseOffset,
                     dstBaseOffset;
     unsigned char* srcPixelPtr;
     unsigned char* dstPixelPtr;
     FramePtr srcFrameP = srcSpriteP->curFrameP;
     FramePtr dstFrameP = dstSpriteP->curFrameP;
-    unsigned long srcRowBytes = srcFrameP->frameRowBytes;
-    unsigned long dstRowBytes = dstFrameP->frameRowBytes;
+    uint32_t srcRowBytes = srcFrameP->frameRowBytes;
+    uint32_t dstRowBytes = dstFrameP->frameRowBytes;
     short numBytesPerRow;
     short numRows;
     Boolean collision;
@@ -1135,11 +1135,11 @@ void BlitPixieFlipMaskColorDrawProc(
     RectPtr frameRectP = &dstFrameP->frameRect;
     Rect srcBlitRect = *srcRect;
     Rect dstBlitRect = *dstRect;
-    unsigned long srcRowBytes = srcFrameP->frameRowBytes;
-    unsigned long dstRowBytes = dstFrameP->frameRowBytes;
-    long srcBaseOffset;
+    uint32_t srcRowBytes = srcFrameP->frameRowBytes;
+    uint32_t dstRowBytes = dstFrameP->frameRowBytes;
+    int32_t srcBaseOffset;
     int numPixelsPerRow,numRowsToCopy;
-    unsigned long color;
+    uint32_t color;
 
     SW_ASSERT(srcFrameP->framePort != NULL , 1401);
     SW_ASSERT(srcFrameP->maskPort != NULL , 1402);
@@ -1262,7 +1262,7 @@ void BlitPixieAllBitPartialMaskDrawProc(
 // FUNCTION: EVNOVA 0x004719d0
 // MAC: _SWGetValueFromColor i386 0x000bd4a0 ppc 0x000c8e14
 #ifdef MACBUILD
-unsigned long SWGetValueFromColor(FramePtr dstFrameP, RGBColor *color)
+uint32_t SWGetValueFromColor(FramePtr dstFrameP, RGBColor *color)
 {
     GWorldPtr saveGWorld;
     GDHandle saveGDevice;
@@ -1291,11 +1291,11 @@ unsigned long SWGetValueFromColor(FramePtr dstFrameP, RGBColor *color)
     return pixelValue;
 }
 #else
-unsigned long SWGetValueFromColor(SWFrameRec *dstFrameP, RGBColor *color)
+uint32_t SWGetValueFromColor(SWFrameRec *dstFrameP, RGBColor *color)
 {
     CGrafPtr saveGWorld;
     void *saveGDevice;
-    unsigned long pixelValue;
+    uint32_t pixelValue;
 
     if (dstFrameP == 0)
         SWAssertFail("BlitPixieInterface.c", 1929);
@@ -1322,7 +1322,7 @@ unsigned long SWGetValueFromColor(SWFrameRec *dstFrameP, RGBColor *color)
 #ifdef MACBUILD
 /* SWGetColorFromValue (mac _SWGetColorFromValue, mac-only). STATE: see the mac gate. */
 // MAC: _SWGetColorFromValue i386 0x000bd5ce ppc 0x000c8f14
-void SWGetColorFromValue(FramePtr dstFrameP, RGBColor *color, unsigned long pixelValue)
+void SWGetColorFromValue(FramePtr dstFrameP, RGBColor *color, uint32_t pixelValue)
 {
     GWorldPtr saveGWorld;
     GDHandle saveGDevice;
@@ -1349,7 +1349,7 @@ void SWGetColorFromValue(FramePtr dstFrameP, RGBColor *color, unsigned long pixe
 
 /* SWSetPixel (mac _SWSetPixel, mac-only). STATE: see the mac gate. */
 // MAC: _SWSetPixel i386 0x000bd6cc ppc 0x000c9010
-void SWSetPixel(FramePtr dstFrameP, short x, short y, unsigned long color)
+void SWSetPixel(FramePtr dstFrameP, short x, short y, uint32_t color)
 {
     SW_ASSERT(dstFrameP->isFrameLocked , 1998);
     SW_ASSERT(x >= dstFrameP->frameRect.left && x < dstFrameP->frameRect.right , 1999);
@@ -1397,9 +1397,9 @@ void SWSetPixel(FramePtr dstFrameP, short x, short y, unsigned long color)
 
 /* SWGetPixel (mac _SWGetPixel, mac-only). STATE: see the mac gate. */
 // MAC: _SWGetPixel i386 0x000bd94e ppc 0x000c9340
-unsigned long SWGetPixel(FramePtr srcFrameP, short x, short y)
+uint32_t SWGetPixel(FramePtr srcFrameP, short x, short y)
 {
-    unsigned long val;
+    uint32_t val;
 
     SW_ASSERT(srcFrameP->isFrameLocked , 2061);
     SW_ASSERT(x >= srcFrameP->frameRect.left && x < srcFrameP->frameRect.right , 2062);
@@ -1444,7 +1444,7 @@ void SWAnimateStarField(
     SpriteWorldPtr spriteWorldP,
     StarArray *starArray,
     short numStars,
-    unsigned long backColor)
+    uint32_t backColor)
 {
     short curStar;
     short horizOffset, vertOffset;

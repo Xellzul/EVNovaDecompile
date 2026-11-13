@@ -98,7 +98,7 @@ typedef struct highlevel_encode_setup {
 
 typedef struct codec_setup_info {
 
-  long blocksizes[2];
+  int32_t blocksizes[2];
 
   int        modes;
   int        maps;

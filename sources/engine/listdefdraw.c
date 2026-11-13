@@ -37,7 +37,7 @@ DialogPtr missionInfoDialog;
 ScrollRec **missionList;
 ScrollRec **missionInfoList;
 char briefingTextPtr[0x2000];
-unsigned long missionOfferTime;
+uint32_t missionOfferTime;
 void *stringHandle;
 TEHandle offerTextHandle;
 short currentMissionIndexForSetParser;
@@ -99,7 +99,7 @@ void MissionHandlePlayerEnteredNewSystem(void)
    OPEN: none */
 // FUNCTION: EVNOVA 0x00448a30
 // MAC: _MissionListDefinition i386 0x0009a018 ppc 0x000a5e68
-void MissionListDefinition(short lMessage, Boolean lSelect, Rect *lRect, long lCell,
+void MissionListDefinition(short lMessage, Boolean lSelect, Rect *lRect, int32_t lCell,
                    short lDataOffset, short lDataLen, ScrollRec **lHandle)
 {
 #ifdef MACBUILD

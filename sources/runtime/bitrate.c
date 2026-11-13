@@ -16,11 +16,11 @@
 #define BITS_MASK  0x7fffffff
 
 /* Not linked: the four statics, vorbis_bitrate_init, _managed, _addblock and _flushpacket. */
-static long BINBITS(bitrate_manager_state *bm,long head,long bits){
-  long bin=(bits&BITS_MASK)>>6;
-  long bins=bm->queue_bins;
-  long lo=0;
-  long hi;
+static int32_t BINBITS(bitrate_manager_state *bm,int32_t head,int32_t bits){
+  int32_t bin=(bits&BITS_MASK)>>6;
+  int32_t bins=bm->queue_bins;
+  int32_t lo=0;
+  int32_t hi;
 
   if(bin>0)lo=bm->queue_binned[head*bins+bin-1];
   if(bin<bins)
@@ -30,8 +30,8 @@ static long BINBITS(bitrate_manager_state *bm,long head,long bits){
   return lo+(((bits&0x3f)*(hi-lo))>>6);
 }
 
-static long LACING_ADJUST(long bits){
-  long bytes=(bits+7)/8;
+static int32_t LACING_ADJUST(int32_t bits){
+  int32_t bytes=(bits+7)/8;
   return (bytes+(bytes+1)/256+1)*8;
 }
 
@@ -60,10 +60,10 @@ static double floater_interpolate(bitrate_manager_state *bm,vorbis_info *vi,
 
 #define BINSTACK(f,k) ((k)>-bins?bm->minmax_binstack[(f)*bins*2+bins+(k)-1]:0)
 
-static long limit_sum(bitrate_manager_state *bm,int limit){
+static int32_t limit_sum(bitrate_manager_state *bm,int limit){
   int bins=bm->queue_bins;
   int i=bm->minmax_stackptr;
-  long ret=bm->minmax_acctotal;
+  int32_t ret=bm->minmax_acctotal;
 
   ret-=BINSTACK(i,0);
   ret+=BINSTACK(i,limit);
@@ -89,14 +89,14 @@ void vorbis_bitrate_init(vorbis_info *vi,bitrate_manager_state *bm){
     bm->minmax_sampledesired=bi->queue_minmax_time*vi->rate;
 
     {
-      long maxlatency=max((long)(bm->avg_sampledesired-bm->avg_centerdesired),
-			  (long)bm->minmax_sampledesired)+bm->avg_centerdesired;
+      int32_t maxlatency=max((int32_t)(bm->avg_sampledesired-bm->avg_centerdesired),
+			  (int32_t)bm->minmax_sampledesired)+bm->avg_centerdesired;
 
       if(maxlatency>0 &&
 	 (bi->queue_avgmin>0 || bi->queue_avgmax>0 ||
 	  bi->queue_hardmax>0 || bi->queue_hardmin>0)){
-	long maxpackets=maxlatency/(ci->blocksizes[0]>>1)+3;
-	long bins=ci->passlimit[ci->coupling_passes-1]*BITTRACK_DIVISOR;
+	int32_t maxpackets=maxlatency/(ci->blocksizes[0]>>1)+3;
+	int32_t bins=ci->passlimit[ci->coupling_passes-1]*BITTRACK_DIVISOR;
 
 	bm->queue_size=maxpackets;
 	bm->queue_bins=bins;
@@ -105,7 +105,7 @@ void vorbis_bitrate_init(vorbis_info *vi,bitrate_manager_state *bm){
 
 	if((bi->queue_avgmin>0. || bi->queue_avgmax>0.) &&
 	   bi->queue_avg_time>0.){
-	  bm->avg_binacc=(long *)_ogg_malloc(bins*sizeof(*bm->avg_binacc));
+	  bm->avg_binacc=(int32_t *)_ogg_malloc(bins*sizeof(*bm->avg_binacc));
 	  bm->avgfloat=bi->avgfloat_initial;
 	}else{
 	  bm->avg_tail=-1;
@@ -113,9 +113,9 @@ void vorbis_bitrate_init(vorbis_info *vi,bitrate_manager_state *bm){
 
 	if((bi->queue_hardmin>0. || bi->queue_hardmax>0.) &&
 	   bi->queue_minmax_time>0.){
-	  bm->minmax_binstack=(long *)_ogg_calloc((bins+1)*bins*2,sizeof(*bm->minmax_binstack));
-	  bm->minmax_posstack=(long *)_ogg_calloc(bins+1,sizeof(*bm->minmax_posstack));
-	  bm->minmax_limitstack=(long *)_ogg_calloc(bins+1,sizeof(*bm->minmax_limitstack));
+	  bm->minmax_binstack=(int32_t *)_ogg_calloc((bins+1)*bins*2,sizeof(*bm->minmax_binstack));
+	  bm->minmax_posstack=(int32_t *)_ogg_calloc(bins+1,sizeof(*bm->minmax_posstack));
+	  bm->minmax_limitstack=(int32_t *)_ogg_calloc(bins+1,sizeof(*bm->minmax_limitstack));
 	}else{
 	  bm->minmax_tail=-1;
 	}
@@ -286,12 +286,12 @@ int vorbis_bitrate_addblock(vorbis_block *vb){
 	if(bm->noisetrigger_postpone<=0){
 	  if(bm->noisetrigger_request<0.){
 	    bm->avgnoise-=1.;
-	    if(-bm->noisetrigger_request>(long)bm->avg_sampleacc/2)bm->avgnoise-=1.;
+	    if(-bm->noisetrigger_request>(int32_t)bm->avg_sampleacc/2)bm->avgnoise-=1.;
 	    bm->noisetrigger_postpone=bm->avg_sampleacc/2;
 	  }
 	  if(bm->noisetrigger_request>0.){
 	    bm->avgnoise+=1.;
-	    if((long)bm->avg_sampleacc/2<bm->noisetrigger_request)bm->avgnoise+=1.;
+	    if((int32_t)bm->avg_sampleacc/2<bm->noisetrigger_request)bm->avgnoise+=1.;
 	    bm->noisetrigger_postpone=bm->avg_sampleacc/2;
 	  }
 	  bm->noisetrigger_request=0.;
@@ -320,12 +320,12 @@ int vorbis_bitrate_addblock(vorbis_block *vb){
 
   if(bm->minmax_binstack){
     ogg_uint32_t desired=bm->minmax_sampledesired;
-    long limit=0;
+    int32_t limit=0;
     if(eofflag)desired=0;
 
     for(pos=start;pos!=end;){
       int W=(bm->queue_actual[pos]&LONG_BLOCK)?1:0;
-      long samples=ci->blocksizes[W]>>1;
+      int32_t samples=ci->blocksizes[W]>>1;
       unsigned j;
       for(j=0;j<bins;j++){
 	ogg_uint32_t bound=(j+1)<<6;
@@ -343,7 +343,7 @@ int vorbis_bitrate_addblock(vorbis_block *vb){
     }
 
     if(bm->minmax_sampleacc>desired){
-      long sum=bm->minmax_acctotal;
+      int32_t sum=bm->minmax_acctotal;
       double rate=(double)sum/bm->minmax_sampleacc*vi->rate;
 
       if((bi->queue_hardmax>0. && rate>bi->queue_hardmax) ||
@@ -392,11 +392,11 @@ int vorbis_bitrate_addblock(vorbis_block *vb){
 
     while(bm->minmax_sampleacc>desired){
       int W=(bm->queue_actual[bm->minmax_tail]&LONG_BLOCK)?1:0;
-      long samples=ci->blocksizes[W]>>1;
-      long bits=bm->queue_actual[bm->minmax_tail]&BITS_MASK;
+      int32_t samples=ci->blocksizes[W]>>1;
+      int32_t bits=bm->queue_actual[bm->minmax_tail]&BITS_MASK;
       unsigned j;
       for(j=0;j<bins;j++){
-	long bound=(j+1)<<6;
+	int32_t bound=(j+1)<<6;
 	bm->minmax_binstack[bins+j]-=
 	  LACING_ADJUST(BINBITS(bm,bm->minmax_tail,bits>bound?bits:bound));
 	bm->minmax_binstack[j]-=
@@ -434,7 +434,7 @@ int vorbis_bitrate_flushpacket(vorbis_dsp_state *vd,ogg_packet *op){
     memcpy(op,bm->queue_packets,sizeof(*op));
     bm->queue_head=0;
   }else{
-    long bits;
+    int32_t bits;
 
     if(bm->next_to_flush==bm->last_to_flush)return(0);
     bits=BINBITS(bm,bm->next_to_flush,bm->queue_actual[bm->next_to_flush]);

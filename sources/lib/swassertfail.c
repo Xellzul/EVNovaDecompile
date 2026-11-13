@@ -27,7 +27,7 @@ void SWAssertFail(char *filename, int lineNum)
     Str255 fileString = "\p";
     Str15 lineString;
     short n, result;
-    unsigned long junkTime;
+    uint32_t junkTime;
 
     FadeScreenIn();
 
@@ -59,7 +59,7 @@ void SWAssertFail(char *filename, int lineNum)
     Str255 fileString = "\p";
     Str15 lineString;
     short n, result;
-    unsigned long junkTime;
+    uint32_t junkTime;
 
     NumToString(lineNum, lineString);
 

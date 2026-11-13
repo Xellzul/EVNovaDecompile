@@ -14,23 +14,23 @@
 // MAC: _BlitPixieTranslucentCopy i386 0x000c1110 ppc 0x000ccfe0
 #ifdef MACBUILD
 void BlitPixieTranslucentCopy(unsigned char *dstPixels, unsigned char *srcPixels,
-        long byteWidth)
+        int32_t byteWidth)
 {
-    long numLongs;
-    long i;
-    unsigned long pixel;
-    unsigned long src;
-    unsigned long dst;
+    int32_t numLongs;
+    int32_t i;
+    uint32_t pixel;
+    uint32_t src;
+    uint32_t dst;
     unsigned char *s;
-    unsigned long *sp;
+    uint32_t *sp;
     unsigned char *d;
-    unsigned long *dp;
+    uint32_t *dp;
 
     d = dstPixels;
     s = srcPixels;
 
-    sp = (unsigned long *)s;
-    dp = (unsigned long *)d;
+    sp = (uint32_t *)s;
+    dp = (uint32_t *)d;
     for (i = 0, numLongs = byteWidth >> 2; i < numLongs; i++) {
         if (overBias < 32) {
             src = SW_RED(*sp, overBias);
@@ -108,13 +108,13 @@ void BlitPixieTranslucentCopy(unsigned char *dstPixels, unsigned char *srcPixels
 }
 #else
 void BlitPixieTranslucentCopy(unsigned char *dstPixels, unsigned char *srcPixels,
-        long byteWidth)
+        int32_t byteWidth)
 {
-    long i;
-    long numLongs;
-    unsigned long pixel;
-    unsigned long src;
-    unsigned long dst;
+    int32_t i;
+    int32_t numLongs;
+    uint32_t pixel;
+    uint32_t src;
+    uint32_t dst;
     unsigned char *s;
     unsigned char *d;
 
@@ -123,23 +123,23 @@ void BlitPixieTranslucentCopy(unsigned char *dstPixels, unsigned char *srcPixels
 
     for (i = 0, numLongs = byteWidth >> 2; i < numLongs; i++) {
         if (overBias < 32) {
-            src = SW_RED(*(unsigned long *)s, overBias);
-            src |= SW_GREEN(*(unsigned long *)s, overBias);
-            src |= SW_BLUE(*(unsigned long *)s, overBias);
+            src = SW_RED(*(uint32_t *)s, overBias);
+            src |= SW_GREEN(*(uint32_t *)s, overBias);
+            src |= SW_BLUE(*(uint32_t *)s, overBias);
             src |= SW_RED(biasColor, 32 - overBias);
             src |= SW_GREEN(biasColor, 32 - overBias);
             src |= SW_BLUE(biasColor, 32 - overBias);
         } else
-            src = *(unsigned long *)s;
+            src = *(uint32_t *)s;
 
-        dst = *(unsigned long *)d;
+        dst = *(uint32_t *)d;
         pixel = SW_RED(src, alphaR) | overR;
         pixel |= SW_GREEN(src, alphaG) | overG;
         pixel |= SW_BLUE(src, alphaB) | overB;
         pixel |= SW_RED(dst, alpha);
         pixel |= SW_GREEN(dst, alpha);
         pixel |= SW_BLUE(dst, alpha);
-        *(unsigned long *)d = pixel;
+        *(uint32_t *)d = pixel;
 
         s += 4;
         d += 4;

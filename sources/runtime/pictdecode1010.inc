@@ -1,9 +1,9 @@
 /* pictdecode1010.inc -- PICT_Decode's body on mac 1.0.10; win and mac 1.1.1 keep theirs in itpict.c. */
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned short version;
-    long length;
+    int32_t length;
     unsigned char unused;
     unsigned char skip[kPictSkipChunk];
     unsigned short picSize;

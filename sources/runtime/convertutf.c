@@ -52,13 +52,13 @@ UTF_TABLE UTF8 firstByteMark[7] = {                         /* 0x00582168 first 
 /* ConvertUTF32toUTF16 (ConvertUTF32toUTF16; a null target counts the units). STATE: MATCH 100%,
    exe 95 / obj 95, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00541330
-long ConvertUTF32toUTF16(const UTF32 **sourceStart, const UTF32 *sourceEnd,
+int32_t ConvertUTF32toUTF16(const UTF32 **sourceStart, const UTF32 *sourceEnd,
                   UTF16 **targetStart, UTF16 *targetEnd, UTFBudget *budget, UTFFlags flags)
 {
-    long result = kSourceExhausted;
+    int32_t result = kSourceExhausted;
     const UTF32 *source = *sourceStart;
     UTF16 *target = *targetStart;
-    long writing = *targetStart ? true : false;
+    int32_t writing = *targetStart ? true : false;
     UTF32 ch;
 
     while (source < sourceEnd) {
@@ -120,13 +120,13 @@ long ConvertUTF32toUTF16(const UTF32 **sourceStart, const UTF32 *sourceEnd,
 /* ConvertUTF16toUTF8 (ConvertUTF16toUTF8; a null target counts the bytes). STATE: MATCH 100%,
    exe 142 / obj 142, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0054144b
-long ConvertUTF16toUTF8(const UTF16 **sourceStart, const UTF16 *sourceEnd,
+int32_t ConvertUTF16toUTF8(const UTF16 **sourceStart, const UTF16 *sourceEnd,
                   UTF8 **targetStart, UTF8 *targetEnd, UTFBudget *budget, UTFFlags flags)
 {
-    long result = kSourceExhausted;
+    int32_t result = kSourceExhausted;
     const UTF16 *source = *sourceStart;
     UTF8 *target = *targetStart;
-    long writing = *targetStart ? true : false;
+    int32_t writing = *targetStart ? true : false;
     UTF32 ch;
     const UTF16 *oldSource;
     UTF32 ch2;
@@ -206,7 +206,7 @@ long ConvertUTF16toUTF8(const UTF16 **sourceStart, const UTF16 *sourceEnd,
 
 /* isLegalUTF8 (isLegalUTF8). STATE: MATCH 100%, exe 66 / obj 66, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005415f1
-long isLegalUTF8(const UTF8 *source, long length)
+int32_t isLegalUTF8(const UTF8 *source, int32_t length)
 {
     UTF8 a;
     const UTF8 *srcptr;
@@ -253,14 +253,14 @@ long isLegalUTF8(const UTF8 *source, long length)
 /* ConvertUTF8toUTF16 (ConvertUTF8toUTF16; a null target counts the bytes). STATE: MATCH 100%,
    exe 146 / obj 146, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00541684
-long ConvertUTF8toUTF16(const UTF8 **sourceStart, const UTF8 *sourceEnd,
+int32_t ConvertUTF8toUTF16(const UTF8 **sourceStart, const UTF8 *sourceEnd,
                   UTF16 **targetStart, UTF16 *targetEnd, UTFBudget *budget, UTFFlags flags)
 {
-    long length;
-    long result = kSourceExhausted;
+    int32_t length;
+    int32_t result = kSourceExhausted;
     const UTF8 *source = *sourceStart;
     UTF16 *target = *targetStart;
-    long writing = *targetStart ? true : false;
+    int32_t writing = *targetStart ? true : false;
     UTF32 ch;
     unsigned short extraBytesToRead;
 

@@ -175,7 +175,7 @@ void DumpPilotLog(void)
 
 /* ColorSearchProc (mac _ColorSearchProc): mac only. */
 // MAC: _ColorSearchProc i386 0x000767b4 ppc 0x0007f604
-Boolean ColorSearchProc(RGBColor *rgb, long *position)
+Boolean ColorSearchProc(RGBColor *rgb, int32_t *position)
 {
     CTabHandle ctab = GetCTable(40);
     Rect bounds = { 0, 0, 10, 10 };

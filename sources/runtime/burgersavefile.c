@@ -29,7 +29,7 @@ void **AllocAHandleClear(ULong size)
 /* AllocAPointerClear (BurgerLib MMMemoryGeneric). STATE: MATCH 100.0%, exe 21 / obj 21,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f29c0
-void *AllocAPointerClear(unsigned long size)
+void *AllocAPointerClear(uint32_t size)
 {
     void *mem;
 

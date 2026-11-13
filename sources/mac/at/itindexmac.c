@@ -13,8 +13,8 @@
 #define kChunkMax 0x32000
 #define kFileNotFound -7203
 
-extern long FT_DirGetEntry(long folder, ULong index, FTFileInfo *info, unsigned char flags);
-extern long IndirectNormalizeUnicode(void **handle, const char *charset);
+extern int32_t FT_DirGetEntry(int32_t folder, ULong index, FTFileInfo *info, unsigned char flags);
+extern int32_t IndirectNormalizeUnicode(void **handle, const char *charset);
 #define IndirectNormalizeEncoding IndirectNormalizeUnicode
 
 extern ITElement *PT_ParseTreeGetNext(ITElement *root, ITElement *element);
@@ -52,7 +52,7 @@ extern ITElement *PT_ParseTreeGetParent(ITElement *root, ITElement *element);
 extern unsigned short *C2UStringAppendSafe(unsigned short *dst, const char *src, ULong size, ULong count);
 extern unsigned short *UnicodeAppendSafe(unsigned short *dst, const unsigned short *src, ULong size, ULong count);
 extern unsigned char HashRemoveUnicode(struct HashTable *t, const unsigned short *key);
-extern long HashAppendUnicode(struct HashTable *t, const unsigned short *key, const unsigned short *value);
+extern int32_t HashAppendUnicode(struct HashTable *t, const unsigned short *key, const unsigned short *value);
 
 
 unsigned char IT_IndexIsPlain(ITElement *root)
@@ -93,11 +93,11 @@ void IT_IndexUpperNames(ITElement *root)
     }
 }
 
-long IT_IndexMakeLinks(ITElement *root, const char *prefix)
+int32_t IT_IndexMakeLinks(ITElement *root, const char *prefix)
 {
     ITElement *e;
-    long err;
-    long r;
+    int32_t err;
+    int32_t r;
     unsigned short *attr;
     unsigned short *v;
     unsigned short buffer[256];
@@ -168,11 +168,11 @@ ITElement *IT_IndexGetLanguage(ITElement *root, ITElement *e)
     return e;
 }
 
-long IT_IndexCountTag(ITElement *root, const char *tag, const char *language)
+int32_t IT_IndexCountTag(ITElement *root, const char *tag, const char *language)
 {
     ITElement *e;
     unsigned char found;
-    long count;
+    int32_t count;
     unsigned short *v;
     unsigned short wideTag[256];
     unsigned short wideLanguage[256];
@@ -197,9 +197,9 @@ long IT_IndexCountTag(ITElement *root, const char *tag, const char *language)
     return count;
 }
 
-long IT_IndexFindNth(ITElement *root, const char *tag, const char *language, ULong n, char *a, char *b, char *c, unsigned short *d)
+int32_t IT_IndexFindNth(ITElement *root, const char *tag, const char *language, ULong n, char *a, char *b, char *c, unsigned short *d)
 {
-    long err;
+    int32_t err;
     ITElement *e;
     unsigned char found;
     unsigned short *v;
@@ -269,10 +269,10 @@ long IT_IndexFindNth(ITElement *root, const char *tag, const char *language, ULo
     return err;
 }
 
-long IT_IndexFindPath(ITElement *root, const char *tag, const char *language, const char *path, char *a, char *b, char *c, unsigned short *d, ITElement **result, long *number)
+int32_t IT_IndexFindPath(ITElement *root, const char *tag, const char *language, const char *path, char *a, char *b, char *c, unsigned short *d, ITElement **result, int32_t *number)
 {
-    long err;
-    long index;
+    int32_t err;
+    int32_t index;
     ITElement *e;
     const char *p;
     const char *comma;
@@ -377,10 +377,10 @@ done:
     return err;
 }
 
-long IT_IndexLoad(long where, const char *file, ITElement **index, ITElement **root)
+int32_t IT_IndexLoad(int32_t where, const char *file, ITElement **index, ITElement **root)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     struct FolderSpec **folder;
     ITElement *tree;
     ITElement *sub;
@@ -426,12 +426,12 @@ long IT_IndexLoad(long where, const char *file, ITElement **index, ITElement **r
             err = e;
             goto done;
         }
-        err = FT_FileGetFlags((long)folder, kIndexFile, &inner, 1);
+        err = FT_FileGetFlags((int32_t)folder, kIndexFile, &inner, 1);
         if (err == 0 && !inner.flags[kInfoFolder]) {
-            if (IT_IndexLoad((long)folder, kIndexFile, &tree, root) == 0 && tree != 0)
+            if (IT_IndexLoad((int32_t)folder, kIndexFile, &tree, root) == 0 && tree != 0)
                 IT_IndexMakeLinks(tree, "");
         } else if (!info.flags[kInfoAlias]) {
-            for (i = 0; FT_DirGetEntry((long)folder, i, &info, 1) == 0; i++) {
+            for (i = 0; FT_DirGetEntry((int32_t)folder, i, &info, 1) == 0; i++) {
                 if (info.flags[kInfoFolder] && IT_IndexLoad(where, info.name, &sub, 0) == 0 && sub != 0) {
                     IT_IndexMakeLinks(sub, info.name);
                     if (tree == 0) {
@@ -483,25 +483,25 @@ void IT_IndexDispose(ITElement *index)
     PT_ParseTreeDispose(index);
 }
 
-long IT_IndexCount(ITElement *index, const char *language)
+int32_t IT_IndexCount(ITElement *index, const char *language)
 {
     return IT_IndexCountTag(index, "INTERFACE", language);
 }
 
-long IT_IndexFind(ITElement *index, const char *language, ULong n, char *a, char *b, char *c, unsigned short *d)
+int32_t IT_IndexFind(ITElement *index, const char *language, ULong n, char *a, char *b, char *c, unsigned short *d)
 {
     return IT_IndexFindNth(index, "INTERFACE", language, n, a, b, c, d);
 }
 
-long IT_IndexLookup(ITElement *index, const char *language, const char *path, char *a, char *b, char *c, unsigned short *d, long *f)
+int32_t IT_IndexLookup(ITElement *index, const char *language, const char *path, char *a, char *b, char *c, unsigned short *d, int32_t *f)
 {
     return IT_IndexFindPath(index, "INTERFACE", language, path, a, b, c, d, 0, f);
 }
 
-long IT_TextAppendNormal(void **handle, const unsigned short *text, unsigned char squeeze, unsigned char keepEdge)
+int32_t IT_TextAppendNormal(void **handle, const unsigned short *text, unsigned char squeeze, unsigned char keepEdge)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     const unsigned short *from;
     const unsigned short *start;
     unsigned char space;
@@ -574,8 +574,8 @@ done:
 
 static void **IT_TextFromNodes(ITElement *root)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     void **text;
     void **piece;
     ITElement *node;
@@ -671,7 +671,7 @@ done:
     return text;
 }
 
-long IT_StringTableLoad(ITElement *root, unsigned char keepWide, struct HashTable **out)
+int32_t IT_StringTableLoad(ITElement *root, unsigned char keepWide, struct HashTable **out)
 {
     void **text;
     char *narrow;
@@ -680,8 +680,8 @@ long IT_StringTableLoad(ITElement *root, unsigned char keepWide, struct HashTabl
     ITElement *node;
     ITElement *top;
     const void *name;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char handled;
     char key[256];
 

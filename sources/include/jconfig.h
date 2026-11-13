@@ -1,4 +1,5 @@
 /* jconfig.h -- IJG libjpeg 6b jconfig.vc (Microsoft Visual C++ on Windows), or under MAC1010 jconfig.mac (CodeWarrior on Apple Macintosh), the configuration each exe was built with, plus NO_GETENV (install.doc); licence in jpeglib.h; altered: comments and the #if branches this build does not take removed. Notes: Research/notes/jpeg.md */
+#include "int32.h"
 #define HAVE_PROTOTYPES
 #define HAVE_UNSIGNED_CHAR
 #define HAVE_UNSIGNED_SHORT
@@ -26,7 +27,7 @@ typedef unsigned char boolean;
 #ifdef MAC1010
 #define USE_MAC_MEMMGR
 
-#define ALIGN_TYPE long
+#define ALIGN_TYPE int32_t
 #endif
 
 #define NO_GETENV

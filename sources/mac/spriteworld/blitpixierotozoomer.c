@@ -3,14 +3,14 @@
 #include "spriteworld.h"
 #include "../include/blitpixie.h"
 
-static Boolean LogBase2(long x,long *bit);
+static Boolean LogBase2(int32_t x,int32_t *bit);
 
 /*
 	trig tables : sintable[360], costable[360] in 16.16 fixed point format
 
 */
 
-static long trigtable[360 + 90] =
+static int32_t trigtable[360 + 90] =
 {
           +0,   +1143,   +2287,   +3429,   +4571,   +5711,   +6850,   +7986,
        +9120,  +10251,  +11380,  +12504,  +13625,  +14742,  +15854,  +16961,
@@ -73,8 +73,8 @@ static long trigtable[360 + 90] =
       +65495,  +65525
 };
 
-static long *sintable = &trigtable[0];
-static long *costable = &trigtable[90];
+static int32_t *sintable = &trigtable[0];
+static int32_t *costable = &trigtable[90];
 
 	/* texture delta values */
 #define horiz_delta_u	( + cost )
@@ -90,10 +90,10 @@ static long *costable = &trigtable[90];
 		return value: is x a power of 2 at all ?
 */
 
-static Boolean LogBase2(long x,long *bit)
+static Boolean LogBase2(int32_t x,int32_t *bit)
 {
-	long 			i;
-	unsigned long	n;
+	int32_t 			i;
+	uint32_t	n;
 
 	if (x <= 0)
 		return false;
@@ -119,23 +119,23 @@ static Boolean LogBase2(long x,long *bit)
 void BlitPixieRotoZoom8Bit(
 	unsigned char *source,
 	unsigned char *dest,
-	unsigned long srcBytes,
-	unsigned long dstBytes,
-	unsigned long width1,
-	unsigned long height1,
-	unsigned long width2,
-	unsigned long height2,
-	unsigned long angle,
-	unsigned long zoom )
+	uint32_t srcBytes,
+	uint32_t dstBytes,
+	uint32_t width1,
+	uint32_t height1,
+	uint32_t width2,
+	uint32_t height2,
+	uint32_t angle,
+	uint32_t zoom )
 {
-	long			x,y;							// loop variables
+	int32_t			x,y;							// loop variables
 	register unsigned char	*src,*dst;				// image pointers
-	unsigned long	stride;							// add to go to next row
-	long			half_width,half_height;			// half of destination
-	long			start_u,start_v;				// starting texel
-	long			sint,cost;						// sine and cosine
-	unsigned long	u,v,ul,vl;						// texel, and fixed point texel
-	long			is_shift,shift_x,shift_y;		// shift instead of multiply
+	uint32_t	stride;							// add to go to next row
+	int32_t			half_width,half_height;			// half of destination
+	int32_t			start_u,start_v;				// starting texel
+	int32_t			sint,cost;						// sine and cosine
+	uint32_t	u,v,ul,vl;						// texel, and fixed point texel
+	int32_t			is_shift,shift_x,shift_y;		// shift instead of multiply
 
 		/* normalize angle and zoom */
 	while (angle < 0)		angle += 360;
@@ -143,8 +143,8 @@ void BlitPixieRotoZoom8Bit(
 
 		/* get look-up values */
 	zoom >>= 8;
-	sint = (sintable[angle] * (long) zoom) >> 8;
-	cost = (costable[angle] * (long) zoom) >> 8;
+	sint = (sintable[angle] * (int32_t) zoom) >> 8;
+	cost = (costable[angle] * (int32_t) zoom) >> 8;
 
 	half_width = width2 >> 1;
 	half_height = height2 >> 1;
@@ -223,23 +223,23 @@ void BlitPixieMaskRotoZoom8Bit(
 	unsigned char *source,
 	unsigned char *dest,
 	unsigned char *maskAddr,
-	unsigned long srcBytes,
-	unsigned long dstBytes,
-	unsigned long width1,
-	unsigned long height1,
-	unsigned long width2,
-	unsigned long height2,
-	unsigned long angle,
-	unsigned long zoom )
+	uint32_t srcBytes,
+	uint32_t dstBytes,
+	uint32_t width1,
+	uint32_t height1,
+	uint32_t width2,
+	uint32_t height2,
+	uint32_t angle,
+	uint32_t zoom )
 {
-	long			x,y;							// loop variables
+	int32_t			x,y;							// loop variables
 	register unsigned char	*src,*dst,*mask;		// image pointers
-	unsigned long	stride;							// add to go to next row
-	long			half_width,half_height;			// half of destination
-	long			start_u,start_v;				// starting texel
-	long			sint,cost;						// sine and cosine
-	unsigned long	u,v,ul,vl;						// texel, and fixed point texel
-	long			is_shift,shift_x,shift_y;		// shift instead of multiply
+	uint32_t	stride;							// add to go to next row
+	int32_t			half_width,half_height;			// half of destination
+	int32_t			start_u,start_v;				// starting texel
+	int32_t			sint,cost;						// sine and cosine
+	uint32_t	u,v,ul,vl;						// texel, and fixed point texel
+	int32_t			is_shift,shift_x,shift_y;		// shift instead of multiply
 
 		/* normalize angle and zoom */
 	while (angle < 0)		angle += 360;
@@ -247,8 +247,8 @@ void BlitPixieMaskRotoZoom8Bit(
 
 		/* get look-up values */
 	zoom >>= 8;
-	sint = (sintable[angle] * (long) zoom) >> 8;
-	cost = (costable[angle] * (long) zoom) >> 8;
+	sint = (sintable[angle] * (int32_t) zoom) >> 8;
+	cost = (costable[angle] * (int32_t) zoom) >> 8;
 
 	half_width = width2 >> 1;
 	half_height = height2 >> 1;
@@ -336,23 +336,23 @@ void BlitPixieMaskRotoZoom8Bit(
 void BlitPixieRotoZoom16Bit(
 	unsigned short *source,
 	unsigned short *dest,
-	unsigned long srcBytes,
-	unsigned long dstBytes,
-	unsigned long width1,
-	unsigned long height1,
-	unsigned long width2,
-	unsigned long height2,
-	unsigned long angle,
-	unsigned long zoom )
+	uint32_t srcBytes,
+	uint32_t dstBytes,
+	uint32_t width1,
+	uint32_t height1,
+	uint32_t width2,
+	uint32_t height2,
+	uint32_t angle,
+	uint32_t zoom )
 {
-	long			x,y;							// loop variables
+	int32_t			x,y;							// loop variables
 	register unsigned short	*src,*dst;				// image pointers
-	unsigned long	stride;							// add to go to next row
-	long			half_width,half_height;			// half of destination
-	long			start_u,start_v;				// starting texel
-	long			sint,cost;						// sine and cosine
-	unsigned long	u,v,ul,vl;						// texel, and fixed point texel
-	long			is_shift,shift_x,shift_y;		// shift instead of multiply
+	uint32_t	stride;							// add to go to next row
+	int32_t			half_width,half_height;			// half of destination
+	int32_t			start_u,start_v;				// starting texel
+	int32_t			sint,cost;						// sine and cosine
+	uint32_t	u,v,ul,vl;						// texel, and fixed point texel
+	int32_t			is_shift,shift_x,shift_y;		// shift instead of multiply
 
 		/* normalize angle and zoom */
 	while (angle < 0)		angle += 360;
@@ -360,8 +360,8 @@ void BlitPixieRotoZoom16Bit(
 
 		/* get look-up values */
 	zoom >>= 8;
-	sint = (sintable[angle] * (long) zoom) >> 8;
-	cost = (costable[angle] * (long) zoom) >> 8;
+	sint = (sintable[angle] * (int32_t) zoom) >> 8;
+	cost = (costable[angle] * (int32_t) zoom) >> 8;
 
 	half_width = width2 >> 1;
 	half_height = height2 >> 1;
@@ -440,23 +440,23 @@ void BlitPixieMaskRotoZoom16Bit(
 	unsigned short *source,
 	unsigned short *dest,
 	unsigned short *maskAddr,
-	unsigned long srcBytes,
-	unsigned long dstBytes,
-	unsigned long width1,
-	unsigned long height1,
-	unsigned long width2,
-	unsigned long height2,
-	unsigned long angle,
-	unsigned long zoom )
+	uint32_t srcBytes,
+	uint32_t dstBytes,
+	uint32_t width1,
+	uint32_t height1,
+	uint32_t width2,
+	uint32_t height2,
+	uint32_t angle,
+	uint32_t zoom )
 {
-	long			x,y;							// loop variables
+	int32_t			x,y;							// loop variables
 	register unsigned short	*src,*dst,*mask;		// image pointers
-	unsigned long	stride;							// add to go to next row
-	long			half_width,half_height;			// half of destination
-	long			start_u,start_v;				// starting texel
-	long			sint,cost;						// sine and cosine
-	unsigned long	u,v,ul,vl;						// texel, and fixed point texel
-	long			is_shift,shift_x,shift_y;		// shift instead of multiply
+	uint32_t	stride;							// add to go to next row
+	int32_t			half_width,half_height;			// half of destination
+	int32_t			start_u,start_v;				// starting texel
+	int32_t			sint,cost;						// sine and cosine
+	uint32_t	u,v,ul,vl;						// texel, and fixed point texel
+	int32_t			is_shift,shift_x,shift_y;		// shift instead of multiply
 
 		/* normalize angle and zoom */
 	while (angle < 0)		angle += 360;
@@ -464,8 +464,8 @@ void BlitPixieMaskRotoZoom16Bit(
 
 		/* get look-up values */
 	zoom >>= 8;
-	sint = (sintable[angle] * (long) zoom) >> 8;
-	cost = (costable[angle] * (long) zoom) >> 8;
+	sint = (sintable[angle] * (int32_t) zoom) >> 8;
+	cost = (costable[angle] * (int32_t) zoom) >> 8;
 
 	half_width = width2 >> 1;
 	half_height = height2 >> 1;
@@ -551,25 +551,25 @@ void BlitPixieMaskRotoZoom16Bit(
 /* BlitPixieRotoZoom32Bit (mac _BlitPixieRotoZoom32Bit, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieRotoZoom32Bit i386 0x000bedea ppc 0x000ca908
 void BlitPixieRotoZoom32Bit(
-	unsigned long *source,
-	unsigned long *dest,
-	unsigned long srcBytes,
-	unsigned long dstBytes,
-	unsigned long width1,
-	unsigned long height1,
-	unsigned long width2,
-	unsigned long height2,
-	unsigned long angle,
-	unsigned long zoom )
+	uint32_t *source,
+	uint32_t *dest,
+	uint32_t srcBytes,
+	uint32_t dstBytes,
+	uint32_t width1,
+	uint32_t height1,
+	uint32_t width2,
+	uint32_t height2,
+	uint32_t angle,
+	uint32_t zoom )
 {
-	long			x,y;							// loop variables
-	register unsigned long	*src,*dst;				// image pointers
-	unsigned long	stride;							// add to go to next row
-	long			half_width,half_height;			// half of destination
-	long			start_u,start_v;				// starting texel
-	long			sint,cost;						// sine and cosine
-	unsigned long	u,v,ul,vl;						// texel, and fixed point texel
-	long			is_shift,shift_x,shift_y;		// shift instead of multiply
+	int32_t			x,y;							// loop variables
+	register uint32_t	*src,*dst;				// image pointers
+	uint32_t	stride;							// add to go to next row
+	int32_t			half_width,half_height;			// half of destination
+	int32_t			start_u,start_v;				// starting texel
+	int32_t			sint,cost;						// sine and cosine
+	uint32_t	u,v,ul,vl;						// texel, and fixed point texel
+	int32_t			is_shift,shift_x,shift_y;		// shift instead of multiply
 
 		/* normalize angle and zoom */
 	while (angle < 0)		angle += 360;
@@ -577,8 +577,8 @@ void BlitPixieRotoZoom32Bit(
 
 		/* get look-up values */
 	zoom >>= 8;
-	sint = (sintable[angle] * (long) zoom) >> 8;
-	cost = (costable[angle] * (long) zoom) >> 8;
+	sint = (sintable[angle] * (int32_t) zoom) >> 8;
+	cost = (costable[angle] * (int32_t) zoom) >> 8;
 
 	half_width = width2 >> 1;
 	half_height = height2 >> 1;
@@ -654,26 +654,26 @@ void BlitPixieRotoZoom32Bit(
 /* BlitPixieMaskRotoZoom32Bit (mac _BlitPixieMaskRotoZoom32Bit, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieMaskRotoZoom32Bit i386 0x000befd2 ppc 0x000cab44
 void BlitPixieMaskRotoZoom32Bit(
-	unsigned long *source,
-	unsigned long *dest,
-	unsigned long *maskAddr,
-	unsigned long srcBytes,
-	unsigned long dstBytes,
-	unsigned long width1,
-	unsigned long height1,
-	unsigned long width2,
-	unsigned long height2,
-	unsigned long angle,
-	unsigned long zoom )
+	uint32_t *source,
+	uint32_t *dest,
+	uint32_t *maskAddr,
+	uint32_t srcBytes,
+	uint32_t dstBytes,
+	uint32_t width1,
+	uint32_t height1,
+	uint32_t width2,
+	uint32_t height2,
+	uint32_t angle,
+	uint32_t zoom )
 {
-	long			x,y;							// loop variables
-	register unsigned long	*src,*dst,*mask;		// image pointers
-	unsigned long	stride;							// add to go to next row
-	long			half_width,half_height;			// half of destination
-	long			start_u,start_v;				// starting texel
-	long			sint,cost;						// sine and cosine
-	unsigned long	u,v,ul,vl;						// texel, and fixed point texel
-	long			is_shift,shift_x,shift_y;		// shift instead of multiply
+	int32_t			x,y;							// loop variables
+	register uint32_t	*src,*dst,*mask;		// image pointers
+	uint32_t	stride;							// add to go to next row
+	int32_t			half_width,half_height;			// half of destination
+	int32_t			start_u,start_v;				// starting texel
+	int32_t			sint,cost;						// sine and cosine
+	uint32_t	u,v,ul,vl;						// texel, and fixed point texel
+	int32_t			is_shift,shift_x,shift_y;		// shift instead of multiply
 
 		/* normalize angle and zoom */
 	while (angle < 0)		angle += 360;
@@ -681,8 +681,8 @@ void BlitPixieMaskRotoZoom32Bit(
 
 		/* get look-up values */
 	zoom >>= 8;
-	sint = (sintable[angle] * (long) zoom) >> 8;
-	cost = (costable[angle] * (long) zoom) >> 8;
+	sint = (sintable[angle] * (int32_t) zoom) >> 8;
+	cost = (costable[angle] * (int32_t) zoom) >> 8;
 
 	half_width = width2 >> 1;
 	half_height = height2 >> 1;

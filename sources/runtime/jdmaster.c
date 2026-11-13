@@ -67,23 +67,23 @@ jpeg_calc_output_dimensions (j_decompress_ptr cinfo)
   if (cinfo->scale_num * 8 <= cinfo->scale_denom) {
 
     cinfo->output_width = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_width, 8L);
+      jdiv_round_up((int32_t) cinfo->image_width, 8L);
     cinfo->output_height = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_height, 8L);
+      jdiv_round_up((int32_t) cinfo->image_height, 8L);
     cinfo->min_DCT_scaled_size = 1;
   } else if (cinfo->scale_num * 4 <= cinfo->scale_denom) {
 
     cinfo->output_width = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_width, 4L);
+      jdiv_round_up((int32_t) cinfo->image_width, 4L);
     cinfo->output_height = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_height, 4L);
+      jdiv_round_up((int32_t) cinfo->image_height, 4L);
     cinfo->min_DCT_scaled_size = 2;
   } else if (cinfo->scale_num * 2 <= cinfo->scale_denom) {
 
     cinfo->output_width = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_width, 2L);
+      jdiv_round_up((int32_t) cinfo->image_width, 2L);
     cinfo->output_height = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_height, 2L);
+      jdiv_round_up((int32_t) cinfo->image_height, 2L);
     cinfo->min_DCT_scaled_size = 4;
   } else {
 
@@ -109,13 +109,13 @@ jpeg_calc_output_dimensions (j_decompress_ptr cinfo)
        ci++, compptr++) {
 
     compptr->downsampled_width = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_width *
-		    (long) (compptr->h_samp_factor * compptr->DCT_scaled_size),
-		    (long) (cinfo->max_h_samp_factor * DCTSIZE));
+      jdiv_round_up((int32_t) cinfo->image_width *
+		    (int32_t) (compptr->h_samp_factor * compptr->DCT_scaled_size),
+		    (int32_t) (cinfo->max_h_samp_factor * DCTSIZE));
     compptr->downsampled_height = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_height *
-		    (long) (compptr->v_samp_factor * compptr->DCT_scaled_size),
-		    (long) (cinfo->max_v_samp_factor * DCTSIZE));
+      jdiv_round_up((int32_t) cinfo->image_height *
+		    (int32_t) (compptr->v_samp_factor * compptr->DCT_scaled_size),
+		    (int32_t) (cinfo->max_v_samp_factor * DCTSIZE));
   }
 
   switch (cinfo->out_color_space) {
@@ -182,15 +182,15 @@ master_selection (j_decompress_ptr cinfo)
 {
   my_master_ptr master = (my_master_ptr) cinfo->master;
   boolean use_c_buffer;
-  long samplesperrow;
+  int32_t samplesperrow;
   JDIMENSION jd_samplesperrow;
 
   jpeg_calc_output_dimensions(cinfo);
   prepare_range_limit_table(cinfo);
 
-  samplesperrow = (long) cinfo->output_width * (long) cinfo->out_color_components;
+  samplesperrow = (int32_t) cinfo->output_width * (int32_t) cinfo->out_color_components;
   jd_samplesperrow = (JDIMENSION) samplesperrow;
-  if ((long) jd_samplesperrow != samplesperrow)
+  if ((int32_t) jd_samplesperrow != samplesperrow)
     ERREXIT(cinfo, JERR_WIDTH_OVERFLOW);
 
   master->pass_number = 0;
@@ -276,7 +276,7 @@ master_selection (j_decompress_ptr cinfo)
       nscans = cinfo->num_components;
     }
     cinfo->progress->pass_counter = 0L;
-    cinfo->progress->pass_limit = (long) cinfo->total_iMCU_rows * nscans;
+    cinfo->progress->pass_limit = (int32_t) cinfo->total_iMCU_rows * nscans;
     cinfo->progress->completed_passes = 0;
     cinfo->progress->total_passes = (cinfo->enable_2pass_quant ? 3 : 2);
 

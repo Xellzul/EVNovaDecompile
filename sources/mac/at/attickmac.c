@@ -11,9 +11,9 @@
 
 extern ULongLong gPlatformTime;
 
-extern long _TimerGetZoneOffset(unsigned char *daylight);
+extern int32_t _TimerGetZoneOffset(unsigned char *daylight);
 
-long TimerGetSeconds(void)
+int32_t TimerGetSeconds(void)
 {
     return TimerGetLocalSeconds();
 }
@@ -60,7 +60,7 @@ ULong TimerGetLocalSeconds(void)
 
 #endif
 
-unsigned long TimerGetElapsedSeconds(void)
+uint32_t TimerGetElapsedSeconds(void)
 {
     double seconds;
 
@@ -71,10 +71,10 @@ unsigned long TimerGetElapsedSeconds(void)
 
 #if !TARGET_API_MAC_CARBON
 
-long _TimerGetZoneOffset(unsigned char *daylight)
+int32_t _TimerGetZoneOffset(unsigned char *daylight)
 {
     MachineLocation where;
-    long delta;
+    int32_t delta;
 
     if (daylight != 0)
         *daylight = 0;
@@ -109,7 +109,7 @@ extern double gMillisPerNano;
 #if TARGET_API_MAC_CARBON
 #define kTickCount      TickCount()
 #else
-#define kTickCount      *(long *)0x16a
+#define kTickCount      *(int32_t *)0x16a
 #endif
 
 static ULongLong _TimerReadMicros(void);
@@ -133,8 +133,8 @@ static ULongLong _TimerReadMicros(void)
     static ULongLong USEC;
     ULongLong now;
     AbsTime t;
-    long tick;
-    long delta;
+    int32_t tick;
+    int32_t delta;
 
 #if TARGET_API_MAC_CARBON
     if (UpTime != 0) {
@@ -176,8 +176,8 @@ static ULongLong _TimerReadMillis(void)
     static ULongLong MSEC;
     ULongLong now;
     AbsTime t;
-    long tick;
-    long delta;
+    int32_t tick;
+    int32_t delta;
 
 #if TARGET_API_MAC_CARBON
     if (UpTime != 0) {

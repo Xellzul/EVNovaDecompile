@@ -41,7 +41,7 @@ short SWCreateRLEData(SpritePtr srcSpriteP, short requestedDepth)
     short maxWidth, maxHeight;
     Rect *rectP;
     Boolean lockedState;
-    unsigned long srcBaseOffset;
+    uint32_t srcBaseOffset;
 
     if (requestedDepth > 0) {
         depth = requestedDepth;
@@ -155,9 +155,9 @@ short SWCreateRLEData(SpritePtr srcSpriteP, short depth)
     short err;
     Rect *rectP;
     unsigned char lockedState;
-    unsigned long srcBaseOffset;
-    unsigned long spriteDataSize;
-    unsigned long frameDataSize;
+    uint32_t srcBaseOffset;
+    uint32_t spriteDataSize;
+    uint32_t frameDataSize;
 
     err = 0;
 

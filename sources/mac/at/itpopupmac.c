@@ -12,7 +12,7 @@ typedef struct ITPopup {
     unsigned char language;                      /* +0x04 the LANGUAGE popup: never shown */
     unsigned char pad05;
     ITRect bounds;                               /* +0x06 */
-    long selected;                               /* +0x16 0-based */
+    int32_t selected;                               /* +0x16 0-based */
     unsigned char active;                        /* +0x1a */
     unsigned char visible;                       /* +0x1b */
     unsigned char enabled;                       /* +0x1c */
@@ -31,11 +31,11 @@ typedef struct ITPopup {
 
 extern CQDProcs gIT_StdCProcs;
 
-long IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
+int32_t IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
                   void *b)
 {
     Point pt;
-    long flag;
+    int32_t flag;
     void *block;
     GrafPtr owner;
     unsigned char refresh;
@@ -43,21 +43,21 @@ long IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULon
     ITPopup *popup;
     GDHandle saveDevice;
     Rect rect;
-    long value;
+    int32_t value;
     char cstr[256];
     Str255 title;
     Str255 text;
     char copy[256];
     Str255 item;
-    long size;
+    int32_t size;
     ULong index;
     short id;
     ITElement *node;
     char *name;
-    long err;
+    int32_t err;
     unsigned char separator;
     CQDProcsPtr procs;
-    long e;
+    int32_t e;
 
     err = 0;
     refresh = 0;
@@ -263,9 +263,9 @@ long IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULon
         }
         break;
     case kMsgGetValue:
-        *(long *)b = popup->selected;
+        *(int32_t *)b = popup->selected;
         if (popup->control != 0)
-            *(long *)b = GetControlValue(popup->control);
+            *(int32_t *)b = GetControlValue(popup->control);
         break;
     case kMsgSetValue:
         popup->selected = a;
@@ -315,7 +315,7 @@ typedef struct ITPopup {
     unsigned char language;                      /* +0x04 the LANGUAGE popup: lists the window's languages */
     unsigned char pad05;
     ITRect bounds;                               /* +0x06 */
-    long selected;                               /* +0x16 0-based */
+    int32_t selected;                               /* +0x16 0-based */
     unsigned char active;                        /* +0x1a */
     unsigned char visible;                       /* +0x1b */
     unsigned char enabled;                       /* +0x1c */
@@ -337,13 +337,13 @@ extern CQDProcs gIT_StdCProcs;
 extern CFStringRef IndirectCopyCFString(void **handle);
 extern CFStringRef UnicodeCreateCFString(const unsigned short *s, ULong count);
 extern ULong IT_ItemCallbackLanguageCount(void);
-extern long IT_ItemCallbackLanguageCurrent(char *code, unsigned short *name);
+extern int32_t IT_ItemCallbackLanguageCurrent(char *code, unsigned short *name);
 extern unsigned char IT_ItemCallbackLanguageCode(ULong index, char *code);
 extern unsigned char IT_ItemCallbackLanguageName(ULong index, unsigned short *name);
 
 #define kDashW L"-"
 
-long IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
+int32_t IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
                   void *b)
 {
     unsigned char separator;
@@ -356,23 +356,23 @@ long IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULon
     Point pt;
     CGrafPtr savePort;
     GDHandle saveDevice;
-    long value;
+    int32_t value;
     unsigned char visible;
-    long flag;
+    int32_t flag;
     unsigned char refresh;
     ITPopup *popup;
     ULong size;
     ULong index;
     short id;
-    long i;
+    int32_t i;
     void *block;
     ITElement *node;
     char *name;
-    long err;
+    int32_t err;
     unsigned short wide[256];
     CFStringRef string;
     CQDProcsPtr procs;
-    long e;
+    int32_t e;
 
     err = 0;
     refresh = 0;
@@ -664,9 +664,9 @@ long IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULon
         }
         break;
     case kMsgGetValue:
-        *(long *)b = popup->selected;
+        *(int32_t *)b = popup->selected;
         if (popup->control != 0)
-            *(long *)b = GetControlValue(popup->control);
+            *(int32_t *)b = GetControlValue(popup->control);
         break;
     case kMsgSetValue:
         popup->selected = a;

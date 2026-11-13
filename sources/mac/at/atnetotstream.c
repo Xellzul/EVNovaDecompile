@@ -14,7 +14,7 @@
 #endif
 extern unsigned char _PlatformIsThreaded(void);
 
-extern long CriticalCreateFromProvider(void *lock, ProviderRef provider);
+extern int32_t CriticalCreateFromProvider(void *lock, ProviderRef provider);
 
 #if TARGET_API_MAC_CARBON
 #define OTOpenEndpoint(c, o, i, e) OTOpenEndpointInContext(c, o, i, e, 0)
@@ -71,7 +71,7 @@ extern unsigned char gIdleHookEnabled;
 #define kErrNotSupported    -3168
 
 unsigned char gOTOpen = 0;
-extern long gOTSocketCount;
+extern int32_t gOTSocketCount;
 
 /* a socket on Open Transport's TCP or ADSP */
 
@@ -91,7 +91,7 @@ typedef struct OTStream {
     MutexList *recvList2;
     NetAddress local;
     NetAddress remote;
-    long unk240;
+    int32_t unk240;
     EndpointRef endpoint;
     OTSequence sequence;
     MapperRef mapper;
@@ -100,10 +100,10 @@ typedef struct OTStream {
     NetAddress peer;
     MutexList sendQueue;
     NetChunk *sending;
-    long sendBytes;
+    int32_t sendBytes;
 } OTStream;
 
-extern long StreamOpenEndpointOT(void *ref);
+extern int32_t StreamOpenEndpointOT(void *ref);
 extern void StreamPostOT(OTStream *s);
 extern void StreamReceiveOT(void *ref);
 extern void StreamLookOT(OTStream *s);
@@ -134,10 +134,10 @@ static inline char *MslAppend(char *dst, const char *src)
     return dst;
 }
 
-static inline long MslLength(const char *s)
+static inline int32_t MslLength(const char *s)
 {
     const unsigned char *p;
-    long n;
+    int32_t n;
 
     p = (const unsigned char *)s - 1;
     n = -1;
@@ -149,7 +149,7 @@ static inline long MslLength(const char *s)
 
 NetStream *StreamCreateOT(NetStackID stack, void *ref, NetProc proc, MutexList *sentList, MutexList *freeList, MutexList *recvList, MutexList *recvList2)
 {
-    long err, e;
+    int32_t err, e;
     OTStream *s;
 
     err = 0;
@@ -195,7 +195,7 @@ done:
 
 void StreamTickleOT(OTStream *s)
 {
-    long state;
+    int32_t state;
     Boolean entered;
 
     state = s->state;
@@ -232,9 +232,9 @@ void StreamDisposeOT(NetSocket *sock)
     gOTSocketCount--;
 }
 
-long StreamAcceptServerOT(OTStream *s, void *other)
+int32_t StreamAcceptServerOT(OTStream *s, void *other)
 {
-    long err;
+    int32_t err;
     OTStream *o;
     unsigned short state;
     OTResult result;
@@ -242,7 +242,7 @@ long StreamAcceptServerOT(OTStream *s, void *other)
 
     o = other;
     err = 0;
-    if ((long)s->state == 0) {
+    if ((int32_t)s->state == 0) {
         err = kNotOpen;
         goto done;
     }
@@ -302,10 +302,10 @@ done:
     return err;
 }
 
-long StreamOpenClientOT(void *ref, NetAddress *local, const NetAddress *remote, ULong timeout)
+int32_t StreamOpenClientOT(void *ref, NetAddress *local, const NetAddress *remote, ULong timeout)
 {
     OTStream *s;
-    long err;
+    int32_t err;
     ULong ip;
     unsigned short port;
     unsigned short net;
@@ -459,11 +459,11 @@ long StreamOpenClientOT(void *ref, NetAddress *local, const NetAddress *remote, 
         AddressDuplicate(local, &s->local);
     if (timeout != 0) {
         deadline = TimerGetMilliseconds() + timeout;
-        while ((long)s->state == kStateConnecting && (long long)(deadline - TimerGetMilliseconds()) > 0)
+        while ((int32_t)s->state == kStateConnecting && (long long)(deadline - TimerGetMilliseconds()) > 0)
             SystemWait(10);
-        if ((long)s->state == kStateConnecting) {
+        if ((int32_t)s->state == kStateConnecting) {
             entered = OTEnterNotifier(s->endpoint);
-            if ((long)s->state == kStateConnecting) {
+            if ((int32_t)s->state == kStateConnecting) {
                 OTSndDisconnect(s->endpoint, 0);
                 if (entered)
                     OTLeaveNotifier(s->endpoint);
@@ -480,12 +480,12 @@ done:
     return err;
 }
 
-long StreamSendOT(OTStream *s, NetChunk *chunk)
+int32_t StreamSendOT(OTStream *s, NetChunk *chunk)
 {
-    long err;
+    int32_t err;
     NetChunk *p;
     Boolean entered;
-    long state;
+    int32_t state;
 
     err = 0;
     state = s->state;
@@ -525,9 +525,9 @@ void StreamCloseOT(NetSocket *sock, unsigned char inGraceful)
         StreamLookOT(s);
         if (AtomicMaskTest(&s->flags, kFlagReset))
             linger = 0;
-        if ((long)s->state != 4 && (long)s->state != 6)
+        if ((int32_t)s->state != 4 && (int32_t)s->state != 6)
             graceful = 0;
-        if ((long)s->state != kStateDead)
+        if ((int32_t)s->state != kStateDead)
             abortive = 1;
         s->state = 7;
         if (linger) {
@@ -535,12 +535,12 @@ void StreamCloseOT(NetSocket *sock, unsigned char inGraceful)
                 SystemIdle();
                 StreamLookOT(s);
                 StreamPostOT(s);
-                if ((long)s->state != 7)
+                if ((int32_t)s->state != 7)
                     graceful = 0;
             }
             if (graceful) {
                 OTSndOrderlyDisconnect(s->endpoint);
-                for (tries = 0; tries < 3 && (long)s->state != 0; tries++) {
+                for (tries = 0; tries < 3 && (int32_t)s->state != 0; tries++) {
                     SystemIdle();
                     StreamLookOT(s);
                     if (OTGetEndpointState(s->endpoint) == 2)
@@ -549,13 +549,13 @@ void StreamCloseOT(NetSocket *sock, unsigned char inGraceful)
             } else if (OTGetEndpointState(s->endpoint) == 2) {
                 s->state = 0;
             }
-            if ((long)s->state != 0) {
+            if ((int32_t)s->state != 0) {
                 OTIoctl(s->endpoint, I_FLUSH, (void *)FLUSHRW);
                 OTSndDisconnect(s->endpoint, 0);
                 if (abortive) {
                     s->state = 0;
                 } else {
-                    for (tries = 0; tries < 3 && (long)s->state != 0; tries++) {
+                    for (tries = 0; tries < 3 && (int32_t)s->state != 0; tries++) {
                         SystemIdle();
                         StreamLookOT(s);
                     }
@@ -609,10 +609,10 @@ done:
     return;
 }
 
-long StreamGetAddressOT(OTStream *s, NetAddress *local, NetAddress *remote)
+int32_t StreamGetAddressOT(OTStream *s, NetAddress *local, NetAddress *remote)
 {
-    long err;
-    long state;
+    int32_t err;
+    int32_t state;
     Boolean entered;
 
     err = 0;
@@ -632,13 +632,13 @@ long StreamGetAddressOT(OTStream *s, NetAddress *local, NetAddress *remote)
     return err;
 }
 
-long StreamOpenEndpointOT(void *ref)
+int32_t StreamOpenEndpointOT(void *ref)
 {
     OTStream *s;
-    long err;
+    int32_t err;
     OTConfigurationRef config;
     OSStatus status;
-    long e;
+    int32_t e;
 
     s = ref;
     err = 0;
@@ -699,7 +699,7 @@ void StreamPostOT(OTStream *s)
     unsigned char done;
     OTResult err;
     OTResult sent;
-    long state;
+    int32_t state;
 
     err = 0;
     state = s->state;
@@ -769,9 +769,9 @@ void StreamReceiveOT(void *ref)
     OTResult got;
     OTFlags flags;
     size_t count;
-    long state;
+    int32_t state;
     Boolean entered;
-    long event;
+    int32_t event;
 
     s = ref;
     err = 0;
@@ -943,7 +943,7 @@ pascal void StreamNotifierOT(void *ref, OTEventCode code, OTResult result, void 
         case T_DATA:
         case T_EXDATA: {
             Boolean entered;
-            long state;
+            int32_t state;
 
             entered = OTEnterNotifier(s->endpoint);
             SystemEnterCallback(0);
@@ -1007,7 +1007,7 @@ pascal void StreamNotifierOT(void *ref, OTEventCode code, OTResult result, void 
 
             entered = OTEnterNotifier(s->endpoint);
             SystemEnterCallback(0);
-            if ((long)s->state == 3) {
+            if ((int32_t)s->state == 3) {
                 s->state = kStateDead;
                 NetworkMakeCallback(s->proc, s->ref, (NetSocket *)s, 18);
             } else {
@@ -1125,7 +1125,7 @@ pascal void StreamNotifierOT(void *ref, OTEventCode code, OTResult result, void 
             break;
         case kOTProviderWillClose:
         case kOTProviderIsClosed:
-            if ((long)s->state != 0) {
+            if ((int32_t)s->state != 0) {
                 s->state = 0;
                 NetworkMakeCallback(s->proc, s->ref, (NetSocket *)s, kEventAborted);
             }

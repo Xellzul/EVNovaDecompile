@@ -9,7 +9,7 @@
 #ifdef MACBUILD
     char *dir;
     char *path;
-    unsigned long contribute[2];
+    uint32_t contribute[2];
 #endif
 
     if ((shipClass[gameIsRegisteredIndex].registered != 0 ? 1 : 0) == 0)

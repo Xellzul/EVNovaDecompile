@@ -34,13 +34,13 @@ typedef struct AuthRights {
     AuthItem *items;
 } AuthRights;
 
-typedef long (*AuthCreateProc)(const AuthRights *rights, const void *environment, ULong flags, void **authRef);
-typedef long (*AuthCopyRightsProc)(void *authRef, const AuthRights *rights, const void *environment, ULong flags, AuthRights **authorized);
-typedef long (*AuthExecuteProc)(void *authRef, const char *tool, ULong options, char *const *args, void **pipe);
-typedef long (*AuthFreeProc)(void *authRef, ULong flags);
+typedef int32_t (*AuthCreateProc)(const AuthRights *rights, const void *environment, ULong flags, void **authRef);
+typedef int32_t (*AuthCopyRightsProc)(void *authRef, const AuthRights *rights, const void *environment, ULong flags, AuthRights **authorized);
+typedef int32_t (*AuthExecuteProc)(void *authRef, const char *tool, ULong options, char *const *args, void **pipe);
+typedef int32_t (*AuthFreeProc)(void *authRef, ULong flags);
 typedef ULong (*FwriteProc)(const void *data, ULong size, ULong count, void *file);
-typedef long (*FcloseProc)(void *file);
-typedef long (*GetEuidProc)(void);
+typedef int32_t (*FcloseProc)(void *file);
+typedef int32_t (*GetEuidProc)(void);
 
 extern unsigned char _PlatformIsThreaded(void);
 
@@ -67,7 +67,7 @@ static void *_FindBundleSymbol(CFStringRef bundleName, CFStringRef symbolName)
     base = 0;
     symbol = 0;
     if (!sFound) {
-        long e;
+        int32_t e;
 
         e = FSFindFolder(kOnAppropriateDisk, kFrameworksFolderType, kCreateFolder, &sFrameworks);
         if (e != 0) {
@@ -154,10 +154,10 @@ char *GetPathToSystemPreferences(const char *name)
     return path;
 }
 
-long WriteToFileAsSuperUser(char *path, const void *data, long size)
+int32_t WriteToFileAsSuperUser(char *path, const void *data, int32_t size)
 {
     ULong err = 0;
-    long e;
+    int32_t e;
     void *authRef = 0;
     AuthItem item = { kAuthRightExecute, 0, 0, 0 };
     AuthRights rights;
@@ -207,7 +207,7 @@ long WriteToFileAsSuperUser(char *path, const void *data, long size)
         err = e;
         goto done;
     }
-    if ((long)sFwrite(data, 1, size, pipe) < size)
+    if ((int32_t)sFwrite(data, 1, size, pipe) < size)
         err = -1;
 done:
     if (sFclose != 0 && pipe != 0)

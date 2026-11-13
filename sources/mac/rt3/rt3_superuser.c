@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include "rt3_mac.h"
 
-extern void *MemoryAllocate(unsigned long size);
+extern void *MemoryAllocate(uint32_t size);
 extern void MemoryDeallocate(void *p);
 
 // MAC: _GetPathToSystemPreferences i386 0x000d5ed0 ppc 0x000e0fa4
@@ -15,7 +15,7 @@ char *GetPathToSystemPreferences(const char *name)
     CFStringRef pathString = 0;
     char *path = 0;
     CFIndex length;
-    unsigned long size;
+    uint32_t size;
     CFURLRef folderURL = 0;
     FSRef folder;
 
@@ -59,7 +59,7 @@ char *GetPathToSystemPreferences(const char *name)
 }
 
 // MAC: _WriteToFileAsSuperUser i386 0x000d607f ppc 0x000e1130
-OSStatus WriteToFileAsSuperUser(char *path, const void *data, long size)
+OSStatus WriteToFileAsSuperUser(char *path, const void *data, int32_t size)
 {
     OSStatus err = 0;
     OSStatus e;
@@ -68,7 +68,7 @@ OSStatus WriteToFileAsSuperUser(char *path, const void *data, long size)
     AuthorizationRights rights;
     char *args[2] = { "", 0 };
     FILE *pipe = 0;
-    long written;
+    int32_t written;
 
     rights.count = 1;
     rights.items = &item;

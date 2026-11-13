@@ -13,5 +13,5 @@ RgnHandle gUpdateRgn = NULL;
 #if TARGET_API_MAC_OS8
 Boolean gControlStripWasVisible = false;
 #else
-long gControlStripWasVisible = 0;
+int32_t gControlStripWasVisible = 0;
 #endif

@@ -61,7 +61,7 @@ short shipyardScroll;
 short shipBuyMode;
 short loopingMovieResRefNum;
 short junkType[2];
-unsigned long lastClickTime;
+uint32_t lastClickTime;
 float priceFluxMult[2];
 PicHandle portBackgroundPic;
 PicHandle bigShipPic;
@@ -95,8 +95,8 @@ Rect listScreenRect[kGridCells];
 Rect listPicScreenRect[kGridCells];
 void *loopingMovie = NULL;
 TEHandle textDialogTextHandle;
-unsigned long lastTextScrollTime;
-unsigned long ambientNoiseDelay;
+uint32_t lastTextScrollTime;
+uint32_t ambientNoiseDelay;
 GWorldContainer iconsPort;
 GWorldContainer planetPicContainer;
 char playerInfoText[3][4096];
@@ -115,12 +115,12 @@ void *gIntroMovieData;
 Rect gMovieBox;
 #endif
 #ifdef MACBUILD
-extern long gSystemVersion;
+extern int32_t gSystemVersion;
 extern Boolean introMusicPaused;
 extern void SetRetainedWindow(WindowRef window, Boolean retained);
 extern void KeepMenuBarHidden(GrafPtr port);
 extern void AdjustMenus(void);
-extern void DoMenuClick(long menuResult);
+extern void DoMenuClick(int32_t menuResult);
 extern void KeyDialogUpdate(void);
 void GetWindowDragBounds(Rect *bounds, Point where);
 void ForceWindowOnscreen(void);
@@ -174,8 +174,8 @@ void DoTradeDialog(void)
     short j;
     short space;
     short maxSell;
-    long afford;
-    long qty;
+    int32_t afford;
+    int32_t qty;
     Boolean done;
 
     done = 0;
@@ -421,7 +421,7 @@ void DoTradeDialog(void)
 /* TradeFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0048d190
 // MAC: _TradeFilter i386 0x0004e092 ppc 0x00056d08
-Boolean TradeFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean TradeFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Rect box;
     short itemType;
@@ -659,7 +659,7 @@ void TradeDialogUpdate(void)
     Boolean junkSeen[kMaxJunks];
     short junkSlots;
     short k;
-    long row;
+    int32_t row;
     Rect insetBox;
     unsigned char num[256];
     char message[255];
@@ -685,7 +685,7 @@ void TradeDialogUpdate(void)
     Boolean junkSeen[kMaxJunks];
     short junkSlots;
     short k;
-    long row;
+    int32_t row;
     Rect insetBox;
     unsigned char num[256];
     char text[2048];
@@ -709,7 +709,7 @@ void TradeDialogUpdate(void)
     Boolean seen[kMaxCargo];
     short junkSlots;
     short k;
-    long row;
+    int32_t row;
     Rect insetBox;
     unsigned char num[256];
     Rect box;
@@ -1218,11 +1218,11 @@ void DoOutfitDialog(void)
     short weapID;
     Boolean shown;
     short itemHit;
-    long cost;
+    int32_t cost;
     short itemType;
     short savedUnk6C;
     short savedUnk6A;
-    long qtyLimit;
+    int32_t qtyLimit;
     int have;
     Boolean done;
     short filterKey;
@@ -1776,11 +1776,11 @@ void DoOutfitDialog(void)
 #ifdef MACBUILD
     short shortfall;
     short itemHit;
-    long cost;
+    int32_t cost;
     short itemType;
     short savedUnk6C;
     short savedUnk6A;
-    long qtyLimit;
+    int32_t qtyLimit;
     int have;
     short count;
     short weapID;
@@ -1806,7 +1806,7 @@ void DoOutfitDialog(void)
     short filterKey;
     short savedUnk6C;
     short savedUnk6A;
-    long qtyLimit;
+    int32_t qtyLimit;
     int have;
     short count;
     short weapID;
@@ -1824,7 +1824,7 @@ void DoOutfitDialog(void)
     short k;
     short m;
     Boolean shown;
-    long cost;
+    int32_t cost;
 #endif
 
     done = 0;
@@ -2437,7 +2437,7 @@ void DoOutfitDialog(void)
    OPEN: none. */
 // FUNCTION: EVNOVA 0x004903c0
 // MAC: _OutfitFilter i386 0x00058039 ppc 0x00060298
-Boolean OutfitFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean OutfitFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Rect box;
 #ifdef MACBUILD
@@ -2449,7 +2449,7 @@ Boolean OutfitFilter(long unused, EventRecord *ev, short *itemHit)
     EventKey c;
     short i;
     short count;
-    long slot;
+    int32_t slot;
     short old;
     short oldPos;
     short row;
@@ -2751,8 +2751,8 @@ void OutfitDialogUpdate(void)
     unsigned char line2[256];
     short i;
     short drawn;
-    long mass;
-    long freeMass;
+    int32_t mass;
+    int32_t freeMass;
 
     SetGWorldContainer(&loadPort);
     ForeColor(blackColor);
@@ -3025,8 +3025,8 @@ Boolean CanBuyOutfitItem(short outfit)
 #ifndef MAC1010
     short cargoDelta;
 #endif
-    long freeMass;
-    long mass;
+    int32_t freeMass;
+    int32_t mass;
     Boolean can;
     Boolean isFakeID;
     Boolean avail;
@@ -3188,7 +3188,7 @@ Boolean CanBuyOutfitItem(short outfit)
                             outfitSystem[selOutfitItem].techLevel,
                             stellarData[shipData[0].targetStellar].techLevel);
             {
-                long cost = AdjustedItemCost(&outfitSystem[selOutfitItem],
+                int32_t cost = AdjustedItemCost(&outfitSystem[selOutfitItem],
                                              &shipClass[shipData[0].type]);
 
                 if (shipData[0].credits < cost)
@@ -3487,7 +3487,7 @@ void DoPortDialog(SpobRecord *spob, short stellar)
 /* PortFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004928a0
 // MAC: _PortFilter i386 0x0004f041 ppc 0x00057c18
-Boolean PortFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean PortFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Rect box;
     short itemType;
@@ -3760,7 +3760,7 @@ void MyModalDialog(DialogPtr dlg, void *eventProc, short *itemHit,
     Rect r;
     GrafPtr savedPort;
     WindowPtr window;
-    long sleep;
+    int32_t sleep;
 
     *itemHit = -1;
 #ifdef MAC1010
@@ -3976,8 +3976,8 @@ void DoShipyardDialog(void)
     short i;
     short itemType;
     short outf;
-    long tradeIn;
-    long cost;
+    int32_t tradeIn;
+    int32_t cost;
     short weap;
     Boolean weapHasSlot;
     short savedTargetStellar;
@@ -4330,7 +4330,7 @@ void DoShipyardDialog(void)
    OPEN: none */
 // FUNCTION: EVNOVA 0x00493fc0
 // MAC: _ShipyardFilter i386 0x00060449 ppc 0x00068154
-Boolean ShipyardFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean ShipyardFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Rect box;
     Rect movieBox;
@@ -4340,12 +4340,12 @@ Boolean ShipyardFilter(long unused, EventRecord *ev, short *itemHit)
     EventKey c;
     short i;
     short count;
-    long slot;
+    int32_t slot;
     short old;
     short oldPos;
     short row;
     short button;
-    long cell;
+    int32_t cell;
 
     if ((absquatulateStr)[0] != 0) {
         ev->what = kMouseDown;
@@ -4629,9 +4629,9 @@ void ShipyardDialogUpdate(void)
     unsigned char line2[256];
     short drawn;
     short skipped;
-    long price;
-    long tradeIn;
-    long net;
+    int32_t price;
+    int32_t tradeIn;
+    int32_t net;
 
     SetGWorldContainer(&loadPort);
     ForeColor(blackColor);
@@ -4716,15 +4716,15 @@ void ShipyardDialogUpdate(void)
                         ForeColor(blackColor);
                     } else {
 #ifdef CEFIX /* F12.58 */
-                        CE_SetPen((listScreenRect[i - (long)shipyardScroll].left
-                                       + listScreenRect[i - (long)shipyardScroll].right) / 2
+                        CE_SetPen((listScreenRect[i - (int32_t)shipyardScroll].left
+                                       + listScreenRect[i - (int32_t)shipyardScroll].right) / 2
                                       - StringWidth(line1) / 2,
-                                  listScreenRect[i - (long)shipyardScroll].bottom - CE_Scale(6));
+                                  listScreenRect[i - (int32_t)shipyardScroll].bottom - CE_Scale(6));
 #else
-                        MoveTo(((listScreenRect[i - (long)shipyardScroll].left
-                                        + listScreenRect[i - (long)shipyardScroll].right) / 2
+                        MoveTo(((listScreenRect[i - (int32_t)shipyardScroll].left
+                                        + listScreenRect[i - (int32_t)shipyardScroll].right) / 2
                                        - StringWidth(line1) / 2),
-                               (listScreenRect[i - (long)shipyardScroll].bottom - 6));
+                               (listScreenRect[i - (int32_t)shipyardScroll].bottom - 6));
 #endif
                         ForeColor(whiteColor);
                         DrawString(line1);
@@ -4982,7 +4982,7 @@ void DoShipyardDescription(short ship)
 /* ShipDescFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004959d0
 // MAC: _ShipDescFilter i386 0x000510e5 ppc 0x00059a0c
-Boolean ShipDescFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean ShipDescFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     short itemType;
     void *item;
@@ -5101,14 +5101,14 @@ void ShipDescDialogUpdate(void)
     Handle item;
     short i;
     short j;
-    long freeMass;
-    long mass;
+    int32_t freeMass;
+    int32_t mass;
 #else
-    long drawn;
-    long numWeapTypes;
+    int32_t drawn;
+    int32_t numWeapTypes;
     short itemType;
     short sel;
-    long lineV;
+    int32_t lineV;
     Rect box2;
     Boolean hasPict;
     char line[1024];
@@ -5118,8 +5118,8 @@ void ShipDescDialogUpdate(void)
     short i;
     short j;
     short jumps;
-    long freeMass;
-    long mass;
+    int32_t freeMass;
+    int32_t mass;
 #endif
 
     SetGWorldContainer(&loadPort);
@@ -5575,7 +5575,7 @@ void IterateInGameEventLoop(short tickCount)
     short i;
     Boolean exitLoop;
     Boolean gotEvent;
-    long menuChoice;
+    int32_t menuChoice;
     Boolean depthMismatch;
 #if !TARGET_API_MAC_CARBON
     Point where;
@@ -5712,7 +5712,7 @@ void IterateInGameEventLoop(short tickCount)
             break;
 #if defined(MAC1010) && !TARGET_API_MAC_CARBON
         case diskEvt:
-            if ((long)ev.message >> 16) {
+            if ((int32_t)ev.message >> 16) {
                 where.v = where.h = 100;
                 DILoad();
                 DIBadMount(where, ev.message);
@@ -6007,7 +6007,7 @@ Boolean RetrieveMenuIcon(short picID, CGrafPtr dest, Rect *destRect)
 {
     short i;
     short slot;
-    unsigned long oldest;
+    uint32_t oldest;
     PicHandle pic;
     CGrafPtr savedPort;
     Boolean missed;
@@ -6061,8 +6061,8 @@ Boolean RetrieveMenuIcon(short picID, GWorldContainer *dest, Rect *destRect)
     PicHandle pic;
     CGrafPtr savedPort;
     Boolean missed;
-    unsigned long oldest;
-    long j;
+    uint32_t oldest;
+    int32_t j;
     short id;
 
     slot = -1;
@@ -6097,14 +6097,14 @@ Boolean RetrieveMenuIcon(short picID, GWorldContainer *dest, Rect *destRect)
     ForeColor(blackColor);
     pic = GetPicture(picID);
     if (pic != 0) {
-        j = (long)&listPicOffRect[(short)slot];
+        j = (int32_t)&listPicOffRect[(short)slot];
         DrawPicHandle(pic, (Rect *)j);
         QDReleaseResource(pic);
         iconCache[(short)slot].picID = picID;
         iconCache[(short)slot].stamp = ReadTick();
         missed = 0;
     } else {
-        j = (long)&listPicOffRect[(short)slot];
+        j = (int32_t)&listPicOffRect[(short)slot];
         PaintRect((Rect *)j);
         missed = 1;
     }
@@ -6256,7 +6256,7 @@ void RefreshWindowBuffer(void)
 
 #define kCaptureStrIdx  0x76
 
-Boolean CapturedAssignmentFilter(long unused, EventRecord *ev, short *itemHit);
+Boolean CapturedAssignmentFilter(int32_t unused, EventRecord *ev, short *itemHit);
 
 #define kCaptureDlogID   0x3fa
 #define kCapturePictID   0x2144
@@ -6312,7 +6312,7 @@ Boolean DoCapturedShipAssignmentDialog(void)
 /* CapturedAssignmentFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00498040
 // MAC: _CapturedAssignmentFilter i386 0x00051782 ppc 0x0005a024
-Boolean CapturedAssignmentFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean CapturedAssignmentFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Point where;
     short button;
@@ -6732,9 +6732,9 @@ void ShowTextDialog(Boolean allowMap, Boolean redrawMission, Boolean showMovie)
 // MAC: _CalcShipCanBuy i386 0x0004f5eb ppc 0x000582b4
 void CalcShipCanBuy(void)
 {
-    long price;
-    long need;
-    long tradeIn;
+    int32_t price;
+    int32_t need;
+    int32_t tradeIn;
     short i;
     unsigned long long key;
     Boolean sig[4];
@@ -6917,7 +6917,7 @@ void ScrollDialogText(DialogPtr dlg, short item, TEHandle hTE, short dv, Boolean
 /* TextDialogFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00499440
 // MAC: _TextDialogFilter i386 0x00051f77 ppc 0x0005a820
-Boolean TextDialogFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean TextDialogFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Rect box;
     Point where;
@@ -7412,7 +7412,7 @@ void DoPlayerInfoDialog(void)
 /* PlayerInfoFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0049a3a0
 // MAC: _PlayerInfoFilter i386 0x00053ae9 ppc 0x0005c1b8
-Boolean PlayerInfoFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean PlayerInfoFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Point where;
     short button;
@@ -7533,8 +7533,8 @@ void PlayerInfoDialogUpdate(void)
     unsigned char cheatBuf[256];
     PStrChar buf[2048];
     short i;
-    long stellarWorth;
-    long escortWorth;
+    int32_t stellarWorth;
+    int32_t escortWorth;
     short sys;
     short jumps;
     short count;
@@ -8019,7 +8019,7 @@ void SetupPlayerInfoText(void)
     short maxWeight;
     short found;
     short type;
-    long credits;
+    int32_t credits;
     short j;
     short weight;
     char c;
@@ -8438,7 +8438,7 @@ void SetupPlayerInfoText(void)
 {
 #ifdef MACBUILD
     Boolean rankShown[kMaxRanks];
-    long credits;
+    int32_t credits;
     char c;
     short shown;
     short count;
@@ -8461,7 +8461,7 @@ void SetupPlayerInfoText(void)
     unsigned char str[256];
 #else
     Boolean rankShown[kMaxRanks];
-    long credits;
+    int32_t credits;
     char c;
     Boolean starred;
     short found;
@@ -9018,9 +9018,9 @@ void FrameDefaultButton(void *dlg, short flag)
 /* ApplyPriceAndTechnologyFlux. STATE: MATCH 100.0%, exe 114 / obj 114, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0049d640
 // MAC: _ApplyPriceAndTechnologyFlux i386 0x0004e6cd ppc 0x000572e4
-long ApplyPriceAndTechnologyFlux(long cost, float multiplier, short itemTech, short portTech)
+int32_t ApplyPriceAndTechnologyFlux(int32_t cost, float multiplier, short itemTech, short portTech)
 {
-    long price;
+    int32_t price;
 
     if (cost <= 0)
         return 0;
@@ -9103,11 +9103,11 @@ void StartLoopingMovie(const unsigned char *name, void *window, Rect *box)
 {
     short resID;
     short vRefNum;
-    long dirID;
+    int32_t dirID;
     FSSpec spec;
     TimeBase timeBase;
     OSErr err;
-    long flags;
+    int32_t flags;
 
     if (settings.noMovies != 0)
         return;
@@ -9211,7 +9211,7 @@ fail:
 
     port = *windowPort;
     QTNewGWorldFromPtr(&gIntroMovieData, k16BE555PixelFormat, &gMovieBox, 0, 0, 0,
-                       (long)port->pix.baseAddr, port->pix.rowBytes);
+                       (int32_t)port->pix.baseAddr, port->pix.rowBytes);
 
     PStr2CStr(cname, name);
 
@@ -9310,7 +9310,7 @@ short IntroMovieIdleProc(void)
 #pragma options align=packed
 typedef struct FileSpec {
     short vRefNum;
-    long parID;
+    int32_t parID;
     char name[256];
 } FileSpec;
 #pragma options align=reset
@@ -9332,11 +9332,11 @@ void PlayQTMovie(unsigned char *name, unsigned char doubled, unsigned char fade)
     Rect r;
     Rect scaled;
     Movie movie;
-    long dirID;
+    int32_t dirID;
     short fileRef;
     short movieResId;
     short vRefNum;
-    long savedPaintWhite;
+    int32_t savedPaintWhite;
 #else
     HFSUniStr255 uniName;
     FSRef ref;
@@ -9351,7 +9351,7 @@ void PlayQTMovie(unsigned char *name, unsigned char doubled, unsigned char fade)
     WindowRef win;
     short dw, dh, w, h;
     float ratio;
-    unsigned long last;
+    uint32_t last;
     EventRecord ev;
     OSErr err;
 
@@ -9499,7 +9499,7 @@ void PlayQTMovie(unsigned char *name, unsigned char doubled, unsigned char fade)
     FileSpec spec;
     short dw, dh;
     short w, h;
-    long err;
+    int32_t err;
     short r;
     short refNum;
     short resId;
@@ -9522,7 +9522,7 @@ void PlayQTMovie(unsigned char *name, unsigned char doubled, unsigned char fade)
 #endif
         CStr2PStr(pathBuf, pathBuf);
         r = FSMakeFSSpec(0, 0, pathBuf, &spec);
-        if ((long)r == 0)
+        if ((int32_t)r == 0)
             r = OpenMovieFile(&spec, &refNum, 1);
         err = r;
         if (err == 0)
@@ -9536,7 +9536,7 @@ void PlayQTMovie(unsigned char *name, unsigned char doubled, unsigned char fade)
 #endif
         CStr2PStr(pathBuf, pathBuf);
         r = FSMakeFSSpec(0, 0, pathBuf, &spec);
-        if ((long)r == 0)
+        if ((int32_t)r == 0)
             r = OpenMovieFile(&spec, &refNum, 1);
         err = r;
         if (err == 0)
@@ -9590,7 +9590,7 @@ found:
         SetMovieBox(movie, &gMovieBox);
         port = GetCWindowGrafPort(gWind);
         QTNewGWorldFromPtr(&gIntroMovieData, k16LE555PixelFormat, &gMovieBox, 0, 0, 0,
-                           (long)port->pix.baseAddr +
+                           (int32_t)port->pix.baseAddr +
                            box.top * port->pix.rowBytes +
                            (port->pix.pixelSize >> 3) * box.left,
                            port->pix.rowBytes);
@@ -9665,13 +9665,13 @@ void PlayQTMovieFromDesc(short id)
 #ifdef MACBUILD
 #define kSoundDoneMsg  1
 
-OSErr DummyAEVTHandler(const AppleEvent *ev, AppleEvent *reply, long refCon);
-OSErr PrefAEVTHandler(const AppleEvent *ev, AppleEvent *reply, long refCon);
-OSErr QuitAEVTHandler(const AppleEvent *ev, AppleEvent *reply, long refCon);
+OSErr DummyAEVTHandler(const AppleEvent *ev, AppleEvent *reply, int32_t refCon);
+OSErr PrefAEVTHandler(const AppleEvent *ev, AppleEvent *reply, int32_t refCon);
+OSErr QuitAEVTHandler(const AppleEvent *ev, AppleEvent *reply, int32_t refCon);
 
 /* PlanetSoundCallback (mac only). STATE: mac MATCH i386 and ppc. OPEN: none */
 // MAC: _PlanetSoundCallback i386 0x00055f5d ppc 0x0005e210
-void PlanetSoundCallback(long message)
+void PlanetSoundCallback(int32_t message)
 {
     if (message == kSoundDoneMsg && dockedPort != NULL && (dockedPort->flags2 & kSpobLoopSound))
         PlaySound(planetSnd, 10, gSoundVolume, gSoundVolume);
@@ -9682,7 +9682,7 @@ void PlanetSoundCallback(long message)
 void InitAEVTHandlers(void)
 {
     OSErr err;
-    long response;
+    int32_t response;
 
     OAPPHandlerUPP = NewAEEventHandlerUPP((AEEventHandlerProcPtr)DummyAEVTHandler);
     err = AEInstallEventHandler(kCoreEventClass, kAEOpenApplication, OAPPHandlerUPP, 0, false);
@@ -9735,14 +9735,14 @@ OSErr GotRequiredAEVTParams(const AppleEvent *ev)
 
 /* DummyAEVTHandler (mac only). STATE: mac MATCH i386 and ppc. OPEN: none */
 // MAC: _DummyAEVTHandler i386 0x00056174 ppc 0x0005e454
-OSErr DummyAEVTHandler(const AppleEvent *ev, AppleEvent *reply, long refCon)
+OSErr DummyAEVTHandler(const AppleEvent *ev, AppleEvent *reply, int32_t refCon)
 {
     return noErr;
 }
 
 /* PrefAEVTHandler (mac only). STATE: mac MATCH i386 and ppc. OPEN: none */
 // MAC: _PrefAEVTHandler i386 0x0005617b ppc 0x0005e45c
-OSErr PrefAEVTHandler(const AppleEvent *ev, AppleEvent *reply, long refCon)
+OSErr PrefAEVTHandler(const AppleEvent *ev, AppleEvent *reply, int32_t refCon)
 {
     DoPrefsDialog();
     AdjustSoundVolume();
@@ -9753,7 +9753,7 @@ OSErr PrefAEVTHandler(const AppleEvent *ev, AppleEvent *reply, long refCon)
 
 /* QuitAEVTHandler (mac only). STATE: mac MATCH i386 and ppc. OPEN: none */
 // MAC: _QuitAEVTHandler i386 0x0005619e ppc 0x0005e49c
-OSErr QuitAEVTHandler(const AppleEvent *ev, AppleEvent *reply, long refCon)
+OSErr QuitAEVTHandler(const AppleEvent *ev, AppleEvent *reply, int32_t refCon)
 {
 #if TARGET_API_MAC_CARBON
     Str255 text;
@@ -9889,13 +9889,13 @@ void DrawEscortMenuInFrame()
 
         if (i != -1 && flags[i] != 0) {
             strcpy((char *)str, "");
-            if ((long)playerEscortOrders[i] == 1)
+            if ((int32_t)playerEscortOrders[i] == 1)
                 GetIndString(str, kGameStrList, 0x91);
-            else if ((long)playerEscortOrders[i] == 2)
+            else if ((int32_t)playerEscortOrders[i] == 2)
                 GetIndString(str, kGameStrList, 0x92);
-            else if ((long)playerEscortOrders[i] == 4)
+            else if ((int32_t)playerEscortOrders[i] == 4)
                 GetIndString(str, kGameStrList, 0x93);
-            else if ((long)playerEscortOrders[i] == 3)
+            else if ((int32_t)playerEscortOrders[i] == 3)
                 GetIndString(str, kGameStrList, 0x94);
             else
                 GetIndString(str, kGameStrList, 0x95);
@@ -10019,10 +10019,10 @@ void ForceWindowOnscreen(void)
    the compares narrow and flip to unsigned. OPEN: none. see notes */
 // FUNCTION: EVNOVA 0x0049e8e0
 // MAC: _DoQuantityDialog i386 0x00056d5b ppc 0x0005f1e4
-long DoQuantityDialog(long maxCount, short mode)
+int32_t DoQuantityDialog(int32_t maxCount, short mode)
 {
 #ifdef MAC1010
-    long value;
+    int32_t value;
     Handle item;
     short itemHit;
     Boolean done;
@@ -10030,7 +10030,7 @@ long DoQuantityDialog(long maxCount, short mode)
     short itemType;
     Str255 text;
 #elif V111 /* V111 spelling */
-    long value;
+    int32_t value;
     Str255 text;
     short itemType;
     Handle item;
@@ -10041,7 +10041,7 @@ long DoQuantityDialog(long maxCount, short mode)
 #else
     Handle item;
     short itemHit;
-    long value;
+    int32_t value;
     Boolean done;
     short i;
     Rect box;
@@ -10054,7 +10054,7 @@ long DoQuantityDialog(long maxCount, short mode)
     short i;
 #endif
     short destIdx;
-    long result;
+    int32_t result;
 
     qtyDialog = NULL;
     qtyDialog = GetNewDialog(kQtyDlogID, NULL, NULL);

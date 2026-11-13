@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-long ScreenFlags;                               /* 0x0086ff9c, the mode flags */
+int32_t ScreenFlags;                               /* 0x0086ff9c, the mode flags */
 unsigned char Win95UseBackBuffer = 1;           /* 0x00578244, .data; zero is the arm that ADDS the offsets in LockVideoPage */
 
 #define kGreenLowMask   0x003f003f               /* blue and green's low bit, two pixels */
@@ -18,7 +18,7 @@ unsigned char Win95UseBackBuffer = 1;           /* 0x00578244, .data; zero is th
 /* VideoGetCurrentMode (BurgerLib VideoGetCurrentMode). STATE: MATCH 100.0%, exe 13 / obj 13,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f9910
-void VideoGetCurrentMode(long *out)
+void VideoGetCurrentMode(int32_t *out)
 {
     out[0] = ScreenWidth;
     out[1] = ScreenHeight;
@@ -31,7 +31,7 @@ void VideoGetCurrentMode(long *out)
 /* VideoSetMode (BurgerLib VideoSetMode). STATE: MATCH 100.0%, exe 29 / obj 29,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f9940
-long VideoSetMode(long *rec)
+int32_t VideoSetMode(int32_t *rec)
 {
     if (rec == 0 || rec[0] == 0 || rec[1] == 0)
         return 1;

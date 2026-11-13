@@ -18,7 +18,7 @@ EXTERN_CPP_BEGIN
 extern Settings settings;
 extern short recentActivatedRank;
 extern KeyPrefs keyPrefs;
-extern unsigned long lastEscortMenuTime;
+extern uint32_t lastEscortMenuTime;
 extern double DAT_00735450;
 extern Boolean DAT_00735488;
 extern float playerRepairInhibit;
@@ -73,7 +73,7 @@ extern Boolean ShipCanExpiditeJumps(ShipObj *ship);
 extern float ShipAfterburnerFuelUsage(ShipObj *ship);
 extern void SetDefaultPrefs(void);
 extern void SetDefaultKeys(void);
-extern long ShipFreeMass(void);
+extern int32_t ShipFreeMass(void);
 extern void LoadStellarResponse(short which);
 extern void HandlePlayer(ShipObj *ship);
 extern void HandlePlayerDockRequest(void);
@@ -87,13 +87,13 @@ extern void LoadPrefs(void);
 #endif
 extern void LoadResponse(short which);
 #ifdef MAC1010
-extern OSErr DoEncryption(Handle h, unsigned long key);
+extern OSErr DoEncryption(Handle h, uint32_t key);
 #elif defined(MACBUILD)
-extern OSErr DoEncryption(void *buf, unsigned long len, unsigned long key);
+extern OSErr DoEncryption(void *buf, uint32_t len, uint32_t key);
 #else
-extern long DoEncryption(void *buf, unsigned long len, unsigned long key);
+extern int32_t DoEncryption(void *buf, uint32_t len, uint32_t key);
 #endif
-extern long SaveAFile(const char *path, const void *data, unsigned long length);
+extern int32_t SaveAFile(const char *path, const void *data, uint32_t length);
 #ifdef MAC1010
 extern short LoadPilotData(FSSpec *spec);
 #elif defined(MACBUILD)
@@ -121,7 +121,7 @@ extern Boolean ShipCanScoop(ShipObj *ship);
 extern Boolean ShipCanTargetCloakedShips(ShipObj *ship);
 extern Boolean ShipCanTargetUntargetableShips(ShipObj *ship);
 extern Boolean ShipCloakVisibleOnRadar(ShipObj *ship);
-extern long ShipHyperSafeDist(ShipObj *ship);
+extern int32_t ShipHyperSafeDist(ShipObj *ship);
 extern float ShipIonizationFactor(ShipObj *ship);
 extern short ShipResistsDeadlyStellars(ShipObj *ship);
 extern short ShipResistsGravity(ShipObj *ship);
@@ -173,9 +173,9 @@ extern Boolean noUpdatePilotData;
 extern Boolean oldPlayerThreatened;
 #ifdef MAC1010
 extern short pilotsVRefNum;
-extern long pilotsDirID;
+extern int32_t pilotsDirID;
 extern short prefsVRefNum;
-extern long prefsDirID;
+extern int32_t prefsDirID;
 #endif
 #ifdef MACBUILD
 extern FSRef pilotsFolder;
@@ -185,7 +185,7 @@ extern char pilotsFolder[];
 extern short playerGender;
 extern short playerHasAfterburner;
 extern Boolean playerIsLanded;
-extern long playerKills;
+extern int32_t playerKills;
 extern FloatPoint playerMaxVel;
 extern short playerSabotaged;
 extern float playerShieldCapacity;

@@ -74,7 +74,7 @@ select_ncolors (j_decompress_ptr cinfo, int Ncolors[])
   int max_colors = cinfo->desired_number_of_colors;
   int total_colors, iroot, i, j;
   boolean changed;
-  long temp;
+  int32_t temp;
   static const int RGB_order[3] = { RGB_GREEN, RGB_RED, RGB_BLUE };
 
   iroot = 1;
@@ -83,7 +83,7 @@ select_ncolors (j_decompress_ptr cinfo, int Ncolors[])
     temp = iroot;
     for (i = 1; i < nc; i++)
       temp *= iroot;
-  } while (temp <= (long) max_colors);
+  } while (temp <= (int32_t) max_colors);
   iroot--;
 
   if (iroot < 2)
@@ -102,7 +102,7 @@ select_ncolors (j_decompress_ptr cinfo, int Ncolors[])
 
       temp = total_colors / Ncolors[j];
       temp *= Ncolors[j]+1;
-      if (temp > (long) max_colors)
+      if (temp > (int32_t) max_colors)
 	break;
       Ncolors[j]++;
       total_colors = (int) temp;

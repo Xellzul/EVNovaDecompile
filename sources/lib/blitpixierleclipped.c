@@ -12,8 +12,8 @@
 #define kDrawPixelsToken 2
 #define kSkipPixelsToken 3
 #define kSingleColorToken 4
-typedef unsigned long TokenDataType;
-#define ALIGN_PTR(p) (-((long)p) & 3)
+typedef uint32_t TokenDataType;
+#define ALIGN_PTR(p) (-((int32_t)p) & 3)
 #endif
 
 /* BlitPixieRLEClipped (mac _BlitPixieRLEClipped). STATE: MATCH, byte-identical. OPEN: none */
@@ -23,11 +23,11 @@ typedef unsigned long TokenDataType;
 void BlitPixieRLEClipped(
     unsigned char *srcTokens,
     unsigned char *dstPixel,
-    long dstOffset,
+    int32_t dstOffset,
     Rect *dstClipRect)
 {
-    unsigned long token,op;
-    long count,extra,spanend;
+    uint32_t token,op;
+    int32_t count,extra,spanend;
     unsigned char *dstRow;
     int x,y;
 
@@ -104,7 +104,7 @@ void BlitPixieRLEClipped(
                         count -= extra;
                     }
 
-                    BlitPixieMemSet(dstPixel, *((unsigned long *) srcTokens), count);
+                    BlitPixieMemSet(dstPixel, *((uint32_t *) srcTokens), count);
 
                     x += extra;
                     dstPixel += extra;
@@ -113,7 +113,7 @@ void BlitPixieRLEClipped(
                 x += count;
                 dstPixel += count;
 
-                srcTokens += sizeof(long);
+                srcTokens += sizeof(int32_t);
                 break;
             case kLineStartToken:
                 if (y < dstClipRect->top) {
@@ -138,22 +138,22 @@ void BlitPixieRLEClipped(
 
 #else
 void BlitPixieRLEClipped(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes, Rect *srcBlitRect)
+        int32_t dstRowBytes, Rect *srcBlitRect)
 {
     unsigned char *rowStart;
-    unsigned long token;
-    unsigned long opcode;
-    long count;
-    long x;
-    long rowIndex;
-    long lastCol;
-    long trim;
+    uint32_t token;
+    uint32_t opcode;
+    int32_t count;
+    int32_t x;
+    int32_t rowIndex;
+    int32_t lastCol;
+    int32_t trim;
 
     rowIndex = 0;
     rowStart = dstPixel;
 
     do {
-        token = *(unsigned long *)rleTokens;
+        token = *(uint32_t *)rleTokens;
         opcode = token >> 24;
         rleTokens += 4;
         count = token & 0xffffff;
@@ -185,7 +185,7 @@ void BlitPixieRLEClipped(unsigned char *rleTokens, unsigned char *dstPixel,
             rleTokens += count;
             x += count;
             dstPixel += count;
-            rleTokens += (-(long)rleTokens) & 3;
+            rleTokens += (-(int32_t)rleTokens) & 3;
             break;
 
         case 3:
@@ -209,7 +209,7 @@ void BlitPixieRLEClipped(unsigned char *rleTokens, unsigned char *dstPixel,
                     count -= trim;
                 }
 
-                BlitPixieMemSet(dstPixel, *(unsigned long *)rleTokens, count);
+                BlitPixieMemSet(dstPixel, *(uint32_t *)rleTokens, count);
 
                 x += trim;
                 dstPixel += trim;
@@ -248,11 +248,11 @@ void BlitPixieRLEClipped(unsigned char *rleTokens, unsigned char *dstPixel,
 // MAC: _BlitPixieRLEColor i386 0x000be0b8 ppc 0x000c9b74
 void BlitPixieRLEColor(
     unsigned char *srcTokens,
-    unsigned long srcColor,
+    uint32_t srcColor,
     unsigned char *dstPixel,
-    unsigned long dstRowBytes)
+    uint32_t dstRowBytes)
 {
-    unsigned long token,op,count;
+    uint32_t token,op,count;
     unsigned char *dstRow;
 
     dstRow = dstPixel;
@@ -277,7 +277,7 @@ void BlitPixieRLEColor(
             case kSingleColorToken:
                 BlitPixieMemSet(dstPixel, srcColor, count);
                 dstPixel += count;
-                srcTokens += sizeof(long);
+                srcTokens += sizeof(int32_t);
                 break;
             case kLineStartToken:
                 dstPixel = dstRow;
@@ -295,13 +295,13 @@ void BlitPixieRLEColor(
 // MAC: _BlitPixieRLEColorClipped i386 0x000be19c ppc 0x000c9c84
 void BlitPixieRLEColorClipped(
     unsigned char *srcTokens,
-    unsigned long srcColor,
+    uint32_t srcColor,
     unsigned char *dstPixel,
-    unsigned long dstOffset,
+    uint32_t dstOffset,
     Rect *dstClipRect)
 {
     unsigned short token,op;
-    long count,extra,spanend;
+    int32_t count,extra,spanend;
     unsigned char *dstRow;
     int x,y;
 
@@ -387,7 +387,7 @@ void BlitPixieRLEColorClipped(
                 x += count;
                 dstPixel += count;
 
-                srcTokens += sizeof(long);
+                srcTokens += sizeof(int32_t);
                 break;
             case kLineStartToken:
                 if (y < dstClipRect->top) {
@@ -420,9 +420,9 @@ void BlitPixieRLEColorClipped(
 #ifndef MACBUILD
 void FixupRLEPixelData(unsigned char *tokens, RLEPixelData *header)
 {
-    unsigned long token, opcode, count;
-    unsigned long depth;
-    unsigned long frames;
+    uint32_t token, opcode, count;
+    uint32_t depth;
+    uint32_t frames;
     unsigned short pixel;
 
     depth = header->depth;
@@ -432,11 +432,11 @@ void FixupRLEPixelData(unsigned char *tokens, RLEPixelData *header)
         return;
 
     do {
-        token = *(unsigned long *)tokens;
-        *(unsigned long *)tokens = ((token >> 24) & 0xff) | ((token >> 8) & 0xff00) |
+        token = *(uint32_t *)tokens;
+        *(uint32_t *)tokens = ((token >> 24) & 0xff) | ((token >> 8) & 0xff00) |
                 ((token & 0xff00) << 8) | ((token & 0xff) << 24);
 
-        token = *(unsigned long *)tokens;
+        token = *(uint32_t *)tokens;
         opcode = token >> 24;
         tokens += 4;
         count = token & 0xffffff;
@@ -452,7 +452,7 @@ void FixupRLEPixelData(unsigned char *tokens, RLEPixelData *header)
                 count >>= 1;
                 do {
                     token = *(unsigned short *)tokens;
-                    token = (((long)token >> 8) & 0xff) | ((token & 0xff) << 8);
+                    token = (((int32_t)token >> 8) & 0xff) | ((token & 0xff) << 8);
                     pixel = token;
 
                     *(unsigned short *)tokens =
@@ -467,8 +467,8 @@ void FixupRLEPixelData(unsigned char *tokens, RLEPixelData *header)
             case 32:
                 count >>= 2;
                 do {
-                    token = *(unsigned long *)tokens;
-                    *(unsigned long *)tokens = ((token >> 24) & 0xff) |
+                    token = *(uint32_t *)tokens;
+                    *(uint32_t *)tokens = ((token >> 24) & 0xff) |
                             ((token >> 8) & 0xff00) | ((token & 0xff00) << 8) |
                             ((token & 0xff) << 24);
 
@@ -477,12 +477,12 @@ void FixupRLEPixelData(unsigned char *tokens, RLEPixelData *header)
                 break;
             }
 
-            tokens += (-(long)tokens) & 3;
+            tokens += (-(int32_t)tokens) & 3;
             break;
 
         case 4:
-            token = *(unsigned long *)tokens;
-            *(unsigned long *)tokens = ((token >> 24) & 0xff) |
+            token = *(uint32_t *)tokens;
+            *(uint32_t *)tokens = ((token >> 24) & 0xff) |
                     ((token >> 8) & 0xff00) | ((token & 0xff00) << 8) |
                     ((token & 0xff) << 24);
 

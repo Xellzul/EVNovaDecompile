@@ -7,11 +7,11 @@
 
 extern FileProc gFT_BufferHooks[6];
 
-long _FT_BufferOpen(void **handle, unsigned char mode, FTFile *file);
+int32_t _FT_BufferOpen(void **handle, unsigned char mode, FTFile *file);
 
-long _FT_BufferOpenWrapper(void **handle, unsigned char mode, FTFile **result)
+int32_t _FT_BufferOpenWrapper(void **handle, unsigned char mode, FTFile **result)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     if ((*result = _FT_IsBufferOpen(handle)) != 0) {
@@ -43,7 +43,7 @@ FTFile *_FT_IsBufferOpen(void **handle)
 {
     FTFile *file;
     FTLink *link;
-    long err;
+    int32_t err;
 
     err = 0;
     link = 0;
@@ -53,9 +53,9 @@ FTFile *_FT_IsBufferOpen(void **handle)
     return link != 0 ? file : 0;
 }
 
-long _FT_BufferOpen(void **handle, unsigned char mode, FTFile *file)
+int32_t _FT_BufferOpen(void **handle, unsigned char mode, FTFile *file)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     file->memHandle = handle;
@@ -66,27 +66,27 @@ long _FT_BufferOpen(void **handle, unsigned char mode, FTFile *file)
     return 0;
 }
 
-long _FT_BufferClose(FTFile *file)
+int32_t _FT_BufferClose(FTFile *file)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     file->memHandle = 0;
     return 0;
 }
 
-long _FT_BufferFlush(FTFile *file)
+int32_t _FT_BufferFlush(FTFile *file)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     return 0;
 }
 
-long _FT_BufferRead(FTFile *file, ULong count, void *buffer)
+int32_t _FT_BufferRead(FTFile *file, ULong count, void *buffer)
 {
     char *src;
-    long err;
+    int32_t err;
 
     err = 0;
     if (file->position + count > file->size) {
@@ -100,11 +100,11 @@ long _FT_BufferRead(FTFile *file, ULong count, void *buffer)
     return err;
 }
 
-long _FT_BufferWrite(FTFile *file, ULong count, const void *buffer)
+int32_t _FT_BufferWrite(FTFile *file, ULong count, const void *buffer)
 {
     char *dst;
-    long err;
-    long result;
+    int32_t err;
+    int32_t result;
 
     err = 0;
     if (file->size < file->position + count) {
@@ -123,19 +123,19 @@ done:
     return err;
 }
 
-long _FT_BufferGetEOF(FTFile *file, ULong *size)
+int32_t _FT_BufferGetEOF(FTFile *file, ULong *size)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     *size = IndirectGetSize(file->memHandle);
     return 0;
 }
 
-long _FT_BufferSetEOF(FTFile *file, ULong size)
+int32_t _FT_BufferSetEOF(FTFile *file, ULong size)
 {
-    long err;
-    long result;
+    int32_t err;
+    int32_t result;
 
     err = 0;
     result = IndirectSetSize(file->memHandle, size);
@@ -149,18 +149,18 @@ long _FT_BufferSetEOF(FTFile *file, ULong size)
     return err;
 }
 
-long _FT_BufferGetMark(FTFile *file, ULong *position)
+int32_t _FT_BufferGetMark(FTFile *file, ULong *position)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     *position = file->position;
     return 0;
 }
 
-long _FT_BufferSetMark(FTFile *file, ULong position)
+int32_t _FT_BufferSetMark(FTFile *file, ULong position)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     file->position = position;

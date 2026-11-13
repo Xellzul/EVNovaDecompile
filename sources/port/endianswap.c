@@ -1,5 +1,6 @@
 // COMPILE: -opt level=4,intrinsics -enum min -Cpp_exceptions off
 /* endianswap.c -- byte-swap a resource body from a descriptor (win 0x004ce660). Notes: Research/notes/endianswap.md */
+#include "int32.h"
 
 /* resource bodies are big-endian: they come off a Mac-authored rez file.
    Same shape as loaddata.c's helper - `static __inline` is the only spelling
@@ -13,9 +14,9 @@ static __inline short SwapEndianShort(const unsigned short *p)
     return t;
 }
 
-static __inline long SwapEndianLong(const unsigned long *p)
+static __inline int32_t SwapEndianLong(const uint32_t *p)
 {
-    register unsigned long t;
+    register uint32_t t;
 
     t = *p;
     asm { bswap t }
@@ -48,7 +49,7 @@ void SwapEndianByDescriptor(unsigned char *data, unsigned short *desc)
             p += 2;
             break;
         case kSwapLong:
-            *(unsigned long *)p = SwapEndianLong((unsigned long *)p);
+            *(uint32_t *)p = SwapEndianLong((uint32_t *)p);
             p += 4;
             break;
         case kSwapSkipN:
@@ -71,7 +72,7 @@ void SwapEndianByDescriptor(unsigned char *data, unsigned short *desc)
                     break;
                 case kSwapLong:
                     do {
-                        *(unsigned long *)p = SwapEndianLong((unsigned long *)p);
+                        *(uint32_t *)p = SwapEndianLong((uint32_t *)p);
                         p += 4;
                     } while (--count != 0);
                     break;

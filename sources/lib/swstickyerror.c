@@ -46,7 +46,7 @@ void SWSetStickyIfError(short errNum)
 // MAC: _SWHasSystem7 i386 0x000a81d3 ppc 0x000b2fd0
 Boolean SWHasSystem7(void)
 {
-    long versionNumber;
+    int32_t versionNumber;
     OSErr err;
 
     err = Gestalt(gestaltSystemVersion, &versionNumber);

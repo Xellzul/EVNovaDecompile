@@ -32,11 +32,11 @@ int ImageParseCicn(Image_t *Output, const Word8 *InputPtr)
     Word8 *maskRBPtr;     /* &iconMask.rowBytes */
     Word8 *maskPtr;       /* the 1-bit mask data */
     Word8 used[256];
-    long depth;
+    int32_t depth;
     Word8 *DataPtr;       /* walks the color table, then the pixels */
-    long rowFlags;
+    int32_t rowFlags;
     Word8 *bmapRBPtr;
-    long y;
+    int32_t y;
     Word count;
 
     WorkPtr = (Word8 *)InputPtr;
@@ -106,7 +106,7 @@ int ImageParseCicn(Image_t *Output, const Word8 *InputPtr)
     y = Output->Height;
     dst = Output->ImagePtr;
     if (depth == 8) {
-        long rb;
+        int32_t rb;
 
         rb = rowFlags & 0x1fff;
         do {
@@ -115,11 +115,11 @@ int ImageParseCicn(Image_t *Output, const Word8 *InputPtr)
             DataPtr += rb;
         } while (--y);
     } else if (depth == 4) {
-        long rb;
+        int32_t rb;
 
         rb = rowFlags & 0x1fff;
         do {
-            long x;
+            int32_t x;
             Word8 *src;
 
             x = Output->Width;
@@ -136,11 +136,11 @@ int ImageParseCicn(Image_t *Output, const Word8 *InputPtr)
             DataPtr += rb;
         } while (--y);
     } else if (depth == 2) {
-        long rb;
+        int32_t rb;
 
         rb = rowFlags & 0x1fff;
         do {
-            long x;
+            int32_t x;
             Word8 *src;
 
             x = Output->Width;
@@ -163,11 +163,11 @@ int ImageParseCicn(Image_t *Output, const Word8 *InputPtr)
             DataPtr += rb;
         } while (--y);
     } else if (depth == 1) {
-        long rb;
+        int32_t rb;
 
         rb = rowFlags & 0x1fff;
         do {
-            long x;
+            int32_t x;
             Word8 *src;
 
             x = Output->Width;
@@ -230,10 +230,10 @@ int ImageParseCicn(Image_t *Output, const Word8 *InputPtr)
         ImageRemapIndexed(Output, used);
     }
     {
-        long rb;
+        int32_t rb;
         Word c;
-        long row;
-        long x;
+        int32_t row;
+        int32_t x;
         Word bit;
         Word8 *src;
 

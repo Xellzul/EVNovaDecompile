@@ -13,8 +13,8 @@ UnsignedWide lastMicroseconds[kProfileSlots];
 #else
 static unsigned long long lastMicroseconds[kProfileSlots];
 #endif
-unsigned long iterations[kProfileSlots];
-unsigned long totalMilliseconds[kProfileSlots];
+uint32_t iterations[kProfileSlots];
+uint32_t totalMilliseconds[kProfileSlots];
 char name[kProfileSlots][32];
 short dependency[kProfileSlots];
 short lastEntered;
@@ -24,8 +24,8 @@ static Boolean done[kProfileSlots];          /* dump bookkeeping */
 static short lastEntered;
 static short dependency[kProfileSlots];          /* -1 = none */
 static char name[kProfileSlots][32];
-static unsigned long totalMilliseconds[kProfileSlots];    /* milliseconds */
-static unsigned long iterations[kProfileSlots];
+static uint32_t totalMilliseconds[kProfileSlots];    /* milliseconds */
+static uint32_t iterations[kProfileSlots];
 static unsigned long long lastMicroseconds[kProfileSlots];
 #endif
 
@@ -104,7 +104,7 @@ void MyProfileExit(short slot)
 {
 #ifdef MACBUILD
     UnsignedWide now;
-    unsigned long elapsed;
+    uint32_t elapsed;
 #else
     unsigned long long now;
 #endif

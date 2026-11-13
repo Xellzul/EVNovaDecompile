@@ -42,8 +42,8 @@ typedef struct{
 
 typedef struct vorbis_info_floor{
   int   order;
-  long  rate;
-  long  barkmap;
+  int32_t  rate;
+  int32_t  barkmap;
 
   int   ampbits;
   int   ampdB;
@@ -94,18 +94,18 @@ typedef struct{
   vorbis_info_residue *(*copy_info)(vorbis_info_residue *);
   void (*free_info)    (vorbis_info_residue *);
   void (*free_look)    (vorbis_look_residue *);
-  long **(*class_)     (struct vorbis_block *,vorbis_look_residue *,
+  int32_t **(*class_)     (struct vorbis_block *,vorbis_look_residue *,
 			float **,int *,int);
   int  (*forward)      (struct vorbis_block *,vorbis_look_residue *,
-			float **,float **,int *,int,int,long **,ogg_uint32_t *);
+			float **,float **,int *,int,int,int32_t **,ogg_uint32_t *);
   int  (*inverse)      (struct vorbis_block *,vorbis_look_residue *,
 			float **,int *,int);
 } vorbis_func_residue;
 
 typedef struct vorbis_info_residue{
 
-  long  begin;
-  long  end;
+  int32_t  begin;
+  int32_t  end;
 
   int    grouping;
   int    partitions;

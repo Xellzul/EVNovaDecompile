@@ -13,23 +13,23 @@
 
 /* the raw, still-big-endian "resource.map" entry bytes */
 typedef struct RawTypeEntry {
-    unsigned long type;     /* +0x00 */
-    unsigned long offset;    /* +0x04 from the map's own base */
-    unsigned long count;      /* +0x08 */
+    uint32_t type;     /* +0x00 */
+    uint32_t offset;    /* +0x04 from the map's own base */
+    uint32_t count;      /* +0x08 */
 } RawTypeEntry;
 
 #pragma options align=mac68k
 typedef struct RawResRecord {
-    unsigned long index;    /* +0x00 */
-    unsigned long type;      /* +0x04 */
+    uint32_t index;    /* +0x00 */
+    uint32_t type;      /* +0x04 */
     unsigned short id;        /* +0x08 */
     char name[256];             /* +0x0a */
 } RawResRecord;
 #pragma options align=reset
 
 typedef struct RawRezMap {
-    unsigned long typeListOffset; /* +0x00 from this record's own base */
-    unsigned long typeCount;       /* +0x04 */
+    uint32_t typeListOffset; /* +0x00 from this record's own base */
+    uint32_t typeCount;       /* +0x04 */
 } RawRezMap;
 
 /* endianswap.c's helpers by value: the exe swaps the register it has just tested */
@@ -41,7 +41,7 @@ static __inline short SwapEndianShort(unsigned short t)
     return t;
 }
 
-static __inline long SwapEndianLong(unsigned long t)
+static __inline int32_t SwapEndianLong(uint32_t t)
 {
 #ifndef MACBUILD
     asm { bswap t }
@@ -56,12 +56,12 @@ short EVOpenResourceFile(void *path)
 {
     RezFile *rez;
     void *mapData;
-    unsigned long entryCount;
+    uint32_t entryCount;
     RawTypeEntry *rawType;
     RezTypeEntry *type;
     RawResRecord *rawRecord;
     ResRecord *record;
-    unsigned long typeCount;
+    uint32_t typeCount;
     RawRezMap *map;
 
     if (gRezFiles == NULL)

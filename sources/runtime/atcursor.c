@@ -10,24 +10,24 @@
 #include "win32.h"
 
 extern WindowNode *IT_WindowFindView(void *hwnd);     /* ittoolkit.c */
-extern long _IT_ViewHandleHit(WindowNode *window, long item, ITClick *click);
-extern long _IT_ViewGetItemColor(WindowNode *window, ULong item, void *a, void *b, unsigned char *hit);
+extern int32_t _IT_ViewHandleHit(WindowNode *window, int32_t item, ITClick *click);
+extern int32_t _IT_ViewGetItemColor(WindowNode *window, ULong item, void *a, void *b, unsigned char *hit);
 extern unsigned char DT_IsRegionEmpty(void *region);
 extern unsigned char MacEventToKeyEvent(void *hwnd, unsigned int msg, unsigned int vk, ULong lParam,
                                   ITKeyEvent *key);                      /* itinput.c */
 extern unsigned char MacEventToMouseEvent(void *hwnd, unsigned int msg, unsigned int unused,
-                                  long lParam, ITInputEvent *event);     /* itinput.c */
-extern long __stdcall IT_WindowProc(void *hwnd, unsigned int msg, unsigned int wParam,
-                                   long lParam);  /* ittoolkit.c */
+                                  int32_t lParam, ITInputEvent *event);     /* itinput.c */
+extern int32_t __stdcall IT_WindowProc(void *hwnd, unsigned int msg, unsigned int wParam,
+                                   int32_t lParam);  /* ittoolkit.c */
 
 extern unsigned char gIT_Open;
 
 void IT_Idle(void);
 
 short gIT_CursorID = -1;                         /* 0x00577000 the cursor shown */
-static long gIT_ClassMain = 0;                    /* 0x00865b10 */
-static long gIT_ClassCloseBox = 0;                    /* 0x00865b14 */
-static long gIT_ClassParent = 0;                    /* 0x00865b18 */
+static int32_t gIT_ClassMain = 0;                    /* 0x00865b10 */
+static int32_t gIT_ClassCloseBox = 0;                    /* 0x00865b14 */
+static int32_t gIT_ClassParent = 0;                    /* 0x00865b18 */
 
 #define kIdcArrow    ((const char *)0x7f00)
 #define kGrayBrush   2
@@ -37,10 +37,10 @@ static long gIT_ClassParent = 0;                    /* 0x00865b18 */
 
 /* IT_Open. STATE: MATCH 100%, exe 183 / obj 183, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eaac3
-long IT_Open(void)
+int32_t IT_Open(void)
 {
     WNDCLASSA wc;
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     if (gIT_Open != 0)
@@ -172,7 +172,7 @@ done:
 void IT_Idle(void)
 {
     WindowNode *node;
-    long err;
+    int32_t err;
 
     err = 0;
     node = gIT_ViewList;
@@ -206,15 +206,15 @@ unsigned char gIT_Open;                          /* 0x00870e09 */
 #define kNoParameter        -8400
 
 typedef struct MinMaxInfo {
-    long reserved[2];
-    long maxWidth;
-    long maxHeight;
-    long maxLeft;
-    long maxTop;
-    long minTrackWidth;
-    long minTrackHeight;
-    long maxTrackWidth;
-    long maxTrackHeight;
+    int32_t reserved[2];
+    int32_t maxWidth;
+    int32_t maxHeight;
+    int32_t maxLeft;
+    int32_t maxTop;
+    int32_t minTrackWidth;
+    int32_t minTrackHeight;
+    int32_t maxTrackWidth;
+    int32_t maxTrackHeight;
 } MinMaxInfo;
 #define kWaitCursor    0x7f02
 #define kShellOk       32
@@ -256,7 +256,7 @@ static const CursorShape kHandShape = { { 32, 32 }, { 13, 5 } };
 // FUNCTION: EVNOVA 0x004eadb7
 void IT_Close(void)
 {
-    long err;
+    int32_t err;
     ControlType *p;
     WindowNode *last;
 
@@ -301,7 +301,7 @@ unsigned char IT_IsOpen(void)
    exe 511 / obj 511, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eae3e
 unsigned char IT_HandleWinEvent(void *hwnd, void *dc, unsigned int msg, unsigned int wParam,
-                           long lParam, long *result)
+                           int32_t lParam, int32_t *result)
 {
     static ITClick noClick;
     ITClick click;
@@ -312,8 +312,8 @@ unsigned char IT_HandleWinEvent(void *hwnd, void *dc, unsigned int msg, unsigned
     void *ownDC;
     void *region;
     void *paintDC;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     click = noClick;
@@ -457,7 +457,7 @@ unsigned char IT_HandleWinEvent(void *hwnd, void *dc, unsigned int msg, unsigned
             err = kOutOfMemory;
             goto done;
         }
-        *result = (long)CreateSolidBrush(DT_2SysColor(&window->back));
+        *result = (int32_t)CreateSolidBrush(DT_2SysColor(&window->back));
         break;
     case WM_CTLCOLORMSGBOX:
     case WM_CTLCOLOREDIT:
@@ -502,7 +502,7 @@ unsigned char IT_HandleWinEvent(void *hwnd, void *dc, unsigned int msg, unsigned
             err = kOutOfMemory;
             goto done;
         }
-        *result = (long)CreateSolidBrush(DT_2SysColor(&back));
+        *result = (int32_t)CreateSolidBrush(DT_2SysColor(&back));
         break;
     }
     case WM_KEYDOWN:
@@ -630,10 +630,10 @@ static ITClick DAT_00865b1c;                     /* 0x00865b1c, unreferenced */
 
 /* IT_SetCursor. STATE: MATCH 100%, exe 70 / obj 70, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb5d4
-long IT_SetCursor(short cursorId)
+int32_t IT_SetCursor(short cursorId)
 {
     CursorShape shape;
-    long err;
+    int32_t err;
     void *cursor;
 
     err = 0;
@@ -671,10 +671,10 @@ done:
 
 /* IT_OpenBrowser. STATE: MATCH 100%, exe 69 / obj 69, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb6ca
-long IT_OpenBrowser(const char *command)
+int32_t IT_OpenBrowser(const char *command)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
     void **copy;
     char *url;
     void *result;
@@ -701,7 +701,7 @@ long IT_OpenBrowser(const char *command)
     IT_SetCursor(kWaitCursor);
     result = ShellExecuteA(_PlatformGetWindow(), "open", url, 0, 0, kShowNormal);
     if ((ULong)result <= kShellOk)
-        err = (long)result;
+        err = (int32_t)result;
 done:
     if (err != 0)
         MessageBeep(0);

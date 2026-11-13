@@ -15,11 +15,11 @@ extern "C" {
 #define kDescMovieFade      0x0004
 
 void CommDialogUpdate(void);
-extern void MissionListDefinition(short lMessage, Boolean lSelect, Rect *lRect, long lCell,
+extern void MissionListDefinition(short lMessage, Boolean lSelect, Rect *lRect, int32_t lCell,
                          short lDataOffset, short lDataLen, ScrollRec **lHandle);
 #pragma cplusplus on
 EXTERN_CPP_BEGIN
-extern long DAT_007355d0;
+extern int32_t DAT_007355d0;
 EXTERN_CPP_END
 #pragma cplusplus reset
 #pragma cplusplus on
@@ -180,9 +180,9 @@ extern Boolean didBuyShip;
 extern Boolean didOutfit;
 extern short dockedPortItems[];
 extern short dockedPortShipTypes[];
-extern unsigned long ambientNoiseDelay;
+extern uint32_t ambientNoiseDelay;
 extern void *planetSnd;
-extern long initialHaggleVal;
+extern int32_t initialHaggleVal;
 extern Rect listScreenRect[];
 extern unsigned char stellarTypeStr[];
 extern float bribeFlux;
@@ -221,17 +221,17 @@ extern unsigned char govtShortNames[256][256];
 extern short greenMissionSyst;
 extern PicHandle haggleBackgroundPic;
 extern short haggleMode;
-extern long haggleVal;
+extern int32_t haggleVal;
 extern Boolean hatesPlayer;
 extern PicHandle keyPic;
 extern short lastRaceWinner;
-extern unsigned long lastTextScrollTime;
+extern uint32_t lastTextScrollTime;
 extern unsigned char lcOutfitName[512][256];
 extern unsigned char lcPluralOutfitName[512][256];
 extern Boolean mainScreenBackgroundDirty;
 extern DialogPtr missionDialog;
 extern short missionsOutside;
-extern unsigned long missionOfferTime;
+extern uint32_t missionOfferTime;
 extern Boolean multiArrowsOnSingleSystem;
 extern short nextPortMission;
 extern DialogPtr outfitDialog;
@@ -244,7 +244,7 @@ extern Boolean portBuysNoOutfits;
 extern PicHandle previewPic;
 extern short previewPicID;
 extern float priceFluxMult[2];
-extern long raceBetAmount;
+extern int32_t raceBetAmount;
 extern short raceCount;
 extern PicHandle raceBackgroundPic;
 extern short racePick;
@@ -261,7 +261,7 @@ extern Boolean releaseCommEscort;
 extern short responseRandom;
 extern short salvageAmmoQty;
 extern DialogPtr tradeDialog;
-extern long salvageCredits;
+extern int32_t salvageCredits;
 extern short salvageFuelQty;
 extern short salvageQty;
 extern short salvageType;
@@ -315,39 +315,39 @@ extern Boolean EVYesNoDialog(unsigned char *prompt);
 #pragma cplusplus on
 EXTERN_CPP_BEGIN
 extern Boolean gQuit;
-extern unsigned long lastClickTime;
+extern uint32_t lastClickTime;
 extern Boolean screenFaded;
 EXTERN_CPP_END
 #pragma cplusplus reset
 
-Boolean ShipDescFilter(long unused, EventRecord *ev, short *itemHit);
-Boolean NewsDialogFilter(long unused, EventRecord *ev, short *itemHit);
+Boolean ShipDescFilter(int32_t unused, EventRecord *ev, short *itemHit);
+Boolean NewsDialogFilter(int32_t unused, EventRecord *ev, short *itemHit);
 #pragma cplusplus on
 EXTERN_CPP_BEGIN
 extern ShortPoint menuTopCorner;
 EXTERN_CPP_END
 #pragma cplusplus reset
 
-extern Boolean BarFilter(long unused, EventRecord *ev, short *itemHit);
-Boolean CommFilter(long unused, EventRecord *ev, short *itemHit);
-extern Boolean EscortFilter(long unused, EventRecord *ev, short *itemHit);
-Boolean HaggleFilter(long unused, EventRecord *ev, short *itemHit);
+extern Boolean BarFilter(int32_t unused, EventRecord *ev, short *itemHit);
+Boolean CommFilter(int32_t unused, EventRecord *ev, short *itemHit);
+extern Boolean EscortFilter(int32_t unused, EventRecord *ev, short *itemHit);
+Boolean HaggleFilter(int32_t unused, EventRecord *ev, short *itemHit);
 extern Boolean MapFilter(DialogPtr dlg, EventRecord *event, short *itemHit);
-Boolean PlanetCommFilter(long unused, EventRecord *ev, short *itemHit);
-extern Boolean PortFilter(long unused, EventRecord *ev, short *itemHit);
-extern Boolean TextDialogFilter(long unused, EventRecord *ev, short *itemHit);
+Boolean PlanetCommFilter(int32_t unused, EventRecord *ev, short *itemHit);
+extern Boolean PortFilter(int32_t unused, EventRecord *ev, short *itemHit);
+extern Boolean TextDialogFilter(int32_t unused, EventRecord *ev, short *itemHit);
 #ifdef MACBUILD
 Boolean KeyFilter(DialogPtr dialog, EventRecord *ev, short *itemHit);
 #else
-Boolean KeyFilter(long unused, EventRecord *ev, short *itemHit);
+Boolean KeyFilter(int32_t unused, EventRecord *ev, short *itemHit);
 #endif
-Boolean MissionInfoFilter(long unused, EventRecord *ev, short *itemHit);
-Boolean OutfitFilter(long unused, EventRecord *ev, short *itemHit);
-Boolean PlayerInfoFilter(long unused, EventRecord *ev, short *itemHit);
-Boolean PlunderFilter(long unused, EventRecord *ev, short *itemHit);
-Boolean RaceFilter(long unused, EventRecord *ev, short *itemHit);
-Boolean ShipyardFilter(long unused, EventRecord *ev, short *itemHit);
-extern Boolean TradeFilter(long unused, EventRecord *ev, short *itemHit);
+Boolean MissionInfoFilter(int32_t unused, EventRecord *ev, short *itemHit);
+Boolean OutfitFilter(int32_t unused, EventRecord *ev, short *itemHit);
+Boolean PlayerInfoFilter(int32_t unused, EventRecord *ev, short *itemHit);
+Boolean PlunderFilter(int32_t unused, EventRecord *ev, short *itemHit);
+Boolean RaceFilter(int32_t unused, EventRecord *ev, short *itemHit);
+Boolean ShipyardFilter(int32_t unused, EventRecord *ev, short *itemHit);
+extern Boolean TradeFilter(int32_t unused, EventRecord *ev, short *itemHit);
 
 #pragma cplusplus on
 EXTERN_CPP_BEGIN
@@ -371,7 +371,7 @@ extern void ScrollDialogText(DialogPtr dlg, short item, TEHandle hTE,
                              short dv, Boolean force);
 extern void PlayQTMovie(unsigned char *name, unsigned char doubled,
                         unsigned char fade);
-extern long DoQuantityDialog(long maxCount, short mode);
+extern int32_t DoQuantityDialog(int32_t maxCount, short mode);
 #pragma cplusplus on
 EXTERN_CPP_BEGIN
 extern ScrollRec **missionList;

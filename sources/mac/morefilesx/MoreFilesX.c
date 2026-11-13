@@ -55,7 +55,7 @@ FSIterateContainerLevel(
 static
 OSErr
 GenerateUniqueHFSUniStr(
-	long *startSeed,
+	int32_t *startSeed,
 	const FSRef *dir1,
 	const FSRef *dir2,
 	HFSUniStr255 *uniqueName);
@@ -600,7 +600,7 @@ BadParameter:
 OSErr
 FSGetNodeID(
 	const FSRef *ref,
-	long *nodeID,
+	int32_t *nodeID,
 	Boolean *isDirectory)
 {
 	OSErr				result;
@@ -1188,7 +1188,7 @@ FSMoveRenameObjectUnicode(
 	TextEncoding	originalTextEncodingHint;
 	HFSUniStr255	originalName;
 	HFSUniStr255	uniqueName;
-	long			theSeed;
+	int32_t			theSeed;
 
 	require_action(NULL != newRef, BadParameter, result = paramErr);
 
@@ -1557,13 +1557,13 @@ BadParameter:
 static
 OSErr
 GenerateUniqueHFSUniStr(
-	long *startSeed,
+	int32_t *startSeed,
 	const FSRef *dir1,
 	const FSRef *dir2,
 	HFSUniStr255 *uniqueName)
 {
 	OSErr			result;
-	long			i;
+	int32_t			i;
 	FSRefParam		pb;
 	FSRef			newRef;
 	unsigned char	hexStr[17] = "0123456789ABCDEF";
@@ -1647,7 +1647,7 @@ FSExchangeObjectsCompat(
 	FSRef					destParentRef;
 	HFSUniStr255			sourceUniqueName;
 	HFSUniStr255			destUniqueName;
-	long					theSeed;
+	int32_t					theSeed;
 	Boolean					sameParentDirs;
 
 	require_action((NULL != newSourceRef) && (NULL != newDestRef), BadParameter, result = paramErr);
@@ -2033,7 +2033,7 @@ FSCopyFile(
 	pb.copyParam.ioDirID = srcFileSpec.parID;
 	pb.copyParam.ioNamePtr = (StringPtr)srcFileSpec.name;
 	pb.copyParam.ioDstVRefNum = catalogInfo.volume;
-	pb.copyParam.ioNewDirID = (long)catalogInfo.nodeID;
+	pb.copyParam.ioNewDirID = (int32_t)catalogInfo.nodeID;
 	pb.copyParam.ioNewName = NULL;
 	if ( NULL != copyName )
 	{
@@ -2100,7 +2100,7 @@ FSMoveRename(
 	pb.copyParam.ioVRefNum = srcFileSpec.vRefNum;
 	pb.copyParam.ioDirID = srcFileSpec.parID;
 	pb.copyParam.ioNamePtr = (StringPtr)srcFileSpec.name;
-	pb.copyParam.ioNewDirID = (long)catalogInfo.nodeID;
+	pb.copyParam.ioNewDirID = (int32_t)catalogInfo.nodeID;
 	pb.copyParam.ioNewName = NULL;
 	if ( NULL != moveName )
 	{
@@ -2224,7 +2224,7 @@ GetTemporaryBuffer(
 	if ( (tempPtr == NULL) && (buffReqSize > 0x00001000) )
 	{
 
-		long freeMemory = FreeMem();
+		int32_t freeMemory = FreeMem();
 		buffReqSize = MaxBlock() & 0xfffff000;
 		freeMemory = (freeMemory - kSlopMemory) & 0xfffff000;
 		if ( buffReqSize > freeMemory )
@@ -2273,7 +2273,7 @@ FSSetDefault(
 {
 	OSErr			result;
 	FSVolumeRefNum	vRefNum;
-	long			dirID;
+	int32_t			dirID;
 	FSCatalogInfo	catalogInfo;
 
 	require_action((NULL != newDefault) && (NULL != oldDefault), BadParameter, result = paramErr);

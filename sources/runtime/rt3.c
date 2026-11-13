@@ -70,7 +70,7 @@ static unsigned char gInited;                    /* 0x00865750 digit table built
 static ULong lastCheckSpare;                     /* 0x0086574c unreferenced */
 static ULong lastCheck;                          /* 0x00865748 last stir */
 
-long gRT3_LicensePaths[kFolderCount] = { -3 };   /* 0x00576258 license folders */
+int32_t gRT3_LicensePaths[kFolderCount] = { -3 };   /* 0x00576258 license folders */
 ULong gRT3_LicenseDates[kFolderCount] = { 0 };   /* 0x0057625c their dates */
 short gRT3_CodeVersion = kModeWindows;           /* 0x00576260 the open mode */
 ULong gSavedWhenFirstRun = 0xffffffff;           /* 0x00576264 earliest first launch */
@@ -105,7 +105,7 @@ static inline ULong RT3_HashProduct(const char *name)
 
 static inline ULong RT3_CalcHashedStamp(void)
 {
-    long err = 0;
+    int32_t err = 0;
     ULong stamp;
 
     stamp = TimerGetUTCSeconds() ^ RT3_HashProduct(gPrivateProductName);
@@ -116,7 +116,7 @@ static inline ULong RT3_CalcHashedStamp(void)
 
 static inline ULong RT3_CalcLoginHash(void)
 {
-    long err = 0;
+    int32_t err = 0;
     const char *userName = 0;
     ULong userHash = 0;
     char user[kTextSize] = { 0 };
@@ -133,9 +133,9 @@ static inline ULong RT3_CalcLoginHash(void)
     return userHash;
 }
 
-static inline ULong RT3_CalcIdentifier(long folder)
+static inline ULong RT3_CalcIdentifier(int32_t folder)
 {
-    long err = 0;
+    int32_t err = 0;
     ULong hash = 0;
     const unsigned char *p = (const unsigned char *)gPrivateProductName;
     unsigned char c;
@@ -157,9 +157,9 @@ done:
     return hash;
 }
 
-static inline ULong RT3_CalcFolderIdentifier(long folder)
+static inline ULong RT3_CalcFolderIdentifier(int32_t folder)
 {
-    long err = 0;
+    int32_t err = 0;
     ULong hash = 0;
     FTFileInfo info;
 
@@ -175,10 +175,10 @@ done:
     return hash;
 }
 
-static inline long RT3_LoadResString(unsigned id, char *dst)
+static inline int32_t RT3_LoadResString(unsigned id, char *dst)
 {
-    long err = 0;
-    long result;
+    int32_t err = 0;
+    int32_t result;
 
     dst[0] = 0;
     if (LoadStringA(GetModuleHandleA(0), id, dst, kTextSize) == 0) {
@@ -190,20 +190,20 @@ static inline long RT3_LoadResString(unsigned id, char *dst)
 }
 
 /* RT3_GetLicenseCopies's body, written again where RT3_Close expands it */
-static inline long RT3_LicenseCopies(void)
+static inline int32_t RT3_LicenseCopies(void)
 {
-    long err = 0;
-    long result = 0;
+    int32_t err = 0;
+    int32_t result = 0;
 
     return gRT3_License.copies > 0 ? gRT3_License.copies : 0;
 }
 
-long _RT3_WriteLogEntry(RT3LogEntry *entry);
-long _RT3_ReadLogEntry(RT3LogEntry *entry);
-long _RT3_LicenseSave(void **license, ULong key, ULong when);
-long _RT3_LicenseLoad(void ***license, unsigned char *created);
+int32_t _RT3_WriteLogEntry(RT3LogEntry *entry);
+int32_t _RT3_ReadLogEntry(RT3LogEntry *entry);
+int32_t _RT3_LicenseSave(void **license, ULong key, ULong when);
+int32_t _RT3_LicenseLoad(void ***license, unsigned char *created);
 void RT3_LicenseTextToCode(const char *text, ULongLong *code);
-ULongLong RT3_CalcMainHash(const char *product, const char *name, long copies);
+ULongLong RT3_CalcMainHash(const char *product, const char *name, int32_t copies);
 void RT3_FixLicenseName(char *out, const char *src);
 void RT3_InitTables(void);
 
@@ -211,7 +211,7 @@ void RT3_InitTables(void);
 // FUNCTION: EVNOVA 0x004d4420
 ULong RT3_GetNumLaunches(void)
 {
-    long err = 0;
+    int32_t err = 0;
     ULong result = 0;
 
     result = gLogEntry.launches;
@@ -222,7 +222,7 @@ ULong RT3_GetNumLaunches(void)
 // FUNCTION: EVNOVA 0x004d4430
 ULong RT3_GetHoursUsed(void)
 {
-    long err = 0;
+    int32_t err = 0;
     ULong result = 0;
     ULong now;
 
@@ -238,7 +238,7 @@ ULong RT3_GetHoursUsed(void)
 // FUNCTION: EVNOVA 0x004d4480
 ULong RT3_GetDaysHad(void)
 {
-    long err = 0;
+    int32_t err = 0;
     ULong result = 0;
     ULong now;
 
@@ -252,10 +252,10 @@ ULong RT3_GetDaysHad(void)
 
 /* RT3_IsRegistered. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d44c0
-long RT3_IsRegistered(void)
+int32_t RT3_IsRegistered(void)
 {
-    long err = 0;
-    long result = 0;
+    int32_t err = 0;
+    int32_t result = 0;
 
     if (gRT3_License.copies > 0)
         result = 1 << gRT3_License.level;
@@ -264,10 +264,10 @@ long RT3_IsRegistered(void)
 
 /* RT3_GetLicenseCopies (mac _RT3_GetLicenseCopies). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d44e0
-long RT3_GetLicenseCopies(void)
+int32_t RT3_GetLicenseCopies(void)
 {
-    long err = 0;
-    long result = 0;
+    int32_t err = 0;
+    int32_t result = 0;
 
 #ifdef CEFIX /* F01.02-05 */
     /* CE bug: CE writes 1 into the count's low byte only, so a licence of 256 copies or
@@ -283,7 +283,7 @@ long RT3_GetLicenseCopies(void)
 // FUNCTION: EVNOVA 0x004d4500
 void *RT3_GetLicenseName(void)
 {
-    long err = 0;
+    int32_t err = 0;
     void *result = 0;
 
     result = gPrivateLicenseName;
@@ -294,7 +294,7 @@ void *RT3_GetLicenseName(void)
 // FUNCTION: EVNOVA 0x004d4510
 long long RT3_GetLicenseCode(void)
 {
-    long err = 0;
+    int32_t err = 0;
     ULongLong code = 0;
 
     if (gRT3_License.code[0] != 0) {
@@ -310,7 +310,7 @@ long long RT3_GetLicenseCode(void)
 // FUNCTION: EVNOVA 0x004d45a0
 char *RT3_GetDisplayName(void)
 {
-    long err = 0;
+    int32_t err = 0;
     char *result = 0;
 
     if (gRT3_License.name[0] != 0)
@@ -328,8 +328,8 @@ char *RT3_GetDisplayName(void)
 // FUNCTION: EVNOVA 0x004d45c0
 void RT3_Close(void)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
 
     if (gRT3_Open != 0) {
         if (gLogStuff != 0) {
@@ -362,8 +362,8 @@ void RT3_Close(void)
 // FUNCTION: EVNOVA 0x004d46e0
 void RT3_Idle(void)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
     ULong elapsed;
 
     if (gRT3_Open != 0) {
@@ -380,11 +380,11 @@ void RT3_Idle(void)
 
 /* RT3_Open (mac _RT3_Open). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d4740
-long RT3_Open(unsigned char tracked, short mode, const char *product,
+int32_t RT3_Open(unsigned char tracked, short mode, const char *product,
                   const char *company)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
 
     if (gRT3_Open != 0)
         goto done;
@@ -445,9 +445,9 @@ done:
 #ifndef MACBUILD /* the mac keeps the log in a file and CFPreferences */
 /* _RT3_WriteLogEntry (mac __RT3_WriteLogEntry). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d4900
-long _RT3_WriteLogEntry(RT3LogEntry *entry)
+int32_t _RT3_WriteLogEntry(RT3LogEntry *entry)
 {
-    long err = 0;
+    int32_t err = 0;
     void *key = 0;
     LogName keyName = kWriteKeyName;
     LogName valueName = kWriteValueName;
@@ -455,7 +455,7 @@ long _RT3_WriteLogEntry(RT3LogEntry *entry)
     char product[kTextSize];
     ULong size;
     ULong i;
-    long e;
+    int32_t e;
 
     for (i = 0; keyName.text[i] != 0; i++)
         keyName.text[i] ^= i * 3 + 0x21;
@@ -535,9 +535,9 @@ done:
 
 /* _RT3_ReadLogEntry (mac __RT3_ReadLogEntry). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d4ba0
-long _RT3_ReadLogEntry(RT3LogEntry *entry)
+int32_t _RT3_ReadLogEntry(RT3LogEntry *entry)
 {
-    long err = 0;
+    int32_t err = 0;
     void *key = 0;
     LogName keyName = kReadKeyName;
     LogName valueName = kReadValueName;
@@ -547,7 +547,7 @@ long _RT3_ReadLogEntry(RT3LogEntry *entry)
     char product[kTextSize];
     ULong size;
     ULong i;
-    long e;
+    int32_t e;
 
     for (i = 0; keyName.text[i] != 0; i++)
         keyName.text[i] ^= i * 3 + 0x21;
@@ -651,10 +651,10 @@ void RT3_PathJoinStub(char *path)
 
 /* _RT3_LicenseRefresh (mac __RT3_LicenseRefresh). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d4f70
-long _RT3_LicenseRefresh(void)
+int32_t _RT3_LicenseRefresh(void)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong dates[kFolderCount];
     unsigned char changed;
     unsigned char created;
@@ -720,17 +720,17 @@ done:
    byte-identical yes. OPEN: none; the `const void *p' walked as `(const char *)p + 1' is
    the matching spelling, not necessarily the author's (Research/notes/rt3.md). */
 // FUNCTION: EVNOVA 0x004d5180
-long _RT3_LicenseSave(void **license, ULong key, ULong when)
+int32_t _RT3_LicenseSave(void **license, ULong key, ULong when)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
     unsigned char ok = 0;
     ULong hash = 0;
-    long folder = -3;
+    int32_t folder = -3;
     void **copy = 0;
     unsigned char licensed;
     char fileName[kTextSize];
-    long skew;
+    int32_t skew;
     ULong k;
     ULong s;
     ULong t;
@@ -828,24 +828,24 @@ done:
    byte-identical yes. OPEN: the identifier is RT3_CalcFolderIdentifier here and the committed
    RT3_CalcIdentifier in _RT3_LicenseSave (one helper for both is not found; Research/notes/rt3.md) */
 // FUNCTION: EVNOVA 0x004d5460
-long _RT3_LicenseLoad(void ***license, unsigned char *created)
+int32_t _RT3_LicenseLoad(void ***license, unsigned char *created)
 {
-    long err;
+    int32_t err;
     void **h;
     unsigned char valid;
     ULong machine;
     ULong productHash;
     ULong next;
-    long bestFolder;
+    int32_t bestFolder;
     void **best;
     ULong t;
     const unsigned char *p;
     unsigned char c;
     ULong hash;
-    long folder;
+    int32_t folder;
     ULong u;
     ULong pm;
-    long e;
+    int32_t e;
     char fileName[kTextSize];
     ULong i;
 
@@ -927,8 +927,8 @@ long _RT3_LicenseLoad(void ***license, unsigned char *created)
     if (gLogStuff != 0 && valid && ((RT3License *)*h)->copies != 0) {
         ULong closeStamp = 0;
         ULong saveStamp = 0;
-        long sinceClose = 0;
-        long sinceSave = 0;
+        int32_t sinceClose = 0;
+        int32_t sinceSave = 0;
         unsigned char renew = 0;
         ULong now;
 
@@ -1005,7 +1005,7 @@ done:
 /* Four nibbles of a license code, as a 16-bit check value. */
 /* DRHash64. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d5990
-unsigned long DRHash64(unsigned long long lic)
+uint32_t DRHash64(unsigned long long lic)
 {
     ULong r;
 
@@ -1056,7 +1056,7 @@ void RT3_LicenseTextToCode(const char *text, ULongLong *code)
 
 /* RT3_CalcMainHash (mac _RT3_CalcMainHash). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d5b10
-ULongLong RT3_CalcMainHash(const char *product, const char *name, long copies)
+ULongLong RT3_CalcMainHash(const char *product, const char *name, int32_t copies)
 {
     ULongLong h;
     ULong i, j;

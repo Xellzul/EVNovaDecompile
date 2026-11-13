@@ -31,12 +31,12 @@ extern unsigned short gRT3_CodeVersion;
 
 
 extern void ClockQueryDispose(void);
-extern long ClockQueryServer(char *server, ULong timeout, ULongLong *outA, ULongLong *outB, ULongLong *response, long *errorOut);
+extern int32_t ClockQueryServer(char *server, ULong timeout, ULongLong *outA, ULongLong *outB, ULongLong *response, int32_t *errorOut);
 
 /* data, declared in the reverse of the exe's order (gcc emits initialised data last-declared first) */
 unsigned char gRT3_Open = 0;
 void **gRT3_LicenseHdl = 0;
-long gRT3_LicensePaths[2] = { -3, -7 };
+int32_t gRT3_LicensePaths[2] = { -3, -7 };
 ULong gRT3_LicenseDates[2] = { 0, 0 };
 ULong gRT3_StartupTime = 0;
 ULong gSavedWhenFirstRun = 0xffffffff;
@@ -130,15 +130,15 @@ static Boolean (*gMyFSEventStreamStart)(FSEventStreamRT3Ref) = 0;
 static void (*gMyFSEventStreamScheduleWithRunLoop)(FSEventStreamRT3Ref, CFRunLoopRef, CFStringRef) = 0;
 static FSEventStreamRT3Ref (*gMyFSEventStreamCreate)(CFAllocatorRef, void *, void *, CFArrayRef, UInt64, CFTimeInterval, UInt32) = 0;
 
-static long _RT3_LicenseRefresh(void);
-static long _RT3_ReadLogEntry(RT3LogEntry *entry);
-static long _RT3_WriteLogEntry(RT3LogEntry *entry);
-static long _RT3_LicenseSave(void **license, ULong key, ULong when, unsigned char systemWide);
-static long _RT3_LicenseLoad(void ***license, unsigned char *created, unsigned char *systemWide);
+static int32_t _RT3_LicenseRefresh(void);
+static int32_t _RT3_ReadLogEntry(RT3LogEntry *entry);
+static int32_t _RT3_WriteLogEntry(RT3LogEntry *entry);
+static int32_t _RT3_LicenseSave(void **license, ULong key, ULong when, unsigned char systemWide);
+static int32_t _RT3_LicenseLoad(void ***license, unsigned char *created, unsigned char *systemWide);
 void RT3_Idle(void);
 
 // MAC: __RT3_LicenseRefresh i386 0x000d3dc4 ppc 0x000de8dc
-static long _RT3_LicenseRefresh(void)
+static int32_t _RT3_LicenseRefresh(void)
 {
     OSStatus err;
     ULong dates[kFolderCount] = { 1, 1 };
@@ -198,7 +198,7 @@ done:
 // MAC: __RT3_FSEventCallback i386 0x000d41fb ppc 0x000dece0
 static void _RT3_FSEventCallback(void *stream, void *info, size_t count, void *paths, const void *flags, const void *ids)
 {
-    long err = 0;
+    int32_t err = 0;
 
     err = _RT3_LicenseRefresh();
     if (err != 0)
@@ -208,15 +208,15 @@ done:
 }
 
 // MAC: __RT3_InstallFSEventCallback i386 0x000d1159 ppc 0x000dcb34
-long _RT3_InstallFSEventCallback(void)
+int32_t _RT3_InstallFSEventCallback(void)
 {
     CFStringRef paths[2] = { CFSTR(""), CFSTR("") };
-    long err = 0;
+    int32_t err = 0;
     CFArrayRef array = 0;
     FSRef folder;
     char path[0x400];
-    long e;
-    long i;
+    int32_t e;
+    int32_t i;
 
     if (gMyFSEventStreamCreate == 0) {
         gMyFSEventStreamCreate = SystemLoadMachOSymbol(CFSTR("CoreServices.framework"), CFSTR("FSEventStreamCreate"));
@@ -338,10 +338,10 @@ void RT3_Idle(void)
 }
 
 // MAC: _RT3_GetLicenseCopies i386 0x000d14e7 ppc 0x000dced0
-long RT3_GetLicenseCopies(void)
+int32_t RT3_GetLicenseCopies(void)
 {
-    long copies = gRT3_License.copies;
-    long result;
+    int32_t copies = gRT3_License.copies;
+    int32_t result;
 
     if (copies <= 0)
         result = 0;
@@ -351,10 +351,10 @@ long RT3_GetLicenseCopies(void)
 }
 
 // MAC: _RT3_Open i386 0x000d45df ppc 0x000dee9c
-long RT3_Open(unsigned char tracked, unsigned short mode, const char *product, const char *company)
+int32_t RT3_Open(unsigned char tracked, unsigned short mode, const char *product, const char *company)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
 
     if (gRT3_Open != 0)
         goto done;
@@ -465,12 +465,12 @@ char *RT3_GetLicenseName(void)
 
 // MAC: _RT3_IsRegistered i386 0x000d166b ppc 0x000dd0a8
 #ifdef MAC1010
-unsigned long RT3_IsRegistered(void)
+uint32_t RT3_IsRegistered(void)
 #else
-long RT3_IsRegistered(void)
+int32_t RT3_IsRegistered(void)
 #endif
 {
-    long result = 0;
+    int32_t result = 0;
 
     if (gRT3_License.copies > 0)
         result = 1 << gRT3_License.level;
@@ -535,7 +535,7 @@ static void _RT3_IdleNetworkClock(void)
     unsigned char due;
     ULong index;
     unsigned char gotResponse;
-    long i;
+    int32_t i;
     char c;
     const unsigned char *src;
 
@@ -566,9 +566,9 @@ static void _RT3_IdleNetworkClock(void)
 }
 
 // MAC: _RT3_BeginNetworkClock i386 0x000d1919 ppc 0x000dd414
-long RT3_BeginNetworkClock(void)
+int32_t RT3_BeginNetworkClock(void)
 {
-    long err = kBadArgument;
+    int32_t err = kBadArgument;
 
     if (gRT3_Open) {
         err = 0;
@@ -633,7 +633,7 @@ ULongLong RT3_CheckLicenseCode(const char *code)
 }
 
 // MAC: __RT3_LoadCFPrefs i386 0x000d1a94 ppc 0x000dd64c
-static long _RT3_LoadCFPrefs(void ***handle, CFStringRef appID, CFStringRef key)
+static int32_t _RT3_LoadCFPrefs(void ***handle, CFStringRef appID, CFStringRef key)
 {
     CFDictionaryRef dict;
     CFDataRef data = 0;
@@ -674,7 +674,7 @@ static inline ULong RT3_HashProduct(const char *name)
 // MAC: __RT3_CalcHashedStamp i386 0x000d1b82 ppc 0x000dd750
 static ULong _RT3_CalcHashedStamp(void)
 {
-    long err = 0;
+    int32_t err = 0;
     ULong stamp;
 
     stamp = TimerGetUTCSeconds() ^ RT3_HashProduct(gPrivateProductName);
@@ -684,9 +684,9 @@ static ULong _RT3_CalcHashedStamp(void)
 }
 
 // MAC: __RT3_CalcIdentifier i386 0x000d1bcf ppc 0x000dd7bc
-static ULong _RT3_CalcIdentifier(long folder)
+static ULong _RT3_CalcIdentifier(int32_t folder)
 {
-    long err = 0;
+    int32_t err = 0;
     ULong hash = 0;
     const unsigned char *p = (const unsigned char *)gPrivateProductName;
     unsigned char c;
@@ -709,23 +709,23 @@ done:
 }
 
 // MAC: __RT3_LicenseLoad i386 0x000d35eb ppc 0x000de2f8
-static long _RT3_LicenseLoad(void ***license, unsigned char *created, unsigned char *systemWide)
+static int32_t _RT3_LicenseLoad(void ***license, unsigned char *created, unsigned char *systemWide)
 {
     RT3License **h;
     unsigned char valid;
     ULong machine;
     ULong productHash;
-    long folder;
+    int32_t folder;
     RT3License **best;
-    long bestFolder;
+    int32_t bestFolder;
     ULong hash;
     ULong u;
     ULong pm;
-    long e;
-    long diff;
+    int32_t e;
+    int32_t diff;
     char fileName[kTextSize];
     ULong i;
-    long err;
+    int32_t err;
 
     err = 0;
     h = 0;
@@ -827,8 +827,8 @@ static long _RT3_LicenseLoad(void ***license, unsigned char *created, unsigned c
     if (gLogStuff != 0 && valid && (*h)->copies != 0) {
         ULong closeStamp = 0;
         ULong saveStamp = 0;
-        long sinceClose = 0;
-        long sinceSave = 0;
+        int32_t sinceClose = 0;
+        int32_t sinceSave = 0;
         unsigned char renew = 0;
         ULong now;
 
@@ -907,16 +907,16 @@ done:
 }
 
 // MAC: __RT3_LicenseSave i386 0x000d3240 ppc 0x000de0a4
-static long _RT3_LicenseSave(void **license, ULong key, ULong when, unsigned char systemWide)
+static int32_t _RT3_LicenseSave(void **license, ULong key, ULong when, unsigned char systemWide)
 {
-    long err;
-    long e;
-    long folder;
+    int32_t err;
+    int32_t e;
+    int32_t folder;
     char fileName[kTextSize];
     ULong copies;
     void **copy;
     char *path;
-    long skew;
+    int32_t skew;
     ULong stamp;
 
     StringCopySafe(fileName, gPrivateProductName, kTextSize);
@@ -1023,9 +1023,9 @@ void RT3_Close(void)
 }
 
 // MAC: _RT3_IncNumLaunches i386 0x000d4480 ppc 0x000dee3c
-long RT3_IncNumLaunches(void)
+int32_t RT3_IncNumLaunches(void)
 {
-    long err = 0;
+    int32_t err = 0;
 
     _RT3_ReadLogEntry(&gLogEntry);
     gSavedNumLaunches++;
@@ -1036,14 +1036,14 @@ done:
 }
 
 // MAC: _RT3_SetLicenseInfo i386 0x000d4205 ppc 0x000dece8
-long RT3_SetLicenseInfo(const char *name, const char *code, long copies, ULong level, ULong key, ULong when, unsigned char systemWide)
+int32_t RT3_SetLicenseInfo(const char *name, const char *code, int32_t copies, ULong level, ULong key, ULong when, unsigned char systemWide)
 {
-    long err = kBadArgument;
+    int32_t err = kBadArgument;
     void **license = 0;
     unsigned char created = 0;
     ULongLong value = 0;
     char text[kTextSize];
-    long e;
+    int32_t e;
 
     if (gRT3_Open) {
         RT3_LicenseTextToCode(code, &value);
@@ -1070,9 +1070,9 @@ long RT3_SetLicenseInfo(const char *name, const char *code, long copies, ULong l
 }
 
 // MAC: _RT3_CreateLicenseFile i386 0x000d4357 ppc 0x000df19c
-long RT3_CreateLicenseFile(const char *name, const char *code, long copies, ULong level, unsigned char systemWide)
+int32_t RT3_CreateLicenseFile(const char *name, const char *code, int32_t copies, ULong level, unsigned char systemWide)
 {
-    long err = kBadArgument;
+    int32_t err = kBadArgument;
     char fixed[kTextSize];
 
     if (gRT3_Open) {
@@ -1089,10 +1089,10 @@ long RT3_CreateLicenseFile(const char *name, const char *code, long copies, ULon
 }
 
 // MAC: _RT3_RenewLicenseCode i386 0x000d1c4a ppc 0x000df2e0
-long RT3_RenewLicenseCode(const char *name, const char *code, long copies, char *newCode, char *message)
+int32_t RT3_RenewLicenseCode(const char *name, const char *code, int32_t copies, char *newCode, char *message)
 {
-    long err = kBadArgument;
-    long proxyErr;
+    int32_t err = kBadArgument;
+    int32_t proxyErr;
     char fixedName[kTextSize] = "";
     char codeText[kTextSize] = "";
     char copiesText[kTextSize] = "";
@@ -1129,7 +1129,7 @@ done:
 // MAC: _RT3_EnableCrackDetection i386 0x000d4109 ppc 0x000debb0
 void RT3_EnableCrackDetection(unsigned char enable)
 {
-    long err = 0;
+    int32_t err = 0;
 
     if (enable) {
         gRT3_IsRegisteredPtr1 = "";
@@ -1147,10 +1147,10 @@ done:
 }
 
 // MAC: _RT3_ResetLicenseInfo i386 0x000d408b ppc 0x000deb1c
-long RT3_ResetLicenseInfo(void)
+int32_t RT3_ResetLicenseInfo(void)
 {
-    long err = kBadArgument;
-    long e;
+    int32_t err = kBadArgument;
+    int32_t e;
     void **license;
 
     if (gRT3_Open) {
@@ -1205,12 +1205,12 @@ static void _RT3_SaveCFPrefs(void **handle, CFStringRef appID, CFStringRef key)
 }
 
 // MAC: __RT3_WriteLogEntry i386 0x000d1ea5 ppc 0x000dd850
-static long _RT3_WriteLogEntry(RT3LogEntry *entry)
+static int32_t _RT3_WriteLogEntry(RT3LogEntry *entry)
 {
-    long err = 0;
+    int32_t err = 0;
     char name[kTextSize] = LOG_NAME_INIT;
     void **log = 0;
-    long e;
+    int32_t e;
     char product[kTextSize];
     ULong count;
     ULong i;
@@ -1288,12 +1288,12 @@ done:
 }
 
 // MAC: __RT3_ReadLogEntry i386 0x000d2a24 ppc 0x000ddc34
-static long _RT3_ReadLogEntry(RT3LogEntry *entry)
+static int32_t _RT3_ReadLogEntry(RT3LogEntry *entry)
 {
-    long err = 0;
+    int32_t err = 0;
     char name[kTextSize] = LOG_NAME_INIT;
     void **log = 0;
-    long e;
+    int32_t e;
     char product[kTextSize];
     unsigned char fromPrefs = 0;
     ULong i;

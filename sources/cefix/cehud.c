@@ -40,7 +40,7 @@ static int ScalePointInRect(short *h, short *v, const Rect *box)
    the many fixed text offsets drawn there need no site of their own. */
 void CE_MoveTo(short h, short v)
 {
-    long items[3];
+    int32_t items[3];
     short count;
     short i;
     int barLeft;

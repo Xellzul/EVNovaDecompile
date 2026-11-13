@@ -1305,7 +1305,7 @@ void SWUpdateSpriteWorld(SpriteWorldRec *spriteWorldP, Boolean updateWindow)
 void SWProcessSpriteWorld(SpriteWorldPtr spriteWorldP)
 {
     UnsignedWide curMicroseconds;
-    register unsigned long millisecDifference;
+    register uint32_t millisecDifference;
     register SpriteLayerPtr curSpriteLayerP;
     register SpritePtr curSpriteP, nextSpriteP;
     register FramePtr newFrameP;
@@ -1365,7 +1365,7 @@ void SWProcessSpriteWorld(SpriteWorldPtr spriteWorldP)
                     if (curSpriteP->frameTimeInterval >= 0 &&
                         (spriteWorldP->runningTimeCount - curSpriteP->timeOfLastFrameChange) >=
                         curSpriteP->frameTimeInterval && curSpriteP->curFrameP->isFrameLocked) {
-                        register long currentFrameIndex;
+                        register int32_t currentFrameIndex;
 
                         curSpriteP->timeOfLastFrameChange = spriteWorldP->runningTimeCount;
 
@@ -1434,7 +1434,7 @@ void SWProcessSpriteWorld(SpriteWorldPtr spriteWorldP)
 void SWProcessSpriteWorld(SpriteWorldRec *spriteWorldP)
 {
     unsigned long long curMicroseconds;
-    unsigned long millisecDifference;
+    uint32_t millisecDifference;
     SpriteLayerRec *curSpriteLayerP;
     SpritePtr curSpriteP, nextSpriteP;
     SWFrameRec *newFrameP;
@@ -1486,7 +1486,7 @@ void SWProcessSpriteWorld(SpriteWorldRec *spriteWorldP)
                             curSpriteP->frameTimeInterval &&
                         curSpriteP->curFrameP->isFrameLocked)
                     {
-                        long currentFrameIndex;
+                        int32_t currentFrameIndex;
 
                         curSpriteP->timeOfLastFrameChange = spriteWorldP->runningTimeCount;
 
@@ -1595,7 +1595,7 @@ void SWProcessSpriteLayer(SpriteWorldPtr spriteWorldP, SpriteLayerPtr curSpriteL
             if (curSpriteP->frameTimeInterval >= 0 &&
                 (spriteWorldP->runningTimeCount - curSpriteP->timeOfLastFrameChange) >=
                 curSpriteP->frameTimeInterval && curSpriteP->curFrameP->isFrameLocked) {
-                register long currentFrameIndex;
+                register int32_t currentFrameIndex;
 
                 curSpriteP->timeOfLastFrameChange = spriteWorldP->runningTimeCount;
 
@@ -2696,7 +2696,7 @@ void SWSetCleanUpFunction(CleanUpCallBackPtr callBackP)
 
 /* SWGetSpriteWorldVersion (mac _SWGetSpriteWorldVersion, mac-only). STATE: see the mac gate. */
 // MAC: _SWGetSpriteWorldVersion i386 0x000b885c ppc 0x000c4750
-unsigned long SWGetSpriteWorldVersion(void)
+uint32_t SWGetSpriteWorldVersion(void)
 {
     return 0x02318000;
 }

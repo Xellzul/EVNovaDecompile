@@ -22,9 +22,9 @@
 
 void *Win95MainWindow;
 int gDisableUpdatesMode;
-unsigned long ScreenWidth;
-unsigned long ScreenHeight;
-unsigned long VideoWidth;
+uint32_t ScreenWidth;
+uint32_t ScreenHeight;
+uint32_t VideoWidth;
 SpriteRec *gSWCurrentSpriteBeingDrawn;
 char gNeedUpdateFlag;
 Word8 ResourceJustLoaded;
@@ -73,5 +73,5 @@ Word32 MasterRezHeader[9];
 void *gNT_LookupCache;
 void *gIT_EventProc;
 void *BurgerSndGameApp;
-long gLegacyVar;
+int32_t gLegacyVar;
 char gUnusedFlag;

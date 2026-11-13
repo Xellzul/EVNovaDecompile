@@ -16,7 +16,7 @@ jpeg_add_quant_table (j_compress_ptr cinfo, int which_tbl,
 {
   JQUANT_TBL ** qtblptr;
   int i;
-  long temp;
+  int32_t temp;
 
   if (cinfo->global_state != CSTATE_START)
     ERREXIT1(cinfo, JERR_BAD_STATE, cinfo->global_state);
@@ -30,7 +30,7 @@ jpeg_add_quant_table (j_compress_ptr cinfo, int which_tbl,
     *qtblptr = jpeg_alloc_quant_table((j_common_ptr) cinfo);
 
   for (i = 0; i < DCTSIZE2; i++) {
-    temp = ((long) basic_table[i] * scale_factor + 50L) / 100L;
+    temp = ((int32_t) basic_table[i] * scale_factor + 50L) / 100L;
 
     if (temp <= 0L) temp = 1L;
     if (temp > 32767L) temp = 32767L;

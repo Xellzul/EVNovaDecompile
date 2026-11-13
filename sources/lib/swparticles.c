@@ -11,12 +11,12 @@
 #if defined(MACBUILD) && !defined(MAC_GAMEUTILS_ONLY)
 #ifdef MAC1010 /* 1.0.10 spelling */
 static int gLowestUnusedElement;
-static long gLastElementInUse;
+static int32_t gLastElementInUse;
 static int gNumberOfParticlesActive;
 static int gGravity;
-static unsigned long gNumArrayElements;
-static long scrollOffsetHoriz;
-static long scrollOffsetVert;
+static uint32_t gNumArrayElements;
+static int32_t scrollOffsetHoriz;
+static int32_t scrollOffsetVert;
 static ParticlePtr gParticleArray = NULL;
 static Boolean gParticlesInitialized = false;
 #else
@@ -24,23 +24,23 @@ static Boolean gParticlesInitialized = false;
 static ParticlePtr gParticleArray;
 static Boolean gParticlesInitialized;
 static int gLowestUnusedElement;
-static long gLastElementInUse;
+static int32_t gLastElementInUse;
 static int gNumberOfParticlesActive;
 static int gGravity;
-static unsigned long gNumArrayElements;
-static long scrollOffsetHoriz;
-static long scrollOffsetVert;
+static uint32_t gNumArrayElements;
+static int32_t scrollOffsetHoriz;
+static int32_t scrollOffsetVert;
 #endif
 #else
 static ParticlePtr gParticleArray = NULL;
 static int gLowestUnusedElement = 0;
-static long gLastElementInUse = 0;
+static int32_t gLastElementInUse = 0;
 static int gNumberOfParticlesActive = 0;
 static int gGravity = 0;
-static unsigned long gNumArrayElements = 0;
+static uint32_t gNumArrayElements = 0;
 static Boolean gParticlesInitialized = false;
-static long scrollOffsetHoriz = 0;
-static long scrollOffsetVert = 0;
+static int32_t scrollOffsetHoriz = 0;
+static int32_t scrollOffsetVert = 0;
 #endif
 #ifndef MACBUILD
 static unsigned char DAT_007d053c[260];
@@ -122,7 +122,7 @@ void DisposeParticles(void)
 // MAC: _ClearParticles i386 0x000c4ec8 ppc 0x000d10a4
 void ClearParticles(Boolean active)
 {
-    long i;
+    int32_t i;
 
     if (gParticleArray == NULL)
         SW_ASSERT_FAIL("SWParticles.c", 0x5d, 0x5d);
@@ -149,8 +149,8 @@ void SetParticleScrollOffset(int h, int v)
 /* NewParticle. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047b960
 // MAC: _NewParticle i386 0x000c501d ppc 0x000d12b0
-void NewParticle(long color, long horizLoc, long vertLoc, long horizSpeed,
-                 long vertSpeed, short shade, short lifeCount)
+void NewParticle(int32_t color, int32_t horizLoc, int32_t vertLoc, int32_t horizSpeed,
+                 int32_t vertSpeed, short shade, short lifeCount)
 {
     if (!gParticlesInitialized)
         return;
@@ -192,7 +192,7 @@ void EraseParticlesOffscreen(SpriteWorldPtr spriteWorldP)
              backFrameP = spriteWorldP->backFrameP;
     int visBoundsLeft, visBoundsRight, visBoundsTop, visBoundsBottom;
     int horizLoc, vertLoc;
-    long index, count = gLastElementInUse;
+    int32_t index, count = gLastElementInUse;
 
     if (spriteWorldP == 0)
         SW_ASSERT_FAIL("SWParticles.c", 185, 185);
@@ -247,7 +247,7 @@ void	EraseParticlesScrollingOffscreen( SpriteWorldPtr spriteWorldP )
 				backFrameP = spriteWorldP->backFrameP;
 	int			visBoundsLeft, visBoundsRight, visBoundsTop, visBoundsBottom;
 	int			horizLoc, vertLoc;
-	long		index, count = gLastElementInUse;
+	int32_t		index, count = gLastElementInUse;
 
 	SW_ASSERT(spriteWorldP != NULL, 234);
 	SW_ASSERT(spriteWorldP->workFrameP != NULL && workFrameP->isFrameLocked, 235);
@@ -303,7 +303,7 @@ void DrawParticlesOffscreen(SpriteWorldPtr spriteWorldP)
     FramePtr workFrameP = spriteWorldP->workFrameP;
     int visBoundsLeft, visBoundsRight, visBoundsTop, visBoundsBottom;
     int horizLoc, vertLoc;
-    long index, count = gLastElementInUse;
+    int32_t index, count = gLastElementInUse;
 
     if (spriteWorldP == 0)
         SW_ASSERT_FAIL("SWParticles.c", 299, 299);
@@ -332,7 +332,7 @@ void DrawParticlesOffscreen(SpriteWorldPtr spriteWorldP)
                 if ((horizLoc<visBoundsRight)&&(horizLoc>visBoundsLeft)&&
                 (vertLoc<visBoundsBottom)&&(vertLoc>visBoundsTop))
                 {
-                    if ((long)particlePtr->shade != 32)
+                    if ((int32_t)particlePtr->shade != 32)
                     {
                         if (particlePtr->lifeRemaining > 32)
                             SET_DEPTH_PIXEL( workFrameP, horizLoc, vertLoc,
@@ -365,7 +365,7 @@ void	DrawParticlesScrollingOffscreen( SpriteWorldPtr spriteWorldP )
 	FramePtr	workFrameP = spriteWorldP->workFrameP;
 	int			visBoundsLeft, visBoundsRight, visBoundsTop, visBoundsBottom;
 	int			horizLoc, vertLoc;
-	long		index, count = gLastElementInUse;
+	int32_t		index, count = gLastElementInUse;
 
 	SW_ASSERT(spriteWorldP != NULL, 372);
 	SW_ASSERT(workFrameP != NULL && workFrameP->isFrameLocked, 373);
@@ -418,9 +418,9 @@ void UpdateParticlesInWindow(SpriteWorldPtr spriteWorldP)
 {
     Particle *particlePtr;
     FramePtr windowFrameP = spriteWorldP->windowFrameP;
-    long count = gLastElementInUse;
+    int32_t count = gLastElementInUse;
     int horizLoc, vertLoc;
-    long index;
+    int32_t index;
 
     if (windowFrameP == 0 || !windowFrameP->isFrameLocked)
         SW_ASSERT_FAIL("SWParticles.c", 440, 440);
@@ -461,10 +461,10 @@ void UpdateParticlesInWindow(SpriteWorldRec *spriteWorldP)
     Particle *particlePtr;
     FramePtr workFrameP = spriteWorldP->workFrameP,
              windowFrameP = spriteWorldP->windowFrameP;
-    long count = gLastElementInUse;
+    int32_t count = gLastElementInUse;
     int visBoundsLeft, visBoundsRight, visBoundsTop, visBoundsBottom;
     int horizLoc, vertLoc;
-    long index;
+    int32_t index;
     Boolean noDirectBlit;
 
     if (spriteWorldP == 0)

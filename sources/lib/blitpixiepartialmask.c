@@ -7,10 +7,10 @@
 // FUNCTION: EVNOVA 0x00471b70
 // MAC: _BlitPixiePartialMask i386 0x000c0fe5 ppc 0x000cce88
 void BlitPixiePartialMask(unsigned char *srcPixels, unsigned char *dstPixels,
-        unsigned char *maskPixels, unsigned long srcRowBytes, unsigned long dstRowBytes,
+        unsigned char *maskPixels, uint32_t srcRowBytes, uint32_t dstRowBytes,
         unsigned short byteWidth, unsigned short numRows)
 {
-    unsigned long i;
+    uint32_t i;
     unsigned char maskByte;
 
     srcRowBytes -= byteWidth;

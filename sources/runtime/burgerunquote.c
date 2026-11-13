@@ -74,11 +74,11 @@ char *GetFileExtension(const char *name)
 /* ParseQuotedString. STATE: MATCH 100%, exe 51 / obj 51 instrs, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004fbf50
-char *ParseQuotedString(char *out, long outSize, const char *src)
+char *ParseQuotedString(char *out, int32_t outSize, const char *src)
 {
-    long room;
-    unsigned long c;
-    long next;
+    int32_t room;
+    uint32_t c;
+    int32_t next;
 
     if (*src == '"') {
         room = outSize;
@@ -600,7 +600,7 @@ void CStr2PStr(char *dst, const char *src)
 // FUNCTION: EVNOVA 0x004fc1c0
 void PStr2CStr(char *dst, const unsigned char *src)
 {
-    unsigned long len;
+    uint32_t len;
 
     len = *src;
     src = src + 1;

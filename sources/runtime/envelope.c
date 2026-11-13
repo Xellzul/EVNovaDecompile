@@ -102,9 +102,9 @@ void _ve_envelope_clear(envelope_lookup *e){
 }
 
 static float _ve_deltai(envelope_lookup *ve,float *pre,float *post){
-  long n=ve->winlength;
+  int32_t n=ve->winlength;
 
-  long i;
+  int32_t i;
 
   float minV=ve->minenergy;
   float A=minV*minV*n;
@@ -121,12 +121,12 @@ static float _ve_deltai(envelope_lookup *ve,float *pre,float *post){
   return(B-A);
 }
 
-long _ve_envelope_search(vorbis_dsp_state *v){
+int32_t _ve_envelope_search(vorbis_dsp_state *v){
   vorbis_info *vi=v->vi;
   codec_setup_info *ci=(codec_setup_info *)vi->codec_setup;
   vorbis_info_psy_global *gi=&ci->psy_g_param;
   envelope_lookup *ve=((backend_lookup_state *)(v->backend_state))->ve;
-  long i,j,k;
+  int32_t i,j,k;
 
   if(v->pcm_storage>ve->storage){
     ve->storage=v->pcm_storage;
@@ -165,9 +165,9 @@ long _ve_envelope_search(vorbis_dsp_state *v){
 
   {
     int flag=-1;
-    long centerW=v->centerW;
-    long beginW=centerW-ci->blocksizes[v->W]/4;
-    long testW=centerW+ci->blocksizes[v->W]/4+ci->blocksizes[1]/2+ci->blocksizes[0]/4;
+    int32_t centerW=v->centerW;
+    int32_t beginW=centerW-ci->blocksizes[v->W]/4;
+    int32_t testW=centerW+ci->blocksizes[v->W]/4+ci->blocksizes[1]/2+ci->blocksizes[0]/4;
     if(v->W)
       beginW-=ci->blocksizes[v->lW]/4;
     else

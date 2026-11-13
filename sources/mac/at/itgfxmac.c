@@ -44,26 +44,26 @@ unsigned char gDT_TempMem;
 ULong gDT_Printers;
 unsigned char gDT_Open;
 
-long DT_DrawTextAt(ITImage *image, long x, long y, const char *text, long length);
+int32_t DT_DrawTextAt(ITImage *image, int32_t x, int32_t y, const char *text, int32_t length);
 #define kByteOrderMark  0xfeff
 #define kTextFailed     -7300
 
-extern long ATSU_Measure(const unsigned short *text, ULong start, ULong length, float *width);
-extern long ATSU_DrawText(const unsigned short *text, ULong start, ULong length);
+extern int32_t ATSU_Measure(const unsigned short *text, ULong start, ULong length, float *width);
+extern int32_t ATSU_DrawText(const unsigned short *text, ULong start, ULong length);
 
 extern RGBColor *CopyDT_2SysColor(RGBColor *ref, const ITColor *color);
 extern RgnHandle DT_RegionCreate(void);
 
-long _DT_ContextCreate(ITPort *port, void *window, CGrafPtr dc, unsigned char save);
+int32_t _DT_ContextCreate(ITPort *port, void *window, CGrafPtr dc, unsigned char save);
 void *DT_GetClipRegion(ITImage *image);
-long DT_SetClipRegion(ITImage *image, void *region);
+int32_t DT_SetClipRegion(ITImage *image, void *region);
 
 ITImage *DT_ContextCreate(void *window, unsigned char save)
 {
     ITImage *image;
     ITPort *port;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     image = 0;
     port = 0;
@@ -88,8 +88,8 @@ ITImage *DT_ContextCreateRaw(void *dc, unsigned char save)
 {
     ITImage *image;
     ITPort *port;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     image = 0;
     port = 0;
@@ -110,14 +110,14 @@ ITImage *DT_ContextCreateRaw(void *dc, unsigned char save)
     return port != 0 ? port->link.self : 0;
 }
 
-long DT_ContextDispose(ITImage *image)
+int32_t DT_ContextDispose(ITImage *image)
 {
     return _DT_SurfaceDispose(image, 1, 0, 0);
 }
 
-long _DT_ContextCreate(ITPort *port, void *window, CGrafPtr dc, unsigned char save)
+int32_t _DT_ContextCreate(ITPort *port, void *window, CGrafPtr dc, unsigned char save)
 {
-    long err;
+    int32_t err;
     CGrafPtr oldWorld;
     GDHandle oldDevice;
 
@@ -181,7 +181,7 @@ void _DT_ContextDispose(ITPort *port)
     port->dc = 0;
 }
 
-long _DT_ContextLock(ITPort *port)
+int32_t _DT_ContextLock(ITPort *port)
 {
     ITPixels *pixels;
     ULong locks;
@@ -210,15 +210,15 @@ void _DT_ContextUnlock(ITPort *port)
     }
 }
 
-long DT_ResetAttributes(ITImage *image, unsigned char pen, unsigned char brush, unsigned char font,
+int32_t DT_ResetAttributes(ITImage *image, unsigned char pen, unsigned char brush, unsigned char font,
                         unsigned char clip, unsigned char origin)
 {
     ITPort *port;
-    long err;
+    int32_t err;
     CGrafPtr oldWorld;
     GDHandle oldDevice;
     FontInfo info;
-    long e;
+    int32_t e;
 
     port = _DT_ContextGetContext(image);
     oldWorld = 0;
@@ -256,7 +256,7 @@ done:
     return err;
 }
 
-long DT_SetFillAttributes(ITImage *image, const ITColor *fore, const ITColor *back, const unsigned char *pattern)
+int32_t DT_SetFillAttributes(ITImage *image, const ITColor *fore, const ITColor *back, const unsigned char *pattern)
 {
     ITPort *port;
     CGrafPtr oldWorld;
@@ -278,7 +278,7 @@ long DT_SetFillAttributes(ITImage *image, const ITColor *fore, const ITColor *ba
     return 0;
 }
 
-long DT_GetFillColor(ITImage *image, ITColor *fore)
+int32_t DT_GetFillColor(ITImage *image, ITColor *fore)
 {
     ITPort *port;
 #if TARGET_API_MAC_CARBON
@@ -294,7 +294,7 @@ long DT_GetFillColor(ITImage *image, ITColor *fore)
     return 0;
 }
 
-long DT_GetFillBackColor(ITImage *image, ITColor *back)
+int32_t DT_GetFillBackColor(ITImage *image, ITColor *back)
 {
     ITPort *port;
 #if TARGET_API_MAC_CARBON
@@ -310,7 +310,7 @@ long DT_GetFillBackColor(ITImage *image, ITColor *back)
     return 0;
 }
 
-long DT_SetFillBackColor(ITImage *image, const ITColor *back)
+int32_t DT_SetFillBackColor(ITImage *image, const ITColor *back)
 {
     ITPort *port;
 
@@ -318,7 +318,7 @@ long DT_SetFillBackColor(ITImage *image, const ITColor *back)
     return DT_SetFillAttributes(image, 0, back, 0);
 }
 
-long DT_SetLineAttributes(ITImage *image, const ITColor *fore, const ITColor *back, const unsigned char *pattern, long width)
+int32_t DT_SetLineAttributes(ITImage *image, const ITColor *fore, const ITColor *back, const unsigned char *pattern, int32_t width)
 {
     ITPort *port;
     CGrafPtr oldWorld;
@@ -360,7 +360,7 @@ static inline void ATC2PStr(unsigned char *dst, const char *src)
     *dst = n;
 }
 
-static inline long ATStrCmp(const char *a, const char *b)
+static inline int32_t ATStrCmp(const char *a, const char *b)
 {
     ULong ca;
     ULong cb;
@@ -451,8 +451,8 @@ char *_DT_GetFontByNameList(CGrafPtr dc, const char *faces, char *out)
     return *out != 0 ? out : 0;
 }
 
-long DT_SetTextAttributes(ITImage *image, const ITColor *color, const char *face, long fontId,
-                          long size, ULong style, long align)
+int32_t DT_SetTextAttributes(ITImage *image, const ITColor *color, const char *face, int32_t fontId,
+                          int32_t size, ULong style, int32_t align)
 {
     ITPort *port;
     CGrafPtr oldWorld;
@@ -489,7 +489,7 @@ long DT_SetTextAttributes(ITImage *image, const ITColor *color, const char *face
     return 0;
 }
 
-long DT_SetTextColor(ITImage *image, const ITColor *fore)
+int32_t DT_SetTextColor(ITImage *image, const ITColor *fore)
 {
     ITPort *port;
     CGrafPtr oldWorld;
@@ -506,14 +506,14 @@ long DT_SetTextColor(ITImage *image, const ITColor *fore)
     return 0;
 }
 
-long DT_SetTextSize(ITImage *image, long size)
+int32_t DT_SetTextSize(ITImage *image, int32_t size)
 {
     ITPort *port;
-    long err;
+    int32_t err;
     unsigned char changed;
-    long font;
+    int32_t font;
     ULong style;
-    long flags;
+    int32_t flags;
 
     port = _DT_ContextGetContext(image);
     err = 0;
@@ -528,7 +528,7 @@ long DT_SetTextSize(ITImage *image, long size)
     return err;
 }
 
-long DT_GetTextInfo(ITImage *image, long *metrics)
+int32_t DT_GetTextInfo(ITImage *image, int32_t *metrics)
 {
     ITPort *port;
 
@@ -540,7 +540,7 @@ long DT_GetTextInfo(ITImage *image, long *metrics)
 void *DT_GetClipRegion(ITImage *image)
 {
     ITPort *port;
-    long err;
+    int32_t err;
     RgnHandle region;
 
     port = _DT_ContextGetContext(image);
@@ -561,11 +561,11 @@ void *DT_GetClipRegion(ITImage *image)
     return region;
 }
 
-long DT_AddClipRegion(ITImage *image, RgnHandle region)
+int32_t DT_AddClipRegion(ITImage *image, RgnHandle region)
 {
     ITPort *port;
 #if TARGET_API_MAC_CARBON
-    long err;
+    int32_t err;
     RgnHandle clip;
 
     port = _DT_ContextGetContext(image);
@@ -588,11 +588,11 @@ long DT_AddClipRegion(ITImage *image, RgnHandle region)
 #endif
 }
 
-long DT_AddClipRect(ITImage *image, const ITRect *r)
+int32_t DT_AddClipRect(ITImage *image, const ITRect *r)
 {
     ITPort *port;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     RgnHandle region;
 
     port = _DT_ContextGetContext(image);
@@ -611,7 +611,7 @@ long DT_AddClipRect(ITImage *image, const ITRect *r)
     return err;
 }
 
-long DT_SetClipRegion(ITImage *image, void *region)
+int32_t DT_SetClipRegion(ITImage *image, void *region)
 {
     ITPort *port;
 
@@ -624,7 +624,7 @@ long DT_SetClipRegion(ITImage *image, void *region)
     return 0;
 }
 
-long DT_SetClipRect(ITImage *image, const ITRect *r)
+int32_t DT_SetClipRect(ITImage *image, const ITRect *r)
 {
     ITPort *port;
     Rect box;
@@ -644,10 +644,10 @@ long DT_SetClipRect(ITImage *image, const ITRect *r)
     return 0;
 }
 
-long DT_AddInvalidRect(ITImage *image, const ITRect *r)
+int32_t DT_AddInvalidRect(ITImage *image, const ITRect *r)
 {
     ITPort *port;
-    long err;
+    int32_t err;
 #if !TARGET_API_MAC_CARBON
     GrafPtr old;
 #endif
@@ -670,10 +670,10 @@ long DT_AddInvalidRect(ITImage *image, const ITRect *r)
     return err;
 }
 
-long DT_AddValidRect(ITImage *image, const ITRect *r)
+int32_t DT_AddValidRect(ITImage *image, const ITRect *r)
 {
     ITPort *port;
-    long err;
+    int32_t err;
 #if !TARGET_API_MAC_CARBON
     GrafPtr old;
 #endif
@@ -696,7 +696,7 @@ long DT_AddValidRect(ITImage *image, const ITRect *r)
     return err;
 }
 
-long DT_SetOrigin(ITImage *image, long h, long v, ITPoint *oldOrigin)
+int32_t DT_SetOrigin(ITImage *image, int32_t h, int32_t v, ITPoint *oldOrigin)
 {
     ITPort *port;
     Point origin;
@@ -714,14 +714,14 @@ long DT_SetOrigin(ITImage *image, long h, long v, ITPoint *oldOrigin)
     return 0;
 }
 
-long DT_DrawImage(ITImage *image, const ITRect *dstRect, ITImage *src, ITImage *mask,
+int32_t DT_DrawImage(ITImage *image, const ITRect *dstRect, ITImage *src, ITImage *mask,
                   const ITTransparent *trans, const ITRect *srcRect)
 {
     ITPort *port;
     ITPixels *srcPixels;
     ITPixels *maskPixels;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     Rect from;
     Rect to;
     ITPixelInfo info;
@@ -852,24 +852,24 @@ done:
     return err;
 }
 
-long DT_DrawImageTile(ITImage *image, const ITRect *clip, const ITPoint *origin, ITImage *src,
+int32_t DT_DrawImageTile(ITImage *image, const ITRect *clip, const ITPoint *origin, ITImage *src,
                       ITImage *mask, const ITTransparent *trans, const ITRect *srcRect)
 {
     ITPort *port;
     ITPixels *srcPixels;
     ITPixels *maskPixels;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char locked;
     unsigned char stored;
     unsigned char moved;
-    long col;
-    long col0;
-    long row0;
-    long col1;
+    int32_t col;
+    int32_t col0;
+    int32_t row0;
+    int32_t col1;
     void *saved;
-    long row;
-    long row1;
+    int32_t row;
+    int32_t row1;
     short mode;
     ITPixelInfo info;
     ITRect box;
@@ -1002,11 +1002,11 @@ done:
     return err;
 }
 
-long DT_SetPixel(ITImage *image, long x, long y, const ITColor *color)
+int32_t DT_SetPixel(ITImage *image, int32_t x, int32_t y, const ITColor *color)
 {
     ITPort *port;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char stored;
     CGrafPtr oldWorld;
     GDHandle oldDevice;
@@ -1033,7 +1033,7 @@ done:
     return err;
 }
 
-long DT_SetPenLocation(ITImage *image, long x, long y)
+int32_t DT_SetPenLocation(ITImage *image, int32_t x, int32_t y)
 {
     ITPort *port;
 #if TARGET_API_MAC_CARBON
@@ -1053,11 +1053,11 @@ long DT_SetPenLocation(ITImage *image, long x, long y)
     return 0;
 }
 
-long DT_DrawLineTo(ITImage *image, long x, long y)
+int32_t DT_DrawLineTo(ITImage *image, int32_t x, int32_t y)
 {
     ITPort *port;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char stored;
     CGrafPtr oldWorld;
     GDHandle oldDevice;
@@ -1087,13 +1087,13 @@ done:
     return err;
 }
 
-long DT_FrameRect(ITImage *image, const ITRect *r)
+int32_t DT_FrameRect(ITImage *image, const ITRect *r)
 {
     int in;
     int out;
     ITPort *port;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char stored;
     CGrafPtr oldWorld;
     GDHandle oldDevice;
@@ -1137,11 +1137,11 @@ done:
     return err;
 }
 
-long DT_PaintRect(ITImage *image, const ITRect *r)
+int32_t DT_PaintRect(ITImage *image, const ITRect *r)
 {
     ITPort *port;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char stored;
     CGrafPtr oldWorld;
     GDHandle oldDevice;
@@ -1168,11 +1168,11 @@ done:
     return err;
 }
 
-long DT_EraseRect(ITImage *image, const ITRect *r)
+int32_t DT_EraseRect(ITImage *image, const ITRect *r)
 {
     ITPort *port;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char stored;
     CGrafPtr oldWorld;
     GDHandle oldDevice;
@@ -1199,11 +1199,11 @@ done:
     return err;
 }
 
-long DT_InvertRect(ITImage *image, const ITRect *r)
+int32_t DT_InvertRect(ITImage *image, const ITRect *r)
 {
     ITPort *port;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char stored;
     CGrafPtr oldWorld;
     GDHandle oldDevice;
@@ -1230,12 +1230,12 @@ done:
     return err;
 }
 
-long DT_GetTextWidth(ITImage *image, const char *text, long length)
+int32_t DT_GetTextWidth(ITImage *image, const char *text, int32_t length)
 {
     ITPort *port;
     CGrafPtr oldWorld;
     GDHandle oldDevice;
-    long width;
+    int32_t width;
 
     port = _DT_ContextGetContext(image);
     oldWorld = 0;
@@ -1247,11 +1247,11 @@ long DT_GetTextWidth(ITImage *image, const char *text, long length)
     return width;
 }
 
-long DT_DrawText(ITImage *image, const char *text, long length)
+int32_t DT_DrawText(ITImage *image, const char *text, int32_t length)
 {
     ITPort *port;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char stored;
     Point pen;
 
@@ -1278,11 +1278,11 @@ done:
     return err;
 }
 
-long DT_DrawTextAt(ITImage *image, long x, long y, const char *text, long length)
+int32_t DT_DrawTextAt(ITImage *image, int32_t x, int32_t y, const char *text, int32_t length)
 {
     ITPort *port;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char stored;
     CGrafPtr oldWorld;
     GDHandle oldDevice;
@@ -1325,13 +1325,13 @@ done:
 }
 
 #if TARGET_API_MAC_CARBON
-long DT_GetTextWidthUnicode(ITImage *image, const unsigned short *text, long length)
+int32_t DT_GetTextWidthUnicode(ITImage *image, const unsigned short *text, int32_t length)
 {
     ITPort *port;
     CGrafPtr oldWorld;
     GDHandle oldDevice;
     float width;
-    long result;
+    int32_t result;
 
     port = _DT_ContextGetContext(image);
     oldWorld = 0;
@@ -1349,11 +1349,11 @@ long DT_GetTextWidthUnicode(ITImage *image, const unsigned short *text, long len
     return result;
 }
 
-long DT_DrawTextAtUnicode(ITImage *image, long x, long y, const unsigned short *text, ULong length)
+int32_t DT_DrawTextAtUnicode(ITImage *image, int32_t x, int32_t y, const unsigned short *text, ULong length)
 {
     ITPort *port;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char stored;
     CGrafPtr oldWorld;
     GDHandle oldDevice;

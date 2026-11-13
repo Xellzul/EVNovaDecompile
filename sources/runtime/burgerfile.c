@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-long BurgerSndKillProcs[3];                      /* 0x00870d9c */
+int32_t BurgerSndKillProcs[3];                      /* 0x00870d9c */
 ULong BurgerSndExitIn;                           /* 0x0086ffec */
 
 #define kFixedMax       0x7fffffff
@@ -18,7 +18,7 @@ ULong BurgerSndExitIn;                           /* 0x0086ffec */
 /* FixedMultiply (BurgerLib IMFixMul, hand assembly in the library: FxMicrosoftVC5.obj).
    STATE: new. OPEN: none */
 // FUNCTION: EVNOVA 0x004f1c70
-NAKED long FixedMultiply(long a, long b)
+NAKED int32_t FixedMultiply(int32_t a, int32_t b)
 {
     __asm {
         mov     eax, dword ptr [esp + 4]

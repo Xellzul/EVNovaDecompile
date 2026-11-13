@@ -13,11 +13,11 @@
 #include <ATSUnicode.h>
 #endif
 
-extern void IT_ItemCallbackGetFont(char **face, long *size, ULong *style, ITColor *color,
+extern void IT_ItemCallbackGetFont(char **face, int32_t *size, ULong *style, ITColor *color,
                          char **href);                                   /* interfacetool.c */
-extern char *IT_ItemCallbackGetNextRun(const char *after, char **face, long *size, ULong *style,
+extern char *IT_ItemCallbackGetNextRun(const char *after, char **face, int32_t *size, ULong *style,
                           ITColor *color, char **href, ULong *order);    /* interfacetool.c */
-extern ITElement *IT_ItemCallbackGetNextNode(ITElement *after, char **face, long *size, ULong *style,
+extern ITElement *IT_ItemCallbackGetNextNode(ITElement *after, char **face, int32_t *size, ULong *style,
                                ITColor *color, char **href, ULong *order);  /* interfacetool.c */
 extern ITColor DT_GetColorARGB(ULong argb);
 extern RGBColor *CopyDT_2SysColor(RGBColor *ref, const ITColor *color);
@@ -37,10 +37,10 @@ extern OSStatus ATSU_DrawTextBox(ATSUTextLayout layout, const Rect *box, Handle 
 extern OSStatus ATSU_LayoutGetControl(ATSUTextLayout layout, ATSUAttributeTag tag, ByteCount size, ATSUAttributeValuePtr value);
 extern void **IndirectAllocateU2C(void **handle);
 extern void **IndirectAllocateC2U(void **handle, unsigned char tag);
-extern long IndirectAppend(void **to, void **from);
+extern int32_t IndirectAppend(void **to, void **from);
 extern unsigned char IndirectIsNormalizedUnicode(void **handle);
-extern long SFix32_To_SInt32(Fixed value);
-extern Fixed SInt32_To_SFix32(long value);
+extern int32_t SFix32_To_SInt32(Fixed value);
+extern Fixed SInt32_To_SFix32(int32_t value);
 extern Rect DT_2SysRect(const ITRect *r);
 extern ITRect Sys2DT_Rect(const Rect *r);
 
@@ -81,7 +81,7 @@ typedef struct ITTextBox {
     unsigned char convert;                       /* +0x00f never set */
     unsigned char single;                        /* +0x010 SINGLE, or too low for two lines */
     unsigned char pad11;
-    long align;                                  /* +0x012 ALIGN */
+    int32_t align;                                  /* +0x012 ALIGN */
     unsigned char aligned;                       /* +0x016 */
     unsigned char allow[256];                    /* +0x017 ALLOW */
     unsigned char pad117;
@@ -99,7 +99,7 @@ typedef struct ITTextBox {
     void **text;                                 /* +0x13a */
     void *textPointer;                           /* +0x13e */
     void **lines;                                /* +0x142 */
-    long rotation;                               /* +0x146 */
+    int32_t rotation;                               /* +0x146 */
     ITTextStyleNode *styles;                     /* +0x14a */
 #endif
 } ITTextBox;
@@ -133,18 +133,18 @@ static char sAllowable[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz `1234567890~!@#$%^&*()-=_+[]\\{}|;':\",./<>?";
 
 #if !TARGET_API_MAC_CARBON
-static long _IT_TextFormat(void *hwnd, void *dc, ITTextBox *tb, TextStyle *format, const char *face,
-                  long size, ULong style, const ITColor *color, ULong order);
+static int32_t _IT_TextFormat(void *hwnd, void *dc, ITTextBox *tb, TextStyle *format, const char *face,
+                  int32_t size, ULong style, const ITColor *color, ULong order);
 #else
-static long _IT_TextFormat(void *hwnd, void *dc, ITTextBox *tb, void *ref, const char *face, long size, ULong style, const ITColor *color, ULong order);
+static int32_t _IT_TextFormat(void *hwnd, void *dc, ITTextBox *tb, void *ref, const char *face, int32_t size, ULong style, const ITColor *color, ULong order);
 #endif
-static long IT_AppendText(void **out, unsigned char upper, const char *text, unsigned char convert,
+static int32_t IT_AppendText(void **out, unsigned char upper, const char *text, unsigned char convert,
                   unsigned char collapse, unsigned char afterSpace);
-static long _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsigned char track,
+static int32_t _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsigned char track,
                   ITClick *click);
 static void _IT_HiliteLink(void *hwnd, void *dc, ITTextBox *tb, const ITRect *r1, const ITRect *r2,
                   const ITRect *r3);
-static long IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb);
+static int32_t IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb);
 #if TARGET_API_MAC_CARBON
 #define kLineOptions        0x01000000
 #define kFlushStart         0
@@ -165,13 +165,13 @@ static long IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb);
 #define TEXT_EMPTY(p) (*(p) == 0)
 #define kClearScrap ZeroScrap
 #endif
-long IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
+int32_t IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
                   void *b)
 {
 #if TARGET_API_MAC_CARBON
     ITTextBox *tb;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     void **converted;
     unsigned char wide;
     unsigned char update;
@@ -185,8 +185,8 @@ long IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong
     char allowText[0x100];
 #else
     ITTextBox *tb;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char update;
     char *value;
     ULong n;
@@ -209,7 +209,7 @@ long IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong
     ScrapRef scrap;
 #endif
     char *face;
-    long size;
+    int32_t size;
     ULong style;
     ITColor color;
     ULong order;
@@ -553,7 +553,7 @@ long IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong
                 goto done;
             }
 #else
-            if (GetScrap((Handle)text, 'TEXT', (long *)&i) < 0) {
+            if (GetScrap((Handle)text, 'TEXT', (int32_t *)&i) < 0) {
                 err = kOutOfMemory;
                 goto done;
             }
@@ -739,7 +739,7 @@ long IT_TextHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong
         TESetSelect(0, (*tb->edit)->teLength, tb->edit);
         break;
     case kMsgGetValue:
-        *(long *)b = 0;
+        *(int32_t *)b = 0;
         break;
     case kMsgVisible:
         *(unsigned char *)b = tb->visible;
@@ -824,10 +824,10 @@ done:
 #else
 #define KEEP_WIDE 0
 #endif
-static long IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb)
+static int32_t IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     void **text;
     ITElement *node;
     char *lastHref;
@@ -835,8 +835,8 @@ static long IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb)
     ULong length;
     unsigned char block;
     unsigned char afterSpace;
-    long start;
-    long end;
+    int32_t start;
+    int32_t end;
     unsigned char face0;
     char c;
     ULong count;
@@ -849,7 +849,7 @@ static long IT_TextBoxCreateEdit(void *hwnd, void *dc, ITTextBox *tb)
     Rect view;
     Rect dest;
     char *face;
-    long size;
+    int32_t size;
     ULong style;
     ITColor color;
     char *href;
@@ -1166,14 +1166,14 @@ done:
 #else
 #define kFormatParam TextStyle *format
 #endif
-static long _IT_TextFormat(void *hwnd, void *dc, ITTextBox *tb, kFormatParam, const char *face,
-                  long size, ULong style, const ITColor *color, ULong order)
+static int32_t _IT_TextFormat(void *hwnd, void *dc, ITTextBox *tb, kFormatParam, const char *face,
+                  int32_t size, ULong style, const ITColor *color, ULong order)
 {
 #if TARGET_API_MAC_CARBON
     ATSUStyle *atsu;
     TextStyle *format;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ITTextStyleNode *node;
     char name[256];
     char upper[256];
@@ -1299,11 +1299,11 @@ done:
 }
 
 #if TARGET_API_MAC_CARBON
-static long IT_AppendText(void **out, unsigned char upper, const char *text, unsigned char convert,
+static int32_t IT_AppendText(void **out, unsigned char upper, const char *text, unsigned char convert,
                   unsigned char collapse, unsigned char afterSpace)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong c;
     const char *here;
     const char *piece;
@@ -1372,7 +1372,7 @@ static long IT_AppendText(void **out, unsigned char upper, const char *text, uns
                     n = UnicodeGetCharCountFromBytes(*out, n);
                     c = UnicodeGetCharByIndex(*out, n - 1);
                 } else {
-                    c = ((char *)*out)[(long)n - 1];
+                    c = ((char *)*out)[(int32_t)n - 1];
                 }
                 if (c == ' ')
                     continue;
@@ -1409,11 +1409,11 @@ done:
     return err;
 }
 #else
-static long IT_AppendText(void **out, unsigned char upper, const char *text, unsigned char convert,
+static int32_t IT_AppendText(void **out, unsigned char upper, const char *text, unsigned char convert,
                   unsigned char collapse, unsigned char afterSpace)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong c;
     const char *here;
     const char *piece;
@@ -1466,7 +1466,7 @@ static long IT_AppendText(void **out, unsigned char upper, const char *text, uns
         if (space) {
             n = IndirectGetSize(out);
             if (n != 0) {
-                if ((c = ((char *)*out)[(long)n - 1]) == ' ')
+                if ((c = ((char *)*out)[(int32_t)n - 1]) == ' ')
                     continue;
             } else if (afterSpace) {
                 continue;
@@ -1491,7 +1491,7 @@ done:
 #endif
 
 #if TARGET_API_MAC_CARBON
-static long _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsigned char track,
+static int32_t _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsigned char track,
                   ITClick *click)
 {
     ULong index;
@@ -1501,14 +1501,14 @@ static long _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsi
     ULong end;
     ULong first;
     ULong last;
-    long firstHeight;
-    long lastHeight;
+    int32_t firstHeight;
+    int32_t lastHeight;
     ULong lines;
     ITTextLink *entry;
     unsigned char inside;
     ITPoint *where;
     unsigned char lit;
-    long err;
+    int32_t err;
     ULong lineIndex;
     ULong lineCount;
     ULong line2Index;
@@ -1733,7 +1733,7 @@ static long _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsi
     return err;
 }
 #else
-static long _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsigned char track,
+static int32_t _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsigned char track,
                   ITClick *click)
 {
     ULong index;
@@ -1743,8 +1743,8 @@ static long _IT_TextCheck(void *hwnd, void *dc, ITTextBox *tb, ITPoint *pt, unsi
     ULong end;
     ULong first;
     ULong last;
-    long firstHeight;
-    long lastHeight;
+    int32_t firstHeight;
+    int32_t lastHeight;
     ULong lines;
     ITTextLink *entry;
     unsigned char inside;

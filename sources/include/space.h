@@ -45,8 +45,8 @@ extern void HandleStellarWeapons(void);          /* 0x0042d890 */
 extern short PickEmergeStellar(ShipObj *ship);   /* 0x0046e9e0 (engineutils.c) */
 extern void ModifyShotStartPosition2(ShipObj *ship, FloatPoint *pos, short weapType,
                                       short mount, short lane); /* 0x0046c5c0 */
-extern void NewParticle(long color, long horizLoc, long vertLoc,
-                        long horizSpeed, long vertSpeed,
+extern void NewParticle(int32_t color, int32_t horizLoc, int32_t vertLoc,
+                        int32_t horizSpeed, int32_t vertSpeed,
                         short shade, short lifeCount);      /* 0x0047b960 */
 extern void RandomizeStars(void);                           /* 0x0046ebf0 */
 extern void ScrollStarfield(float dx, float dy);         /* 0x0046ee50 (engineutils.c FUN_) */
@@ -98,7 +98,7 @@ extern short SelectClosestShotStartPosition(ShipObj *ship, FloatPoint *base, sho
 extern short SpawnShot(short ship, short target, short weapType, Boolean flag);
                                                                       /* 0x0041fd30 */
 extern void SpawnParticles(short x, short y, float speed, short spreadPct,
-                         short minLife, short maxLife, long color, short shade,
+                         short minLife, short maxLife, int32_t color, short shade,
                          short count, short jitter);                  /* 0x004274d0 */
 extern void SpawnShotSubmunitions(ShotObj *shot, short ship);         /* 0x00420d30 mac _SpawnShotSubmunitions */
 extern void SpawnAsteroid(unsigned char type);                        /* 0x00421830 */

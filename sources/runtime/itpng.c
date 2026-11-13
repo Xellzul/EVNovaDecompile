@@ -60,7 +60,7 @@ AT_STATIC void DT_png_free(png_structp png_ptr, png_voidp ptr)
 // FUNCTION: EVNOVA 0x0051491d
 AT_STATIC void DT_png_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (DT_BufferRead(png_ptr->io_ptr, data, length) != 0)
@@ -84,11 +84,11 @@ unsigned char PNG_CheckFileType(png_bytep data, ULong size)
    oFFs offsets applied by re-framing the image). STATE: MATCH 100%, exe 1105 / obj 1105,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051496d
-long PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
+int32_t PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                   ITTransparent *trans, ITBackground *bg)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     png_structp png_ptr;
     png_infop info_ptr;
     png_uint_32 width;
@@ -114,24 +114,24 @@ long PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     png_uint_16p histogram;
     png_bytepp rows;
     unsigned char locked;
-    long transMode;
+    int32_t transMode;
     ULong format;
     png_color grey_palette[256];
     int i;
     int j;
-    long best;
+    int32_t best;
     int count;
-    long step;
-    long levels;
-    long bump;
+    int32_t step;
+    int32_t levels;
+    int32_t bump;
     ULong x;
-    long y;
+    int32_t y;
     unsigned char *src;
     unsigned char *dst;
     ULong srcRowBytes;
     ULong dstRowBytes;
-    long dh;
-    long dv;
+    int32_t dh;
+    int32_t dv;
     float hScale;
     float vScale;
     float ratio;

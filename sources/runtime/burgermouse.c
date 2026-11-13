@@ -41,15 +41,15 @@ int MouseReadButtons(void)
 /* Both axes are clamped to [0, extent-1]; a negative reads as 0. */
 /* MouseReadPosition (BurgerLib MouseReadAbs). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d7b20
-void MouseReadPosition(long *h, long *v)
+void MouseReadPosition(int32_t *h, int32_t *v)
 {
-    long p;
+    int32_t p;
 
     if (h != 0) {
         p = Win95MouseX;
         if (p < 0)
             p = 0;
-        if (p >= (long)ScreenWidth)
+        if (p >= (int32_t)ScreenWidth)
             p = ScreenWidth - 1;
         *h = p;
     }
@@ -57,7 +57,7 @@ void MouseReadPosition(long *h, long *v)
         p = Win95MouseY;
         if (p < 0)
             p = 0;
-        if (p >= (long)ScreenHeight)
+        if (p >= (int32_t)ScreenHeight)
             p = ScreenHeight - 1;
         *v = p;
     }
@@ -74,7 +74,7 @@ void KillClipping(void)
 /* MouseSetRange (BurgerLib MouseSetRange). STATE: MATCH, exe 43 / obj 43, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004d7ba0
-void MouseSetRange(long width, long height)
+void MouseSetRange(int32_t width, int32_t height)
 {
     WinRect bounds;
     POINT origin;

@@ -7,25 +7,25 @@
 // FUNCTION: EVNOVA 0x00474410
 // MAC: _BlitPixieMemSet i386 0x000c0452 ppc 0x000cc158
 #ifdef MACBUILD
-void BlitPixieMemSet( unsigned char *dst, unsigned long value, long bytes )
+void BlitPixieMemSet( unsigned char *dst, uint32_t value, int32_t bytes )
 {
-	long	i;
+	int32_t	i;
 
 	for ( i = 0; i < (bytes >> 2); i++ )
-		*((unsigned long *) dst)++ = value;
+		*((uint32_t *) dst)++ = value;
 	if ( bytes & 2 )
 		*((unsigned short *) dst)++ = value;
 	if ( bytes & 1 )
 		*((unsigned char *) dst)++ = value;
 }
 #else
-void BlitPixieMemSet(unsigned char *dstPixels, unsigned long value,
-        long byteWidth)
+void BlitPixieMemSet(unsigned char *dstPixels, uint32_t value,
+        int32_t byteWidth)
 {
-    long i;
+    int32_t i;
 
     for (i = 0; i < (byteWidth >> 2); i++) {
-        *(unsigned long *)dstPixels = value;
+        *(uint32_t *)dstPixels = value;
         dstPixels += 4;
     }
 

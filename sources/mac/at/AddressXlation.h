@@ -70,10 +70,10 @@ enum {
 };
 
 struct hostInfo {
-	long							rtnCode;
+	int32_t							rtnCode;
 	char							cname[255];
 	SInt8							filler;						/* Filler for proper byte alignment	 */
-	unsigned long					addr[NUM_ALT_ADDRS];
+	uint32_t					addr[NUM_ALT_ADDRS];
 };
 typedef struct hostInfo hostInfo;
 
@@ -115,11 +115,11 @@ struct MXRec {
 typedef struct MXRec MXRec;
 
 struct returnRec {
-	long							rtnCode;
+	int32_t							rtnCode;
 	char							cname[255];
 	SInt8							filler;						/* Filler for proper byte alignment	 */
 	union {
-		unsigned long					addr[NUM_ALT_ADDRS];
+		uint32_t					addr[NUM_ALT_ADDRS];
 		struct HInfoRec					hinfo;
 		struct MXRec					mx;
 	}								rdata;
@@ -130,7 +130,7 @@ struct cacheEntryRecord {
 	char							*cname;
 	unsigned short					ctype;
 	unsigned short					cacheClass;
-	unsigned long					ttl;
+	uint32_t					ttl;
 	union {
 		char							*name;
 		ip_addr							addr;
@@ -198,7 +198,7 @@ enum {
 
 extern OSErr OpenResolver(char *fileName);
 extern OSErr StrToAddr(char *hostName, struct hostInfo *hostInfoPtr, ResultUPP ResultProc, char *userDataPtr);
-extern OSErr AddrToStr(unsigned long addr, char *addrStr);
+extern OSErr AddrToStr(uint32_t addr, char *addrStr);
 extern OSErr EnumCache(EnumResultUPP enumResultProc, Ptr userDataPtr);
 extern OSErr AddrToName(ip_addr addr, struct hostInfo *hostInfoPtr, ResultUPP ResultProc, Ptr userDataPtr);
 extern OSErr HInfo(char *hostName, struct returnRec *returnRecPtr, ResultProc2UPP resultProc, Ptr userDataPtr);
@@ -210,7 +210,7 @@ extern OSErr CloseResolver(void);
 typedef OSErr (*OpenResolverProcPtr)(UInt32 selector, char *filename);
 typedef OSErr (*CloseResolverProcPtr)(UInt32 selector);
 typedef OSErr (*StrToAddrProcPtr)(UInt32 selector, char *hostName, struct hostInfo *rtnStruct, ResultUPP resultproc, Ptr userDataPtr);
-typedef OSErr (*AddrToStrProcPtr)(UInt32 selector, unsigned long addr, char *addrStr);
+typedef OSErr (*AddrToStrProcPtr)(UInt32 selector, uint32_t addr, char *addrStr);
 typedef OSErr (*EnumCacheProcPtr)(UInt32 selector, EnumResultUPP resultproc, Ptr userDataPtr);
 typedef OSErr (*AddrToNameProcPtr)(UInt32 selector, UInt32 addr, struct hostInfo *rtnStruct, ResultUPP resultproc, Ptr userDataPtr);
 typedef OSErr (*HInfoProcPtr)(UInt32 selector, char *hostName, struct returnRec *returnRecPtr, ResultProc2UPP resultProc, Ptr userDataPtr);
@@ -254,7 +254,7 @@ enum {
 	uppAddrToStrProcInfo = kCStackBased
 		 | RESULT_SIZE(SIZE_CODE(sizeof(OSErr)))
 		 | STACK_ROUTINE_PARAMETER(1, SIZE_CODE(sizeof(UInt32)))
-		 | STACK_ROUTINE_PARAMETER(2, SIZE_CODE(sizeof(unsigned long)))
+		 | STACK_ROUTINE_PARAMETER(2, SIZE_CODE(sizeof(uint32_t)))
 		 | STACK_ROUTINE_PARAMETER(3, SIZE_CODE(sizeof(char*))),
 	uppEnumCacheProcInfo = kCStackBased
 		 | RESULT_SIZE(SIZE_CODE(sizeof(OSErr)))

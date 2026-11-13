@@ -16,13 +16,13 @@ extern unsigned char _PlatformIsThreaded(void);
 
 static unsigned char kColon[] = "\p:";
 
-long _FT_PathGoTo(FolderSpec **spec, long folder)
+int32_t _FT_PathGoTo(FolderSpec **spec, int32_t folder)
 {
-    long err;
-    long e;
-    long e2;
+    int32_t err;
+    int32_t e;
+    int32_t e2;
     short vRefNum;
-    long dirID;
+    int32_t dirID;
     ProcessSerialNumber process;
     ProcessInfoRec info;
     FSSpec appSpec;
@@ -116,10 +116,10 @@ long _FT_PathGoTo(FolderSpec **spec, long folder)
     return err;
 }
 
-long _FT_PathGoToVolume(FolderSpec **spec, ULong index)
+int32_t _FT_PathGoToVolume(FolderSpec **spec, ULong index)
 {
-    long err, e;
-    long oe;
+    int32_t err, e;
+    int32_t oe;
     HParamBlockRec pb;
     Str255 name;
 
@@ -148,8 +148,8 @@ long _FT_PathGoToVolume(FolderSpec **spec, ULong index)
 
 static inline void FTPStrCat(unsigned char *dst, const unsigned char *src)
 {
-    long m;
-    long n;
+    int32_t m;
+    int32_t n;
 
     n = src[0];
     if (n + dst[0] <= 255)
@@ -162,11 +162,11 @@ static inline void FTPStrCat(unsigned char *dst, const unsigned char *src)
     dst[0] += m;
 }
 
-long _FT_PathGoToVolumeName(FolderSpec **spec, const unsigned char *volume)
+int32_t _FT_PathGoToVolumeName(FolderSpec **spec, const unsigned char *volume)
 {
-    long n;
-    long err, e;
-    long oe;
+    int32_t n;
+    int32_t err, e;
+    int32_t oe;
     HParamBlockRec pb;
     Str255 name;
 
@@ -189,10 +189,10 @@ long _FT_PathGoToVolumeName(FolderSpec **spec, const unsigned char *volume)
     return err;
 }
 
-long _FT_PathGoToParent(FolderSpec **spec, unsigned char *leaf)
+int32_t _FT_PathGoToParent(FolderSpec **spec, unsigned char *leaf)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     CInfoPBRec pb;
     Str255 name;
 
@@ -224,10 +224,10 @@ done:
     return err;
 }
 
-long _FT_PathGoToChild(FolderSpec **spec, const unsigned char *child, unsigned char last)
+int32_t _FT_PathGoToChild(FolderSpec **spec, const unsigned char *child, unsigned char last)
 {
-    long err, e2;
-    long e;
+    int32_t err, e2;
+    int32_t e;
     CInfoPBRec pb;
     Str255 name;
 
@@ -265,10 +265,10 @@ done:
     return err;
 }
 
-long _FT_IsPathAFile(FolderSpec **spec)
+int32_t _FT_IsPathAFile(FolderSpec **spec)
 {
-    long isFile;
-    long e;
+    int32_t isFile;
+    int32_t e;
     CInfoPBRec pb;
     Str255 name;
 
@@ -287,10 +287,10 @@ long _FT_IsPathAFile(FolderSpec **spec)
     return isFile;
 }
 
-long _FT_PathValidate(FolderSpec **spec)
+int32_t _FT_PathValidate(FolderSpec **spec)
 {
-    long err;
-    long diff;
+    int32_t err;
+    int32_t diff;
     short index;
     HParamBlockRec pb;
     Str255 name;
@@ -329,10 +329,10 @@ long _FT_PathValidate(FolderSpec **spec)
     return err;
 }
 
-long _FT_PathGoToID(FolderSpec **spec, short vRefNum, long dirID)
+int32_t _FT_PathGoToID(FolderSpec **spec, short vRefNum, int32_t dirID)
 {
-    long err, e2;
-    long e;
+    int32_t err, e2;
+    int32_t e;
     Str255 name;
     CInfoPBRec pb;
     HParamBlockRec vol;
@@ -371,13 +371,13 @@ done:
     return err;
 }
 
-long _FT_FileCreate(FolderSpec **spec, FTFileInfo *info)
+int32_t _FT_FileCreate(FolderSpec **spec, FTFileInfo *info)
 {
-    long err, e2;
-    long e;
+    int32_t err, e2;
+    int32_t e;
     unsigned char created;
     short refNum;
-    long count;
+    int32_t count;
     FSSpec fs;
     CInfoPBRec pb;
     Str255 name;
@@ -473,10 +473,10 @@ done:
     return err;
 }
 
-long _FT_FileDelete(FolderSpec **spec)
+int32_t _FT_FileDelete(FolderSpec **spec)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     FSSpec fs;
 
     err = 0;
@@ -488,10 +488,10 @@ long _FT_FileDelete(FolderSpec **spec)
     return err;
 }
 
-long _FT_FileGetDates(FolderSpec **spec, ULong *created, ULong *modified)
+int32_t _FT_FileGetDates(FolderSpec **spec, ULong *created, ULong *modified)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     CInfoPBRec pb;
     Str255 name;
 
@@ -514,12 +514,12 @@ long _FT_FileGetDates(FolderSpec **spec, ULong *created, ULong *modified)
     return err;
 }
 
-long _FT_FileGetFlags(FolderSpec **spec, FTFileInfo *info, unsigned char checkArchive)
+int32_t _FT_FileGetFlags(FolderSpec **spec, FTFileInfo *info, unsigned char checkArchive)
 {
-    long err;
-    long e;
-    long access;
-    long locked;
+    int32_t err;
+    int32_t e;
+    int32_t access;
+    int32_t locked;
     ULong count;
     Str255 name;
     CInfoPBRec pb;
@@ -589,10 +589,10 @@ done:
     return err;
 }
 
-long _FT_FileSetFlags(FolderSpec **spec, FTFileInfo *info)
+int32_t _FT_FileSetFlags(FolderSpec **spec, FTFileInfo *info)
 {
-    long err, e2;
-    long e;
+    int32_t err, e2;
+    int32_t e;
     FileTypeMap map;
     CInfoPBRec pb;
     HParamBlockRec rename;
@@ -656,9 +656,9 @@ done:
 }
 
 #if TARGET_API_MAC_CARBON
-long _FT_FileDirEntry(FolderSpec **spec, ULong index, FTFileInfo *info, FTDirEntry *out, unsigned char flags)
+int32_t _FT_FileDirEntry(FolderSpec **spec, ULong index, FTFileInfo *info, FTDirEntry *out, unsigned char flags)
 {
-    long err, e;
+    int32_t err, e;
     FolderSpec **child;
     CInfoPBRec pb;
     Str255 name;
@@ -727,9 +727,9 @@ FTFile *_FT_IsFileOpen(FolderSpec **spec)
 {
     FTLink *link;
     short vRefNum;
-    long dirID;
+    int32_t dirID;
     FTFile *f;
-    long e;
+    int32_t e;
     CInfoPBRec pb;
     Str255 name;
 
@@ -758,10 +758,10 @@ done:
     return link != 0 ? link->next : 0;
 }
 
-long _FT_FileOpen(FolderSpec **spec, unsigned char write, FTFile *file)
+int32_t _FT_FileOpen(FolderSpec **spec, unsigned char write, FTFile *file)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     Str255 name;
     CInfoPBRec pb;
     FSSpec fs;
@@ -788,7 +788,7 @@ long _FT_FileOpen(FolderSpec **spec, unsigned char write, FTFile *file)
     file->vRefNum = pb.dirInfo.ioVRefNum;
     file->dirID = pb.hFileInfo.ioDirID;
     file->position = 0;
-    e = GetEOF(file->refNum, (long *)&file->size);
+    e = GetEOF(file->refNum, (int32_t *)&file->size);
     if (e != 0) {
         err = _FT_RemapError(e);
         goto done;
@@ -801,10 +801,10 @@ done:
     return err;
 }
 
-long _FT_FileClose(FTFile *file)
+int32_t _FT_FileClose(FTFile *file)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     if (file->refNum != 0) {
@@ -821,10 +821,10 @@ done:
     return err;
 }
 
-long _FT_FileFlush(FTFile *file)
+int32_t _FT_FileFlush(FTFile *file)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ParamBlockRec pb;
 
     err = 0;
@@ -836,11 +836,11 @@ long _FT_FileFlush(FTFile *file)
     return err;
 }
 
-long _FT_FileRead(FTFile *file, ULong count, void *buffer)
+int32_t _FT_FileRead(FTFile *file, ULong count, void *buffer)
 {
-    long err;
-    long e;
-    long n;
+    int32_t err;
+    int32_t e;
+    int32_t n;
 
     err = 0;
     if (file->position + count > file->size) {
@@ -862,10 +862,10 @@ done:
     return err;
 }
 
-long _FT_FileWrite(FTFile *file, ULong count, const void *buffer)
+int32_t _FT_FileWrite(FTFile *file, ULong count, const void *buffer)
 {
-    long err, e;
-    long n;
+    int32_t err, e;
+    int32_t n;
     FCBPBRec pb;
 
     err = 0;
@@ -909,16 +909,16 @@ done:
     return err;
 }
 
-long _FT_FileGetEOF(FTFile *file, ULong *size)
+int32_t _FT_FileGetEOF(FTFile *file, ULong *size)
 {
     *size = file->size;
     return 0;
 }
 
-long _FT_FileSetEOF(FTFile *file, ULong size)
+int32_t _FT_FileSetEOF(FTFile *file, ULong size)
 {
-    long err, e;
-    long n;
+    int32_t err, e;
+    int32_t n;
     FCBPBRec pb;
 
     err = 0;
@@ -975,16 +975,16 @@ done:
     return err;
 }
 
-long _FT_FileGetMark(FTFile *file, ULong *position)
+int32_t _FT_FileGetMark(FTFile *file, ULong *position)
 {
     *position = file->position;
     return 0;
 }
 
-long _FT_FileSetMark(FTFile *file, ULong position)
+int32_t _FT_FileSetMark(FTFile *file, ULong position)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     e = SetFPos(file->refNum, fsFromStart, position);
@@ -995,7 +995,7 @@ long _FT_FileSetMark(FTFile *file, ULong position)
     return err;
 }
 
-long _FT_RemapError(long err)
+int32_t _FT_RemapError(int32_t err)
 {
     switch (err) {
     case noErr:

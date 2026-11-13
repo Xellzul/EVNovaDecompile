@@ -4,14 +4,14 @@
 #include "crashlog.h"
 
 #ifdef MAC1010
-extern OSErr GetPluginSubfolder(short refNum, ConstStr255Param name, long *dirID, short *vRefNum);
+extern OSErr GetPluginSubfolder(short refNum, ConstStr255Param name, int32_t *dirID, short *vRefNum);
 
 short OpenEVPlugins(short refNum, ConstStr255Param folderName, OSType type, FILE *log)
 {
     Boolean isFolder;
     Boolean wasAliased;
     short vRefNum;
-    long dirID;
+    int32_t dirID;
     FInfo info;
     FSSpec spec;
     Str255 name;
@@ -80,7 +80,7 @@ short CountEVPlugins(short refNum, ConstStr255Param folderName, OSType type, FIL
     Boolean isFolder;
     Boolean wasAliased;
     short vRefNum;
-    long dirID;
+    int32_t dirID;
     FInfo info;
     FSSpec spec;
     Str255 name;
@@ -137,7 +137,7 @@ short CountEVPlugins(short refNum, ConstStr255Param folderName, OSType type, FIL
     return result == noErr ? count : (short)0;
 }
 
-OSErr GetPluginSubfolder(short refNum, ConstStr255Param name, long *dirID, short *vRefNum)
+OSErr GetPluginSubfolder(short refNum, ConstStr255Param name, int32_t *dirID, short *vRefNum)
 {
     FCBPBRec fcb;
     FSSpec spec;

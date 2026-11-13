@@ -25,7 +25,7 @@ ITElement *_IT_ParseTreeFindNextTag(ITElement *root, ITElement *start, const cha
     unsigned short wideName[256];
 #endif
     char wanted[256];
-    long err;
+    int32_t err;
     unsigned char a;
 
     err = 0;
@@ -74,7 +74,7 @@ ITElement *_IT_ParseTreeFindParentTag(ITElement *root, ITElement *element, const
     unsigned short wideName[256];
 #endif
     char tagName[256];
-    long err;
+    int32_t err;
     unsigned char a;
     unsigned char b;
     unsigned char c;
@@ -124,7 +124,7 @@ ITElement *_IT_ParseTreeFindParentTag(ITElement *root, ITElement *element, const
 // FUNCTION: EVNOVA 0x005402c4
 ITElement *_IT_ParseTreeFindLastNode(void *doc, ITElement *element)
 {
-    long err;
+    int32_t err;
     unsigned char named;
     ITElement *e;
 
@@ -166,7 +166,7 @@ ITElement *_IT_ParseTreeFindLastNode(void *doc, ITElement *element)
 ITElement *_IT_ParseTreeFindThisData(ITElement *e, const char *text)
 {
     ITElement *found;
-    long err;
+    int32_t err;
 
     err = 0;
     found = 0;
@@ -188,7 +188,7 @@ ITElement *_IT_ParseTreeFindThisData(ITElement *e, const char *text)
 // FUNCTION: EVNOVA 0x0054034a
 ITElement *_IT_ParseTreeFindNextData(ITElement *root, ITElement *node)
 {
-    long err;
+    int32_t err;
     ULong len;
 
     err = 0;
@@ -213,7 +213,7 @@ char *_IT_ParseTreeFindAttribute(ITElement *root, ITElement *element, const char
                    unsigned char inherit)
 {
     char *value;
-    long err;
+    int32_t err;
     unsigned char a;
     unsigned char b;
     unsigned char c;
@@ -299,7 +299,7 @@ char *_IT_SimpleFindAttribute(ITElement *element, const char *key)
 #else
 {
     char name[256];
-    long err;
+    int32_t err;
     char *result;
     unsigned char tagged;
 
@@ -318,11 +318,11 @@ char *_IT_SimpleFindAttribute(ITElement *element, const char *key)
 /* _IT_ParseAttributeGetNumber (a signed decimal number, up to a comma). STATE: MATCH 100%, exe 39 / obj 39,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005404d9
-long _IT_ParseAttributeGetNumber(unsigned char wide, const char *s)
+int32_t _IT_ParseAttributeGetNumber(unsigned char wide, const char *s)
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
 {
     unsigned char negative;
-    long value;
+    int32_t value;
 
     if (wide) {
         const unsigned short *p;
@@ -357,7 +357,7 @@ long _IT_ParseAttributeGetNumber(unsigned char wide, const char *s)
 #elif defined(MAC1010)
 {
     unsigned char negative;
-    long value;
+    int32_t value;
 
     value = 0;
     negative = 0;
@@ -374,11 +374,11 @@ long _IT_ParseAttributeGetNumber(unsigned char wide, const char *s)
 }
 #else
 {
-    long value;
+    int32_t value;
     unsigned char negative;
     char c;
-    long err = 0;
-    long tmp = 0;
+    int32_t err = 0;
+    int32_t tmp = 0;
     const char *p;
 
     p = s;
@@ -409,14 +409,14 @@ static char kNumberFormat[] = "%ld";
 /* _IT_ParseAttributeGetAlign (an ALIGN value: 1 RIGHT, -1 LEFT, 0 anything else). STATE: MATCH 100%, exe 35 / obj 35, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00540528
-long _IT_ParseAttributeGetAlign(unsigned char wide, const char *s)
+int32_t _IT_ParseAttributeGetAlign(unsigned char wide, const char *s)
 {
-    long align;
+    int32_t align;
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     unsigned short wideValue[256];
 #endif
     char value[256];
-    long err;
+    int32_t err;
 
     err = 0;
     align = 0;
@@ -461,7 +461,7 @@ ITColor _IT_ParseAttributeGetColor(unsigned char wide, const char *s)
     const unsigned short *wp;
 #endif
     ULong c;
-    long err;
+    int32_t err;
 
     err = 0;
     color = gIT_DefaultColor;
@@ -538,12 +538,12 @@ ITRect *_IT_ParseAttributeGetRect(void *rect, unsigned char wide, const char *s)
     ITRect *r;
     ITRect parsed = {0, 0, 0, 0};
     unsigned char negative;
-    long value;
+    int32_t value;
     char *p;
-    long *field;
+    int32_t *field;
     ULong i;
     char c;
-    long err;
+    int32_t err;
 #if TARGET_API_MAC_CARBON
     const unsigned short *wp;
     ULong wc;
@@ -552,12 +552,12 @@ ITRect *_IT_ParseAttributeGetRect(void *rect, unsigned char wide, const char *s)
     static ITRect zero;
     ITRect *r;
     ITRect parsed;
-    long *field;
+    int32_t *field;
     ULong i;
-    long value;
+    int32_t value;
     unsigned char negative;
     char c;
-    long err;
+    int32_t err;
     const char *p;
 #endif
 
@@ -612,8 +612,8 @@ unsigned char _IT_ParseAttributeGetFlag(unsigned char wide, const char *s)
     unsigned short wideValue[256];
 #endif
     char value[256];
-    long err;
-    long result;
+    int32_t err;
+    int32_t result;
 
     err = 0;
     result = 1;
@@ -637,7 +637,7 @@ unsigned char _IT_ParseAttributeGetFlag(unsigned char wide, const char *s)
    the enclosing B / STRONG, I / EM, U, TT, PRE and A HREF elements, FGCOLOR; each output only
    when asked for). STATE: MATCH 100%, exe 156 / obj 156, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00540814
-void _IT_ParseTreeGetFontAttributes(ITElement *root, ITElement *element, char **face, long *size, ULong *style,
+void _IT_ParseTreeGetFontAttributes(ITElement *root, ITElement *element, char **face, int32_t *size, ULong *style,
                   ITColor *color, char **href)
 {
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
@@ -645,7 +645,7 @@ void _IT_ParseTreeGetFontAttributes(ITElement *root, ITElement *element, char **
     static unsigned char hrefText[256];
 #endif
     char *value;
-    long err;
+    int32_t err;
 
     err = 0;
     value = 0;
@@ -741,7 +741,7 @@ static const unsigned char DAT_00581bf4[4] = { 0 };   /* 0x00581bf4, unreference
 // FUNCTION: EVNOVA 0x005409fc
 ITPageTable *_IT_PageListCreate(ITElement *root)
 {
-    long err;
+    int32_t err;
     ITPageTable *table;
     ITPage **link;
     ITElement *e;
@@ -792,10 +792,10 @@ done:
 /* _IT_PageListDispose (dispose a name table and its entries). STATE: MATCH 100%, exe 22 / obj 22,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00540b10
-long _IT_PageListDispose(void *tableRef)
+int32_t _IT_PageListDispose(void *tableRef)
 {
     ITPageTable *table = tableRef;
-    long err;
+    int32_t err;
     ITPage *e;
     ITPage *next;
 
@@ -815,7 +815,7 @@ long _IT_PageListDispose(void *tableRef)
 ITPage *_IT_GetPageByName(ITPageTable *table, const char *name)
 {
     ITPage *e;
-    long err;
+    int32_t err;
 
     err = 0;
     e = 0;
@@ -833,7 +833,7 @@ ITPage *_IT_GetPageByName(ITPageTable *table, const char *name)
 ITPage *_IT_GetPageByIndex(ITPageTable *table, ULong index)
 {
     ITPage *e;
-    long err;
+    int32_t err;
 
     err = 0;
     e = 0;

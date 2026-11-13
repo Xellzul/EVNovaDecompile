@@ -22,10 +22,10 @@ static short UnitCount(void)
     return *(short *)0x1d2;
 }
 
-long StackOpenMacTCP(void)
+int32_t StackOpenMacTCP(void)
 {
-    long response;
-    long err;
+    int32_t response;
+    int32_t err;
 
     err = 0;
     response = 0;
@@ -49,7 +49,7 @@ void StackTickleMacTCP(void)
 unsigned char StackGetAvailMacTCP(unsigned short mode)
 {
     unsigned char available;
-    long response;
+    int32_t response;
     short refNum;
     DCtlHandle h;
     Str255 name;

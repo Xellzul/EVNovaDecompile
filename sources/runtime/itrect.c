@@ -12,7 +12,7 @@
 ITColor DT_GetColorARGB(ULong argb)
 {
     ITColor color;
-    long err;
+    int32_t err;
 
     err = 0;
     color.alpha = (argb >> 24) & 0xff;
@@ -24,9 +24,9 @@ ITColor DT_GetColorARGB(ULong argb)
 
 /* DT_SetRect (SetRect). STATE: MATCH 100%, exe 15 / obj 15, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00519d30
-ITRect *DT_SetRect(ITRect *r, long left, long top, long right, long bottom)
+ITRect *DT_SetRect(ITRect *r, int32_t left, int32_t top, int32_t right, int32_t bottom)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     r->left = left;
@@ -41,7 +41,7 @@ ITRect *DT_SetRect(ITRect *r, long left, long top, long right, long bottom)
 unsigned char DT_IsPointInRect(const ITPoint *pt, const ITRect *r)
 {
     unsigned char inside;
-    long err;
+    int32_t err;
 
     err = 0;
     inside = 0;
@@ -56,7 +56,7 @@ unsigned char DT_IsPointInRect(const ITPoint *pt, const ITRect *r)
 unsigned char DT_IsRectReallyEmpty(const ITRect *r)
 {
     unsigned char none;
-    long err;
+    int32_t err;
 
     err = 0;
     none = 0;
@@ -71,7 +71,7 @@ unsigned char DT_IsRectReallyEmpty(const ITRect *r)
 unsigned char DT_IsRectEmpty(const ITRect *r)
 {
     unsigned char empty;
-    long err;
+    int32_t err;
 
     err = 0;
     empty = 0;
@@ -85,7 +85,7 @@ unsigned char DT_IsRectEmpty(const ITRect *r)
 unsigned char DT_IsRectEqual(const ITRect *a, const ITRect *b)
 {
     unsigned char equal;
-    long err;
+    int32_t err;
 
     err = 0;
     equal = 0;
@@ -97,9 +97,9 @@ unsigned char DT_IsRectEqual(const ITRect *a, const ITRect *b)
 
 /* DT_RectOffset (OffsetRect). STATE: MATCH 100%, exe 15 / obj 15, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00519e00
-ITRect *DT_RectOffset(ITRect *r, long dh, long dv)
+ITRect *DT_RectOffset(ITRect *r, int32_t dh, int32_t dv)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     r->left += dh;
@@ -111,9 +111,9 @@ ITRect *DT_RectOffset(ITRect *r, long dh, long dv)
 
 /* DT_RectInset (InsetRect). STATE: MATCH 100%, exe 15 / obj 15, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00519e22
-ITRect *DT_RectInset(ITRect *r, long dh, long dv)
+ITRect *DT_RectInset(ITRect *r, int32_t dh, int32_t dv)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     r->left += dh;
@@ -128,9 +128,9 @@ ITRect *DT_RectInset(ITRect *r, long dh, long dv)
 // FUNCTION: EVNOVA 0x00519e44
 ITRect *DT_RectCenter(ITRect *r, const ITRect *size, const ITRect *bounds)
 {
-    long width;
-    long height;
-    long err;
+    int32_t width;
+    int32_t height;
+    int32_t err;
 
     err = 0;
     width = size->right - size->left;
@@ -145,7 +145,7 @@ ITRect *DT_RectCenter(ITRect *r, const ITRect *size, const ITRect *bounds)
 // FUNCTION: EVNOVA 0x00519eb6
 ITRect *DT_RectIntersect(ITRect *r, const ITRect *a, const ITRect *b)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     r->left = a->left > b->left ? a->left : b->left;
@@ -164,7 +164,7 @@ ITRect *DT_RectIntersect(ITRect *r, const ITRect *a, const ITRect *b)
 // FUNCTION: EVNOVA 0x00519f06
 void DT_ColorLighten(ITColor *color)
 {
-    long err, err2;
+    int32_t err, err2;
 
     err2 = err = 0;
     color->red = LIGHTER(color->red);
@@ -177,7 +177,7 @@ void DT_ColorLighten(ITColor *color)
 // FUNCTION: EVNOVA 0x00519fb1
 void DT_ColorDarken(ITColor *color)
 {
-    long err, err2;
+    int32_t err, err2;
 
     err2 = err = 0;
     color->red = DARKER(color->red);
@@ -212,13 +212,13 @@ ITRect *DT_GetRegionRect(ITRect *box, void *region)
     return box;
 }
 
-long DT_SetRegionRect(void *region, const ITRect *r)
+int32_t DT_SetRegionRect(void *region, const ITRect *r)
 {
-    long bottom;
-    long right;
-    long err;
-    long left;
-    long top;
+    int32_t bottom;
+    int32_t right;
+    int32_t err;
+    int32_t left;
+    int32_t top;
 
     err = 0;
     bottom = r->bottom;
@@ -271,7 +271,7 @@ ITRect Sys2DT_Rect(const Rect *r)
 Rect DT_2SysRect(const ITRect *r)
 {
     Rect copy;
-    long n;
+    int32_t n;
 
     n = r->left;
     copy.left = n > -32768 ? n : -32768;
@@ -304,7 +304,7 @@ ITPoint *CopySys2DT_Point(ITPoint *dst, const Point *src)
 
 Point *CopyDT_2SysPoint(Point *dst, const ITPoint *src)
 {
-    long n;
+    int32_t n;
 
     n = src->h;
     dst->h = n < -32768 ? -32768 : n > 32767 ? 32767 : n;
@@ -324,7 +324,7 @@ ITRect *CopySys2DT_Rect(ITRect *dst, const Rect *src)
 
 Rect *CopyDT_2SysRect(Rect *dst, const ITRect *src)
 {
-    long n;
+    int32_t n;
 
     n = src->left;
     dst->left = n > -32768 ? n : -32768;

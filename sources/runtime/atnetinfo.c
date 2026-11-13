@@ -18,7 +18,7 @@ char DAT_00577b80[256] = "*";                      /* 0x00577b80 nothing reads i
 // FUNCTION: EVNOVA 0x004f339b
 unsigned short EndpointGetElem(void *ref)
 {
-    long err;
+    int32_t err;
     NetSocket *s;
 
     err = 0;
@@ -31,7 +31,7 @@ unsigned short EndpointGetElem(void *ref)
 // FUNCTION: EVNOVA 0x004f33aa
 unsigned short EndpointGetStack(void *ref)
 {
-    long err;
+    int32_t err;
     NetSocket *s;
 
     err = 0;
@@ -44,7 +44,7 @@ unsigned short EndpointGetStack(void *ref)
 // FUNCTION: EVNOVA 0x004f33b9
 unsigned short EndpointGetStatus(void *ref)
 {
-    long err;
+    int32_t err;
     NetSocket *s;
 
     err = 0;
@@ -59,7 +59,7 @@ void EndpointGetCallback(void *handle, NetProc *proc, void **ref)
 {
     char token[16];
     NetSocket *s;
-    long err;
+    int32_t err;
 
     err = 0;
     s = handle;
@@ -72,9 +72,9 @@ void EndpointGetCallback(void *handle, NetProc *proc, void **ref)
 /* _EndpointGetError (the socket's last error). STATE: MATCH 100%, exe 5 / obj 5, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f340c
-long _EndpointGetError(NetSocket *sock)
+int32_t _EndpointGetError(NetSocket *sock)
 {
-    long err;
+    int32_t err;
     NetStream *s;
 
     err = 0;
@@ -108,16 +108,16 @@ long _EndpointGetError(NetSocket *sock)
 // FUNCTION: EVNOVA 0x004f341a
 unsigned char _AddressFromString(NetAddress *address, const char *text)
 {
-    long err;
+    int32_t err;
     unsigned char valid;
     ULong value[kOctets + 1];
     unsigned char ip[kOctets];
-    long i;
+    int32_t i;
     ULong n;
     unsigned short port;
     char c;
     char sep;
-    long j;
+    int32_t j;
 
     err = 0;
     valid = 1;
@@ -187,7 +187,7 @@ void DatagramGetQueues(void *ref, MutexList **sentList, MutexList **freeList,
                   MutexList **recvList, MutexList **recvList2)
 {
     NetSocket *s;
-    long err;
+    int32_t err;
 
     s = ref;
     err = 0;
@@ -208,7 +208,7 @@ void StreamGetQueues(void *ref, MutexList **sentList, MutexList **freeList,
                   MutexList **recvList, MutexList **recvList2)
 {
     NetStream *s;
-    long err;
+    int32_t err;
 
     s = ref;
     err = 0;

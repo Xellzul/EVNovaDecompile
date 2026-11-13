@@ -11,7 +11,7 @@
 #include "win32.h"
 
 
-extern long _NetworkStackQueryInterfaces(void *buf, unsigned long *size);  /* 0x004f2b4e list */
+extern int32_t _NetworkStackQueryInterfaces(void *buf, uint32_t *size);  /* 0x004f2b4e list */
 
 typedef ULong (__stdcall *WSASocketProc)(int af, int type, int protocol,
                                          void *info, ULong group, ULong flags);
@@ -87,10 +87,10 @@ void NetworkStackTickle(void);
    socket kind that works; -7101 unless all wanted work, or any does when kAnyKinds).
    STATE: MATCH 100%, exe 70 / obj 70, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f2a6a
-long NetworkStackLoad(ULong wanted)
+int32_t NetworkStackLoad(ULong wanted)
 {
     ULong kind;
-    long err, e;
+    int32_t err, e;
     ULong version;
 
     err = 0;
@@ -128,7 +128,7 @@ done:
 // FUNCTION: EVNOVA 0x004f2b2a
 void NetworkStackUnload(void)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     _EndpointDisposeAll();
@@ -143,7 +143,7 @@ void NetworkStackUnload(void)
 // FUNCTION: EVNOVA 0x004f2b44
 void NetworkStackTickle(void)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     _EndpointTickleAll();
@@ -151,14 +151,14 @@ void NetworkStackTickle(void)
 
 /* _NetworkStackQueryInterfaces. STATE: MATCH 100%, exe 95 / obj 95, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f2b4e
-long _NetworkStackQueryInterfaces(void *buf, unsigned long *size)
+int32_t _NetworkStackQueryInterfaces(void *buf, uint32_t *size)
 {
     char data[400];
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char started;
     ULong s;
-    long result;
+    int32_t result;
 
     err = 0;
     started = 0;
@@ -208,11 +208,11 @@ long _NetworkStackQueryInterfaces(void *buf, unsigned long *size)
 // FUNCTION: EVNOVA 0x004f2c78
 unsigned char NetworkStackGetAvail(unsigned short mode)
 {
-    long err;
+    int32_t err;
     unsigned char available;
     ULong s;
     unsigned short version;
-    long e;
+    int32_t e;
 
     err = 0;
     available = 0;
@@ -224,7 +224,7 @@ unsigned char NetworkStackGetAvail(unsigned short mode)
         switch (mode) {
         case kModeEnumerate:
             s = socket(AF_INET, SOCK_DGRAM, kProtoUdp);
-            if (s == 0 || (long)s <= 0)
+            if (s == 0 || (int32_t)s <= 0)
                 goto cleanup;
             if (closesocket(s) < 0)
                 err = WSAGetLastError();
@@ -232,7 +232,7 @@ unsigned char NetworkStackGetAvail(unsigned short mode)
             break;
         case kModeSocket:
             s = socket(kProbeAf, kProbeType, kProbeProtocol);
-            if (s == 0 || (long)s <= 0)
+            if (s == 0 || (int32_t)s <= 0)
                 goto cleanup;
             if (closesocket(s) < 0)
                 err = WSAGetLastError();
@@ -283,11 +283,11 @@ typedef struct InterfaceInfoOld {     /* the WinSock 1 layout */
 char NetworkStackGetActive(unsigned short mode)
 {
     char list[kListBuffer];
-    unsigned long size;
-    long err;
+    uint32_t size;
+    int32_t err;
     char available;
     unsigned short version;
-    long e;
+    int32_t e;
     ULong s;
 
     err = 0;
@@ -373,8 +373,8 @@ ULong NetworkStackGetAddressList(unsigned short kind, NetAddress *out, ULong max
     ULong pass;
     ULong i;
     ULong s;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     HostEnt *host;
 
     err = 0;
@@ -393,7 +393,7 @@ ULong NetworkStackGetAddressList(unsigned short kind, NetAddress *out, ULong max
         gGetIpAddrTableProc = (GetIpAddrTableProc)GetProcAddress(GetModuleHandleA("Iphlpapi.dll"),
                                                           "GetIpAddrTable");
     if (gGetIpAddrTableProc != 0) {
-        unsigned long size;
+        uint32_t size;
 
         size = 0;
         gGetIpAddrTableProc(0, &size, 0);
@@ -424,7 +424,7 @@ ULong NetworkStackGetAddressList(unsigned short kind, NetAddress *out, ULong max
     err = _NetworkStackQueryInterfaces(0, 0);
     if (err == 0) {
         char list[kListBuffer];
-        unsigned long size;
+        uint32_t size;
 
         size = kListBuffer;
         e = _NetworkStackQueryInterfaces(list, &size);

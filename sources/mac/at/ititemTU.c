@@ -5,9 +5,9 @@
 #if TARGET_API_MAC_CARBON
 static unsigned short kEnglishW[] = { 'E', 'n', 'g', 'l', 'i', 's', 'h', 0 };
 
-extern long IT_IndexCount(ITElement *index, const char *language);
-extern long IT_IndexFind(ITElement *index, const char *language, ULong n, char *a, char *b, char *c, unsigned short *d);
-extern long IT_IndexLookup(ITElement *index, const char *language, const char *path, char *a, char *b, char *c, unsigned short *d, long *f);
+extern int32_t IT_IndexCount(ITElement *index, const char *language);
+extern int32_t IT_IndexFind(ITElement *index, const char *language, ULong n, char *a, char *b, char *c, unsigned short *d);
+extern int32_t IT_IndexLookup(ITElement *index, const char *language, const char *path, char *a, char *b, char *c, unsigned short *d, int32_t *f);
 
 ULong IT_ItemCallbackLanguageCount(void)
 {
@@ -21,10 +21,10 @@ ULong IT_ItemCallbackLanguageCount(void)
     return n;
 }
 
-long IT_ItemCallbackLanguageCurrent(char *code, unsigned short *name)
+int32_t IT_ItemCallbackLanguageCurrent(char *code, unsigned short *name)
 {
     WindowNode *w;
-    long index;
+    int32_t index;
 
     w = gIT_CurrentView;
     index = 0;

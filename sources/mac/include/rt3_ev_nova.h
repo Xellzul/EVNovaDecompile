@@ -49,7 +49,7 @@ static inline char RegScramE3(void)
 }
 
 /* the same helpers under their Escape Velocity.o names (RegScramA2..E2, called by InitEVNova's license check) */
-extern unsigned long RT3_ExtractLicenseBlock2(unsigned long long lic);
+extern uint32_t RT3_ExtractLicenseBlock2(unsigned long long lic);
 
 #ifndef RT3_HELPERS_IN_UNIT
 static inline char RegScramA2(short x)

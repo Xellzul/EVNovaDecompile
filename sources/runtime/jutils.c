@@ -23,8 +23,8 @@ const int jpeg_natural_order[DCTSIZE2+16] = {
 /* jdiv_round_up. STATE: genuine libjpeg 6b; MATCH, byte-identical.
    OPEN: none. */
 // FUNCTION: EVNOVA 0x0054eece
-GLOBAL(long)
-jdiv_round_up (long a, long b)
+GLOBAL(int32_t)
+jdiv_round_up (int32_t a, int32_t b)
 
 {
   return (a + b - 1L) / b;
@@ -33,8 +33,8 @@ jdiv_round_up (long a, long b)
 /* jround_up. STATE: genuine libjpeg 6b; MATCH, byte-identical.
    OPEN: none. */
 // FUNCTION: EVNOVA 0x0054eeb3
-GLOBAL(long)
-jround_up (long a, long b)
+GLOBAL(int32_t)
+jround_up (int32_t a, int32_t b)
 
 {
   a += b - 1L;

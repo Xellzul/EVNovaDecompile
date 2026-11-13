@@ -97,7 +97,7 @@ void RT3_FixLicenseName(char *out, const char *src)
 #define ROTATE64(v, n) do { ULongLong t = (v); (v) = (t << (n)) | (t >> (64 - (n))); } while (0)
 
 // MAC: _RT3_CalcMainHash i386 0x000d4931 ppc 0x000df774
-ULongLong RT3_CalcMainHash(const char *product, const char *name, long copies)
+ULongLong RT3_CalcMainHash(const char *product, const char *name, int32_t copies)
 {
     ULongLong h;
     ULong i, j;

@@ -46,7 +46,7 @@ short Win95DirectSoundVolumes[256] = {
 };
 
 static void *InstanceLock;                       /* 0x008676ac, mapping */
-static long Once;                                /* 0x008676b0, registered */
+static int32_t Once;                                /* 0x008676b0, registered */
 
 #define kMappingProtect     2                    /* PAGE_READONLY   */
 #define kMappingSize        0x20
@@ -64,7 +64,7 @@ void UnlockMe(void)
 
 /* Win95Allow1Instance. STATE: MATCH 100%, exe 27 / obj 27 instrs, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f9c00
-long Win95Allow1Instance(const char *name)
+int32_t Win95Allow1Instance(const char *name)
 {
     InstanceLock = CreateFileMappingA(INVALID_HANDLE_VALUE, 0, kMappingProtect, 0,
                                       kMappingSize, name);

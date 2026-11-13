@@ -199,7 +199,7 @@ int ZEXPORT deflateSetDictionary (strm, dictionary, dictLength)
     }
     zmemcpy(s->window, dictionary, length);
     s->strstart = length;
-    s->block_start = (long)length;
+    s->block_start = (int32_t)length;
 
     s->ins_h = s->window[0];
     UPDATE_HASH(s, s->ins_h, s->window[1]);
@@ -730,7 +730,7 @@ local void fill_window(s)
             zmemcpy(s->window, s->window+wsize, (unsigned)wsize);
             s->match_start -= wsize;
             s->strstart    -= wsize;
-            s->block_start -= (long) wsize;
+            s->block_start -= (int32_t) wsize;
 
             n = s->hash_size;
             p = &s->head[n];
@@ -764,7 +764,7 @@ local void fill_window(s)
    _tr_flush_block(s, (s->block_start >= 0L ? \
                    (charf *)&s->window[(unsigned)s->block_start] : \
                    (charf *)Z_NULL), \
-                (ulg)((long)s->strstart - s->block_start), \
+                (ulg)((int32_t)s->strstart - s->block_start), \
                 (eof)); \
    s->block_start = s->strstart; \
    flush_pending(s->strm); \

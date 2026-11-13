@@ -29,7 +29,7 @@ extern void CenterRect(Rect *r, Rect *bounds);
 extern void CreateGWorldContainerFromPictResource(GWorldContainer *gwc, GDHandle device,
                           short depth, short picID);
 #else
-extern void CreateGWorldContainerFromPictResource(GWorldContainer *gwc, long flags,
+extern void CreateGWorldContainerFromPictResource(GWorldContainer *gwc, int32_t flags,
                           short depth, short picID);
 #endif
 #pragma cplusplus on
@@ -52,7 +52,7 @@ extern void DisposeMainScreenAnim(void);
 extern void CreateGWorldContainer(GWorldContainer *gwc, GDHandle device, short depth,
                                   Rect *bounds);
 #else
-extern void CreateGWorldContainer(GWorldContainer *gwc, long flags, short depth,
+extern void CreateGWorldContainer(GWorldContainer *gwc, int32_t flags, short depth,
                                   Rect *bounds);
 #endif
 extern void DisposeGWorldContainer(GWorldContainer *gwc);
@@ -119,12 +119,12 @@ extern void MainScreenAppearStart(void);
 #ifdef MACBUILD
 void MainScreenKey(char key, unsigned char code, short modifiers);
 #else
-void MainScreenKey(char key, long a, long b);
+void MainScreenKey(char key, int32_t a, int32_t b);
 #endif
 extern void MainScreenRolloverDraw(void);
 extern void MainScreenUpdate(short which);
 extern int MouseReadButtons(void);
-extern void MouseReadPosition(long *h, long *v);
+extern void MouseReadPosition(int32_t *h, int32_t *v);
 extern void PlayMainScreenClickSound(void);
 extern void PrepareAllSprites(void);
 extern void SetGWorldContainer(GWorldContainer *gwc);
@@ -149,7 +149,7 @@ extern short slideFrameCount[];
 extern short slideIndex[];
 extern GWorldContainer logoPort;
 extern GWorldContainer slidePort[3];
-extern unsigned long lastRolloverAnimTime;
+extern uint32_t lastRolloverAnimTime;
 extern short rolloverAlpha;
 extern short rolloverIndex;
 extern Handle intfFileHand;
@@ -157,14 +157,14 @@ extern void *gIntroMovieData;
 #ifndef MACBUILD
 EXTERN_CPP_END
 #pragma cplusplus reset
-extern void QTNewGWorldFromPtr(void **gw, long pixelFormat, Rect *boundsRect,
-                               long cTable, long aGDevice, long flags, long baseAddr,
-                               long rowBytes);
+extern void QTNewGWorldFromPtr(void **gw, int32_t pixelFormat, Rect *boundsRect,
+                               int32_t cTable, int32_t aGDevice, int32_t flags, int32_t baseAddr,
+                               int32_t rowBytes);
 #endif
 #pragma cplusplus on
 EXTERN_CPP_BEGIN
-extern unsigned long lastLogoAnimTime;
-extern unsigned long lastSlideAnimTime;
+extern uint32_t lastLogoAnimTime;
+extern uint32_t lastSlideAnimTime;
 extern Rect gLoadBarBase;
 extern short logoFrameCount;
 extern short logoIndex;
@@ -177,16 +177,16 @@ extern short gMainPicWidthDelta;
 extern short loopingMovieResRefNum;
 extern short planetPicId;
 #ifdef MAC1010
-extern unsigned long reggieStarted;
+extern uint32_t reggieStarted;
 #else
-extern long reggieStarted;
+extern int32_t reggieStarted;
 #endif
 extern unsigned char weapName[256][256];
 extern Rect interfacePicRect;
 extern short interferenceThisFrame;
 extern short lastIntfResourceID;
-extern long lastFPSUpdateTime;
-extern unsigned long lastRadarUpdateTime;
+extern int32_t lastFPSUpdateTime;
+extern uint32_t lastRadarUpdateTime;
 extern short lastTargetedShipShields;
 #ifdef MACBUILD /* rows of three shorts: Files.o's stores keep their decl, RGBColor's fields lose it */
 extern unsigned short ldefColors[3][3];
@@ -219,7 +219,7 @@ extern RGBColor statusColor[8];
 extern RGBColor *statusDimColor;
 extern short statusFontID;
 extern GWorldContainer statusOffPort;
-extern unsigned long tix;
+extern uint32_t tix;
 
 extern void *loopingMovie;
 

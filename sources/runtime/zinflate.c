@@ -280,7 +280,7 @@ unsigned out;
     do { \
         if (have == 0) goto inf_leave; \
         have--; \
-        hold += (unsigned long)(*next++) << bits; \
+        hold += (uint32_t)(*next++) << bits; \
         bits += 8; \
     } while (0)
 
@@ -320,7 +320,7 @@ int flush;
     unsigned char FAR *next;
     unsigned char FAR *put;
     unsigned have, left;
-    unsigned long hold;
+    uint32_t hold;
     unsigned bits;
     unsigned in, out;
     unsigned copy;
@@ -843,7 +843,7 @@ const Bytef *dictionary;
 uInt dictLength;
 {
     struct inflate_state FAR *state;
-    unsigned long id;
+    uint32_t id;
 
     if (strm == Z_NULL || strm->state == Z_NULL) return Z_STREAM_ERROR;
     state = (struct inflate_state FAR *)strm->state;
@@ -900,7 +900,7 @@ int ZEXPORT inflateSync(strm)
 z_streamp strm;
 {
     unsigned len;
-    unsigned long in, out;
+    uint32_t in, out;
     unsigned char buf[4];
     struct inflate_state FAR *state;
 

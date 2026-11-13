@@ -58,7 +58,7 @@ void CreateGWorldContainer(GWorldContainer *gwc, GDHandle device, short depth,
 #endif
 }
 #else
-void CreateGWorldContainer(GWorldContainer *gwc, long flags, short depth,
+void CreateGWorldContainer(GWorldContainer *gwc, int32_t flags, short depth,
                            Rect *bounds)
 {
     if (gwc != 0) {
@@ -125,7 +125,7 @@ void CreateGWorldContainerFromPictResource(GWorldContainer *gwc, GDHandle device
     }
 }
 #else
-void CreateGWorldContainerFromPictResource(GWorldContainer *gwc, long flags,
+void CreateGWorldContainerFromPictResource(GWorldContainer *gwc, int32_t flags,
                                            short depth, short picID)
 {
     PicHandle pic;

@@ -6,6 +6,7 @@
 #define CEFIX_H
 
 #ifdef CEFIX
+#include "int32.h"
 
 #ifdef __cplusplus
 #include <stdio.h>
@@ -21,8 +22,8 @@ struct DialogRecord;
 #define kCEIntOverflow          0xc0000095UL    /* STATUS_INTEGER_OVERFLOW: a DIV quotient too wide */
 #define kCEPrivilegedInstruction 0xc0000096UL   /* STATUS_PRIVILEGED_INSTRUCTION */
 
-__declspec(dllimport) void __stdcall RaiseException(unsigned long code, unsigned long flags,
-    unsigned long count, const unsigned long *args);
+__declspec(dllimport) void __stdcall RaiseException(uint32_t code, uint32_t flags,
+    uint32_t count, const uint32_t *args);
 
 /* cestartup.c */
 #define kCEMaxPath          260
@@ -39,7 +40,7 @@ void CE_ReadX2Hotkey(void);
 void CE_InitializeMonitor(void);
 unsigned char CE_IsWindowed(void);
 void CE_ToggleFullscreen(void);
-long __stdcall CE_WndProc(void *hwnd, unsigned long msg, unsigned long wParam, long lParam);
+int32_t __stdcall CE_WndProc(void *hwnd, uint32_t msg, uint32_t wParam, int32_t lParam);
 
 /* cescale.c */
 extern double ceScaleFactor;
@@ -58,14 +59,14 @@ void CE_ScaleRect(struct Rect *r);
 void CE_SetPen(short h, short v);
 void CE_ScaleOffsetRect(struct Rect *r, int dh, int dv);
 void CE_ScaleOffsetRectBottom(struct Rect *r, int dh, int dv);
-long CE_SetDialogTemplateBounds(struct DialogRecord *dlg, const unsigned short *tmpl);
+int32_t CE_SetDialogTemplateBounds(struct DialogRecord *dlg, const unsigned short *tmpl);
 
 /* cepaths.c */
 #ifndef __cplusplus
 struct _FILE;
 #endif
 
-long CE_DecryptIfNecessary(void *buf, unsigned long len, unsigned long key);
+int32_t CE_DecryptIfNecessary(void *buf, uint32_t len, uint32_t key);
 short CE_OpenNovaFilesFallback(const char *path, const char *ext, struct _FILE *log);
 short CE_OpenPlugInsFallback(const char *path, const char *ext, struct _FILE *log);
 void CE_ExpandFilesPath(char *dst, const char *path);
@@ -76,13 +77,13 @@ void CE_ExpandPlugInsPath(char *dst, const char *path);
 
 struct WinRect;
 
-int CE_MacRomanToWide(const void *text, unsigned long count, char *out, unsigned long outCount);
+int CE_MacRomanToWide(const void *text, uint32_t count, char *out, uint32_t outCount);
 int CE_DrawTextW(void *hdc, const char *text, int count, struct WinRect *r, unsigned int format);
 void CE_DrawVersion(void);
 
 /* cedialog.c */
-long CE_TruncF32(float value);
-long CE_RoundD(double value);
+int32_t CE_TruncF32(float value);
+int32_t CE_RoundD(double value);
 
 /* ceblit.c */
 struct PixMap;
@@ -110,7 +111,7 @@ short CE_NewGWorld(struct CGrafPort **out, int depth, const struct Rect *bounds,
 struct RGBColor;
 
 unsigned char CE_CheckDebugKeys(short scanCode);
-char *CE_NumberToAscii(char *dst, long value, unsigned long flags);
+char *CE_NumberToAscii(char *dst, int32_t value, uint32_t flags);
 void CE_SetFlashColor(const struct RGBColor *color);
 
 /* ceppat.c */
@@ -125,7 +126,7 @@ int CE_ImageParsePPat(struct Image_t *image, const void *ppat);
 extern int ceMapBordersVisibleWidth;
 extern int ceMapBordersVisibleHeight;
 
-void CE_RecalcMapInfluence(long left, long top, long right, long bottom, struct Rect *r);
+void CE_RecalcMapInfluence(int32_t left, int32_t top, int32_t right, int32_t bottom, struct Rect *r);
 
 /* cehud.c */
 void CE_ScaleStatusRects(void);

@@ -19,7 +19,7 @@ unsigned char targKeyOnNow;
 #ifndef MACBUILD
 unsigned char DAT_007cab70[4];
 #endif
-unsigned long lastRadarUpdateTime;
+uint32_t lastRadarUpdateTime;
 #ifndef MACBUILD
 unsigned char DAT_007cab78[4];
 #endif

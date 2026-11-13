@@ -32,7 +32,7 @@ typedef struct GdiplusStartupInput {
 #define PixelOffsetModeHighQuality          2
 #define UnitPixel                           2
 
-__declspec(dllimport) int __stdcall GdiplusStartup(unsigned long *token,
+__declspec(dllimport) int __stdcall GdiplusStartup(uint32_t *token,
     const GdiplusStartupInput *input, void *output);
 __declspec(dllimport) int __stdcall GdipCreateBitmapFromScan0(int width, int height, int stride,
     int format, unsigned char *scan0, GpBitmap **bitmap);

@@ -23,11 +23,11 @@
 Word16 AddressToNetworkStack(const NetAddress *a)
 {
 #ifdef MAC1010
-    long family;
+    int32_t family;
 #else
     long long family;
 #endif
-    long err, e;
+    int32_t err, e;
     Word16 result;
 
     e = err = 0;
@@ -47,11 +47,11 @@ void AddressDuplicate(void *to, const NetAddress *src)
 {
     NetAddress *dst;
     ULong length;
-    long err;
+    int32_t err;
 
     dst = to;
     err = 0;
-    length = src->kind + sizeof(long);
+    length = src->kind + sizeof(int32_t);
     if (length != 0)
         memmove(dst, src, length);
 }
@@ -61,7 +61,7 @@ void AddressDuplicate(void *to, const NetAddress *src)
 // FUNCTION: EVNOVA 0x005291e8
 unsigned char AddressCompare(const void *refA, const void *refB)
 {
-    long err;
+    int32_t err;
     unsigned char same;
     const NetAddress *a;
     const NetAddress *b;
@@ -91,7 +91,7 @@ unsigned char AddressCompare(const void *refA, const void *refB)
 // FUNCTION: EVNOVA 0x005292b2
 unsigned char AddressIsEmpty(const NetAddress *a)
 {
-    long err, e;
+    int32_t err, e;
 
     e = err = 0;
     return (ULong)a->kind < 2 || (a->family & kNetFamilyMask) == 0;
@@ -102,13 +102,13 @@ unsigned char AddressIsEmpty(const NetAddress *a)
 // FUNCTION: EVNOVA 0x005292db
 void AddressComposeEmpty(NetAddress *a)
 {
-    long *p;
-    long err;
+    int32_t *p;
+    int32_t err;
 
-    p = (long *)a;
+    p = (int32_t *)a;
     err = 0;
     *p++ = 0;
-    memset(p, 0, sizeof(NetAddress) - sizeof(long));
+    memset(p, 0, sizeof(NetAddress) - sizeof(int32_t));
 }
 
 #define kSockaddrInLen  0x10
@@ -120,7 +120,7 @@ void AddressComposeTCPIP(void *ref, unsigned short port, ULong ip)
 {
     NetAddress *a;
     ULong *p;
-    long err;
+    int32_t err;
 
     a = ref;
     err = 0;
@@ -152,7 +152,7 @@ void AddressComposeAppleTalk(NetAddress *a, unsigned short net, unsigned char no
 void AddressDecomposeTCPIP(const void *ref, unsigned short *port, ULong *ip)
 {
     const NetAddress *a;
-    long err;
+    int32_t err;
 
     a = ref;
     err = 0;
@@ -233,7 +233,7 @@ void AddressTranscribe(const void *address, char *out)
     unsigned char bytes[0x100];
     const char *digits;
     ULong i;
-    long err;
+    int32_t err;
 
     a = address;
     err = 0;

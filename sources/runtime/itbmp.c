@@ -48,11 +48,11 @@ unsigned char DT_BmpUnpack4(unsigned char *dst, const unsigned char *src, ULong 
    escapes: end of line, end of bitmap, delta, absolute run). STATE: MATCH 100%, exe 350 /
    obj 350, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005124d2
-long _BMP_DecodePixels(ITStream *stream, ITImage *image, unsigned char *buf, unsigned char *row,
-                  long width, long height, unsigned char rle4, ULong rows)
+int32_t _BMP_DecodePixels(ITStream *stream, ITImage *image, unsigned char *buf, unsigned char *row,
+                  int32_t width, int32_t height, unsigned char rle4, ULong rows)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong x;
     ULong y;
     ULong count;
@@ -219,31 +219,31 @@ unsigned char BMP_CheckFileType(const void *buffer, ULong size)
    BI_BITFIELDS masks, as the loader unpacks them */
 typedef struct BmpFileHeader {
     short type;
-    long size;
+    int32_t size;
     short reserved1;
     short reserved2;
-    long offBits;
+    int32_t offBits;
 } BmpFileHeader;
 
 typedef struct BmpArrayHeader {
     short type;
-    long size;
-    long next;
+    int32_t size;
+    int32_t next;
     short cx;
     short cy;
 } BmpArrayHeader;
 
 typedef struct BmpInfoHeader {
     ULong size;
-    long width;
-    long height;
+    int32_t width;
+    int32_t height;
     short planes;
     short bitCount;
-    long compression;
-    long sizeImage;
-    long xPelsPerMeter;
-    long yPelsPerMeter;
-    long clrUsed;
+    int32_t compression;
+    int32_t sizeImage;
+    int32_t xPelsPerMeter;
+    int32_t yPelsPerMeter;
+    int32_t clrUsed;
     ULong clrImportant;
     ULong redMask;
     ULong greenMask;
@@ -279,7 +279,7 @@ typedef struct BmpInfoHeader {
 
 #define ReadOrFail(ptr, len)                                \
     do {                                                    \
-        long r = DT_BufferRead(stream, ptr, len);            \
+        int32_t r = DT_BufferRead(stream, ptr, len);            \
         if (r != 0) {                                       \
             err = r;                                        \
             goto done;                                      \
@@ -291,11 +291,11 @@ typedef struct BmpInfoHeader {
    MATCH 100%, exe 899 / obj 899, byte-identical yes. OPEN: none; quadSize is the exe's two
    dead `mov eax,4'; ReadOrFail's block-local `r' keeps `e' off the reload reuse; notes/itbmp.md */
 // FUNCTION: EVNOVA 0x0051299a
-long BMP_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
+int32_t BMP_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                   ITTransparent *trans, ITBackground *bg)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong y;
     ULong rShift;
     ULong gShift;

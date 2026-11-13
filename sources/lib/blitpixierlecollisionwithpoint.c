@@ -10,25 +10,25 @@
 Boolean BlitPixieRLECollisionWithPoint(unsigned char *rleData, Point *pt, Rect *r)
 {
 #ifdef MAC1010 /* 1.0.10 spelling */
-    unsigned long token;
-    unsigned long opcode;
-    unsigned long op;
-    unsigned long count;
-    long runStart;
-    long i;
-    long x;
+    uint32_t token;
+    uint32_t opcode;
+    uint32_t op;
+    uint32_t count;
+    int32_t runStart;
+    int32_t i;
+    int32_t x;
 #else
-    long runStart;
-    unsigned long opcode;
-    unsigned long op;
-    unsigned long count;
-    long i;
-    unsigned long token;
-    long x;
+    int32_t runStart;
+    uint32_t opcode;
+    uint32_t op;
+    uint32_t count;
+    int32_t i;
+    uint32_t token;
+    int32_t x;
 #endif
 
     for (i = 0; i < pt->v - r->top; i++) {
-        token = *(unsigned long *)rleData;
+        token = *(uint32_t *)rleData;
         rleData += 4;
         opcode = token >> 24;
         count = token & 0xffffff;
@@ -39,7 +39,7 @@ Boolean BlitPixieRLECollisionWithPoint(unsigned char *rleData, Point *pt, Rect *
             return 0;
     }
 
-    token = *(unsigned long *)rleData;
+    token = *(uint32_t *)rleData;
     rleData += 4;
     op = token >> 24;
     if (op == 0)
@@ -49,7 +49,7 @@ Boolean BlitPixieRLECollisionWithPoint(unsigned char *rleData, Point *pt, Rect *
     runStart = x = r->left;
 
     while (op != 1 && op != 0) {
-        token = *(unsigned long *)rleData;
+        token = *(uint32_t *)rleData;
         rleData += 4;
         op = token >> 24;
         count = token & 0xffffff;
@@ -62,9 +62,9 @@ Boolean BlitPixieRLECollisionWithPoint(unsigned char *rleData, Point *pt, Rect *
 
             rleData += count;
 #if defined(MACBUILD) && V111
-            (long)rleData += (-(long)rleData) & 3;
+            (int32_t)rleData += (-(int32_t)rleData) & 3;
 #else
-            rleData += (-(long)rleData) & 3;
+            rleData += (-(int32_t)rleData) & 3;
 #endif
             break;
 

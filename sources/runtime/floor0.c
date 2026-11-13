@@ -20,7 +20,7 @@
 #include <stdio.h>
 
 typedef struct vorbis_look_floor{
-  long n;
+  int32_t n;
   int ln;
   int  m;
   int *linearmap;
@@ -29,14 +29,14 @@ typedef struct vorbis_look_floor{
   lpc_lookup lpclook;
   float *lsp_look;
 
-  long bits;
-  long frames;
+  int32_t bits;
+  int32_t frames;
 } vorbis_look_floor0;
 
 /* _f0_fit. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00556260
-static long _f0_fit(codebook *book,
+static int32_t _f0_fit(codebook *book,
 		    float *orig,
 		    float *workfit,
 		    int cursor){
@@ -194,7 +194,7 @@ float _curve_to_lpc(float *curve,float *lpc,
     bark=l->linearmap[i];
     if(work[bark]<curve[i])work[bark]=curve[i];
     if(bark>last+1){
-      long span=bark-last;
+      int32_t span=bark-last;
       for(j=1;j<span;j++){
 	float del=(float)j/span;
 	work[j+last]=work[bark]*del+work[last]*(1.f-del);
@@ -225,11 +225,11 @@ static int floor0_forward(vorbis_block *vb,vorbis_look_floor *in,
 			  float *mdct, const float *logmdct,
 			  const float *logmask, const float *logmax,
 			  float *codedflr){
-  long j;
+  int32_t j;
   vorbis_look_floor0 *look=(vorbis_look_floor0 *)in;
   vorbis_info_floor0 *info=look->vi;
   float amp;
-  long val=0;
+  int32_t val=0;
   static int seq=0;
 
   seq++;
@@ -240,7 +240,7 @@ static int floor0_forward(vorbis_block *vb,vorbis_look_floor *in,
   amp=sqrt(_curve_to_lpc(codedflr,codedflr,look));
 
   {
-    long maxval=(1L<<info->ampbits)-1;
+    int32_t maxval=(1L<<info->ampbits)-1;
 
     val=rint(amp/info->ampdB*maxval);
 
@@ -323,7 +323,7 @@ static void *floor0_inverse1(vorbis_block *vb,vorbis_look_floor *i){
 
   int ampraw=oggpack_read(&vb->opb,info->ampbits);
   if(ampraw>0){
-    long maxval=(1<<info->ampbits)-1;
+    int32_t maxval=(1<<info->ampbits)-1;
     float amp=(float)ampraw/maxval*info->ampdB;
     int booknum=oggpack_read(&vb->opb,_ilog(info->numbooks));
 

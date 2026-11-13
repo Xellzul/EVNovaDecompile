@@ -13,8 +13,8 @@
 #define kDrawPixelsToken 2
 #define kSkipPixelsToken 3
 #define kSingleColorToken 4
-typedef unsigned long TokenDataType;
-#define ALIGN_PTR(p) (-((long)p) & 3)
+typedef uint32_t TokenDataType;
+#define ALIGN_PTR(p) (-((int32_t)p) & 3)
 #endif
 #endif
 
@@ -25,14 +25,14 @@ typedef unsigned long TokenDataType;
 #ifdef MACBUILD
 #ifdef MACBUILD
 void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes, Rect *srcBlitRect)
+        int32_t dstRowBytes, Rect *srcBlitRect)
 {
-    unsigned long token,op;
-    unsigned long count;
+    uint32_t token,op;
+    uint32_t count;
     unsigned char *rowStart;
-    long extra,spanend;
+    int32_t extra,spanend;
     short x,y;
-    unsigned long redScale, greenScale, blueScale;
+    uint32_t redScale, greenScale, blueScale;
 
     alpha = gSWCurrentSpriteBeingDrawn->translucency;
     scaleR = gSWCurrentSpriteBeingDrawn->tintRed;
@@ -142,7 +142,7 @@ void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dst
                         count -= extra;
                     }
 
-                    BlitPixieMemSet(dstPixel, *((unsigned long *) rleTokens), count);
+                    BlitPixieMemSet(dstPixel, *((uint32_t *) rleTokens), count);
 
                     x += extra;
                     dstPixel += extra;
@@ -151,7 +151,7 @@ void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dst
                 x += count;
                 dstPixel += count;
 
-                rleTokens += sizeof(long);
+                rleTokens += sizeof(int32_t);
                 break;
             case kLineStartToken:
                 if (y < srcBlitRect->top) {
@@ -176,13 +176,13 @@ void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dst
 }
 #else
 void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes, Rect *srcBlitRect)
+        int32_t dstRowBytes, Rect *srcBlitRect)
 {
-    unsigned long token,op;
+    uint32_t token,op;
     unsigned char *rowStart;
-    long count,extra,spanend;
+    int32_t count,extra,spanend;
     short x,y;
-    unsigned long redScale, greenScale, blueScale;
+    uint32_t redScale, greenScale, blueScale;
 
     alpha = gSWCurrentSpriteBeingDrawn->translucency;
     scaleR = gSWCurrentSpriteBeingDrawn->tintRed;
@@ -301,7 +301,7 @@ void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dst
                 x += count;
                 dstPixel += count;
 
-                rleTokens += sizeof(long);
+                rleTokens += sizeof(int32_t);
                 break;
             case kLineStartToken:
                 if (y < srcBlitRect->top) {
@@ -327,19 +327,19 @@ void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dst
 #endif
 #else
 void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes, Rect *srcBlitRect)
+        int32_t dstRowBytes, Rect *srcBlitRect)
 {
     unsigned char *rowStart;
-    unsigned long token;
-    unsigned long opcode;
-    long count;
+    uint32_t token;
+    uint32_t opcode;
+    int32_t count;
     short x;
     short rowIndex;
-    long lastCol;
-    long trim;
-    long redScale;
-    long greenScale;
-    long blueScale;
+    int32_t lastCol;
+    int32_t trim;
+    int32_t redScale;
+    int32_t greenScale;
+    int32_t blueScale;
 
     alpha = gSWCurrentSpriteBeingDrawn->translucency;
     scaleR = gSWCurrentSpriteBeingDrawn->tintRed;
@@ -365,21 +365,21 @@ void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dst
             (scaleB + 32 - alpha != 0)
             ? scaleB + 32 - alpha : 0;
 
-    if ((unsigned long)redScale > 32) {
+    if ((uint32_t)redScale > 32) {
         overR =
                 ((redScale - 32) * 0x1f001f << 5) & 0x7c007c00;
         alphaR = 32;
     }
 
-    if ((unsigned long)greenScale > 32) {
+    if ((uint32_t)greenScale > 32) {
         overG =
                 ((greenScale - 32) * 0x1f001f) & 0x3e003e0;
         alphaG = 32;
     }
 
-    if ((unsigned long)blueScale > 32) {
+    if ((uint32_t)blueScale > 32) {
         overB =
-                ((unsigned long)(blueScale - 32) * 0x1f001f >> 5) & 0x1f001f;
+                ((uint32_t)(blueScale - 32) * 0x1f001f >> 5) & 0x1f001f;
         alphaB = 32;
     }
 
@@ -387,7 +387,7 @@ void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dst
     rowStart = dstPixel;
 
     do {
-        token = *(unsigned long *)rleTokens;
+        token = *(uint32_t *)rleTokens;
         opcode = token >> 24;
         rleTokens += 4;
         count = token & 0xffffff;
@@ -419,7 +419,7 @@ void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dst
             rleTokens += count;
             x += count;
             dstPixel += count;
-            rleTokens += (-(long)rleTokens) & 3;
+            rleTokens += (-(int32_t)rleTokens) & 3;
             break;
 
         case 3:
@@ -443,7 +443,7 @@ void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dst
                     count -= trim;
                 }
 
-                BlitPixieMemSet(dstPixel, *(unsigned long *)rleTokens, count);
+                BlitPixieMemSet(dstPixel, *(uint32_t *)rleTokens, count);
 
                 x += trim;
                 dstPixel += trim;
@@ -485,12 +485,12 @@ void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dst
 // MAC: _BlitPixieRLEAddOverClipped i386 0x000c25e7 ppc 0x000ce954
 #ifdef MACBUILD
 void BlitPixieRLEAddOverClipped(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes, Rect *srcBlitRect)
+        int32_t dstRowBytes, Rect *srcBlitRect)
 {
-    unsigned long token,op;
-    unsigned long count;
+    uint32_t token,op;
+    uint32_t count;
     unsigned char *rowStart;
-    long extra,spanend;
+    int32_t extra,spanend;
     short x,y;
 
     y = 0;
@@ -566,7 +566,7 @@ void BlitPixieRLEAddOverClipped(unsigned char *rleTokens, unsigned char *dstPixe
                         count -= extra;
                     }
 
-                    BlitPixieMemSet(dstPixel, *((unsigned long *) rleTokens), count);
+                    BlitPixieMemSet(dstPixel, *((uint32_t *) rleTokens), count);
 
                     x += extra;
                     dstPixel += extra;
@@ -575,7 +575,7 @@ void BlitPixieRLEAddOverClipped(unsigned char *rleTokens, unsigned char *dstPixe
                 x += count;
                 dstPixel += count;
 
-                rleTokens += sizeof(long);
+                rleTokens += sizeof(int32_t);
                 break;
             case kLineStartToken:
                 if (y < srcBlitRect->top) {
@@ -600,22 +600,22 @@ void BlitPixieRLEAddOverClipped(unsigned char *rleTokens, unsigned char *dstPixe
 }
 #else
 void BlitPixieRLEAddOverClipped(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes, Rect *srcBlitRect)
+        int32_t dstRowBytes, Rect *srcBlitRect)
 {
     unsigned char *rowStart;
-    unsigned long token;
-    unsigned long opcode;
-    long count;
+    uint32_t token;
+    uint32_t opcode;
+    int32_t count;
     short x;
     short rowIndex;
-    long lastCol;
-    long trim;
+    int32_t lastCol;
+    int32_t trim;
 
     rowIndex = 0;
     rowStart = dstPixel;
 
     do {
-        token = *(unsigned long *)rleTokens;
+        token = *(uint32_t *)rleTokens;
         opcode = token >> 24;
         rleTokens += 4;
         count = token & 0xffffff;
@@ -647,7 +647,7 @@ void BlitPixieRLEAddOverClipped(unsigned char *rleTokens, unsigned char *dstPixe
             rleTokens += count;
             x += count;
             dstPixel += count;
-            rleTokens += (-(long)rleTokens) & 3;
+            rleTokens += (-(int32_t)rleTokens) & 3;
             break;
 
         case 3:
@@ -671,7 +671,7 @@ void BlitPixieRLEAddOverClipped(unsigned char *rleTokens, unsigned char *dstPixe
                     count -= trim;
                 }
 
-                BlitPixieMemSet(dstPixel, *(unsigned long *)rleTokens, count);
+                BlitPixieMemSet(dstPixel, *(uint32_t *)rleTokens, count);
 
                 x += trim;
                 dstPixel += trim;
@@ -714,14 +714,14 @@ void BlitPixieRLEAddOverClipped(unsigned char *rleTokens, unsigned char *dstPixe
 // MAC: _BlitPixieRLETranslucentClipped8 i386 0x000c1ee4 ppc 0x000ce0f4
 #ifdef MACBUILD
 void BlitPixieRLETranslucentClipped8(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes, Rect *srcBlitRect)
+        int32_t dstRowBytes, Rect *srcBlitRect)
 {
-    unsigned long token,op;
-    unsigned long count;
+    uint32_t token,op;
+    uint32_t count;
     unsigned char *rowStart;
-    long extra,spanend;
+    int32_t extra,spanend;
     short x,y;
-    long level;
+    int32_t level;
     Boolean useTint;
 
     alpha = gSWCurrentSpriteBeingDrawn->translucency;
@@ -818,7 +818,7 @@ void BlitPixieRLETranslucentClipped8(unsigned char *rleTokens, unsigned char *ds
                         count -= extra;
                     }
 
-                    BlitPixieMemSet(dstPixel, *((unsigned long *) rleTokens), count);
+                    BlitPixieMemSet(dstPixel, *((uint32_t *) rleTokens), count);
 
                     x += extra;
                     dstPixel += extra;
@@ -827,7 +827,7 @@ void BlitPixieRLETranslucentClipped8(unsigned char *rleTokens, unsigned char *ds
                 x += count;
                 dstPixel += count;
 
-                rleTokens += sizeof(long);
+                rleTokens += sizeof(int32_t);
                 break;
             case kLineStartToken:
                 if (y < srcBlitRect->top) {
@@ -852,17 +852,17 @@ void BlitPixieRLETranslucentClipped8(unsigned char *rleTokens, unsigned char *ds
 }
 #else
 void BlitPixieRLETranslucentClipped8(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes, Rect *srcBlitRect)
+        int32_t dstRowBytes, Rect *srcBlitRect)
 {
     unsigned char *rowStart;
-    unsigned long token;
-    unsigned long opcode;
-    long count;
+    uint32_t token;
+    uint32_t opcode;
+    int32_t count;
     short x;
     short rowIndex;
-    long lastCol;
-    long trim;
-    long level;
+    int32_t lastCol;
+    int32_t trim;
+    int32_t level;
     Boolean useTint;
 
     alpha = gSWCurrentSpriteBeingDrawn->translucency;
@@ -887,7 +887,7 @@ void BlitPixieRLETranslucentClipped8(unsigned char *rleTokens, unsigned char *ds
     rowStart = dstPixel;
 
     do {
-        token = *(unsigned long *)rleTokens;
+        token = *(uint32_t *)rleTokens;
         opcode = token >> 24;
         rleTokens += 4;
         count = token & 0xffffff;
@@ -922,7 +922,7 @@ void BlitPixieRLETranslucentClipped8(unsigned char *rleTokens, unsigned char *ds
             rleTokens += count;
             x += count;
             dstPixel += count;
-            rleTokens += (-(long)rleTokens) & 3;
+            rleTokens += (-(int32_t)rleTokens) & 3;
             break;
 
         case 3:
@@ -946,7 +946,7 @@ void BlitPixieRLETranslucentClipped8(unsigned char *rleTokens, unsigned char *ds
                     count -= trim;
                 }
 
-                BlitPixieMemSet(dstPixel, *(unsigned long *)rleTokens, count);
+                BlitPixieMemSet(dstPixel, *(uint32_t *)rleTokens, count);
 
                 x += trim;
                 dstPixel += trim;
@@ -988,12 +988,12 @@ void BlitPixieRLETranslucentClipped8(unsigned char *rleTokens, unsigned char *ds
 // MAC: _BlitPixieRLEAddOverClipped8 i386 0x000c22af ppc 0x000ce594
 #ifdef MACBUILD
 void BlitPixieRLEAddOverClipped8(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes, Rect *srcBlitRect)
+        int32_t dstRowBytes, Rect *srcBlitRect)
 {
-    unsigned long token,op;
-    unsigned long count;
+    uint32_t token,op;
+    uint32_t count;
     unsigned char *rowStart;
-    long extra,spanend;
+    int32_t extra,spanend;
     short x,y;
 
     y = 0;
@@ -1069,7 +1069,7 @@ void BlitPixieRLEAddOverClipped8(unsigned char *rleTokens, unsigned char *dstPix
                         count -= extra;
                     }
 
-                    BlitPixieMemSet(dstPixel, *((unsigned long *) rleTokens), count);
+                    BlitPixieMemSet(dstPixel, *((uint32_t *) rleTokens), count);
 
                     x += extra;
                     dstPixel += extra;
@@ -1078,7 +1078,7 @@ void BlitPixieRLEAddOverClipped8(unsigned char *rleTokens, unsigned char *dstPix
                 x += count;
                 dstPixel += count;
 
-                rleTokens += sizeof(long);
+                rleTokens += sizeof(int32_t);
                 break;
             case kLineStartToken:
                 if (y < srcBlitRect->top) {
@@ -1103,22 +1103,22 @@ void BlitPixieRLEAddOverClipped8(unsigned char *rleTokens, unsigned char *dstPix
 }
 #else
 void BlitPixieRLEAddOverClipped8(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes, Rect *srcBlitRect)
+        int32_t dstRowBytes, Rect *srcBlitRect)
 {
     unsigned char *rowStart;
-    unsigned long token;
-    unsigned long opcode;
-    long count;
+    uint32_t token;
+    uint32_t opcode;
+    int32_t count;
     short x;
     short rowIndex;
-    long lastCol;
-    long trim;
+    int32_t lastCol;
+    int32_t trim;
 
     rowIndex = 0;
     rowStart = dstPixel;
 
     do {
-        token = *(unsigned long *)rleTokens;
+        token = *(uint32_t *)rleTokens;
         opcode = token >> 24;
         rleTokens += 4;
         count = token & 0xffffff;
@@ -1150,7 +1150,7 @@ void BlitPixieRLEAddOverClipped8(unsigned char *rleTokens, unsigned char *dstPix
             rleTokens += count;
             x += count;
             dstPixel += count;
-            rleTokens += (-(long)rleTokens) & 3;
+            rleTokens += (-(int32_t)rleTokens) & 3;
             break;
 
         case 3:
@@ -1174,7 +1174,7 @@ void BlitPixieRLEAddOverClipped8(unsigned char *rleTokens, unsigned char *dstPix
                     count -= trim;
                 }
 
-                BlitPixieMemSet(dstPixel, *(unsigned long *)rleTokens, count);
+                BlitPixieMemSet(dstPixel, *(uint32_t *)rleTokens, count);
 
                 x += trim;
                 dstPixel += trim;

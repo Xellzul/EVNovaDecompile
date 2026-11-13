@@ -9,7 +9,7 @@
 // FUNCTION: EVNOVA 0x00471d30
 // MAC: _BlitPixieFloatingRect i386 0x000be4f8 ppc 0x000c9e7c
 void BlitPixieFloatingRect(unsigned char *srcPixels, unsigned char *dstPixels,
-        long srcRowBytes, long dstRowBytes, unsigned short byteWidth,
+        int32_t srcRowBytes, int32_t dstRowBytes, unsigned short byteWidth,
         unsigned short numRows, unsigned short level)
 {
     overBias = 32;

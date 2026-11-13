@@ -58,7 +58,7 @@ typedef struct TCPMacTCP {
     MutexList *recvList2;
     NetAddress local;
     NetAddress remote;
-    long unk240;
+    int32_t unk240;
     StreamPtr stream;
     Ptr buffer;
     TCPiopb sendPb;
@@ -67,7 +67,7 @@ typedef struct TCPMacTCP {
     MutexList sendQueue;
     NetChunk *sending;
     NetChunk *receiving;
-    long sendBytes;
+    int32_t sendBytes;
     short pad340;
     unsigned short listenPort;
     ULong listenHost;
@@ -92,7 +92,7 @@ static UniversalProcPtr sStreamNotify = &sStreamNotifyDesc;
 
 NetStream *StreamCreateMacTCP(NetStackID stack, void *ref, NetProc proc, MutexList *sentList, MutexList *freeList, MutexList *recvList, MutexList *recvList2)
 {
-    long err, e;
+    int32_t err, e;
     TCPMacTCP *s;
 
     err = 0;
@@ -142,7 +142,7 @@ done:
 
 void StreamTickleMacTCP(TCPMacTCP *s)
 {
-    long state;
+    int32_t state;
 
     state = s->state;
     if (state != 0)
@@ -173,7 +173,7 @@ void StreamDisposeMacTCP(NetSocket *sock)
     MemoryDeallocate(s);
 }
 
-long StreamAcceptServerMacTCP(void *ref, void *other)
+int32_t StreamAcceptServerMacTCP(void *ref, void *other)
 {
     TCPMacTCP *s;
     TCPMacTCP *o;
@@ -216,15 +216,15 @@ done:
     return 0;
 }
 
-long StreamOpenClientMacTCP(TCPMacTCP *s, NetAddress *local, const NetAddress *remote, ULong timeout)
+int32_t StreamOpenClientMacTCP(TCPMacTCP *s, NetAddress *local, const NetAddress *remote, ULong timeout)
 {
     unsigned short remotePort;
     ULong remoteHost;
     TCPiopb pb;
     unsigned short localPort;
     ULong localHost;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULongLong deadline;
 
     remoteHost = 0;
@@ -302,9 +302,9 @@ long StreamOpenClientMacTCP(TCPMacTCP *s, NetAddress *local, const NetAddress *r
     }
     if (timeout != 0) {
         deadline = TimerGetMilliseconds() + timeout;
-        while ((long)s->state == kStateConnecting && (long long)(deadline - TimerGetMilliseconds()) > 0)
+        while ((int32_t)s->state == kStateConnecting && (long long)(deadline - TimerGetMilliseconds()) > 0)
             SystemIdle();
-        if ((long)s->state == kStateConnecting) {
+        if ((int32_t)s->state == kStateConnecting) {
             StreamCloseMacTCP((NetSocket *)s, 0);
             err = kTimedOut;
         }
@@ -315,11 +315,11 @@ done:
     return err;
 }
 
-long StreamSendMacTCP(void *ref, NetChunk *chunk)
+int32_t StreamSendMacTCP(void *ref, NetChunk *chunk)
 {
     TCPMacTCP *s;
-    long err;
-    long state;
+    int32_t err;
+    int32_t state;
 
     s = ref;
     err = 0;
@@ -340,12 +340,12 @@ void StreamCloseMacTCP(NetSocket *sock, unsigned char graceful)
     unsigned char close;
     TCPMacTCP *s;
     unsigned char abort;
-    long err;
+    int32_t err;
     unsigned char waitEnd;
     TCPiopb pb;
     volatile unsigned char finished;
-    long e;
-    long state;
+    int32_t e;
+    int32_t state;
 
     s = (TCPMacTCP *)sock;
     err = 0;
@@ -440,7 +440,7 @@ void StreamCloseMacTCP(NetSocket *sock, unsigned char graceful)
         while (err == 0 && !finished)
             SystemIdle();
     }
-    while (s->stream != 0 && waitEnd && (long)s->state != 0 && (long)s->state != kStatePeerClosed && (long)s->state != kStateDead)
+    while (s->stream != 0 && waitEnd && (int32_t)s->state != 0 && (int32_t)s->state != kStatePeerClosed && (int32_t)s->state != kStateDead)
         SystemIdle();
     if (s->stream != 0) {
         pb.ioCompletion = 0;
@@ -464,10 +464,10 @@ void StreamCloseMacTCP(NetSocket *sock, unsigned char graceful)
     NetworkMakeCallback(s->proc, s->ref, (NetSocket *)s, kEventClosed);
 }
 
-long StreamGetAddressMacTCP(TCPMacTCP *s, NetAddress *local, NetAddress *remote)
+int32_t StreamGetAddressMacTCP(TCPMacTCP *s, NetAddress *local, NetAddress *remote)
 {
-    long err;
-    long state;
+    int32_t err;
+    int32_t state;
 
     err = 0;
     state = s->state;
@@ -499,8 +499,8 @@ void StreamCreateStreamMacTCP(TCPMacTCP *s)
 
 static void StreamListenMacTCP(TCPMacTCP *s)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     s->state = kStateListening;
@@ -538,7 +538,7 @@ void StreamPostMacTCP(TCPMacTCP *s)
 {
     char token[16];
     unsigned char post;
-    long e;
+    int32_t e;
 
     post = 0;
     AtomicEnterCritical(token);
@@ -574,7 +574,7 @@ void StreamPostMacTCP(TCPMacTCP *s)
 
 void StreamReceiveMacTCP(TCPMacTCP *s)
 {
-    long err;
+    int32_t err;
     NetChunk *chunk;
 
     err = 0;
@@ -739,7 +739,7 @@ static pascal void StreamNotifyMacTCP(StreamPtr stream, unsigned short event, Pt
 {
     TCPMacTCP *s;
     unsigned char quiet;
-    long state;
+    int32_t state;
 
     quiet = 0;
     s = *(TCPMacTCP **)userData;

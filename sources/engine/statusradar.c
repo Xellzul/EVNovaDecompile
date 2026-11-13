@@ -70,17 +70,17 @@ void DrawStatusRadar(Boolean highlight)
     FloatPoint tip;
     FloatPoint barb;
     RGBColor color;
-    long cx;
-    long cy;
+    int32_t cx;
+    int32_t cy;
     Boolean hasIFF;
     Boolean hasDensity;
     Boolean visible;
-    long i;
-    long stellar;
-    long size;
-    long angle;
-    long links;
-    long half;
+    int32_t i;
+    int32_t stellar;
+    int32_t size;
+    int32_t angle;
+    int32_t links;
+    int32_t half;
 
     if (statusOffRect[kRadarRect].left >= statusOffRect[kRadarRect].right ||
         statusOffRect[kRadarRect].top >= statusOffRect[kRadarRect].bottom)
@@ -126,10 +126,10 @@ void DrawStatusRadar(Boolean highlight)
                 stellar = systemData[shipData[0].curSystem].navDefault[i];
                 if (stellar != -1) {
                     blipRect.left = blipRect.right =
-                        (cx + (long)(stellarData[stellar].pos.h -
+                        (cx + (int32_t)(stellarData[stellar].pos.h -
                                      shipData[0].pos.x) * kRadarScale);
                     blipRect.top = blipRect.bottom =
-                        (cy + (long)(stellarData[stellar].pos.v -
+                        (cy + (int32_t)(stellarData[stellar].pos.v -
                                      shipData[0].pos.y) * kRadarScale);
                     if ((stellarData[stellar].flags & kSpobIsStation) != 0 ||
                         (stellarData[stellar].flags2 & kSpobGateOrWormhole) != 0) {
@@ -182,10 +182,10 @@ void DrawStatusRadar(Boolean highlight)
                         visible = 1;
                     if (visible) {
                         blipRect.left = blipRect.right =
-                            (cx + (long)(shipData[i].pos.x -
+                            (cx + (int32_t)(shipData[i].pos.x -
                                          shipData[0].pos.x) * kRadarScale);
                         blipRect.top = blipRect.bottom =
-                            (cy + (long)(shipData[i].pos.y -
+                            (cy + (int32_t)(shipData[i].pos.y -
                                          shipData[0].pos.y) * kRadarScale);
                         if (shipData[0].targetShip == i) {
                             if (radarCount != 0) {

@@ -44,7 +44,7 @@ typedef struct {
   jvirt_sarray_ptr virt_sarray_list;
   jvirt_barray_ptr virt_barray_list;
 
-  long total_space_allocated;
+  int32_t total_space_allocated;
 
   JDIMENSION last_rowsperchunk;
 } my_memory_mgr;
@@ -220,13 +220,13 @@ alloc_sarray (j_common_ptr cinfo, int pool_id,
   JSAMPARRAY result;
   JSAMPROW workspace;
   JDIMENSION rowsperchunk, currow, i;
-  long ltemp;
+  int32_t ltemp;
 
   ltemp = (MAX_ALLOC_CHUNK-SIZEOF(large_pool_hdr)) /
-	  ((long) samplesperrow * SIZEOF(JSAMPLE));
+	  ((int32_t) samplesperrow * SIZEOF(JSAMPLE));
   if (ltemp <= 0)
     ERREXIT(cinfo, JERR_WIDTH_OVERFLOW);
-  if (ltemp < (long) numrows)
+  if (ltemp < (int32_t) numrows)
     rowsperchunk = (JDIMENSION) ltemp;
   else
     rowsperchunk = numrows;
@@ -262,13 +262,13 @@ alloc_barray (j_common_ptr cinfo, int pool_id,
   JBLOCKARRAY result;
   JBLOCKROW workspace;
   JDIMENSION rowsperchunk, currow, i;
-  long ltemp;
+  int32_t ltemp;
 
   ltemp = (MAX_ALLOC_CHUNK-SIZEOF(large_pool_hdr)) /
-	  ((long) blocksperrow * SIZEOF(JBLOCK));
+	  ((int32_t) blocksperrow * SIZEOF(JBLOCK));
   if (ltemp <= 0)
     ERREXIT(cinfo, JERR_WIDTH_OVERFLOW);
-  if (ltemp < (long) numrows)
+  if (ltemp < (int32_t) numrows)
     rowsperchunk = (JDIMENSION) ltemp;
   else
     rowsperchunk = numrows;
@@ -360,8 +360,8 @@ realize_virt_arrays (j_common_ptr cinfo)
 
 {
   my_mem_ptr mem = (my_mem_ptr) cinfo->mem;
-  long space_per_minheight, maximum_space, avail_mem;
-  long minheights, max_minheights;
+  int32_t space_per_minheight, maximum_space, avail_mem;
+  int32_t minheights, max_minheights;
   jvirt_sarray_ptr sptr;
   jvirt_barray_ptr bptr;
 
@@ -369,18 +369,18 @@ realize_virt_arrays (j_common_ptr cinfo)
   maximum_space = 0;
   for (sptr = mem->virt_sarray_list; sptr != NULL; sptr = sptr->next) {
     if (sptr->mem_buffer == NULL) {
-      space_per_minheight += (long) sptr->maxaccess *
-			     (long) sptr->samplesperrow * SIZEOF(JSAMPLE);
-      maximum_space += (long) sptr->rows_in_array *
-		       (long) sptr->samplesperrow * SIZEOF(JSAMPLE);
+      space_per_minheight += (int32_t) sptr->maxaccess *
+			     (int32_t) sptr->samplesperrow * SIZEOF(JSAMPLE);
+      maximum_space += (int32_t) sptr->rows_in_array *
+		       (int32_t) sptr->samplesperrow * SIZEOF(JSAMPLE);
     }
   }
   for (bptr = mem->virt_barray_list; bptr != NULL; bptr = bptr->next) {
     if (bptr->mem_buffer == NULL) {
-      space_per_minheight += (long) bptr->maxaccess *
-			     (long) bptr->blocksperrow * SIZEOF(JBLOCK);
-      maximum_space += (long) bptr->rows_in_array *
-		       (long) bptr->blocksperrow * SIZEOF(JBLOCK);
+      space_per_minheight += (int32_t) bptr->maxaccess *
+			     (int32_t) bptr->blocksperrow * SIZEOF(JBLOCK);
+      maximum_space += (int32_t) bptr->rows_in_array *
+		       (int32_t) bptr->blocksperrow * SIZEOF(JBLOCK);
     }
   }
 
@@ -401,7 +401,7 @@ realize_virt_arrays (j_common_ptr cinfo)
 
   for (sptr = mem->virt_sarray_list; sptr != NULL; sptr = sptr->next) {
     if (sptr->mem_buffer == NULL) {
-      minheights = ((long) sptr->rows_in_array - 1L) / sptr->maxaccess + 1L;
+      minheights = ((int32_t) sptr->rows_in_array - 1L) / sptr->maxaccess + 1L;
       if (minheights <= max_minheights) {
 
 	sptr->rows_in_mem = sptr->rows_in_array;
@@ -409,9 +409,9 @@ realize_virt_arrays (j_common_ptr cinfo)
 
 	sptr->rows_in_mem = (JDIMENSION) (max_minheights * sptr->maxaccess);
 	jpeg_open_backing_store(cinfo, & sptr->b_s_info,
-				(long) sptr->rows_in_array *
-				(long) sptr->samplesperrow *
-				(long) SIZEOF(JSAMPLE));
+				(int32_t) sptr->rows_in_array *
+				(int32_t) sptr->samplesperrow *
+				(int32_t) SIZEOF(JSAMPLE));
 	sptr->b_s_open = TRUE;
       }
       sptr->mem_buffer = alloc_sarray(cinfo, JPOOL_IMAGE,
@@ -425,7 +425,7 @@ realize_virt_arrays (j_common_ptr cinfo)
 
   for (bptr = mem->virt_barray_list; bptr != NULL; bptr = bptr->next) {
     if (bptr->mem_buffer == NULL) {
-      minheights = ((long) bptr->rows_in_array - 1L) / bptr->maxaccess + 1L;
+      minheights = ((int32_t) bptr->rows_in_array - 1L) / bptr->maxaccess + 1L;
       if (minheights <= max_minheights) {
 
 	bptr->rows_in_mem = bptr->rows_in_array;
@@ -433,9 +433,9 @@ realize_virt_arrays (j_common_ptr cinfo)
 
 	bptr->rows_in_mem = (JDIMENSION) (max_minheights * bptr->maxaccess);
 	jpeg_open_backing_store(cinfo, & bptr->b_s_info,
-				(long) bptr->rows_in_array *
-				(long) bptr->blocksperrow *
-				(long) SIZEOF(JBLOCK));
+				(int32_t) bptr->rows_in_array *
+				(int32_t) bptr->blocksperrow *
+				(int32_t) SIZEOF(JBLOCK));
 	bptr->b_s_open = TRUE;
       }
       bptr->mem_buffer = alloc_barray(cinfo, JPOOL_IMAGE,
@@ -455,19 +455,19 @@ LOCAL(void)
 do_sarray_io (j_common_ptr cinfo, jvirt_sarray_ptr ptr, boolean writing)
 
 {
-  long bytesperrow, file_offset, byte_count, rows, thisrow, i;
+  int32_t bytesperrow, file_offset, byte_count, rows, thisrow, i;
 
-  bytesperrow = (long) ptr->samplesperrow * SIZEOF(JSAMPLE);
+  bytesperrow = (int32_t) ptr->samplesperrow * SIZEOF(JSAMPLE);
   file_offset = ptr->cur_start_row * bytesperrow;
 
-  for (i = 0; i < (long) ptr->rows_in_mem; i += ptr->rowsperchunk) {
+  for (i = 0; i < (int32_t) ptr->rows_in_mem; i += ptr->rowsperchunk) {
 
-    rows = MIN((long) ptr->rowsperchunk, (long) ptr->rows_in_mem - i);
+    rows = MIN((int32_t) ptr->rowsperchunk, (int32_t) ptr->rows_in_mem - i);
 
-    thisrow = (long) ptr->cur_start_row + i;
-    rows = MIN(rows, (long) ptr->first_undef_row - thisrow);
+    thisrow = (int32_t) ptr->cur_start_row + i;
+    rows = MIN(rows, (int32_t) ptr->first_undef_row - thisrow);
 
-    rows = MIN(rows, (long) ptr->rows_in_array - thisrow);
+    rows = MIN(rows, (int32_t) ptr->rows_in_array - thisrow);
     if (rows <= 0)
       break;
     byte_count = rows * bytesperrow;
@@ -490,19 +490,19 @@ LOCAL(void)
 do_barray_io (j_common_ptr cinfo, jvirt_barray_ptr ptr, boolean writing)
 
 {
-  long bytesperrow, file_offset, byte_count, rows, thisrow, i;
+  int32_t bytesperrow, file_offset, byte_count, rows, thisrow, i;
 
-  bytesperrow = (long) ptr->blocksperrow * SIZEOF(JBLOCK);
+  bytesperrow = (int32_t) ptr->blocksperrow * SIZEOF(JBLOCK);
   file_offset = ptr->cur_start_row * bytesperrow;
 
-  for (i = 0; i < (long) ptr->rows_in_mem; i += ptr->rowsperchunk) {
+  for (i = 0; i < (int32_t) ptr->rows_in_mem; i += ptr->rowsperchunk) {
 
-    rows = MIN((long) ptr->rowsperchunk, (long) ptr->rows_in_mem - i);
+    rows = MIN((int32_t) ptr->rowsperchunk, (int32_t) ptr->rows_in_mem - i);
 
-    thisrow = (long) ptr->cur_start_row + i;
-    rows = MIN(rows, (long) ptr->first_undef_row - thisrow);
+    thisrow = (int32_t) ptr->cur_start_row + i;
+    rows = MIN(rows, (int32_t) ptr->first_undef_row - thisrow);
 
-    rows = MIN(rows, (long) ptr->rows_in_array - thisrow);
+    rows = MIN(rows, (int32_t) ptr->rows_in_array - thisrow);
     if (rows <= 0)
       break;
     byte_count = rows * bytesperrow;
@@ -548,9 +548,9 @@ access_virt_sarray (j_common_ptr cinfo, jvirt_sarray_ptr ptr,
       ptr->cur_start_row = start_row;
     } else {
 
-      long ltemp;
+      int32_t ltemp;
 
-      ltemp = (long) end_row - (long) ptr->rows_in_mem;
+      ltemp = (int32_t) end_row - (int32_t) ptr->rows_in_mem;
       if (ltemp < 0)
 	ltemp = 0;
       ptr->cur_start_row = (JDIMENSION) ltemp;
@@ -619,9 +619,9 @@ access_virt_barray (j_common_ptr cinfo, jvirt_barray_ptr ptr,
       ptr->cur_start_row = start_row;
     } else {
 
-      long ltemp;
+      int32_t ltemp;
 
-      ltemp = (long) end_row - (long) ptr->rows_in_mem;
+      ltemp = (int32_t) end_row - (int32_t) ptr->rows_in_mem;
       if (ltemp < 0)
 	ltemp = 0;
       ptr->cur_start_row = (JDIMENSION) ltemp;
@@ -746,7 +746,7 @@ GLOBAL(void)
 jinit_memory_mgr (j_common_ptr cinfo)
 {
   my_mem_ptr mem;
-  long max_to_use;
+  int32_t max_to_use;
   int pool;
   size_t test_mac;
 
@@ -756,7 +756,7 @@ jinit_memory_mgr (j_common_ptr cinfo)
     ERREXIT(cinfo, JERR_BAD_ALIGN_TYPE);
 
   test_mac = (size_t) MAX_ALLOC_CHUNK;
-  if ((long) test_mac != MAX_ALLOC_CHUNK ||
+  if ((int32_t) test_mac != MAX_ALLOC_CHUNK ||
       (MAX_ALLOC_CHUNK % SIZEOF(ALIGN_TYPE)) != 0)
     ERREXIT(cinfo, JERR_BAD_ALLOC_CHUNK);
 

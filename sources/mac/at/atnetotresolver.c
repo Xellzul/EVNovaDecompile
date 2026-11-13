@@ -14,7 +14,7 @@
 #endif
 extern unsigned char _PlatformIsThreaded(void);
 
-extern long CriticalCreateFromProvider(void *lock, ProviderRef provider);
+extern int32_t CriticalCreateFromProvider(void *lock, ProviderRef provider);
 
 #if TARGET_API_MAC_CARBON
 #define OTOpenMapper(c, o, e) OTOpenMapperInContext(c, o, e, 0)
@@ -60,7 +60,7 @@ typedef struct OTResolver {
     ULong flags;
     MutexList *freeList;
     MutexList *doneList;
-    long unk30;
+    int32_t unk30;
     MutexList requests;
     ProviderRef provider;
     NetLookup *current;
@@ -108,9 +108,9 @@ static inline char *MslAppend(char *dst, const char *src)
     return dst;
 }
 
-static inline long MslLength(const char *s)
+static inline int32_t MslLength(const char *s)
 {
-    long n;
+    int32_t n;
     const unsigned char *p;
 
     p = (const unsigned char *)s - 1;
@@ -123,7 +123,7 @@ static inline long MslLength(const char *s)
 
 NetResolver *ResolverCreateOT(NetStackID stack, void *ref, NetProc proc, MutexList *doneList, MutexList *freeList)
 {
-    long err, e;
+    int32_t err, e;
     OTResolver *r;
 
     err = 0;
@@ -172,7 +172,7 @@ done:
 
 void ResolverTickleOT(NetSocket *s)
 {
-    long state;
+    int32_t state;
 
     state = s->state;
     if (state != 0)
@@ -192,12 +192,12 @@ void ResolverDisposeOT(OTResolver *r)
     MemoryDeallocate(r);
 }
 
-long ResolverOpenOT(void *ref)
+int32_t ResolverOpenOT(void *ref)
 {
     OTResolver *r;
-    long err;
+    int32_t err;
     OSStatus status;
-    long e;
+    int32_t e;
 
     r = ref;
     err = 0;
@@ -249,12 +249,12 @@ done:
     return err;
 }
 
-long ResolverControlOT(void *ref, NetLookup *lookup)
+int32_t ResolverControlOT(void *ref, NetLookup *lookup)
 {
     OTResolver *r;
-    long err;
+    int32_t err;
     Boolean entered;
-    long state;
+    int32_t state;
 
     r = ref;
     err = 0;
@@ -388,7 +388,7 @@ static unsigned char LookupReplyToName(const unsigned short *entry, NetLookup *l
     const unsigned short *addr;
     const unsigned char *name;
     unsigned char ok;
-    long n;
+    int32_t n;
 
     addr = entry + 2;
     n = entry[0];
@@ -556,7 +556,7 @@ pascal void ResolverNotifierOT(void *ref, OTEventCode code, OTResult result, voi
     }
     case kOTProviderWillClose:
     case kOTProviderIsClosed: {
-        long state;
+        int32_t state;
         OSStatus e;
 
         state = r->state;

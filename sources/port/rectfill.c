@@ -15,11 +15,11 @@ void FillRectWithColor(Rect *r, RGBColor *color)
     short portTop;
     short left;
     short bottom;
-    long advance;
-    long rowBytes;
-    long width;
-    long height;
-    long depth;
+    int32_t advance;
+    int32_t rowBytes;
+    int32_t width;
+    int32_t height;
+    int32_t depth;
     unsigned char *dst;
     short portBottom;
     short right;
@@ -27,8 +27,8 @@ void FillRectWithColor(Rect *r, RGBColor *color)
     unsigned char rb;
     unsigned char gb;
     unsigned char bb;
-    unsigned long pixel;
-    long w;
+    uint32_t pixel;
+    int32_t w;
     short portLeft;
 
     if (r == NULL)

@@ -9,5 +9,5 @@
 #include <EVNova1010.h>
 #undef ShowMenuBar
 #undef HideMenuBar
-extern long ShowMenuBar(void);
-extern long HideMenuBar(void);
+extern int32_t ShowMenuBar(void);
+extern int32_t HideMenuBar(void);

@@ -56,13 +56,13 @@ void BlitStatusArea(void)
     Rect box;
     PixMapHandle srcPix;
     PixMapHandle dstPix;
-    long srcRowBytes;
-    long dstRowBytes;
+    int32_t srcRowBytes;
+    int32_t dstRowBytes;
     char *src;
     char *srcBase;
-    long width;
-    long height;
-    long top;
+    int32_t width;
+    int32_t height;
+    int32_t top;
     short left;
     FramePtr frame;
 

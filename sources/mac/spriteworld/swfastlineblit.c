@@ -16,7 +16,7 @@ void BlitLine(
 	Byte color)
 {
 	register Ptr	baseAddr = dstFrameP->frameBaseAddr;
-	unsigned long	rowBytes = dstFrameP->frameRowBytes;
+	uint32_t	rowBytes = dstFrameP->frameRowBytes;
 	short			x1 = srcPoint.h, y1 = srcPoint.v,
 					x2 = dstPoint.h, y2 = dstPoint.v;
 	short			dx, dy, sx, sy, iy;
@@ -80,8 +80,8 @@ void BPCopyLine(
 {
 	Ptr				srcBaseAddr = srcFrameP->frameBaseAddr;
 	Ptr				dstBaseAddr = dstFrameP->frameBaseAddr;
-	unsigned long	srcRowBytes = srcFrameP->frameRowBytes;
-	unsigned long	dstRowBytes = dstFrameP->frameRowBytes;
+	uint32_t	srcRowBytes = srcFrameP->frameRowBytes;
+	uint32_t	dstRowBytes = dstFrameP->frameRowBytes;
 	short			x1 = srcPoint.h, y1 = srcPoint.v,
 					x2 = dstPoint.h, y2 = dstPoint.v;
 	short			dx, dy, sx, sy, srciy, dstiy;
@@ -153,8 +153,8 @@ void BlitWrappingLine(
 	Byte color)
 {
 	Ptr				baseAddr;
-	unsigned long	rowBytes = dstFrameP->frameRowBytes;
-	unsigned long	vertOffset;
+	uint32_t	rowBytes = dstFrameP->frameRowBytes;
+	uint32_t	vertOffset;
 	short			x1 = srcPoint.h, y1 = srcPoint.v,
 					x2 = dstPoint.h, y2 = dstPoint.v;
 	short			dx, dy, sx, sy, iy;
@@ -306,9 +306,9 @@ void BPCopyWrappingLine(
 {
 	Ptr				srcBaseAddr = srcFrameP->frameBaseAddr;
 	Ptr				dstBaseAddr = dstFrameP->frameBaseAddr;
-	unsigned long	srcRowBytes = srcFrameP->frameRowBytes;
-	unsigned long	dstRowBytes = dstFrameP->frameRowBytes;
-	unsigned long	srcVertOffset, dstVertOffset;
+	uint32_t	srcRowBytes = srcFrameP->frameRowBytes;
+	uint32_t	dstRowBytes = dstFrameP->frameRowBytes;
+	uint32_t	srcVertOffset, dstVertOffset;
 	short			x1 = srcPoint.h, y1 = srcPoint.v,
 					x2 = dstPoint.h, y2 = dstPoint.v;
 	short			dx, dy, sx, sy, srciy, dstiy;
@@ -476,7 +476,7 @@ void BlitStraightLine(
 	Point dstPoint,
 	Byte color)
 {
-	unsigned long	rowBytes = dstFrameP->frameRowBytes;
+	uint32_t	rowBytes = dstFrameP->frameRowBytes;
 	short			x1 = srcPoint.h, y1 = srcPoint.v,
 					x2 = dstPoint.h, y2 = dstPoint.v;
 	short			dx, dy;
@@ -517,9 +517,9 @@ void BlitStraightLine(
 	}
 	else if (y1 == y2)	// Straight horizontal line
 	{
-		register unsigned long 	*longBaseAddr;
+		register uint32_t 	*longBaseAddr;
 		register 				numLongBlits;
-		unsigned long			longColor;
+		uint32_t			longColor;
 
 			// Fill longColor with color
 		longColor = (color<<24) | (color<<16) | (color<<8) | (color);
@@ -543,7 +543,7 @@ void BlitStraightLine(
 		if (dx > 0)	// Make sure there is a line first!
 		{
 			numLongBlits = (dx >> 2);
-			longBaseAddr = (unsigned long *)(dstFrameP->frameBaseAddr +
+			longBaseAddr = (uint32_t *)(dstFrameP->frameBaseAddr +
 					dstFrameP->scanLinePtrArray[y1] + x1);
 
 			while (numLongBlits--)
@@ -562,7 +562,7 @@ void BlitStraightLine(
 			if (dx & 0x2)
 			{
 				*((unsigned short *) longBaseAddr) = longColor;
-				longBaseAddr = (unsigned long *)(((unsigned short *)longBaseAddr) + 1);
+				longBaseAddr = (uint32_t *)(((unsigned short *)longBaseAddr) + 1);
 			}
 			if (dx & 0x1)
 			{
@@ -582,8 +582,8 @@ void BPCopyStraightLine(
 	Point srcPoint,
 	Point dstPoint)
 {
-	unsigned long	srcRowBytes = srcFrameP->frameRowBytes;
-	unsigned long	dstRowBytes = dstFrameP->frameRowBytes;
+	uint32_t	srcRowBytes = srcFrameP->frameRowBytes;
+	uint32_t	dstRowBytes = dstFrameP->frameRowBytes;
 	short			x1 = srcPoint.h, y1 = srcPoint.v,
 					x2 = dstPoint.h, y2 = dstPoint.v;
 	short			dx, dy;
@@ -628,8 +628,8 @@ void BPCopyStraightLine(
 	}
 	else if (y1 == y2)	// Straight horizontal line
 	{
-		register unsigned long	*srcBaseAddr;
-		register unsigned long	*dstBaseAddr;
+		register uint32_t	*srcBaseAddr;
+		register uint32_t	*dstBaseAddr;
 		register 				numLongBlits;
 
 		if (x2 < x1)
@@ -652,9 +652,9 @@ void BPCopyStraightLine(
 		if (dx > 0)		// Make sure there is a line first!
 		{
 			numLongBlits = (dx >> 2);
-			srcBaseAddr = (unsigned long *)(srcFrameP->frameBaseAddr +
+			srcBaseAddr = (uint32_t *)(srcFrameP->frameBaseAddr +
 					srcFrameP->scanLinePtrArray[y1] + x1);
-			dstBaseAddr = (unsigned long *)(dstFrameP->frameBaseAddr +
+			dstBaseAddr = (uint32_t *)(dstFrameP->frameBaseAddr +
 					dstFrameP->scanLinePtrArray[y1] + x1);
 
 			while (numLongBlits--)
@@ -674,14 +674,14 @@ void BPCopyStraightLine(
 			if (dx & 0x2)
 			{
 				*((unsigned short *) dstBaseAddr) = *((unsigned short *) srcBaseAddr);
-				dstBaseAddr = (unsigned long *)(((unsigned short *)dstBaseAddr) + 1);
-				srcBaseAddr = (unsigned long *)(((unsigned short *)srcBaseAddr) + 1);
+				dstBaseAddr = (uint32_t *)(((unsigned short *)dstBaseAddr) + 1);
+				srcBaseAddr = (uint32_t *)(((unsigned short *)srcBaseAddr) + 1);
 			}
 			if (dx & 0x1)
 			{
 				*((unsigned char *) dstBaseAddr) = *((unsigned char *) srcBaseAddr);
-				dstBaseAddr = (unsigned long *)(((unsigned char *)dstBaseAddr) + 1);
-				srcBaseAddr = (unsigned long *)(((unsigned char *)srcBaseAddr) + 1);
+				dstBaseAddr = (uint32_t *)(((unsigned char *)dstBaseAddr) + 1);
+				srcBaseAddr = (uint32_t *)(((unsigned char *)srcBaseAddr) + 1);
 			}
 #endif
 		}
@@ -696,7 +696,7 @@ void BlitStraightWrappingLine(
 	Point dstPoint,
 	Byte color)
 {
-	unsigned long	rowBytes = dstFrameP->frameRowBytes;
+	uint32_t	rowBytes = dstFrameP->frameRowBytes;
 	short			x1 = srcPoint.h, y1 = srcPoint.v,
 					x2 = dstPoint.h, y2 = dstPoint.v;
 	short			dx, dy;
@@ -778,9 +778,9 @@ void BlitStraightWrappingLine(
 	}
 	else if (y1 == y2)	// Straight horizontal line
 	{
-		register unsigned long 	*longBaseAddr;
+		register uint32_t 	*longBaseAddr;
 		register 				numLongBlits;
-		unsigned long			longColor;
+		uint32_t			longColor;
 		short					x3, x4;		// Second half of wrapped line
 
 			// Fill longColor with color
@@ -832,7 +832,7 @@ void BlitStraightWrappingLine(
 		if (dx > 0)			// Make sure there is a line first!
 		{
 			numLongBlits = (dx >> 2);
-			longBaseAddr = (unsigned long *)(dstFrameP->frameBaseAddr +
+			longBaseAddr = (uint32_t *)(dstFrameP->frameBaseAddr +
 					dstFrameP->scanLinePtrArray[y1] + x1);
 
 			while (numLongBlits--)
@@ -851,12 +851,12 @@ void BlitStraightWrappingLine(
 			if (dx & 0x2)
 			{
 				*((unsigned short *) longBaseAddr) = longColor;
-				longBaseAddr = (unsigned long *)(((unsigned short *)longBaseAddr) + 1);
+				longBaseAddr = (uint32_t *)(((unsigned short *)longBaseAddr) + 1);
 			}
 			if (dx & 0x1)
 			{
 				*((unsigned char *) longBaseAddr) = color;
-				longBaseAddr = (unsigned long *)(((unsigned char *)longBaseAddr) + 1);
+				longBaseAddr = (uint32_t *)(((unsigned char *)longBaseAddr) + 1);
 			}
 #endif
 		}
@@ -867,7 +867,7 @@ void BlitStraightWrappingLine(
 		if (dx > 0)			// Make sure there is a line first!
 		{
 			numLongBlits = (dx >> 2);
-			longBaseAddr = (unsigned long *)(dstFrameP->frameBaseAddr +
+			longBaseAddr = (uint32_t *)(dstFrameP->frameBaseAddr +
 					dstFrameP->scanLinePtrArray[y1] + x3);
 
 			while (numLongBlits--)
@@ -886,12 +886,12 @@ void BlitStraightWrappingLine(
 			if (dx & 0x2)
 			{
 				*((unsigned short *) longBaseAddr) = longColor;
-				longBaseAddr = (unsigned long *)(((unsigned short *)longBaseAddr) + 1);
+				longBaseAddr = (uint32_t *)(((unsigned short *)longBaseAddr) + 1);
 			}
 			if (dx & 0x1)
 			{
 				*((unsigned char *) longBaseAddr) = color;
-				longBaseAddr = (unsigned long *)(((unsigned char *)longBaseAddr) + 1);
+				longBaseAddr = (uint32_t *)(((unsigned char *)longBaseAddr) + 1);
 			}
 #endif
 		}
@@ -906,8 +906,8 @@ void BPCopyStraightWrappingLine(
 	Point srcPoint,
 	Point dstPoint)
 {
-	unsigned long	srcRowBytes = srcFrameP->frameRowBytes;
-	unsigned long	dstRowBytes = dstFrameP->frameRowBytes;
+	uint32_t	srcRowBytes = srcFrameP->frameRowBytes;
+	uint32_t	dstRowBytes = dstFrameP->frameRowBytes;
 	short			x1 = srcPoint.h, y1 = srcPoint.v,
 					x2 = dstPoint.h, y2 = dstPoint.v;
 	short			dx, dy;
@@ -995,7 +995,7 @@ void BPCopyStraightWrappingLine(
 	}
 	else if (y1 == y2)	// Straight horizontal line
 	{
-		register unsigned long 	*srcBaseAddr, *dstBaseAddr;
+		register uint32_t 	*srcBaseAddr, *dstBaseAddr;
 		register 				numLongBlits;
 		short					x3, x4;		// Second half of wrapped line
 
@@ -1045,9 +1045,9 @@ void BPCopyStraightWrappingLine(
 		if (dx > 0)			// Make sure there is a line first!
 		{
 			numLongBlits = (dx >> 2);
-			srcBaseAddr = (unsigned long *)(srcFrameP->frameBaseAddr +
+			srcBaseAddr = (uint32_t *)(srcFrameP->frameBaseAddr +
 					srcFrameP->scanLinePtrArray[y1] + x1);
-			dstBaseAddr = (unsigned long *)(dstFrameP->frameBaseAddr +
+			dstBaseAddr = (uint32_t *)(dstFrameP->frameBaseAddr +
 					dstFrameP->scanLinePtrArray[y1] + x1);
 
 			while (numLongBlits--)
@@ -1067,14 +1067,14 @@ void BPCopyStraightWrappingLine(
 			if (dx & 0x2)
 			{
 				*((unsigned short *) dstBaseAddr) = *((unsigned short *) srcBaseAddr);
-				dstBaseAddr = (unsigned long *)(((unsigned short *)dstBaseAddr) + 1);
-				srcBaseAddr = (unsigned long *)(((unsigned short *)srcBaseAddr) + 1);
+				dstBaseAddr = (uint32_t *)(((unsigned short *)dstBaseAddr) + 1);
+				srcBaseAddr = (uint32_t *)(((unsigned short *)srcBaseAddr) + 1);
 			}
 			if (dx & 0x1)
 			{
 				*((unsigned char *) dstBaseAddr) = *((unsigned char *) srcBaseAddr);
-				dstBaseAddr = (unsigned long *)((dstBaseAddr) + 1);
-				srcBaseAddr = (unsigned long *)(((unsigned char *)srcBaseAddr) + 1);
+				dstBaseAddr = (uint32_t *)((dstBaseAddr) + 1);
+				srcBaseAddr = (uint32_t *)(((unsigned char *)srcBaseAddr) + 1);
 			}
 #endif
 		}
@@ -1085,9 +1085,9 @@ void BPCopyStraightWrappingLine(
 		if (dx > 0)			// Make sure there is a line first!
 		{
 			numLongBlits = (dx >> 2);
-			srcBaseAddr = (unsigned long *)(srcFrameP->frameBaseAddr +
+			srcBaseAddr = (uint32_t *)(srcFrameP->frameBaseAddr +
 					srcFrameP->scanLinePtrArray[y1] + x3);
-			dstBaseAddr = (unsigned long *)(dstFrameP->frameBaseAddr +
+			dstBaseAddr = (uint32_t *)(dstFrameP->frameBaseAddr +
 					dstFrameP->scanLinePtrArray[y1] + x3);
 
 			while (numLongBlits--)
@@ -1107,14 +1107,14 @@ void BPCopyStraightWrappingLine(
 			if (dx & 0x2)
 			{
 				*((unsigned short *) dstBaseAddr) = *((unsigned short *) srcBaseAddr);
-				dstBaseAddr = (unsigned long *)(((unsigned short *)dstBaseAddr) + 1);
-				srcBaseAddr = (unsigned long *)(((unsigned short *)srcBaseAddr) + 1);
+				dstBaseAddr = (uint32_t *)(((unsigned short *)dstBaseAddr) + 1);
+				srcBaseAddr = (uint32_t *)(((unsigned short *)srcBaseAddr) + 1);
 			}
 			if (dx & 0x1)
 			{
 				*((unsigned char *) dstBaseAddr) = *((unsigned char *) srcBaseAddr);
-				dstBaseAddr = (unsigned long *)(((unsigned char *)dstBaseAddr) + 1);
-				srcBaseAddr = (unsigned long *)(((unsigned char *)srcBaseAddr) + 1);
+				dstBaseAddr = (uint32_t *)(((unsigned char *)dstBaseAddr) + 1);
+				srcBaseAddr = (uint32_t *)(((unsigned char *)srcBaseAddr) + 1);
 			}
 #endif
 		}

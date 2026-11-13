@@ -7,6 +7,7 @@
 
 #include <ConditionalMacros.h>
 #include <MacTypes.h>
+#include "../../include/int32.h"
 #define NDEBUG 1
 #include <assert.h>
 #include <Quickdraw.h>

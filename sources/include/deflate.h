@@ -81,7 +81,7 @@ typedef struct internal_state {
 
     uInt  hash_shift;
 
-    long block_start;
+    int32_t block_start;
 
     uInt match_length;
     IPos prev_match;

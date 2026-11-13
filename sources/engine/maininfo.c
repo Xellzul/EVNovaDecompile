@@ -683,7 +683,7 @@ void MainScreenClobber(void)
 #endif
 
 #ifdef MAC1010
-void DoMenuClick(long menuChoice)
+void DoMenuClick(int32_t menuChoice)
 #include "../engine/domenuclick.inc"
 #endif
 
@@ -812,9 +812,9 @@ void DoPrefsDialog(void)
 }
 #else
 #ifdef MAC1010
-extern long gSystemVersion;
-extern long startupMemoryFree;
-extern void PreflightMemoryUsage(long *base, long *engineGlow, long *runningLights, long *weaponGlow);
+extern int32_t gSystemVersion;
+extern int32_t startupMemoryFree;
+extern void PreflightMemoryUsage(int32_t *base, int32_t *engineGlow, int32_t *runningLights, int32_t *weaponGlow);
 
 void DoPrefsDialog(void)
 {
@@ -822,16 +822,16 @@ void DoPrefsDialog(void)
     Settings saved;
     Rect box;
     void *item;
-    long baseSize;
-    long engineGlowSize;
-    long lightsSize;
-    long weaponGlowSize;
+    int32_t baseSize;
+    int32_t engineGlowSize;
+    int32_t lightsSize;
+    int32_t weaponGlowSize;
     short itemHit;
     short itemType;
     void *ctl;
     Boolean done;
-    long needed;
-    long size;
+    int32_t needed;
+    int32_t size;
 
     prefsDialog = NULL;
     prefsDialog = GetNewDialog(kPrefsDlogID, 0, -1);
@@ -984,7 +984,7 @@ void DoPrefsDialog(void)
             if (settings.weaponGlows != 0)
                 size += weaponGlowSize;
             needed = size + kMemorySlack;
-            if ((unsigned long)needed > startupMemoryFree) {
+            if ((uint32_t)needed > startupMemoryFree) {
                 needed -= startupMemoryFree;
                 needed = needed / kBytesPerMB + 1;
                 NumToString(needed, volText);
@@ -1529,7 +1529,7 @@ void EnterGameFromMainScreen(void)
         unsigned char name[17] = "EV NovaEV NovaEV";
         unsigned char key[17] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
         unsigned char t2;
-        long g;
+        int32_t g;
         unsigned char t3;
         unsigned char t4;
         unsigned char t1;
@@ -1871,7 +1871,7 @@ void EnterGameFromMainScreen(void)
         unsigned char blob[3] = { 0x49, 0x71, 0xad };
         unsigned char name[17] = "EV NovaEV NovaEV";
         unsigned char key[17] = "";
-        long g;
+        int32_t g;
         unsigned char *p;
         long long mem;
         unsigned char x;
@@ -2151,7 +2151,7 @@ void EnterGameFromMainScreen(void)
 // MAC: _DoNewPilot i386 0x00018b0a ppc 0x0001c720
 void DoNewPilot(void)
 {
-    unsigned long resType;
+    uint32_t resType;
 #ifdef MACBUILD
     Boolean wantStrictPlay;
 #else

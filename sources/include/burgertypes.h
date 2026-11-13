@@ -6,6 +6,7 @@
  */
 #ifndef BURGERTYPES_H
 #define BURGERTYPES_H
+#include "int32.h"
 
 #ifdef MAC1010
 #define AT_STATIC static    /* the Mac's AmbrosiaTools keeps these private; win's object names them */
@@ -21,8 +22,8 @@ typedef char **Handle;
 typedef unsigned char Word8;
 typedef unsigned short Word16;
 typedef unsigned int Word;
-typedef unsigned long Word32;
-typedef unsigned long ULong;
+typedef uint32_t Word32;
+typedef uint32_t ULong;
 typedef unsigned long long ULongLong;
 
 /* a hand-assembled body: no prologue, no epilogue */
@@ -42,10 +43,10 @@ typedef unsigned long long ULongLong;
    rate is signed: AdjustWarpSoundSpeed converts a double into it. */
 typedef struct SoundRequest {
     void **handle;                               /* +0x00 */
-    unsigned long id;                            /* +0x04, 0 = assign one */
-    long rate;                                   /* +0x08, 0x10000 = unity */
-    void (*done)(long reason, void *sound, void *ref);   /* +0x0c */
-    long unk10;                                  /* +0x10 */
+    uint32_t id;                            /* +0x04, 0 = assign one */
+    int32_t rate;                                   /* +0x08, 0x10000 = unity */
+    void (*done)(int32_t reason, void *sound, void *ref);   /* +0x0c */
+    int32_t unk10;                                  /* +0x10 */
     unsigned short priority;                     /* +0x14 */
     unsigned short leftLevel;                    /* +0x16 */
     unsigned short rightLevel;                   /* +0x18 */

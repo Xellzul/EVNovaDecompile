@@ -285,7 +285,7 @@ OSStatus ATSU_MeasureText(const UniChar *text, UniCharArrayOffset start, UniChar
     Boolean leftToRight;
     ATSUCaret caret;
     ATSUCaret caret2;
-    long n;
+    int32_t n;
 
     saved = 0;
     style = 0;

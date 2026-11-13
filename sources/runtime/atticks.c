@@ -11,7 +11,7 @@
 
 extern ULongLong gPlatformTime;                   /* atplatopen.c, clock at open */
 
-long TimerDispose(void *ref);                    /* 0x004d41f1 */
+int32_t TimerDispose(void *ref);                    /* 0x004d41f1 */
 ULong __stdcall _TimerThread(PlatformTimer *timer);     /* 0x004d435b */
 
 #define kMicrosPerSecond 1000000
@@ -20,7 +20,7 @@ ULong __stdcall _TimerThread(PlatformTimer *timer);     /* 0x004d435b */
 
 static unsigned char gTimerReady = 0;           /* 0x00865618 inited */
 static long long gTimerFrequency = 0;               /* 0x00865620 frequency */
-static long gTimerCorrection = 0;                    /* 0x00865628 correction ms */
+static int32_t gTimerCorrection = 0;                    /* 0x00865628 correction ms */
 static ULongLong gTimerLastMs = 0;               /* 0x00865630 last ms */
 static ULong gTimerLastTick = 0;                   /* 0x00865638 last tick */
 static PlatformTimer **gTimerList = 0;         /* 0x0086563c timer list */
@@ -37,14 +37,14 @@ static short gMonths[13] = {
 };
 
 /* the counter's advance since the last reading; the difference is taken in 64 bits */
-static inline long MillisSince(long now)
+static inline int32_t MillisSince(int32_t now)
 {
     return now - gTimerLastMs;
 }
 
 /* TimerGetSeconds. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d3961
-long TimerGetSeconds(void)
+int32_t TimerGetSeconds(void)
 {
     return TimerGetLocalSeconds();
 }
@@ -58,10 +58,10 @@ ULong TimerGetUTCSeconds(void)
         31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     };
     SYSTEMTIME st;
-    long year;
-    long days;
-    long i;
-    long err;
+    int32_t year;
+    int32_t days;
+    int32_t i;
+    int32_t err;
 
     err = 0;
     days = 0;
@@ -83,10 +83,10 @@ ULong TimerGetLocalSeconds(void)
         31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     };
     SYSTEMTIME st;
-    long year;
-    long days;
-    long i;
-    long err;
+    int32_t year;
+    int32_t days;
+    int32_t i;
+    int32_t err;
 
     err = 0;
     days = 0;
@@ -102,9 +102,9 @@ ULong TimerGetLocalSeconds(void)
 /* Whole seconds since the platform layer opened. */
 /* TimerGetElapsedSeconds. STATE: MATCH 100%, exe 27 / obj 27, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004d3a85
-unsigned long TimerGetElapsedSeconds(void)
+uint32_t TimerGetElapsedSeconds(void)
 {
-    long err;
+    int32_t err;
     double seconds;
 
     err = 0;
@@ -119,7 +119,7 @@ unsigned long TimerGetElapsedSeconds(void)
 // FUNCTION: EVNOVA 0x004d3ae6
 ULong TimerGetTicks(void)
 {
-    long err;
+    int32_t err;
     ULong result;
 
     err = 0;
@@ -133,7 +133,7 @@ ULong TimerGetTicks(void)
 // FUNCTION: EVNOVA 0x004d3af5
 ULong TimerGetTickRate(void)
 {
-    long err;
+    int32_t err;
     ULong result;
 
     err = 0;
@@ -146,13 +146,13 @@ ULong TimerGetTickRate(void)
 // FUNCTION: EVNOVA 0x004d3b08
 ULongLong TimerGetMicroseconds(void)
 {
-    long elapsed;
+    int32_t elapsed;
     ULongLong micros;
     long long counter;
     long long freq;
     ULongLong millis;
     ULong tick;
-    long drift;
+    int32_t drift;
 
     elapsed = 0;
     micros = 0;
@@ -209,12 +209,12 @@ ULongLong TimerGetMicroseconds(void)
 // FUNCTION: EVNOVA 0x004d3dd2
 ULongLong TimerGetMilliseconds(void)
 {
-    long elapsed;
+    int32_t elapsed;
     ULongLong millis;
     long long counter;
     long long freq;
     ULong tick;
-    long drift;
+    int32_t drift;
 
     elapsed = 0;
     millis = 0;
@@ -260,12 +260,12 @@ ULongLong TimerGetMilliseconds(void)
 
 /* TimerCreate. STATE: MATCH 100%, exe 125 / obj 125, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004d3ff5
-long TimerCreate(void *ref, void *arg, TimerProc proc)
+int32_t TimerCreate(void *ref, void *arg, TimerProc proc)
 {
     char token[16];
     PlatformTimer *timer;
     TimerThread *thread;
-    long err;
+    int32_t err;
     PlatformTimer **list;
     PlatformTimer **old;
     ULong i;
@@ -326,14 +326,14 @@ done:
 
 /* TimerPrime. STATE: MATCH 100%, exe 58 / obj 58, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004d415a
-long TimerPrime(void *ref, long period)
+int32_t TimerPrime(void *ref, int32_t period)
 {
-    long err;
+    int32_t err;
     PlatformTimer *timer;
     TimerThread *thread;
-    long result;
-    long request;
-    long elapsed;
+    int32_t result;
+    int32_t request;
+    int32_t elapsed;
 
     timer = ref;
     err = 0;
@@ -371,14 +371,14 @@ long TimerPrime(void *ref, long period)
 
 /* TimerDispose. STATE: MATCH 100%, exe 124 / obj 124, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004d41f1
-long TimerDispose(void *ref)
+int32_t TimerDispose(void *ref)
 {
     char token[16];
     PlatformTimer *timer;
-    long err;
+    int32_t err;
     ULong i;
     PlatformTimer **old;
-    long result;
+    int32_t result;
     TimerThread *dead;
     TimerThread *thread;
 
@@ -434,9 +434,9 @@ long TimerDispose(void *ref)
 ULong __stdcall _TimerThread(PlatformTimer *timer)
 {
     TimerThread *thread;
-    long err;
+    int32_t err;
     unsigned char armed;
-    long wait;
+    int32_t wait;
 
     thread = timer->thread;
     err = 0;

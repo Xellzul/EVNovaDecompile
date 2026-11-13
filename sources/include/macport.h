@@ -14,7 +14,7 @@ extern "C" {
 
 #ifndef MACBUILD
 typedef unsigned char *StringPtr;
-typedef unsigned long OSType;
+typedef uint32_t OSType;
 
 /* QuickDraw basics (partial) */
 typedef struct Point {
@@ -27,8 +27,8 @@ typedef struct Point {
 #pragma options align=packed
 typedef struct EventRecord {
     unsigned short what;
-    long message;
-    long when;
+    int32_t message;
+    int32_t when;
     Point where;
     short modifiers;
 } EventRecord;
@@ -38,18 +38,18 @@ typedef struct EventRecord {
 #ifndef MACBUILD
 typedef struct FSSpec {
     short vRefNum;
-    long parID;
+    int32_t parID;
     Str255 name;
 } FSSpec;
 
 typedef struct CGrafPort *CWindowPtr;
 #endif
 typedef struct ControlRecord {
-    long kind;
-    long itemNo;
-    long value;
-    long minValue;
-    long maxValue;
+    int32_t kind;
+    int32_t itemNo;
+    int32_t value;
+    int32_t minValue;
+    int32_t maxValue;
     Rect box;
     void *data;
     DialogPtr owner;
@@ -63,28 +63,28 @@ typedef Image_t *CIconHandle;
 typedef Image_t *PixPatHandle;
 typedef void *Movie;
 typedef struct ComponentDescription {
-    long componentType;
-    long componentSubType;
-    long componentManufacturer;
-    unsigned long componentFlags;
-    unsigned long componentFlagsMask;
+    int32_t componentType;
+    int32_t componentSubType;
+    int32_t componentManufacturer;
+    uint32_t componentFlags;
+    uint32_t componentFlagsMask;
 } ComponentDescription;
 
 typedef struct PixMap {
     Rect bounds;
-    long pixelSize;
+    int32_t pixelSize;
     void *baseAddr;
     unsigned char *ctab;
-    long originV;
-    long width;
-    long height;
-    long rowBytes;
+    int32_t originV;
+    int32_t width;
+    int32_t height;
+    int32_t rowBytes;
 } PixMap, *PixMapPtr;
 typedef struct CGrafPort {
     Boolean offscreen;
     char filler1[3];
     PixMap pix;
-    long depth;
+    int32_t depth;
     void *hdc;
     void *bitmap;
     RGBColor foreColor;
@@ -103,9 +103,9 @@ typedef struct BitMap *BitMapPtr;
 
 typedef struct SrcBitMap {
     Rect bounds;
-    unsigned long rowBytes;
+    uint32_t rowBytes;
     Image_t image;
-    long unk28[2];
+    int32_t unk28[2];
 } SrcBitMap;
 
 typedef struct GWorldContainer {
@@ -119,7 +119,7 @@ typedef struct GWorldContainer {
 #ifndef MACBUILD
 extern void GetIndString(unsigned char *str, int strListID, int index);
 #endif
-extern void GetIniIndString(char *out, long listID, long index);
+extern void GetIniIndString(char *out, int32_t listID, int32_t index);
 #ifdef MACBUILD
 /* the mac draws a dialog straight to its window: nothing to push */
 #define nv_UpdateDialogWindow(all) ((void)0)
@@ -132,19 +132,19 @@ extern GWorldContainer iconsPort;
 #ifndef MACBUILD
 EXTERN_CPP_END
 #pragma cplusplus reset
-extern void SelectDialogItemText(DialogPtr dlg, long item, long start, long end);
+extern void SelectDialogItemText(DialogPtr dlg, int32_t item, int32_t start, int32_t end);
 extern void FrameRect(const Rect *r);
 extern void GetFNum(const unsigned char *name, short *familyID);
 #endif
-extern void DrawTextRun(const void *text, unsigned long byteCount, Rect *box,
+extern void DrawTextRun(const void *text, uint32_t byteCount, Rect *box,
                         Boolean clipped, int height);
 extern CGrafPtr CurrentGrafPort;
 #ifndef MACBUILD
 extern void CopyBits(BitMapPtr srcBits, BitMapPtr dstBits,
                      const Rect *srcRect, const Rect *dstRect,
-                     long mode, void *maskRgn);
+                     int32_t mode, void *maskRgn);
 extern BitMapPtr GetPortBitMapForCopyBits(CGrafPtr port);
-extern void BlockMove(const void *src, void *dst, unsigned long len);
+extern void BlockMove(const void *src, void *dst, uint32_t len);
 extern void CopyMask(BitMapPtr srcBits, BitMapPtr maskBits, BitMapPtr dstBits,
                      Rect *srcRect, Rect *maskRect, Rect *dstRect);
 #endif
@@ -203,19 +203,19 @@ extern void CopyBitsAddOver16(PixMapPtr src, PixMapPtr dst,
 extern void CopyBitsAdMax16(PixMapPtr src, PixMapPtr dst,
         Rect *srcRect, Rect *dstRect);
 extern void CopyBitsScale8(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect,
-        long xStep, long yStep, long xStart, long yStart);
+        int32_t xStep, int32_t yStep, int32_t xStart, int32_t yStart);
 extern void CopyBitsScale16Average(PixMapPtr srcBits, PixMapPtr dstBits, Rect *srcRect,
-        Rect *dstRect, long xStep, long yStep, long xFrac,
-        long yFrac);
+        Rect *dstRect, int32_t xStep, int32_t yStep, int32_t xFrac,
+        int32_t yFrac);
 extern void CopyBitsScale24(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect,
-        long xStep, long yStep, long xFrac, long yFrac);
+        int32_t xStep, int32_t yStep, int32_t xFrac, int32_t yFrac);
 extern void CopyMaskNone(PixMapPtr src, PixMapPtr mask, PixMapPtr dst,
         Rect *srcRect, Rect *maskRect, Rect *dstRect);
 extern void CopyMask16(PixMapPtr srcBits, PixMapPtr maskBits, PixMapPtr dstBits,
         Rect *srcRect, Rect *maskRect, Rect *dstRect);
 extern void CopyMaskScale16(PixMapPtr srcBits, PixMapPtr maskBits, PixMapPtr dstBits,
         Rect *srcRect, Rect *maskRect, Rect *dstRect,
-        long xStep, long yStep, long xFrac, long yFrac);
+        int32_t xStep, int32_t yStep, int32_t xFrac, int32_t yFrac);
 
 #ifdef MACBUILD
 /* EVCarbonHack's accessors, as sources/mac/port/evcarbonhack*.c define them */
@@ -252,7 +252,7 @@ typedef struct SWFrameRec {
 #endif
     PixMapPtr framePix;
     char *frameBaseAddr;
-    unsigned long frameRowBytes;
+    uint32_t frameRowBytes;
     short leftAlignFactor;
     short rightAlignFactor;
     Boolean isFrameLocked;
@@ -283,10 +283,10 @@ typedef struct SWFrameRec {
     short worldRectOffset;
     unsigned short numScanLines;
     unsigned short pixelShift;
-    unsigned long *scanLinePtrArray;
+    uint32_t *scanLinePtrArray;
     void *rleDataH;
     void *rleTokenStart;
-    long userData;
+    int32_t userData;
 } SWFrameRec;
 
 typedef SWFrameRec *FramePtr;
@@ -336,9 +336,9 @@ typedef struct SpriteWorldRec {
     short maxNumTiles;
     short tileWidth;
     short tileHeight;
-    long numTilesChanged;
+    int32_t numTilesChanged;
     Rect *changedTiles;
-    long changedTilesArraySize;
+    int32_t changedTilesArraySize;
     WorldProcPtr tileChangeProc;
     void (*tileRectDrawProc)(struct SpriteWorldRec *, Rect *, Boolean);
     DrawProcPtr tileMaskDrawProc;
@@ -346,18 +346,18 @@ typedef struct SpriteWorldRec {
     void *mainSWGDH;
     short pixelDepth;
     short frameInterval;
-    unsigned long runningTimeCount;
+    uint32_t runningTimeCount;
 #ifdef MACBUILD
     UnsignedWide lastMicroseconds;
 #else
     unsigned long long lastMicroseconds;
 #endif
-    unsigned long timeOfLastFrame;
+    uint32_t timeOfLastFrame;
     Boolean frameHasOccurred;
     Boolean thereAreNonScrollingLayers;
     Boolean pad1;
     RGBColor backgroundColor;
-    long backgroundValue;
+    int32_t backgroundValue;
     Boolean fastBlit;
 #ifdef MACBUILD
     RgnHandle windowRgn;
@@ -375,7 +375,7 @@ typedef struct SpriteLayerRec {
     struct SpriteRec *headSpriteP;
     struct SpriteRec *tailSpriteP;
     void (*layerCallBack)(struct SpriteWorldRec *);
-    long userData;
+    int32_t userData;
     short tileLayer;
     Boolean isPaused;
     Boolean layerIsNonScrolling;
@@ -423,7 +423,7 @@ typedef struct RLEPixelData {
 #define SW_PIXELPTR16(frame, x, y)  \
     ((unsigned short *) ( (frame)->frameBaseAddr + SW_ROWBYTES(frame,y) + ((x)+(x)) ))
 #define SW_PIXELPTR32(frame, x, y)  \
-    ((unsigned long  *) ( (frame)->frameBaseAddr + SW_ROWBYTES(frame,y) + ((x) << 2) ))
+    ((uint32_t  *) ( (frame)->frameBaseAddr + SW_ROWBYTES(frame,y) + ((x) << 2) ))
 
 /* DEPTH is the switch variable FOREACH_DEPTH_DO binds. */
 #define FOREACH_DEPTH_DO(depth, instructions)   \
@@ -480,7 +480,7 @@ typedef struct RLEPixelData {
 typedef struct SpriteRec SpriteRec, *SpritePtr;
 
 typedef void (*FrameProcPtr)(SpritePtr srcSpriteP, SWFrameRec *curFrameP,
-                             long *frameIndex);
+                             int32_t *frameIndex);
 typedef void (*MoveProcPtr)(SpritePtr srcSpriteP);
 typedef void (*CollideProcPtr)(SpritePtr srcSpriteP, SpritePtr dstSpriteP,
                                Rect *sectRect);
@@ -519,17 +519,17 @@ struct SpriteRec {
     Rect destOffscreenRect;
     SWFrameRec **frameArray;
     SWFrameRec *curFrameP;
-    long numFrames;
-    long maxFrames;
-    long frameTimeInterval;
-    unsigned long timeOfLastFrameChange;
-    long frameAdvance;
-    long curFrameIndex;
-    long firstFrameIndex;
-    long lastFrameIndex;
+    int32_t numFrames;
+    int32_t maxFrames;
+    int32_t frameTimeInterval;
+    uint32_t timeOfLastFrameChange;
+    int32_t frameAdvance;
+    int32_t curFrameIndex;
+    int32_t firstFrameIndex;
+    int32_t lastFrameIndex;
     FrameProcPtr frameChangeProc;
-    long moveTimeInterval;
-    unsigned long timeOfLastMove;
+    int32_t moveTimeInterval;
+    uint32_t timeOfLastMove;
     short horizMoveDelta;
     short vertMoveDelta;
     Rect moveBoundsRect;
@@ -545,16 +545,16 @@ struct SpriteRec {
     short tintGreen;
     short tintBlue;
     short tintMode;
-    unsigned long tintColor;
-    unsigned long rotation;
+    uint32_t tintColor;
+    uint32_t rotation;
     short scaledWidth;
     short scaledHeight;
-    unsigned long colorValue;
+    uint32_t colorValue;
     RGBColor colorRGB;
     Boolean flippedHorizontal;
     Boolean flippedVertical;
     short pad2;
-    long userData;
+    int32_t userData;
     char **rleDataH;
     Boolean collisionsDisabled;
     Boolean ownsRLEData;
@@ -568,12 +568,12 @@ struct SpriteRec {
 #ifndef MACBUILD
 typedef struct TERec {
     char                  *text;
-    long                   textLength;
+    int32_t                   textLength;
     short                  txFont;
     short                  txSize;
     Rect                   destRect;
     Rect                   viewRect;
-    long                   height;
+    int32_t                   height;
     CGrafPtr               inPort;
 } TERec, **TEHandle;
 #endif
@@ -605,12 +605,12 @@ typedef struct ScrollRec {
     Point cellSize;
     ListDrawProcPtr drawProc;
     Boolean hasScrollBar;
-    long scroll;
+    int32_t scroll;
     char **cells;
     short *cellArray;
     short maxIndex;
     Point lastClick;
-    long clikTime;
+    int32_t clikTime;
     char unk3c[4];
     Boolean drawIt;
 } ScrollRec;
@@ -621,15 +621,15 @@ typedef struct DialogRecord {
     Rect gwBounds;
     Rect bounds;
     Rect portRect;
-    long itemCount;
-    long editItem;
-    long defaultItem;
-    long cancelItem;
+    int32_t itemCount;
+    int32_t editItem;
+    int32_t defaultItem;
+    int32_t cancelItem;
     void *items;
     void *updateProc;
     void *eventProc;
-    long needsUpdate;
-    long visible;
+    int32_t needsUpdate;
+    int32_t visible;
 } DialogRecord;
 
 #if defined(MAC1010) && !TARGET_API_MAC_CARBON /* as SpriteWorld's records */
@@ -637,16 +637,16 @@ typedef struct DialogRecord {
 #endif
 typedef struct Particle {
     short lifeRemaining;
-    long horizLoc;
-    long vertLoc;
-    long oldHorizLoc;
-    long oldVertLoc;
-    long horizSpeed;
-    long vertSpeed;
-    long drawnHorizLoc;
-    long drawnVertLoc;
-    long shade;
-    unsigned long color;
+    int32_t horizLoc;
+    int32_t vertLoc;
+    int32_t oldHorizLoc;
+    int32_t oldVertLoc;
+    int32_t horizSpeed;
+    int32_t vertSpeed;
+    int32_t drawnHorizLoc;
+    int32_t drawnVertLoc;
+    int32_t shade;
+    uint32_t color;
 } Particle, *ParticlePtr;
 #if defined(MAC1010) && !TARGET_API_MAC_CARBON
 #pragma options align=reset
@@ -656,7 +656,7 @@ typedef struct Particle {
 #ifndef MACBUILD
 extern void GetTime(DateTimeRec *dtr);
 #endif
-extern void IncrementDate(DateTimeRec *date, long daysToAdd);
+extern void IncrementDate(DateTimeRec *date, int32_t daysToAdd);
 
 #ifdef V111
 extern void PtoCstr(unsigned char *str);
@@ -789,7 +789,7 @@ extern unsigned char *CtoPstr(char *str);
 #ifdef MAC1010
 #define PtrAddBytes(p, n) ((p) += (n))
 #else
-#define PtrAddBytes(p, n) ((long)(p) += (n))
+#define PtrAddBytes(p, n) ((int32_t)(p) += (n))
 #endif
 
 /* a registration key's check. `(k) << 4 >> 4` in one expression is an internal error in every MWCPPC held, so 1.0.10 shifts in statements, the expected value too. A revoked key has no top nibble, so want's is K's */
@@ -861,12 +861,12 @@ extern void ClosePrefs(void);
 #pragma cplusplus on
 EXTERN_CPP_BEGIN
 extern Rect screenMinusDockRect;
-extern long paintBlackFlag;
+extern int32_t paintBlackFlag;
 EXTERN_CPP_END
 #pragma cplusplus reset
 extern void BusyIdle(void);
 #ifndef MACBUILD
-extern void Delay(unsigned long numTicks, unsigned long *finalTicks);
+extern void Delay(uint32_t numTicks, uint32_t *finalTicks);
 extern void DisposeCIcon(Image_t *icon);
 #endif
 extern void DrawCString(const char *text);
@@ -898,11 +898,11 @@ extern void MakeAlias(char *name);
 extern short EVOpenResourceFile(void *path);
 #endif
 extern void SwapEndianByDescriptor(unsigned char *data, unsigned short *desc);
-extern void LoadMenuListItem(ControlRecord *rec, long menuID, unsigned char *promptTitle,
-                         long resType);
-extern void LoadControlResource(ControlRecord *rec, unsigned long resID);
-extern long PopUpListSelect(DialogPtr dlg, ControlRecord *rec);
-extern void EditTextKey(ControlRecord *rec, long key, long mods);
+extern void LoadMenuListItem(ControlRecord *rec, int32_t menuID, unsigned char *promptTitle,
+                         int32_t resType);
+extern void LoadControlResource(ControlRecord *rec, uint32_t resID);
+extern int32_t PopUpListSelect(DialogPtr dlg, ControlRecord *rec);
+extern void EditTextKey(ControlRecord *rec, int32_t key, int32_t mods);
 void DrawBevel(Rect *r, const RGBColor *fill, const RGBColor *light, const RGBColor *dark);
 #ifndef MACBUILD
 extern void LUpdate(void *list);
@@ -910,9 +910,9 @@ extern void LUpdate(void *list);
 #else
 #define ListUpdate(rgn, list) LUpdate(rgn, list)
 #endif
-extern long __stdcall KeyboardHookProc(int code, unsigned long wParam, long lParam);
-extern long __stdcall WinGameWndProc(void *hwnd, unsigned long msg,
-                         unsigned long wParam, long lParam);
+extern int32_t __stdcall KeyboardHookProc(int code, uint32_t wParam, int32_t lParam);
+extern int32_t __stdcall WinGameWndProc(void *hwnd, uint32_t msg,
+                         uint32_t wParam, int32_t lParam);
 extern void ShutdownWinGame(void);
 extern void FillRectWithColor(Rect *r, RGBColor *color);
 extern short FindFirstCoLocatedSystem(short sys);
@@ -941,17 +941,17 @@ extern void GetPort(CGrafPtr *port);
 #ifndef MAC1010
 extern void InitFonts(void);
 #endif
-extern short InitializeQTML(long flags);
+extern short InitializeQTML(int32_t flags);
 #ifndef MACBUILD
 extern void *FindNextComponent(void *prev, ComponentDescription *cd);
 extern void InsetRect(Rect *r, int dh, int dv);
 extern void InvertRect(Rect *r);
 #endif
 extern unsigned char KeyCheck(short scanCode);
-extern long GetKeyModifiers(void);
-extern void KeyboardScanCodeToString(char *buf, unsigned long size, unsigned long code);
+extern int32_t GetKeyModifiers(void);
+extern void KeyboardScanCodeToString(char *buf, uint32_t size, uint32_t code);
 extern unsigned int KeyIsDown(unsigned int scanCode);
-extern long KeyboardGet2(void);
+extern int32_t KeyboardGet2(void);
 #ifndef MACBUILD
 extern void Line(short dh, short dv);
 extern void LineTo(short h, short v);
@@ -1003,10 +1003,10 @@ extern int PtInRect(int h, int v, Rect *r);
 extern void QDReleaseResource(PicHandle pic);
 #ifndef MACBUILD
 extern void RGBForeColor(const RGBColor *color);
-extern void ForeColor(long color);
-extern void *NewPtr(long size);
+extern void ForeColor(int32_t color);
+extern void *NewPtr(int32_t size);
 extern void DisposePtr(void *ptr);
-extern unsigned long TickCount(void);
+extern uint32_t TickCount(void);
 extern CGrafPtr GetWindowPort(CWindowPtr window);
 extern void QDFlushPortBuffer(CGrafPtr port, void *region);
 extern void PtToAngle(const Rect *r, Point pt, short *angle);
@@ -1019,8 +1019,8 @@ extern void ResetScreenRect(void);
 extern void ScreenEndScene(void);
 #ifndef MACBUILD
 extern int SectRect(const Rect *a, const Rect *b, Rect *dst);
-extern unsigned long Color2Index(RGBColor *color);
-extern void SetDialogDefaultItem(DialogPtr dlg, long value);
+extern uint32_t Color2Index(RGBColor *color);
+extern void SetDialogDefaultItem(DialogPtr dlg, int32_t value);
 extern short Random(void);
 #endif
 extern short SWSetSpriteWorldScreenDrawProc(SpriteWorldRec *spriteWorld,
@@ -1029,18 +1029,18 @@ extern short SWSetSpriteWorldScreenDrawProc(SpriteWorldRec *spriteWorld,
 extern void SetMovieBox(Movie movie, Rect *box);
 extern void DisposeMovie(Movie movie);
 extern void GetMovieBox(Movie movie, Rect *box);
-extern long GetMovieDuration(Movie movie);
+extern int32_t GetMovieDuration(Movie movie);
 extern void GoToBeginningOfMovie(Movie movie);
 extern Boolean IsMovieDone(Movie movie);
-extern void LoadMovieIntoRam(Movie movie, long time, long duration, long flags);
-extern void MoviesTask(Movie movie, long maxMs);
+extern void LoadMovieIntoRam(Movie movie, int32_t time, int32_t duration, int32_t flags);
+extern void MoviesTask(Movie movie, int32_t maxMs);
 extern void Microseconds(UnsignedWide *now);
-extern void StringToNum(const unsigned char *str, long *value);
+extern void StringToNum(const unsigned char *str, int32_t *value);
 extern void *GetMovieTimeBase(Movie movie);
-extern void SetMovieRate(Movie movie, long rate);
-extern void SetMoviePlayHints(Movie movie, long a2, long a3);
-extern void *GetMovieIndTrackType(Movie movie, long a, long type, long b);
-extern void SetMovieGWorld(Movie movie, void *gworld, long a3);
+extern void SetMovieRate(Movie movie, int32_t rate);
+extern void SetMoviePlayHints(Movie movie, int32_t a2, int32_t a3);
+extern void *GetMovieIndTrackType(Movie movie, int32_t a, int32_t type, int32_t b);
+extern void SetMovieGWorld(Movie movie, void *gworld, int32_t a3);
 extern void StartMovie(Movie movie);
 extern void StopMovie(Movie movie);
 extern void SetPort(CGrafPtr port);
@@ -1050,7 +1050,7 @@ extern void SetRect(Rect *r, int left, int top, int right, int bottom);
 #define SetPortWindowPort(window) SetPort((GrafPtr)GetCWindowGrafPort(window))
 #endif
 extern void FatalStartupError(short index);
-extern void *ST_LoadSndResourceIndirect(void **handle, long flags);
+extern void *ST_LoadSndResourceIndirect(void **handle, int32_t flags);
 #ifndef MACBUILD
 extern Boolean StillDown(void);
 #endif
@@ -1061,15 +1061,15 @@ extern void SysBeep(short duration);
 #endif
 extern void TerminateQTML(void);
 #ifndef MACBUILD
-extern void TETextBox(const void *text, long length, Rect *box, short just);
-extern short FSMakeFSSpec(long vRefNum, long dirID, const void *name, void *spec);
-extern short OpenMovieFile(const void *spec, short *refNum, long mode);
-extern long NewMovieFromFile(Movie *movie, short refNum, short *resId,
-                             long a4, long a5, long a6);
+extern void TETextBox(const void *text, int32_t length, Rect *box, short just);
+extern short FSMakeFSSpec(int32_t vRefNum, int32_t dirID, const void *name, void *spec);
+extern short OpenMovieFile(const void *spec, short *refNum, int32_t mode);
+extern int32_t NewMovieFromFile(Movie *movie, short refNum, short *resId,
+                             int32_t a4, int32_t a5, int32_t a6);
 #endif
 extern int MeasureWrappedText(const char *text, int byteCount, int width);
 #ifndef MACBUILD
-extern void NumToString(long value, unsigned char *str);
+extern void NumToString(int32_t value, unsigned char *str);
 extern void QDGetPictureBounds(PicHandle pic, Rect *r);
 extern void HideWindow(CWindowPtr window);
 extern void *GetGWorldDevice(CGrafPtr port);
@@ -1089,8 +1089,8 @@ extern void DisposeWindow(CWindowPtr window);
 extern void *GetGDevice(void);
 #endif
 extern void BuildGammaRamp(float gamma);
-extern long ReplaceInHandle(char **h, long offset, const char *find, long findLen,
-                         const char *repl, long replLen);
+extern int32_t ReplaceInHandle(char **h, int32_t offset, const char *find, int32_t findLen,
+                         const char *repl, int32_t replLen);
 extern void GetListCellRect(Rect *box, Point cell, ScrollRec **h);
 #ifndef MACBUILD
 extern Boolean LClick(Point where, short modifiers, ScrollRec **h);
@@ -1105,7 +1105,7 @@ extern char gParamText2[];
 extern char gParamText3[];
 EXTERN_CPP_END
 #pragma cplusplus reset
-extern void FadeGammaTo(unsigned long percent, unsigned long duration);
+extern void FadeGammaTo(uint32_t percent, uint32_t duration);
 extern unsigned char SplitTwoLineString(const unsigned char *src, unsigned char *line1,
                                         unsigned char *line2);
 #ifndef MACBUILD
@@ -1118,21 +1118,21 @@ extern void UpdateAndPageFlip(void);
 #ifndef MACBUILD
 extern RGBColor *blackColor;
 #endif
-extern long gCaretPhase;
+extern int32_t gCaretPhase;
 #pragma cplusplus on
 EXTERN_CPP_BEGIN
-extern long gBlinkTick;
+extern int32_t gBlinkTick;
 extern SWFrameRec *floatingEscortMenuFrame;
 extern SWFrameRec *floatingMapFrame;
 extern short gChicagoFont;
 extern void *gClickDialog;
 extern void *gClickItem;
-extern unsigned long gClickTime;
-extern long gDialogCount;
+extern uint32_t gClickTime;
+extern int32_t gDialogCount;
 extern DialogPtr gCurDialog;
 extern unsigned char gGammaRamp[32];
 extern void *gKeyboardHook;
-extern long gLastModifiers;
+extern int32_t gLastModifiers;
 extern void *gMacRomanToCP1252;
 extern SpriteWorldPtr gSpriteWorld;
 
@@ -1146,8 +1146,8 @@ extern SpriteRec *masterShipAltSprite[768];
 extern CGrafPort gGamePort;
 #endif
 extern RGBColor blackRGB;
-extern long gRezOpenPending;
-extern long gUseKeyboardHook;
+extern int32_t gRezOpenPending;
+extern int32_t gUseKeyboardHook;
 EXTERN_CPP_END
 #pragma cplusplus reset
 extern void nv_BlitImageOr(Rect *dstRect, Image_t *icon);
@@ -1197,10 +1197,10 @@ extern void SetDialogVisible(DialogPtr dlg, unsigned char value);
 extern void SizeDialogWindow(DialogPtr dlg, short width, short height,
                          Boolean update);
 extern void OffsetDialogWindow(DialogPtr dlg, short dh, short dv, Boolean update);
-extern void CreateGameWindow(void *hInstance, long nCmdShow);
+extern void CreateGameWindow(void *hInstance, int32_t nCmdShow);
 extern CGrafPtr OpenGamePort(Rect *bounds, const unsigned char *title);
 #ifndef MACBUILD
-extern long GetControlValue(ControlPtr ctl);
+extern int32_t GetControlValue(ControlPtr ctl);
 #endif
 extern void InvalDialogRect(DialogPtr dlg, Rect *box);
 #ifndef MACBUILD
@@ -1210,18 +1210,18 @@ extern void DisposeDialog(DialogPtr dlg);
 /* the body is empty, but every caller passes an argument */
 extern void ShowMacWindow(void *arg);
 #ifndef MACBUILD
-extern void GetDialogItem(DialogPtr dlg, long item, short *type, Handle *handle,
+extern void GetDialogItem(DialogPtr dlg, int32_t item, short *type, Handle *handle,
                           Rect *box);
 #endif
 void GetControlText(ControlPtr ctl, char *text);
 #ifndef MACBUILD
 extern CGrafPtr GetDialogPort(DialogPtr dlg);
 #endif
-extern void InvalDialogItem(DialogPtr dlg, long item);
+extern void InvalDialogItem(DialogPtr dlg, int32_t item);
 void SetControlText(ControlPtr ctl, const char *text);
 #ifndef MACBUILD
-extern void SetControlValue(ControlPtr ctl, long value);
-extern void SetDialogItem(DialogPtr dlg, long item, short type, void *handle,
+extern void SetControlValue(ControlPtr ctl, int32_t value);
+extern void SetDialogItem(DialogPtr dlg, int32_t item, short type, void *handle,
                           const Rect *box);
 extern void SetControlTitle(ControlPtr ctl, const unsigned char *text);
 
@@ -1248,12 +1248,12 @@ extern Boolean gNeedUpdateFlag;
 
 #ifndef MACBUILD
 extern void LAutoScroll(ScrollRec **list);
-extern void LScroll(long unused, short delta, ScrollRec **list);
+extern void LScroll(int32_t unused, short delta, ScrollRec **list);
 extern void LSetSelect(int track, Point pt, ScrollRec **list); /* 0x004d1cd0 */
 extern void LSetDrawingMode(Boolean value, ScrollRec **list);          /* 0x004d1b70 */
-extern void LSetCell(void *text, long length, Point cell,
+extern void LSetCell(void *text, int32_t length, Point cell,
                      ScrollRec **list);                          /* 0x004d1b80 */
-extern Boolean LGetSelect(long unused, Point *cell, ScrollRec **list); /* 0x004d1d10 */
+extern Boolean LGetSelect(int32_t unused, Point *cell, ScrollRec **list); /* 0x004d1d10 */
 extern void LDispose(ScrollRec **list);                     /* 0x004d1b40 */
 extern ScrollRec **nv_NewDialog(const Rect *rView, const Rect *dataBounds,
                                 Point cellSize, ListDrawProcPtr drawProc, CGrafPtr port,
@@ -1262,7 +1262,7 @@ extern ScrollRec **nv_NewDialog(const Rect *rView, const Rect *dataBounds,
 
 #ifndef MACBUILD
 extern TEHandle TENew(const Rect *destRect, const Rect *viewRect);
-extern void TESetText(const void *text, long length, TEHandle hTE);
+extern void TESetText(const void *text, int32_t length, TEHandle hTE);
 extern void TECalText(TEHandle hTE);
 extern void TEPinScroll(int dh, int dv, TEHandle hTE);
 extern void TEUpdate(Rect *rUpdate, TEHandle hTE);

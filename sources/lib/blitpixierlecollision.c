@@ -3,7 +3,7 @@
 #include "macport.h"
 #include "shipobj.h"
 
-#define ALIGN_PTR(p) ( -((long)(p)) & 3)
+#define ALIGN_PTR(p) ( -((int32_t)(p)) & 3)
 
 /* BlitPixieRLECollision (mac _BlitPixieRLECollision). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00472190
@@ -14,18 +14,18 @@ Boolean BlitPixieRLECollision(
 	Rect *srcRect,
 	Rect *dstRect)
 {
-	unsigned long	token1,op1,count1;
-	unsigned long	token2,op2,count2;
+	uint32_t	token1,op1,count1;
+	uint32_t	token2,op2,count2;
 	unsigned char	*nextRow1,*nextRow2;
-	long			x,width;
-	long			y,height;
-	long			x1,x2;
+	int32_t			x,width;
+	int32_t			y,height;
+	int32_t			x1,x2;
 	int				solid1,solid2;
 	
 		// advance source to first row
 	for ( y = 0; y < srcRect->top; y++ )
 	{ 
-		token1 = *((unsigned long *) srcTokens);
+		token1 = *((uint32_t *) srcTokens);
 		srcTokens += 4;
 
 		op1 = token1 >> 24;
@@ -40,7 +40,7 @@ Boolean BlitPixieRLECollision(
 		// advance dest to first row
 	for ( y = 0; y < dstRect->top; y++ )
 	{ 
-		token2 = *((unsigned long *) dstTokens);
+		token2 = *((uint32_t *) dstTokens);
 		dstTokens += 4;
 
 		op2 = token2 >> 24;
@@ -58,13 +58,13 @@ Boolean BlitPixieRLECollision(
 		// check the intersecting rows for span overlap
 	for ( y = 0; y < height; y++ )
 	{
-		token1 = *((unsigned long *) srcTokens);
+		token1 = *((uint32_t *) srcTokens);
 		srcTokens += 4;
 		
 		op1 = token1 >> 24;
 		count1 = token1 & 0xffffff;
 
-		token2 = *((unsigned long *) dstTokens);
+		token2 = *((uint32_t *) dstTokens);
 		dstTokens += 4;
 		
 		op2 = token2 >> 24;
@@ -87,7 +87,7 @@ Boolean BlitPixieRLECollision(
 		{
 			if ( x1 < x2 )
 			{
-				token1 = *((unsigned long *) srcTokens);
+				token1 = *((uint32_t *) srcTokens);
 				srcTokens += 4;
 		
 				op1 = token1 >> 24;
@@ -100,7 +100,7 @@ Boolean BlitPixieRLECollision(
 						x1 += count1;
 						srcTokens += count1;
 #if defined(MACBUILD) && V111
-						(long)srcTokens += ALIGN_PTR(srcTokens);
+						(int32_t)srcTokens += ALIGN_PTR(srcTokens);
 #else
 						srcTokens += ALIGN_PTR(srcTokens);
 #endif
@@ -119,7 +119,7 @@ Boolean BlitPixieRLECollision(
 			}
 			else
 			{
-				token2 = *((unsigned long *) dstTokens);
+				token2 = *((uint32_t *) dstTokens);
 				dstTokens += 4;
 		
 				op2 = token2 >> 24;
@@ -132,7 +132,7 @@ Boolean BlitPixieRLECollision(
 						x2 += count2;
 						dstTokens += count2;
 #if defined(MACBUILD) && V111
-						(long)dstTokens += ALIGN_PTR(dstTokens);
+						(int32_t)dstTokens += ALIGN_PTR(dstTokens);
 #else
 						dstTokens += ALIGN_PTR(dstTokens);
 #endif

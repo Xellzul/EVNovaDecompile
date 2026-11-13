@@ -27,10 +27,10 @@ struct FolderSpec;
 
 #if TARGET_API_MAC_CARBON
 #define kReminderPage       0
-extern long IT_ViewGetPageElement(WindowNode *window, ITElement **element);
-extern long IT_StringTableLoad(ITElement *root, unsigned char keepWide, struct HashTable **out);
+extern int32_t IT_ViewGetPageElement(WindowNode *window, ITElement **element);
+extern int32_t IT_StringTableLoad(ITElement *root, unsigned char keepWide, struct HashTable **out);
 extern unsigned char IT_ViewIsWide(WindowNode *window);
-extern long IT_ViewParamTextWide(WindowNode *window, const char *key, const unsigned short *value);
+extern int32_t IT_ViewParamTextWide(WindowNode *window, const char *key, const unsigned short *value);
 extern unsigned char *StringPascalAppend(unsigned char *dst, const unsigned char *src);
 extern Boolean CFURLGetFSRef(CFURLRef url, FSRef *fsRef);
 #else
@@ -38,20 +38,20 @@ extern Boolean CFURLGetFSRef(CFURLRef url, FSRef *fsRef);
 #endif
 
 extern OSErr NameFileSearch(const unsigned char *volName, short vRefNum, const unsigned char *fileName,
-                            FSSpec *matches, long reqMatchCount, long *actMatchCount,
+                            FSSpec *matches, int32_t reqMatchCount, int32_t *actMatchCount,
                             Boolean newSearch, Boolean partial);
 
-static long RT3_ReminderCallback(WindowNode *window, long refcon, long event, void *where, long item,
+static int32_t RT3_ReminderCallback(WindowNode *window, int32_t refcon, int32_t event, void *where, int32_t item,
                   const char *name);
-static long RT3_LaunchRegister(const char *name, unsigned char search);
+static int32_t RT3_LaunchRegister(const char *name, unsigned char search);
 
 static unsigned char delayPending;
 static ULong delayStart;
 
-static inline long ReminderRegister(void)
+static inline int32_t ReminderRegister(void)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
     char command[256];
 
     StringCopySafe(command, "Register ", sizeof(command));
@@ -62,9 +62,9 @@ static inline long ReminderRegister(void)
     return err;
 }
 
-static inline long ReminderLevel(void)
+static inline int32_t ReminderLevel(void)
 {
-    long level = 1;
+    int32_t level = 1;
     ULong days;
     ULong hours;
 
@@ -77,11 +77,11 @@ static inline long ReminderLevel(void)
     return level;
 }
 
-static inline long ReminderRun(struct FolderSpec **folder, unsigned char *registered)
+static inline int32_t ReminderRun(struct FolderSpec **folder, unsigned char *registered)
 {
-    long err = 0;
-    long e = 0;
-    long launch;
+    int32_t err = 0;
+    int32_t e = 0;
+    int32_t launch;
     char button[256];
 
     delayPending = 1;
@@ -98,12 +98,12 @@ static inline long ReminderRun(struct FolderSpec **folder, unsigned char *regist
     return err;
 }
 
-static long RT3_LaunchRegister(const char *name, unsigned char search)
+static int32_t RT3_LaunchRegister(const char *name, unsigned char search)
 {
-    long err = 0;
+    int32_t err = 0;
     short vRefNum;
-    long dirID;
-    long count;
+    int32_t dirID;
+    int32_t count;
     ProcessSerialNumber psn;
     FInfo finfo;
     LaunchParamBlockRec launch;
@@ -265,10 +265,10 @@ next:
 #define kTimesW L"TIMES"
 #define kEmptyW L""
 
-static long RT3_SetReminderVariables(void *window)
+static int32_t RT3_SetReminderVariables(void *window)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
     ULong days;
     ULong launches;
     ITElement *index;
@@ -318,10 +318,10 @@ done:
     return err;
 }
 #else
-static long RT3_SetReminderVariables(void *window)
+static int32_t RT3_SetReminderVariables(void *window)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
     ULong days;
     ULong launches;
     char text[256];
@@ -358,13 +358,13 @@ done:
 }
 #endif
 
-static long RT3_ReminderCallback(WindowNode *window, long refcon, long event, void *where, long item,
+static int32_t RT3_ReminderCallback(WindowNode *window, int32_t refcon, int32_t event, void *where, int32_t item,
                   const char *name)
 {
-    long err = 0;
-    long delay = refcon;
+    int32_t err = 0;
+    int32_t delay = refcon;
     ULong index = -1;
-    long e;
+    int32_t e;
 
     switch (event) {
     case kEventOpen:
@@ -423,13 +423,13 @@ done:
     return err;
 }
 
-long RT3_RunReminder(unsigned char force, unsigned char *registered)
+int32_t RT3_RunReminder(unsigned char force, unsigned char *registered)
 {
-    long err = 0;
+    int32_t err = 0;
     void **chunk = 0;
     struct FolderSpec **folder = 0;
     Handle resource;
-    long e;
+    int32_t e;
     ULong i;
 
     if (registered != 0)
@@ -481,7 +481,7 @@ done:
 }
 
 /* Stand-in: the linker strips this; the exe keeps its literal (body not recoverable). */
-long RT3_Register(void)
+int32_t RT3_Register(void)
 {
     return ReminderRegister();
 }

@@ -10,12 +10,12 @@
 #define kDrawPixelsToken 2
 #define kSkipPixelsToken 3
 #define kSingleColorToken 4
-typedef unsigned long TokenDataType;
-#define ALIGN_PTR(p) (-((long)p) & 3)
+typedef uint32_t TokenDataType;
+#define ALIGN_PTR(p) (-((int32_t)p) & 3)
 
 #define kRandomTableSize 1024
 
-unsigned long randomTable[kRandomTableSize];
+uint32_t randomTable[kRandomTableSize];
 short randomIndex;
 
 extern short GetRandom(short min, short max);
@@ -23,13 +23,13 @@ extern void Randomize(void);
 
 /* BlitPixieDitherCopy (mac _BlitPixieDitherCopy, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieDitherCopy i386 0x000c06e0 ppc 0x000cc430
-void BlitPixieDitherCopy(unsigned char *dst, unsigned char *src, long bytes, unsigned long level)
+void BlitPixieDitherCopy(unsigned char *dst, unsigned char *src, int32_t bytes, uint32_t level)
 {
-    long i;
+    int32_t i;
 
     {
-        unsigned long *srcTemp = (unsigned long *)src,
-                      *dstTemp = (unsigned long *)dst;
+        uint32_t *srcTemp = (uint32_t *)src,
+                      *dstTemp = (uint32_t *)dst;
 
         for (i = 0; i < (bytes >> 2); i++) {
             if (level <= randomTable[randomIndex])
@@ -75,16 +75,16 @@ void BlitPixieDitherCopy(unsigned char *dst, unsigned char *src, long bytes, uns
 
 /* BlitPixieRLEDither (mac _BlitPixieRLEDither, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieRLEDither i386 0x000c080d ppc 0x000cc55c
-void BlitPixieRLEDither(unsigned char *rleTokens, unsigned char *dstPixel, long dstRowBytes)
+void BlitPixieRLEDither(unsigned char *rleTokens, unsigned char *dstPixel, int32_t dstRowBytes)
 {
     unsigned char *rowStart = dstPixel;
-    unsigned long token, opcode, count;
-    long level;
+    uint32_t token, opcode, count;
+    int32_t level;
 
     level = gSWCurrentSpriteBeingDrawn->translucency;
 
     do {
-        token = *(unsigned long *)rleTokens;
+        token = *(uint32_t *)rleTokens;
         opcode = token >> 24;
         rleTokens += 4;
         count = token & 0xffffff;
@@ -93,7 +93,7 @@ void BlitPixieRLEDither(unsigned char *rleTokens, unsigned char *dstPixel, long 
         case 2:
             BlitPixieDitherCopy(dstPixel, rleTokens, count, level);
             rleTokens += count;
-            PtrAddBytes(rleTokens, (-(long)rleTokens) & 3);
+            PtrAddBytes(rleTokens, (-(int32_t)rleTokens) & 3);
             dstPixel += count;
             break;
 
@@ -102,7 +102,7 @@ void BlitPixieRLEDither(unsigned char *rleTokens, unsigned char *dstPixel, long 
             break;
 
         case 4:
-            BlitPixieMemSet(dstPixel, *(unsigned long *)rleTokens, count);
+            BlitPixieMemSet(dstPixel, *(uint32_t *)rleTokens, count);
             rleTokens += 4;
             dstPixel += count;
             break;
@@ -124,13 +124,13 @@ void BlitPixieRLEDither(unsigned char *rleTokens, unsigned char *dstPixel, long 
 /* BlitPixieRLEDitherClipped (mac _BlitPixieRLEDitherClipped, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieRLEDitherClipped i386 0x000c08ec ppc 0x000cc684
 void BlitPixieRLEDitherClipped(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes, Rect *srcBlitRect)
+        int32_t dstRowBytes, Rect *srcBlitRect)
 {
-    unsigned long token,op;
-    unsigned long count;
+    uint32_t token,op;
+    uint32_t count;
     unsigned char *rowStart;
-    long extra,spanend;
-    long level;
+    int32_t extra,spanend;
+    int32_t level;
     short x,y;
 
     level = gSWCurrentSpriteBeingDrawn->translucency;
@@ -208,7 +208,7 @@ void BlitPixieRLEDitherClipped(unsigned char *rleTokens, unsigned char *dstPixel
                         count -= extra;
                     }
 
-                    BlitPixieMemSet(dstPixel, *((unsigned long *) rleTokens), count);
+                    BlitPixieMemSet(dstPixel, *((uint32_t *) rleTokens), count);
 
                     x += extra;
                     dstPixel += extra;
@@ -217,7 +217,7 @@ void BlitPixieRLEDitherClipped(unsigned char *rleTokens, unsigned char *dstPixel
                 x += count;
                 dstPixel += count;
 
-                rleTokens += sizeof(long);
+                rleTokens += sizeof(int32_t);
                 break;
             case kLineStartToken:
                 if (y < srcBlitRect->top) {
@@ -245,7 +245,7 @@ void BlitPixieRLEDitherClipped(unsigned char *rleTokens, unsigned char *dstPixel
 // MAC: _BlitPixieDitherInit i386 0x000c0ad1 ppc 0x000cc8c0
 void BlitPixieDitherInit(void)
 {
-    unsigned long *p;
+    uint32_t *p;
 #ifdef MAC1010 /* 1.0.10 spelling */
     short i;
 

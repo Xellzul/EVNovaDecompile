@@ -7,12 +7,12 @@
 // FUNCTION: EVNOVA 0x00474350
 // MAC: _BlitPixieMemCopy i386 0x000c03d0 ppc 0x000cc0cc
 #ifdef MACBUILD
-void BlitPixieMemCopy( unsigned char *dst, unsigned char *src, long bytes)
+void BlitPixieMemCopy( unsigned char *dst, unsigned char *src, int32_t bytes)
 {
-	long	i;
+	int32_t	i;
 
 	for ( i = 0; i < (bytes >> 2); i++ )
-		*((unsigned long *) dst)++ = *((unsigned long *) src)++;
+		*((uint32_t *) dst)++ = *((uint32_t *) src)++;
 	if ( bytes & 2 )
 		*((unsigned short *) dst)++ = *((unsigned short *) src)++;
 	if ( bytes & 1 )
@@ -20,12 +20,12 @@ void BlitPixieMemCopy( unsigned char *dst, unsigned char *src, long bytes)
 }
 #else
 void BlitPixieMemCopy(unsigned char *dstPixels, unsigned char *srcPixels,
-        long byteWidth)
+        int32_t byteWidth)
 {
-    long i;
+    int32_t i;
 
     for (i = 0; i < (byteWidth >> 2); i++) {
-        *(unsigned long *)dstPixels = *(unsigned long *)srcPixels;
+        *(uint32_t *)dstPixels = *(uint32_t *)srcPixels;
         srcPixels += 4;
         dstPixels += 4;
     }

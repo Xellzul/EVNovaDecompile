@@ -44,7 +44,7 @@ jpeg_start_decompress (j_decompress_ptr cinfo)
 	    (retcode == JPEG_ROW_COMPLETED || retcode == JPEG_REACHED_SOS)) {
 	  if (++cinfo->progress->pass_counter >= cinfo->progress->pass_limit) {
 
-	    cinfo->progress->pass_limit += (long) cinfo->total_iMCU_rows;
+	    cinfo->progress->pass_limit += (int32_t) cinfo->total_iMCU_rows;
 	  }
 	}
       }
@@ -75,8 +75,8 @@ output_pass_setup (j_decompress_ptr cinfo)
       JDIMENSION last_scanline;
 
       if (cinfo->progress != NULL) {
-	cinfo->progress->pass_counter = (long) cinfo->output_scanline;
-	cinfo->progress->pass_limit = (long) cinfo->output_height;
+	cinfo->progress->pass_counter = (int32_t) cinfo->output_scanline;
+	cinfo->progress->pass_limit = (int32_t) cinfo->output_height;
 	(*cinfo->progress->progress_monitor) ((j_common_ptr) cinfo);
       }
 
@@ -113,8 +113,8 @@ jpeg_read_scanlines (j_decompress_ptr cinfo, JSAMPARRAY scanlines,
   }
 
   if (cinfo->progress != NULL) {
-    cinfo->progress->pass_counter = (long) cinfo->output_scanline;
-    cinfo->progress->pass_limit = (long) cinfo->output_height;
+    cinfo->progress->pass_counter = (int32_t) cinfo->output_scanline;
+    cinfo->progress->pass_limit = (int32_t) cinfo->output_height;
     (*cinfo->progress->progress_monitor) ((j_common_ptr) cinfo);
   }
 
@@ -139,8 +139,8 @@ jpeg_read_raw_data (j_decompress_ptr cinfo, JSAMPIMAGE data,
   }
 
   if (cinfo->progress != NULL) {
-    cinfo->progress->pass_counter = (long) cinfo->output_scanline;
-    cinfo->progress->pass_limit = (long) cinfo->output_height;
+    cinfo->progress->pass_counter = (int32_t) cinfo->output_scanline;
+    cinfo->progress->pass_limit = (int32_t) cinfo->output_height;
     (*cinfo->progress->progress_monitor) ((j_common_ptr) cinfo);
   }
 

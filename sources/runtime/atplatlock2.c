@@ -8,14 +8,14 @@
 #include "win32.h"
 
 ULong gPlatLockOwnerThread;                              /* 0x008705d0 owning thread */
-static long gAtomicCount;                        /* 0x0086b6b8 lock depth */
+static int32_t gAtomicCount;                        /* 0x0086b6b8 lock depth */
 
 /* AtomicEnterCritical. STATE: MATCH 100%, exe 12 / obj 12, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00505f03
 void AtomicEnterCritical(void *token)
 {
-    long *state;
-    long err;
+    int32_t *state;
+    int32_t err;
 
     state = token;
     err = 0;
@@ -30,8 +30,8 @@ void AtomicEnterCritical(void *token)
 // FUNCTION: EVNOVA 0x00505f36
 void AtomicLeaveCritical(void *token)
 {
-    long *state;
-    long err;
+    int32_t *state;
+    int32_t err;
 
     state = token;
     err = 0;
@@ -47,7 +47,7 @@ void AtomicLeaveCritical(void *token)
    bit's previous value. With InterlockedCompareExchange resolved and the word
    dword-aligned they spin on it; otherwise they take the recursive lock above. */
 
-typedef long (__stdcall *CompareExchangeProc)(ULong *dest, ULong exchange,
+typedef int32_t (__stdcall *CompareExchangeProc)(ULong *dest, ULong exchange,
                                              ULong comparand);
 
 extern void *gPlatCmpXchgProc;                       /* atplatopen.c */
@@ -55,7 +55,7 @@ extern void *gPlatCmpXchgProc;                       /* atplatopen.c */
 #define kWordAlignMask 3
 #define kMisaligned -7001
 
-typedef long (__stdcall *ExchangeAddProc)(long *dest, long delta);
+typedef int32_t (__stdcall *ExchangeAddProc)(int32_t *dest, int32_t delta);
 
 extern void *gPlatExchangeAddProc;                       /* atplatopen.c */
 
@@ -63,11 +63,11 @@ extern void *gPlatExchangeAddProc;                       /* atplatopen.c */
    and the word aligned, else under the recursive lock). STATE: MATCH 100%, exe 39 / obj 39,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00505f66
-long AtomicIncrement(long *value, long delta)
+int32_t AtomicIncrement(int32_t *value, int32_t delta)
 {
     char token[16];
-    long old;
-    long err;
+    int32_t old;
+    int32_t err;
     ULong misaligned;
 
     err = 0;
@@ -94,7 +94,7 @@ unsigned char AtomicMaskApply(ULong *word, ULong bit)
     unsigned char old;
     ULong mask;
     ULong cur;
-    long err;
+    int32_t err;
     ULong next;
     ULong result;
 
@@ -135,7 +135,7 @@ unsigned char AtomicMaskClear(ULong *word, ULong bit)
     unsigned char old;
     ULong mask;
     ULong cur;
-    long err;
+    int32_t err;
     ULong next;
     ULong result;
 
@@ -172,7 +172,7 @@ unsigned char AtomicMaskClear(ULong *word, ULong bit)
 // FUNCTION: EVNOVA 0x005060d0
 unsigned char AtomicMaskTest(ULong *word, ULong bit)
 {
-    long err;
+    int32_t err;
     unsigned char result;
 
     err = 0;
@@ -187,7 +187,7 @@ unsigned char _AtomicCheckCritical(void)
 {
     unsigned char owner;
     ULong id;
-    long err;
+    int32_t err;
 
     err = 0;
     owner = 0;

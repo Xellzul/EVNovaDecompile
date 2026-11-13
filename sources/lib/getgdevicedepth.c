@@ -8,7 +8,7 @@
 #ifdef MACBUILD
 short GetGDeviceDepth( GDHandle theGDH )
 {
-	long			response;
+	int32_t			response;
 	PixMapHandle	thePixMap;
 
 	Gestalt(gestaltQuickdrawFeatures, &response);

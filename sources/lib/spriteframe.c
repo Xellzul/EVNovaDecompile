@@ -19,7 +19,7 @@ short SWCreateFrame(void *theGDH, SWFrameRec **newFrameP, Rect *frameRect,
     OSErr err = noErr;
     GWorldPtr frameGWorld;
     FramePtr tempFrameP;
-    long numScanLines;
+    int32_t numScanLines;
 
     SW_ASSERT(theGDH != NULL, 64);
     SW_ASSERT(frameRect->top >= 0 && frameRect->left >= 0 &&
@@ -31,10 +31,10 @@ short SWCreateFrame(void *theGDH, SWFrameRec **newFrameP, Rect *frameRect,
 
 #ifdef MAC1010
     tempFrameP = (FramePtr)NewPtrClear(sizeof(SWFrameRec) +
-            (sizeof(unsigned long) * (numScanLines + 1)));
+            (sizeof(uint32_t) * (numScanLines + 1)));
 #else
     tempFrameP = (FramePtr)NewPtrClear(sizeof(SWFrameRec) +
-            (sizeof(unsigned long) * numScanLines));
+            (sizeof(uint32_t) * numScanLines));
 #endif
 
     if (tempFrameP != NULL) {
@@ -112,7 +112,7 @@ short SWCreateFrame(void *theGDH, SWFrameRec **newFrameP, Rect *frameRect,
     short err = 0;
     CGrafPtr frameGWorld;
     SWFrameRec *tempFrameP;
-    long numScanLines;
+    int32_t numScanLines;
 
     if (!(frameRect->top >= 0 && frameRect->left >= 0 &&
             frameRect->right > frameRect->left && frameRect->bottom > frameRect->top))
@@ -123,7 +123,7 @@ short SWCreateFrame(void *theGDH, SWFrameRec **newFrameP, Rect *frameRect,
     numScanLines = frameRect->bottom - frameRect->top;
 
     tempFrameP = AllocAPointerClear(sizeof(SWFrameRec) +
-            (sizeof(unsigned long) * (numScanLines + 1)));
+            (sizeof(uint32_t) * (numScanLines + 1)));
 
     if (tempFrameP != 0) {
         tempFrameP->frameRect.top = frameRect->top;
@@ -209,7 +209,7 @@ short SWCreateWindowFrame(CWindowPtr srcWindowP, SWFrameRec **newFrameP,
 {
     OSErr err = noErr;
     FramePtr tempFrameP = NULL;
-    long numScanLines;
+    int32_t numScanLines;
 
     SW_ASSERT(frameRect->top >= 0 && frameRect->left >= 0, 183);
     SW_ASSERT(frameRect->right > frameRect->left && frameRect->bottom > frameRect->top, 184);
@@ -226,7 +226,7 @@ short SWCreateWindowFrame(CWindowPtr srcWindowP, SWFrameRec **newFrameP,
     frameRect->right = SW_MIN(frameRect->right, GetCWindowPortRect((WindowRef)srcWindowP)->right);
 
     tempFrameP = (FramePtr)NewPtrClear(sizeof(SWFrameRec) +
-            (sizeof(unsigned long) * numScanLines));
+            (sizeof(uint32_t) * numScanLines));
 
     if (tempFrameP != NULL) {
         tempFrameP->framePort = GetWindowPort(srcWindowP);
@@ -274,7 +274,7 @@ short SWCreateWindowFrame(CWindowPtr srcWindowP, SWFrameRec **newFrameP,
 {
     short err = 0;
     SWFrameRec *tempFrameP = 0;
-    long numScanLines;
+    int32_t numScanLines;
 
     if (!(frameRect->top >= 0 && frameRect->left >= 0))
         SWAssertFail("SpriteFrame.c", 190);
@@ -293,7 +293,7 @@ short SWCreateWindowFrame(CWindowPtr srcWindowP, SWFrameRec **newFrameP,
     frameRect->right = SW_MIN(frameRect->right, GetCWindowPortRect(srcWindowP)->right);
 
     tempFrameP = AllocAPointerClear(sizeof(SWFrameRec) +
-            (sizeof(unsigned long) * numScanLines));
+            (sizeof(uint32_t) * numScanLines));
 
     if (tempFrameP != 0) {
         tempFrameP->framePort = GetCWindowGrafPort(srcWindowP);
@@ -691,7 +691,7 @@ short SWCreateFrameFromGWorldAndRectPartial(SWFrameRec **newFrameP,
 {
     OSErr err = noErr;
     short depth;
-    long numScanLines;
+    int32_t numScanLines;
     FramePtr tempFrameP;
     RgnHandle maskRgn;
 
@@ -706,7 +706,7 @@ short SWCreateFrameFromGWorldAndRectPartial(SWFrameRec **newFrameP,
     depth = SWGetPixBitDepth(GetGWorldPixMap(pictGWorld));
 
     tempFrameP = (FramePtr)NewPtrClear(sizeof(SWFrameRec) +
-            (sizeof(unsigned long) * (numScanLines + 1)));
+            (sizeof(uint32_t) * (numScanLines + 1)));
 
     if (tempFrameP != NULL) {
         tempFrameP->framePort = pictGWorld;
@@ -764,7 +764,7 @@ short SWCreateFrameFromGWorldAndRectPartial(SWFrameRec **newFrameP,
 {
     short err = 0;
     short depth;
-    long numScanLines;
+    int32_t numScanLines;
     SWFrameRec *tempFrameP;
     Rect *destRectP;
 
@@ -781,7 +781,7 @@ short SWCreateFrameFromGWorldAndRectPartial(SWFrameRec **newFrameP,
     depth = GetPixDepth(GetCWindowPixMap(pictGWorld));
 
     tempFrameP = AllocAPointerClear(sizeof(SWFrameRec) +
-            (sizeof(unsigned long) * (numScanLines + 1)));
+            (sizeof(uint32_t) * (numScanLines + 1)));
 
     if (tempFrameP != 0) {
         tempFrameP->framePort = pictGWorld;
@@ -1056,8 +1056,8 @@ Boolean SWAlignFrameToWindow(FramePtr dstFrameP, FramePtr windowFrameP)
 #ifdef MACBUILD
 void SWInitializeFrame(SWFrameRec *tempFrameP)
 {
-    long curScanLine;
-    long rowOffset;
+    int32_t curScanLine;
+    int32_t rowOffset;
     short depth;
     PixMapHandle pixmap;
 
@@ -1079,7 +1079,7 @@ void SWInitializeFrame(SWFrameRec *tempFrameP)
 
     tempFrameP->pixelShift = depth >> 4;
 
-    tempFrameP->scanLinePtrArray = (unsigned long *)(tempFrameP + 1);
+    tempFrameP->scanLinePtrArray = (uint32_t *)(tempFrameP + 1);
 
     rowOffset = tempFrameP->frameRect.top * tempFrameP->frameRowBytes;
     for (curScanLine = 0; curScanLine < tempFrameP->numScanLines; curScanLine++) {
@@ -1090,8 +1090,8 @@ void SWInitializeFrame(SWFrameRec *tempFrameP)
 #else
 void SWInitializeFrame(SWFrameRec *tempFrameP)
 {
-    long curScanLine;
-    long rowOffset;
+    int32_t curScanLine;
+    int32_t rowOffset;
     short depth;
     PixMapPtr pixmap;
 
@@ -1119,7 +1119,7 @@ void SWInitializeFrame(SWFrameRec *tempFrameP)
 
     tempFrameP->pixelShift = depth >> 4;
 
-    tempFrameP->scanLinePtrArray = (unsigned long *)(tempFrameP + 1);
+    tempFrameP->scanLinePtrArray = (uint32_t *)(tempFrameP + 1);
 
     rowOffset = tempFrameP->frameRect.top * tempFrameP->frameRowBytes;
     for (curScanLine = 0; curScanLine < tempFrameP->numScanLines; curScanLine++) {
@@ -1365,7 +1365,7 @@ OSErr SWUpdateFrameMasks(FramePtr srcFrameP)
 void SWLockFrame(SWFrameRec *srcFrameP)
 {
     PixMapHandle pixMapH;
-    long offsetX, offsetY;
+    int32_t offsetX, offsetY;
 
     if (srcFrameP == NULL)
         return;
@@ -1530,7 +1530,7 @@ void SWLockWindowFrame(SWFrameRec *windowFrameP)
     Rect globalRect;
     PixMapHandle pixMapH;
     GDHandle maxDevice;
-    long offsetX, offsetY;
+    int32_t offsetX, offsetY;
 
     SW_ASSERT(windowFrameP != NULL, 1394);
     SW_ASSERT(windowFrameP->framePort != NULL, 1395);

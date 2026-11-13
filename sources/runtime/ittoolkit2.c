@@ -11,22 +11,22 @@
 
 #define kFacesPerValue      3
 
-extern long IT_ItemCallbackDrawRect(void *unused, const ITRect *area);              /* interfacetool.c */
+extern int32_t IT_ItemCallbackDrawRect(void *unused, const ITRect *area);              /* interfacetool.c */
 
-extern long IT_ItemCallbackGetImage(const char *name, ITImage **image, ITImage **mask,
+extern int32_t IT_ItemCallbackGetImage(const char *name, ITImage **image, ITImage **mask,
                          ITTransparent *trans);                          /* interfacetool.c */
 
-extern long DT_SetFillAttributes(ITImage *image, const ITColor *fore, const ITColor *back,
+extern int32_t DT_SetFillAttributes(ITImage *image, const ITColor *fore, const ITColor *back,
                          const unsigned char *pattern);                  /* itgfx.c */
 
-extern long DT_DrawImage(ITImage *image, const ITRect *dstRect, ITImage *src, ITImage *mask,
+extern int32_t DT_DrawImage(ITImage *image, const ITRect *dstRect, ITImage *src, ITImage *mask,
                          const ITTransparent *trans, const ITRect *srcRect);  /* itgfx.c */
 
-extern long DT_FrameRect(ITImage *image, const ITRect *r);               /* itgfx.c */
+extern int32_t DT_FrameRect(ITImage *image, const ITRect *r);               /* itgfx.c */
 
-extern long DT_PaintRect(ITImage *image, const ITRect *r);               /* itgfx.c */
+extern int32_t DT_PaintRect(ITImage *image, const ITRect *r);               /* itgfx.c */
 
-extern long DT_InvertRect(ITImage *image, const ITRect *r);               /* itgfx.c */
+extern int32_t DT_InvertRect(ITImage *image, const ITRect *r);               /* itgfx.c */
 
 
 typedef struct ITButtonFace {
@@ -42,8 +42,8 @@ typedef struct ITButton {
     unsigned char checkbox;
     unsigned char radio;
     ITRect bounds;
-    long value;
-    long face;
+    int32_t value;
+    int32_t face;
     unsigned char active;
     unsigned char visible;
     unsigned char enabled;                       /* it has an HREF or a SCRIPT */
@@ -75,10 +75,10 @@ typedef struct ITButton {
    STATE: MATCH 100%, exe 483 / obj 483, byte-identical yes. OPEN: the first two arguments are
    never read */
 // FUNCTION: EVNOVA 0x0051c936
-long IT_ButtonLoadFaces(void *hwnd, void *dc, ITElement *element, void ***faces)
+int32_t IT_ButtonLoadFaces(void *hwnd, void *dc, ITElement *element, void ***faces)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ITElement *image;
     char *value;
     ITButtonFace face;
@@ -198,11 +198,11 @@ static const ITColor kPlaceholder[3] = {
    when the variant is not the normal one). STATE: MATCH 100%, exe 176 / obj 176, byte-identical
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051ceb0
-long _IT_ButtonDraw(void *dc, ITImage *image, const ITRect *r, void **faces, long value,
-                  long variant)
+int32_t _IT_ButtonDraw(void *dc, ITImage *image, const ITRect *r, void **faces, int32_t value,
+                  int32_t variant)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char made;
     ULong count;
     ITImage *picture;
@@ -296,21 +296,21 @@ done:
    STATE: MATCH 100.0%, exe 826 / obj 826, byte-identical yes. OPEN: none; the five reply locals
    are dead (no code), kept for their IR entries (notes/itbutton.md) */
 // FUNCTION: EVNOVA 0x0051d0d3
-long IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
+int32_t IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
                   void *b)
 {
     ITButton *button;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char dead;
-    long spare;
-    long size;
-    long size2;
-    long reply;
-    long reply2;
-    long reply3;
-    long reply4;
-    long reply5;
+    int32_t spare;
+    int32_t size;
+    int32_t size2;
+    int32_t reply;
+    int32_t reply2;
+    int32_t reply3;
+    int32_t reply4;
+    int32_t reply5;
     unsigned char update;
     unsigned char now;
     unsigned char prev;
@@ -322,7 +322,7 @@ long IT_ButtonHandler(void *hwnd, void *dc, ITElement *element, void **data, ULo
     char text[256];
     POINT origin;
     ITInputEvent event;
-    long number;
+    int32_t number;
     char digits[256];
 
     button = *data;
@@ -597,9 +597,9 @@ fail:
         err = kUnsupported;
         goto done;
     case kMsgGetValue:
-        *(long *)b = button->value;
+        *(int32_t *)b = button->value;
         if (button->hwnd != 0)
-            *(long *)b = SendMessageA(button->hwnd, BM_GETCHECK, 0, 0) == BST_CHECKED ? 1 : 0;
+            *(int32_t *)b = SendMessageA(button->hwnd, BM_GETCHECK, 0, 0) == BST_CHECKED ? 1 : 0;
         break;
     case kMsgSetValue:
         button->value = a;

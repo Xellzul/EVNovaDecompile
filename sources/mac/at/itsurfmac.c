@@ -18,10 +18,10 @@
 
 extern unsigned char gDT_TempMem;
 #if TARGET_API_MAC_CARBON
-long gDT_SurfaceExtra = 1;
+int32_t gDT_SurfaceExtra = 1;
 #define kDeviceSurfaceExtra 1
 #else
-long gDT_SurfaceExtra;
+int32_t gDT_SurfaceExtra;
 #define kDeviceSurfaceExtra 0
 #endif
 extern ITPalette gDT_DefaultPalette;
@@ -32,13 +32,13 @@ void _DT_PaletteToMacCTab(CTabHandle ctab, const ITPalette *palette);
 void _DT_MacCTabToPalette(ITPalette *palette, CTabHandle ctab, unsigned char alpha);
 void _DT_MacCTabToInverse(unsigned char *table, CTabHandle ctab);
 ITImage *DT_SurfaceCreateLikeWindow(CGrafPtr window, const ITRect *area);
-long _DT_SurfaceSet(ITImage *image, GWorldPtr world, GDHandle device, CGrafPtr window, ULong flags, ULong extra);
-long DT_SurfaceCopyRects(ITImage *image, ULong count, const ITRect *src, const ITRect *dst);
-long _DT_ContextCreate(ITPort *port, void *window, CGrafPtr dc, unsigned char save);
+int32_t _DT_SurfaceSet(ITImage *image, GWorldPtr world, GDHandle device, CGrafPtr window, ULong flags, ULong extra);
+int32_t DT_SurfaceCopyRects(ITImage *image, ULong count, const ITRect *src, const ITRect *dst);
+int32_t _DT_ContextCreate(ITPort *port, void *window, CGrafPtr dc, unsigned char save);
 
 PixMapHandle DT_CreateMacPixMap(const Rect *bounds, ULong depth, CTabHandle ctab, unsigned char temp)
 {
-    long err;
+    int32_t err;
     PixMapHandle pm;
     Handle data;
     ULong rowBytes;
@@ -291,9 +291,9 @@ ITImage *DT_SurfaceCreateFromDevice(GDHandle device, const ITRect *area)
     ITPort *port;
     ITPixels *pixels;
     GWorldPtr world;
-    long err;
-    long e;
-    long depth;
+    int32_t err;
+    int32_t e;
+    int32_t depth;
     Rect box;
 
     err = 0;
@@ -356,10 +356,10 @@ ITImage *DT_SurfaceCreateLikeWindow(CGrafPtr window, const ITRect *area)
     ITPort *port;
     ITPixels *pixels;
     GWorldPtr world;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong extra;
-    long depth;
+    int32_t depth;
     Rect box;
     GDHandle device;
 
@@ -427,10 +427,10 @@ done:
     return pixels != 0 ? pixels->link.owner2 : 0;
 }
 
-long _DT_SurfaceSet(ITImage *image, GWorldPtr world, GDHandle device, CGrafPtr window, ULong flags, ULong extra)
+int32_t _DT_SurfaceSet(ITImage *image, GWorldPtr world, GDHandle device, CGrafPtr window, ULong flags, ULong extra)
 {
     ITPixels *pixels;
-    long err;
+    int32_t err;
     unsigned short depth;
     Rect box;
 
@@ -452,11 +452,11 @@ long _DT_SurfaceSet(ITImage *image, GWorldPtr world, GDHandle device, CGrafPtr w
         pixels->flags &= ~kPixelsDirect;
     CopySys2DT_Rect(&pixels->bounds, &box);
     pixels->locks = 0;
-    pixels->unk54 = (long)device;
+    pixels->unk54 = (int32_t)device;
     pixels->window = window;
 #if TARGET_API_MAC_CARBON
     if (extra == 1) {
-        if ((CGrafPtr)(pixels->drawDC = (long)GetWindowPort(pixels->window)) == 0) {
+        if ((CGrafPtr)(pixels->drawDC = (int32_t)GetWindowPort(pixels->window)) == 0) {
             err = kDibFailed;
             goto done;
         }
@@ -465,7 +465,7 @@ long _DT_SurfaceSet(ITImage *image, GWorldPtr world, GDHandle device, CGrafPtr w
             goto done;
         }
     } else {
-        pixels->drawDC = (long)world;
+        pixels->drawDC = (int32_t)world;
         if ((pixels->dib = (ITDib *)GetGWorldPixMap(world)) == 0) {
             err = kDibFailed;
             goto done;
@@ -488,7 +488,7 @@ long _DT_SurfaceSet(ITImage *image, GWorldPtr world, GDHandle device, CGrafPtr w
     pixels->info[1] = extra;
 done:
 #else
-    pixels->drawDC = (long)world;
+    pixels->drawDC = (int32_t)world;
     if ((pixels->dib = (ITDib *)GetGWorldPixMap(world)) == 0) {
         err = kDibFailed;
     } else {
@@ -508,22 +508,22 @@ done:
     return err;
 }
 
-long DT_SurfaceDispose(ITImage *image)
+int32_t DT_SurfaceDispose(ITImage *image)
 {
     return _DT_SurfaceDispose(image, 0, 0, 0);
 }
 
-long DT_SurfaceBlitRects(ITImage *image, ULong count, const ITRect *rects)
+int32_t DT_SurfaceBlitRects(ITImage *image, ULong count, const ITRect *rects)
 {
     return DT_SurfaceCopyRects(image, count, rects, rects);
 }
 
 #if TARGET_API_MAC_CARBON
-long DT_SurfaceCopyRects(ITImage *image, ULong count, const ITRect *src, const ITRect *dst)
+int32_t DT_SurfaceCopyRects(ITImage *image, ULong count, const ITRect *src, const ITRect *dst)
 {
     ITPixels *pixels;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char locked;
     RgnHandle one;
     RgnHandle all;
@@ -607,11 +607,11 @@ done:
     return err;
 }
 #else
-long DT_SurfaceCopyRects(ITImage *image, ULong count, const ITRect *src, const ITRect *dst)
+int32_t DT_SurfaceCopyRects(ITImage *image, ULong count, const ITRect *src, const ITRect *dst)
 {
     ITPixels *pixels;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char locked;
     CGrafPtr port;
     GDHandle device;
@@ -663,7 +663,7 @@ ITImage *DT_ImageCreate(const ITRect *bounds, ULong format, const ITPalette *pal
 {
     ITImage *image;
     ITPixels *pixels;
-    long err;
+    int32_t err;
     CTabHandle ctab;
     ULong i;
     Rect clamped;
@@ -727,7 +727,7 @@ done:
     return pixels != 0 ? pixels->link.self : 0;
 }
 
-long DT_ImageDispose(ITImage *image)
+int32_t DT_ImageDispose(ITImage *image)
 {
     return _DT_SurfaceDispose(image, 0, 0, 1);
 }
@@ -745,10 +745,10 @@ void _DT_ImageDispose(ITPixels *pixels)
     pixels->baseAddr = 0;
 }
 
-long DT_SurfaceCheck(ITImage *image, unsigned char *rebuilt)
+int32_t DT_SurfaceCheck(ITImage *image, unsigned char *rebuilt)
 {
     ITPixels *pixels;
-    long err;
+    int32_t err;
     unsigned char saved;
     unsigned char stale;
     unsigned char changed;
@@ -760,7 +760,7 @@ long DT_SurfaceCheck(ITImage *image, unsigned char *rebuilt)
     ITPalette palette;
 #if TARGET_API_MAC_CARBON
     Rect other;
-    long e;
+    int32_t e;
 #endif
 
     pixels = _DT_SurfaceGetImage(image);
@@ -774,7 +774,7 @@ long DT_SurfaceCheck(ITImage *image, unsigned char *rebuilt)
         *rebuilt = 0;
 #if TARGET_API_MAC_CARBON
     if (pixels->info[1] == 1 && pixels->window != 0) {
-        if ((CGrafPtr)(pixels->drawDC = (long)GetWindowPort(pixels->window)) == 0) {
+        if ((CGrafPtr)(pixels->drawDC = (int32_t)GetWindowPort(pixels->window)) == 0) {
             err = kDibFailed;
             goto done;
         }
@@ -832,7 +832,7 @@ long DT_SurfaceCheck(ITImage *image, unsigned char *rebuilt)
     if (changed || stale) {
 #if TARGET_API_MAC_CARBON
         if (pixels->info[1] == 1 && pixels->window != 0) {
-            pixels->unk54 = (long)DT_GetWindowDevice(pixels->window);
+            pixels->unk54 = (int32_t)DT_GetWindowDevice(pixels->window);
             pixels->bytesPerPixel = _DT_ImageCalcFormat(depth, &pixels->formatFlag, pixels->bits,
                                                         pixels->shift, pixels->mask, pixels->scale);
             pixels->rowBytes = GetPixRowBytes(PM(pixels));
@@ -882,7 +882,7 @@ long DT_SurfaceCheck(ITImage *image, unsigned char *rebuilt)
 done:
 #if TARGET_API_MAC_CARBON
     if (pixels->info[1] == 1 && pixels->window != 0) {
-        if ((CGrafPtr)(pixels->drawDC = (long)GetWindowPort(pixels->window)) == 0)
+        if ((CGrafPtr)(pixels->drawDC = (int32_t)GetWindowPort(pixels->window)) == 0)
             err = kDibFailed;
         if ((e = UnlockPortBits((CGrafPtr)pixels->drawDC)) != 0)
             err = e;
@@ -900,12 +900,12 @@ done:
     return err;
 }
 
-long _DT_ImageLock(ITImage *image, ITImage *other, unsigned char *rebuilt)
+int32_t _DT_ImageLock(ITImage *image, ITImage *other, unsigned char *rebuilt)
 {
     ITPixels *pixels;
     ITPixels *otherPixels;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 #if TARGET_API_MAC_CARBON
     PixMapPtr map;
 #endif
@@ -923,7 +923,7 @@ long _DT_ImageLock(ITImage *image, ITImage *other, unsigned char *rebuilt)
     Rect otherBox;
     unsigned char changed;
 #if TARGET_API_MAC_CARBON
-    long f;
+    int32_t f;
     char *base;
 #endif
 
@@ -945,7 +945,7 @@ long _DT_ImageLock(ITImage *image, ITImage *other, unsigned char *rebuilt)
         if (pixels->info[1] == 2 && pixels->window != 0)
             AtomicMaskApply(&pixels->flags, kPixelsBufferBit);
         if (pixels->info[1] == 1 && pixels->window != 0) {
-            if ((CGrafPtr)(pixels->drawDC = (long)GetWindowPort(pixels->window)) == 0) {
+            if ((CGrafPtr)(pixels->drawDC = (int32_t)GetWindowPort(pixels->window)) == 0) {
                 err = kDibFailed;
                 goto done;
             }
@@ -1102,7 +1102,7 @@ void _DT_ImageUnlock(ITImage *image, ITImage *other)
         AtomicMaskClear(&pixels->flags, kPixelsLockBit);
 #if TARGET_API_MAC_CARBON
         if (pixels->info[1] == 1 && pixels->window != 0) {
-            pixels->drawDC = (long)GetWindowPort(pixels->window);
+            pixels->drawDC = (int32_t)GetWindowPort(pixels->window);
             UnlockPortBits((CGrafPtr)pixels->drawDC);
             pixels->dib = (ITDib *)GetPortPixMap((CGrafPtr)pixels->drawDC);
             pixels->rowBytes = GetPixRowBytes(PM(pixels));

@@ -6,7 +6,7 @@
 // MAC: _GetDepthFromGlobalRect i386 0x000c95db ppc 0x000d55e0
 short GetDepthFromGlobalRect( Rect* globalRect )
 {
-	long			response;
+	int32_t			response;
 	GDHandle		rectGDH;
 	short			depth;
 
@@ -31,7 +31,7 @@ short GetDepthFromWindow( WindowPtr theWindow )
 	GWorldPtr		oldGWorld, windowGWld;
 	GDHandle		oldGDH, windowGDH;
 	short			depth;
-	long			response;
+	int32_t			response;
 
 	Gestalt(gestaltQuickdrawFeatures, &response);
 	if ( !(response & (1 << gestaltHasColor)) )

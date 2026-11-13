@@ -1050,8 +1050,8 @@
  * want to have unsigned int for png_uint_32 instead of unsigned long.
  */
 
-typedef unsigned long png_uint_32;
-typedef long png_int_32;
+typedef uint32_t png_uint_32;
+typedef int32_t png_int_32;
 typedef unsigned short png_uint_16;
 typedef short png_int_16;
 typedef unsigned char png_byte;

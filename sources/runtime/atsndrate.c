@@ -8,9 +8,9 @@
 
 
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
-long SInt32_To_SFix32(long value)
+int32_t SInt32_To_SFix32(int32_t value)
 {
-    long result;
+    int32_t result;
 
     if (value > 0x7fff)
         result = 0x7fffffff;
@@ -26,7 +26,7 @@ ULong UInt32_To_UFix32(ULong value)
     return value > 0xffff ? 0xffffffff : value << 16;
 }
 
-long SFix32_To_SInt32(Fixed value)
+int32_t SFix32_To_SInt32(Fixed value)
 {
     if (value >= 0) {
         value >>= 15;

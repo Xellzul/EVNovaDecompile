@@ -12,23 +12,23 @@
 extern void _AtomicEnter(void);
 extern void _AtomicLeave(void);
 
-long _FT_PathString(FolderSpec **spec, const char *path, unsigned char create);
-long _FT_PathShorten(FolderSpec **spec, char *name);
-long _FT_PathGoToVolume(FolderSpec **spec, ULong index);
-long _FT_PathGoToParent(FolderSpec **spec, unsigned char *leaf);
-long _FT_PathValidate(FolderSpec **spec);
+int32_t _FT_PathString(FolderSpec **spec, const char *path, unsigned char create);
+int32_t _FT_PathShorten(FolderSpec **spec, char *name);
+int32_t _FT_PathGoToVolume(FolderSpec **spec, ULong index);
+int32_t _FT_PathGoToParent(FolderSpec **spec, unsigned char *leaf);
+int32_t _FT_PathValidate(FolderSpec **spec);
 
 #define kParentFolder       -1
 #define kSpecialFolderMin   -7
 #define kSpecialFolderMax   -2
 #define kVolumeIndexMax     100
 
-long _FT_PathModify(FolderSpec **base, void *where, FolderSpec ***result, unsigned char create)
+int32_t _FT_PathModify(FolderSpec **base, void *where, FolderSpec ***result, unsigned char create)
 {
-    long err, e;
+    int32_t err, e;
     FolderSpec **copy;
     ULong size;
-    long len;
+    int32_t len;
 
     err = 0;
     copy = 0;
@@ -108,8 +108,8 @@ long _FT_PathModify(FolderSpec **base, void *where, FolderSpec ***result, unsign
                 goto done;
             }
         }
-    } else if ((long)where <= kSpecialFolderMax && (long)where >= kSpecialFolderMin) {
-        e = _FT_PathGoTo(copy, (long)where);
+    } else if ((int32_t)where <= kSpecialFolderMax && (int32_t)where >= kSpecialFolderMin) {
+        e = _FT_PathGoTo(copy, (int32_t)where);
         if (e != 0) {
             err = e;
             goto done;
@@ -147,7 +147,7 @@ done:
 
 void _FT_PathInsert(FolderSpec **spec)
 {
-    long err, e;
+    int32_t err, e;
     FTFile *archive;
     FTFileInfo info;
 
@@ -178,7 +178,7 @@ void _FT_PathInsert(FolderSpec **spec)
 
 unsigned char _FT_PathLookup(FolderSpec **spec)
 {
-    long err;
+    int32_t err;
     unsigned char found;
     FolderSpec ***link;
     FolderSpec **p;
@@ -217,13 +217,13 @@ void _FT_PathDispose(void *ref)
 
 #define kFirstName          0x58                 /* offsetof(FolderSpec, names) */
 
-long _FT_PathGoToVolumeName(FolderSpec **spec, const unsigned char *volume);
+int32_t _FT_PathGoToVolumeName(FolderSpec **spec, const unsigned char *volume);
 
-long _FT_PathString(FolderSpec **spec, const char *path, unsigned char create)
+int32_t _FT_PathString(FolderSpec **spec, const char *path, unsigned char create)
 {
     unsigned char make;
     const char *slash;
-    long err, e;
+    int32_t err, e;
     unsigned char absolute;
     ULong length;
     unsigned char name[256];
@@ -280,9 +280,9 @@ done:
     return err;
 }
 
-long _FT_PathClearNames(FolderSpec **spec)
+int32_t _FT_PathClearNames(FolderSpec **spec)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     IndirectGetSize((void **)spec);
@@ -294,9 +294,9 @@ long _FT_PathClearNames(FolderSpec **spec)
     return err;
 }
 
-long _FT_PathAppend(FolderSpec **spec, const unsigned char *name)
+int32_t _FT_PathAppend(FolderSpec **spec, const unsigned char *name)
 {
-    long err, e;
+    int32_t err, e;
     ULong size;
 
     err = 0;
@@ -312,10 +312,10 @@ long _FT_PathAppend(FolderSpec **spec, const unsigned char *name)
     return err;
 }
 
-long _FT_PathShorten(FolderSpec **spec, char *name)
+int32_t _FT_PathShorten(FolderSpec **spec, char *name)
 {
-    long err, e;
-    long last;
+    int32_t err, e;
+    int32_t last;
     ULong next;
 
     err = 0;
@@ -336,7 +336,7 @@ long _FT_PathShorten(FolderSpec **spec, char *name)
 
 ULong _FT_PathWalk(FolderSpec **spec, ULong offset)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     IndirectGetSize((void **)spec);
@@ -353,10 +353,10 @@ ULong _FT_PathWalk(FolderSpec **spec, ULong offset)
     return offset;
 }
 
-long _FT_PathNameInput(unsigned char *out, const char *in, ULong length)
+int32_t _FT_PathNameInput(unsigned char *out, const char *in, ULong length)
 {
     const char *p;
-    long err;
+    int32_t err;
     unsigned char c;
     ULong d;
     ULong i;
@@ -417,7 +417,7 @@ done:
     return err;
 }
 
-long _FT_PathNameOutput(char *out, const unsigned char *name)
+int32_t _FT_PathNameOutput(char *out, const unsigned char *name)
 {
     char *q;
     const unsigned char *p;
@@ -460,13 +460,13 @@ long _FT_PathNameOutput(char *out, const unsigned char *name)
     return 0;
 }
 
-long _FT_FileOpenWrapper(FolderSpec **spec, unsigned char write, FTFile **result)
+int32_t _FT_FileOpenWrapper(FolderSpec **spec, unsigned char write, FTFile **result)
 {
-    long err;
+    int32_t err;
     FTFile *file;
-    long rw;
-    long refCount;
-    long e;
+    int32_t rw;
+    int32_t refCount;
+    int32_t e;
     ULong writable;
     FTFileInfo info;
     ULong position;
@@ -567,7 +567,7 @@ done:
 
 unsigned char _FT_FileIsChunky(FolderSpec **spec, ULong *count)
 {
-    long err;
+    int32_t err;
     const char *sig;
     unsigned char isArchive;
     FTFile *file;
@@ -602,7 +602,7 @@ unsigned char _FT_FileIsChunky(FolderSpec **spec, ULong *count)
 
 unsigned char _FT_IndirectIsChunky(void **handle)
 {
-    long err;
+    int32_t err;
     const char *sig;
     unsigned char isArchive;
     FTArchiveHeader h;
@@ -619,9 +619,9 @@ unsigned char _FT_IndirectIsChunky(void **handle)
     return isArchive;
 }
 
-long _FT_FileUpdateRefCount(FTFile *file, long delta)
+int32_t _FT_FileUpdateRefCount(FTFile *file, int32_t delta)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     file->refCount += delta;
@@ -639,16 +639,16 @@ ULong _FT_Suffix2Value(const char *name);
 
 void **_FT_FileTypesCreate(void)
 {
-    long err;
+    int32_t err;
     void **h;
     Handle prefs;
     unsigned char began;
     ICInstance instance;
     ICAttr attr;
-    long pos;
-    long count;
-    long index;
-    long n;
+    int32_t pos;
+    int32_t count;
+    int32_t index;
+    int32_t n;
     unsigned char *p;
     FileTypeMap entry;
     ProcessInfoRec info;
@@ -821,8 +821,8 @@ void _FT_FileTypesLookup(const char *name, ULong type, FileTypeMap *entry)
 
 ULong _FT_Suffix2Value(const char *name)
 {
-    long err;
-    long upper;
+    int32_t err;
+    int32_t upper;
     ULong code;
     const char *s;
     ULong i;

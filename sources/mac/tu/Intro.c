@@ -4,9 +4,9 @@
 #include "../../engine/music.c"
 short fireEndIndex;
 GWorldContainer firePartsPort;
-long introMovieFinished;
+int32_t introMovieFinished;
 PixMapHandle loadPixMap;
-long musicChannel;
+int32_t musicChannel;
 PixMapHandle partsPixMap;
 CTabHandle splashClut;
 PixMapHandle winPixMap;

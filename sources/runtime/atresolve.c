@@ -35,7 +35,7 @@ NetResolver *ResolverCreate(void *unused, void *ref, NetProc proc, MutexList *do
                           MutexList *freeList)
 {
     NetResolver *r;
-    long err;
+    int32_t err;
 
     err = 0;
     r = 0;
@@ -67,7 +67,7 @@ done:
 // FUNCTION: EVNOVA 0x00540c41
 void ResolverTickle(NetSocket *s)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     switch (s->state) {
@@ -85,7 +85,7 @@ void ResolverTickle(NetSocket *s)
 void ResolverDispose(void *ref)
 {
     NetResolver *r;
-    long err;
+    int32_t err;
 
     r = ref;
     err = 0;
@@ -99,11 +99,11 @@ void ResolverDispose(void *ref)
 /* ResolverOpen (start a resolver's thread). STATE: MATCH 100%, exe 47 / obj 47,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00540ca3
-long ResolverOpen(void *ref)
+int32_t ResolverOpen(void *ref)
 {
     NetResolver *r;
     ULong threadId;
-    long err, e;
+    int32_t err, e;
 
     r = ref;
     err = 0;
@@ -134,10 +134,10 @@ done:
 /* ResolverControl (look a name up: a dotted address completes at once, anything else goes to
    the thread). STATE: MATCH 100%, exe 48 / obj 48, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00540d2f
-long ResolverControl(void *ref, NetLookup *lookup)
+int32_t ResolverControl(void *ref, NetLookup *lookup)
 {
     NetResolver *r;
-    long err;
+    int32_t err;
 
     r = ref;
     err = 0;
@@ -159,7 +159,7 @@ long ResolverControl(void *ref, NetLookup *lookup)
 void ResolverClose(void *ref)
 {
     NetResolver *r;
-    long err;
+    int32_t err;
 
     r = ref;
     err = 0;
@@ -200,7 +200,7 @@ void _ResolverPostAnswer(NetResolver *r, NetLookup *lookup, HostEnt *host, const
     unsigned char asked;
     char portText[kNameBytes];
     ULong ip;
-    long err;
+    int32_t err;
 
     err = 0;
     asked = 0;
@@ -257,7 +257,7 @@ ULong __stdcall _ResolverThread(void *param)
     NetResolver *r;
     HostEnt *entry;
     char *separator;
-    long err;
+    int32_t err;
 
     r = param;
     err = 0;

@@ -352,8 +352,8 @@ local void gen_bitlen(s, desc)
             m = s->heap[--h];
             if (m > max_code) continue;
             if (tree[m].Len != (unsigned) bits) {
-                s->opt_len += ((long)bits - (long)tree[m].Len)
-                              *(long)tree[m].Freq;
+                s->opt_len += ((int32_t)bits - (int32_t)tree[m].Len)
+                              *(int32_t)tree[m].Freq;
                 tree[m].Len = (ush)bits;
             }
             n--;

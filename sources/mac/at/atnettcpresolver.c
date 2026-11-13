@@ -36,7 +36,7 @@ typedef struct DNRResolver {
     ULong flags;
     MutexList *freeList;
     MutexList *doneList;
-    long unk30;
+    int32_t unk30;
     hostInfo info;
     MutexList requests;
     ULong wanted;
@@ -59,9 +59,9 @@ static inline char *MslCopy(char *dst, const char *src)
     return dst;
 }
 
-static inline long MslLength(const char *s)
+static inline int32_t MslLength(const char *s)
 {
-    long n;
+    int32_t n;
     const unsigned char *p;
 
     p = (const unsigned char *)s - 1;
@@ -108,7 +108,7 @@ done:
 
 void ResolverTickleMacTCP(DNRResolver *r)
 {
-    long state;
+    int32_t state;
 
     state = r->state;
     if (state != 0)
@@ -126,9 +126,9 @@ void ResolverDisposeMacTCP(DNRResolver *r)
     MemoryDeallocate(r);
 }
 
-long ResolverOpenMacTCP(DNRResolver *r)
+int32_t ResolverOpenMacTCP(DNRResolver *r)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     e = QueueCreate(&r->requests);
@@ -153,7 +153,7 @@ done:
     return err;
 }
 
-long ResolverControlMacTCP(void *ref, NetLookup *lookup)
+int32_t ResolverControlMacTCP(void *ref, NetLookup *lookup)
 {
     DNRResolver *r;
 
@@ -169,7 +169,7 @@ long ResolverControlMacTCP(void *ref, NetLookup *lookup)
 
 void ResolverCloseMacTCP(DNRResolver *r)
 {
-    long state;
+    int32_t state;
 
     SystemCheckCallback();
     state = r->state;
@@ -190,7 +190,7 @@ static void ResolverNextMacTCP(DNRResolver *r, unsigned char start)
     if (!start && !QueueIsEmpty(&r->requests) && !AtomicMaskApply(&r->flags, kFlagBusy))
         start = 1;
     if (start && (r->current = (NetLookup *)NetworkQueuePoll(&r->requests)) != 0) {
-        long e;
+        int32_t e;
 
         if (r->current->name[0] != 0) {
             char c;

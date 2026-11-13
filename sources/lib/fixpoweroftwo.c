@@ -8,7 +8,7 @@
 /* fix_power_of_two. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004736a0
 // MAC: _fix_power_of_two i386 0x000c17d3 ppc 0x000cd830
-unsigned long fix_power_of_two(unsigned long level)
+uint32_t fix_power_of_two(uint32_t level)
 {
     if (level >= 32)
         return 31;

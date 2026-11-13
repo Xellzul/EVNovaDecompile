@@ -38,7 +38,7 @@ extern void XYShortToPoint(ShortPoint xy, Point *pt);
 extern short FindNextStellarInSystem(short cur, short system);
 extern void DrawCenteredText(StringPtr s, short left, short right, short y);
 extern StringPtr KeyCodeToString(short code);
-extern long isPressed(unsigned char *keys, unsigned short k);
+extern int32_t isPressed(unsigned char *keys, unsigned short k);
 extern void ShowHint(void);
 extern void InitCluts(void);
 extern void SetOrigClut(void);
@@ -47,7 +47,7 @@ extern void InstantFighterRecall(void);
 extern void ShowFreeMem(void);
 extern void *LoadFrameFromCICN(short id);
 extern float FindDecayedShotPower(ShotObj *shot);
-extern void DebugInt(long n);
+extern void DebugInt(int32_t n);
 extern Boolean isPowerPC(void);
 extern Boolean isG3(void);
 extern Boolean isG4(void);
@@ -64,7 +64,7 @@ extern void FadeWhiteOut(void);
 /* the AmbrosiaTools DrawTools calls DrawPicHandle makes that burger.h does not declare */
 #include "burgerplat.h"
 extern struct ITRect Sys2DT_Rect(const Rect *r);
-extern long DT_DrawImage(struct ITImage *dst, const struct ITRect *dstRect, struct ITImage *image,
+extern int32_t DT_DrawImage(struct ITImage *dst, const struct ITRect *dstRect, struct ITImage *image,
                          struct ITImage *mask, const struct ITTransparent *trans, const struct ITRect *srcRect);
 extern void DateToShortString(DateTimeRec date, char *out);
 extern void GraphicsEmergencyBail(void);
@@ -454,12 +454,12 @@ void SystemInfoToShipStats(void)
 /* ShipFreeMass. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00463470
 // MAC: _ShipFreeMass i386 0x0000b462 ppc 0x0000dee4
-long ShipFreeMass(void)
+int32_t ShipFreeMass(void)
 {
     short i;
     short type;
-    long free;
-    long mass;
+    int32_t free;
+    int32_t mass;
 
     type = shipData[0].type;
     if (type < 0 || type >= kMaxShipTypes)
@@ -533,7 +533,7 @@ float CalcShipStopDist(void)
 // MAC: _ShipShieldCapacity i386 0x00002995 ppc 0x000034e8
 float ShipShieldCapacity(ShipObj *ship)
 {
-    long i;
+    int32_t i;
     float cap;
     short j;
 
@@ -699,7 +699,7 @@ short ShipFuelCapacity(ShipObj *ship)
 {
     short i;
     short j;
-    long total;
+    int32_t total;
 
     total = shipClass[ship->type].fuel;
     if (ship->index == 0) {
@@ -1650,11 +1650,11 @@ short ShipHyperTransitTime(ShipObj *ship)
 /* ShipHyperSafeDist. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00465610
 // MAC: _ShipHyperSafeDist i386 0x00004485 ppc 0x00005830
-long ShipHyperSafeDist(ShipObj *ship)
+int32_t ShipHyperSafeDist(ShipObj *ship)
 {
     short i;
     short j;
-    long range;
+    int32_t range;
 
     range = 1000;
     if (ship->index == 0) {
@@ -1806,9 +1806,9 @@ Boolean HasMaxOfItem(short index, short *outBound, short *outCap)
 /* DrawCommaNumber. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00465af0
 // MAC: _DrawCommaNumber i386 0x00004895 ppc 0x00005cb0
-void DrawCommaNumber(long value)
+void DrawCommaNumber(int32_t value)
 {
-    long group;
+    int32_t group;
     unsigned char str[256];
 
     if (value < 1000) {
@@ -1840,9 +1840,9 @@ void DrawCommaNumber(long value)
 /* StrcatCommaNumber. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00465c10
 // MAC: _StrcatCommaNumber i386 0x00008820 ppc 0x0000a8e0
-void StrcatCommaNumber(long value, char *dst)
+void StrcatCommaNumber(int32_t value, char *dst)
 {
-    long group;
+    int32_t group;
     unsigned char str[256];
 
     if (value < 1000) {
@@ -2252,9 +2252,9 @@ short ScanForKeys(void)
 #ifndef MACBUILD
 /* FirstKeyDown. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00466810
-long FirstKeyDown(void)
+int32_t FirstKeyDown(void)
 {
-    long code;
+    int32_t code;
 
     KeyboardKbhit();
     code = 0;
@@ -2360,7 +2360,7 @@ void SlotTableToKeyPrefs(void)
 #ifdef MACBUILD
 /* isPressed (mac _isPressed, mac-only). STATE: see the mac gate. */
 // MAC: _isPressed i386 0x00004d48 ppc 0x0000626c
-long isPressed(unsigned char *keys, unsigned short k)
+int32_t isPressed(unsigned char *keys, unsigned short k)
 {
     unsigned char b = keys[k >> 3];
 
@@ -2386,7 +2386,7 @@ Boolean DupKeyCheck(short value, short skip)
 /* IncrementDate. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00466c40
 // MAC: _IncrementDate i386 0x00004da6 ppc 0x000062cc
-void IncrementDate(DateTimeRec *date, long daysToAdd)
+void IncrementDate(DateTimeRec *date, int32_t daysToAdd)
 {
     short days;
 
@@ -2643,14 +2643,14 @@ KeyMapByteArray keyMap;
 unsigned char DAT_007ccd94[68];
 #endif
 #ifndef MACBUILD
-unsigned long randomSeed;
+uint32_t randomSeed;
 #endif
 
 EXTERN_C_BEGIN
 
 /* screen fade state (names invented; the mac fades via CGDisplayFade instead) */
 #ifndef MACBUILD
-long screenGamma = 0x00010000;           /* 0x00575878 — 16.16, 1.0 = full brightness */
+int32_t screenGamma = 0x00010000;           /* 0x00575878 — 16.16, 1.0 = full brightness */
 #endif
 
 /*
@@ -2870,12 +2870,12 @@ void DisplayMessage(short index)
 #ifndef MACBUILD
 /* FadeGammaTo. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00467d60
-void FadeGammaTo(unsigned long percent, unsigned long duration)
+void FadeGammaTo(uint32_t percent, uint32_t duration)
 {
-    unsigned long target;
-    unsigned long start;
-    unsigned long elapsed;
-    long delta;
+    uint32_t target;
+    uint32_t start;
+    uint32_t elapsed;
+    int32_t delta;
 
     target = (percent << 16) / 100;
     delta = target - screenGamma;
@@ -3050,7 +3050,7 @@ void OnTheFlyWhiteFade(short pct)
     }
     SetGamma(gScreenRef, &gamma);
 #elif defined(MAC1010)
-    long white[3];
+    int32_t white[3];
 
     if (settings.windowed != 0)
         return;
@@ -3220,7 +3220,7 @@ Boolean SystemTradesGoods(short sysID, short commodity)
 Boolean SystemHasService(short sysID, short kind)
 {
     short i;
-    long mask;
+    int32_t mask;
 
     for (i = 0; i < kNavSlots; i++) {
         if (systemData[sysID].navDefault[i] != -1
@@ -3245,9 +3245,9 @@ Boolean SystemHasService(short sysID, short kind)
 #endif /* MAC_FASTRANDOM_ONLY */
 #ifndef MAC_NO_FASTRANDOM
 #ifdef MAC1010
-static unsigned long randomSeed;
+static uint32_t randomSeed;
 #elif defined(MACBUILD)
-unsigned long randomSeed;
+uint32_t randomSeed;
 #endif
 
 #define kRandMultiplier 16807
@@ -3264,13 +3264,13 @@ unsigned long randomSeed;
 // MAC: _Rand i386 0x000a4c76 ppc 0x000b08b4
 short Rand(short range)
 {
-    unsigned long lo;
-    unsigned long temp;
-    unsigned long hi;
-    unsigned long seed;
+    uint32_t lo;
+    uint32_t temp;
+    uint32_t hi;
+    uint32_t seed;
     short result;
 #ifdef V111
-    unsigned long secs;
+    uint32_t secs;
 #endif
 
     if (range == 0) {
@@ -3320,14 +3320,14 @@ short Rand(short range)
 
 /* SetRandSeed (mac _SetRandSeed; dead on win, stripped). STATE: mac MATCH on both slices. OPEN: none */
 // MAC: _SetRandSeed i386 0x000a4d08 ppc 0x000b0968
-void SetRandSeed(unsigned long seed)
+void SetRandSeed(uint32_t seed)
 {
     randomSeed = seed;
 }
 
 /* GetRandSeed (mac _GetRandSeed; dead on win, stripped). STATE: mac MATCH on both slices. OPEN: none */
 // MAC: _GetRandSeed i386 0x000a4d17 ppc 0x000b0978
-unsigned long GetRandSeed(void)
+uint32_t GetRandSeed(void)
 {
     return randomSeed;
 }
@@ -3604,10 +3604,10 @@ Boolean StellarsAreDistant(short a, short b)
 // MAC: _DrawLegalStatusString i386 0x0000d43f ppc 0x00010888
 void DrawLegalStatusString(short sys)
 {
-    long base;
+    int32_t base;
     short haven;
     short clean;
-    long status;
+    int32_t status;
     short j;
     short rating;
 
@@ -3710,11 +3710,11 @@ void DrawCombatRatingString(void)
 /* PlayerShipTradeInPrice. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00469100
 // MAC: _PlayerShipTradeInPrice i386 0x0000b079 ppc 0x0000d9cc
-long PlayerShipTradeInPrice(void)
+int32_t PlayerShipTradeInPrice(void)
 {
     short i;
-    long value;
-    long cost;
+    int32_t value;
+    int32_t cost;
 
     value = (shipClass[shipData->type].cost * 0.25);
     for (i = 0; i < kMaxOutfits; i++) {
@@ -3732,7 +3732,7 @@ long PlayerShipTradeInPrice(void)
 // FUNCTION: EVNOVA 0x00469230
 // MAC: _PlayerCanUseAmmoType i386 0x00005896 ppc 0x00006f40
 #ifdef MAC1010 /* returns long here; its one caller, commdlg.c, reads a Boolean */
-long PlayerCanUseAmmoType(short weapIndex)
+int32_t PlayerCanUseAmmoType(short weapIndex)
 #else
 Boolean PlayerCanUseAmmoType(short weapIndex)
 #endif
@@ -3742,7 +3742,7 @@ Boolean PlayerCanUseAmmoType(short weapIndex)
     for (i = 0; i < kMaxWeapTypes; i++) {
         if (shipData->weap[i].count > 0) {
 #ifdef MAC1010
-            long w;
+            int32_t w;
 
             if (weaponStats[i].guidance == kGuidanceBay) {
                 w = weaponStats[i].ammoType != weaponStats[weapIndex].ammoType;
@@ -3756,7 +3756,7 @@ Boolean PlayerCanUseAmmoType(short weapIndex)
             if (weaponStats[i].guidance == kGuidanceBay) {
                 if (weaponStats[i].ammoType == weaponStats[weapIndex].ammoType)
 #else
-            long w = weapIndex;
+            int32_t w = weapIndex;
 
             if (weaponStats[i].guidance == kGuidanceBay) {
                 if (weaponStats[i].ammoType == weaponStats[w].ammoType)
@@ -3779,7 +3779,7 @@ Boolean PlayerCanUseAmmoType(short weapIndex)
 /* PlaySoundDistance. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004692e0
 // MAC: _PlaySoundDistance i386 0x0000e007 ppc 0x000116f4
-Boolean PlaySoundDistance(long unused, void *sound, short flags, FloatPoint *pos,
+Boolean PlaySoundDistance(int32_t unused, void *sound, short flags, FloatPoint *pos,
                      FloatPoint *listener)
 {
     int dy;
@@ -3841,7 +3841,7 @@ void PlaySoundWait(void *snd)
 #ifdef MACBUILD
 void CheckSpeechMgr(void)
 {
-    long response;
+    int32_t response;
     short voices;
     Boolean hasSpeech;
     Boolean ok;
@@ -4017,7 +4017,7 @@ Boolean CanBuyFighter(short shipType, short outfitIndex, short weapIndex)
 short TotalFleetHolds(void)
 {
     short i;
-    long total;
+    int32_t total;
 
     total = ShipTotalHolds();
     for (i = 1; i < kMaxShips; i++) {
@@ -4043,7 +4043,7 @@ void DestroyPartialFleetCargo(short shipIndex)
     double fleetHolds;
     double totalCargo;
     double ratio;
-    long rounded;
+    int32_t rounded;
     short i;
 
     if (shipIndex == 0) {
@@ -4100,7 +4100,7 @@ void DestroyPartialFleetCargo(short shipIndex)
 // MAC: _FlushKeys i386 0x00005d35 ppc 0x00007498
 void FlushKeys(void)
 {
-    long *keys = (long *)keyMap;
+    int32_t *keys = (int32_t *)keyMap;
 
     keys[0] = 0;
     keys[1] = 0;
@@ -4282,7 +4282,7 @@ unsigned char KeyCheck(short scanCode)
 /* CalcPortDemand. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00469d30
 // MAC: _CalcPortDemand i386 0x000056b1 ppc 0x00006d04
-short CalcPortDemand(short commodity, unsigned long flags)
+short CalcPortDemand(short commodity, uint32_t flags)
 {
     switch (commodity) {
     case 0:
@@ -4880,9 +4880,9 @@ short ShipAntiInterference(void)
 // MAC: _SpawnNagShip i386 0x00005fdb ppc 0x000077d8
 void SpawnNagShip(void)
 {
-    long chance;
+    int32_t chance;
     short slot;
-    long w;
+    int32_t w;
     short heading;
     float step;
     float total;
@@ -5243,7 +5243,7 @@ Boolean AlliedWithPlayer(ShipObj *ship)
 #ifdef MACBUILD
 /* DebugInt (mac _DebugInt, mac-only). STATE: see the mac gate. */
 // MAC: _DebugInt i386 0x000069d1 ppc 0x000083d8
-void DebugInt(long n)
+void DebugInt(int32_t n)
 {
     Str255 s;
 
@@ -5347,8 +5347,8 @@ short FindNearestValidShotTarget(ShotObj *shot)
         if (shipData[i].active != 0 &&
             shipData[i].curSystem == shipData->curSystem &&
             ShotCanHitShip(shot, &shipData[i])) {
-            dx = abs((long)shipData[i].pos.x - (long)shot->pos.x);
-            dy = abs((long)shipData[i].pos.y - (long)shot->pos.y);
+            dx = abs((int32_t)shipData[i].pos.x - (int32_t)shot->pos.x);
+            dy = abs((int32_t)shipData[i].pos.y - (int32_t)shot->pos.y);
             dist = dx * dx + dy * dy;
             if (dist < bestDist || best == -1) {
                 best = i;
@@ -5911,9 +5911,9 @@ void PutSpriteInLayer(SpriteRec *sprite, SpriteLayerRec *layer)
 /* GetPlayerContributeBits (mac _GetPlayerContributeBits). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046cca0
 // MAC: _GetPlayerContributeBits i386 0x000076b2 ppc 0x00009224
-void GetPlayerContributeBits(unsigned long *lo, unsigned long *hi)
+void GetPlayerContributeBits(uint32_t *lo, uint32_t *hi)
 {
-    unsigned long bits[2];
+    uint32_t bits[2];
     short i;
 
     bits[0] = shipClass[shipData->type].contributes[0];
@@ -5944,11 +5944,11 @@ void GetPlayerContributeBits(unsigned long *lo, unsigned long *hi)
 /* PlayerMeetsRequirements (mac _PlayerMeetsRequirements). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046cd80
 // MAC: _PlayerMeetsRequirements i386 0x0000776f ppc 0x00009334
-Boolean PlayerMeetsRequirements(unsigned long reqLo, unsigned long reqHi)
+Boolean PlayerMeetsRequirements(uint32_t reqLo, uint32_t reqHi)
 {
-    unsigned long bits[2];
-    unsigned long gotLo;
-    unsigned long gotHi;
+    uint32_t bits[2];
+    uint32_t gotLo;
+    uint32_t gotHi;
 
     GetPlayerContributeBits(&bits[0], &bits[1]);
     gotLo = bits[0] & reqLo;
@@ -6001,8 +6001,8 @@ short ShipJumpsPerJump(ShipObj *ship)
 // MAC: _ShipMaxWeaponRange i386 0x0000bafd ppc 0x0000e734
 short ShipMaxWeaponRange(ShipObj *ship)
 {
-    long best;
-    long range;
+    int32_t best;
+    int32_t range;
     short i;
 
     best = 0;
@@ -6838,7 +6838,7 @@ unsigned char PlayerBlessedByGovt(short govt, short which)
 void ShowWindowNoFlash(void *arg)
 {
 #if TARGET_API_MAC_OS8
-    long saved;
+    int32_t saved;
 
     saved = LMGetPaintWhite();
     LMSetPaintWhite(0);
@@ -6868,7 +6868,7 @@ void ShowWindowNoFlash(void *arg)
 void DisposeDialogNoFlash(void *dlg)
 {
 #if TARGET_API_MAC_OS8
-    long saved;
+    int32_t saved;
 
     saved = LMGetPaintWhite();
     LMSetPaintWhite(0);
@@ -6893,12 +6893,12 @@ void DisposeDialogNoFlash(void *dlg)
 /* AdjustedItemCost (mac _AdjustedItemCost). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e910
 // MAC: _AdjustedItemCost i386 0x00005869 ppc 0x00006f04
-long AdjustedItemCost(OutfRecord *outf, ShipRec *ship)
+int32_t AdjustedItemCost(OutfRecord *outf, ShipRec *ship)
 {
-    long cost;
-    long adjusted;
+    int32_t cost;
+    int32_t adjusted;
 #ifdef V111 /* V111 spelling */
-    long scaled;
+    int32_t scaled;
 
     cost = outf->cost;
     if (cost <= 0)
@@ -6928,10 +6928,10 @@ long AdjustedItemCost(OutfRecord *outf, ShipRec *ship)
 /* AdjustedItemMass (mac _AdjustedItemMass). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046e950
 // MAC: _AdjustedItemMass i386 0x00002889 ppc 0x00003330
-long AdjustedItemMass(OutfRecord *outf, ShipRec *ship)
+int32_t AdjustedItemMass(OutfRecord *outf, ShipRec *ship)
 {
     short mass;
-    long adjusted;
+    int32_t adjusted;
 
     mass = outf->mass;
     adjusted = mass;

@@ -25,7 +25,7 @@ unsigned char DAT_007cc48c[260];
 // MAC: _BuildTrigTable i386 0x00025828 ppc 0x00029e50
 void BuildTrigTable(void)
 {
-    long i;
+    int32_t i;
     float ang;
     double v;
 

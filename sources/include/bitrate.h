@@ -16,7 +16,7 @@ typedef struct bitrate_manager_state {
   int            queue_head;
   int            queue_bins;
 
-  long          *avg_binacc;
+  int32_t          *avg_binacc;
   int            avg_center;
   int            avg_tail;
   ogg_uint32_t   avg_centeracc;
@@ -24,12 +24,12 @@ typedef struct bitrate_manager_state {
   ogg_uint32_t   avg_sampledesired;
   ogg_uint32_t   avg_centerdesired;
 
-  long          *minmax_binstack;
-  long          *minmax_posstack;
-  long          *minmax_limitstack;
-  long           minmax_stackptr;
+  int32_t          *minmax_binstack;
+  int32_t          *minmax_posstack;
+  int32_t          *minmax_limitstack;
+  int32_t           minmax_stackptr;
 
-  long           minmax_acctotal;
+  int32_t           minmax_acctotal;
   int            minmax_tail;
   ogg_uint32_t   minmax_sampleacc;
   ogg_uint32_t   minmax_sampledesired;
@@ -40,7 +40,7 @@ typedef struct bitrate_manager_state {
   double         avgfloat;
   double         avgnoise;
   double         noisetrigger_request;
-  long           noisetrigger_postpone;
+  int32_t           noisetrigger_postpone;
 
   oggpack_buffer *queue_packet_buffers;
   ogg_packet     *queue_packets;

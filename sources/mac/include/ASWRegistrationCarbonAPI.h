@@ -38,10 +38,10 @@ static void ASWRegistrationLoadPrivateFrameworkBundle(CFStringRef name, CFBundle
 
 /* ASWReg_ShowDialogWithOptions (mac _ASWReg_ShowDialogWithOptions, mac-only). STATE: see the mac gate. */
 // MAC: _ASWReg_ShowDialogWithOptions i386 0x000cc52b ppc 0x000d80cc
-static long ASWReg_ShowDialogWithOptions(Boolean modal, Boolean countdown)
+static int32_t ASWReg_ShowDialogWithOptions(Boolean modal, Boolean countdown)
 {
     CFBundleRef bundle = NULL;
-    long result = fnfErr;
+    int32_t result = fnfErr;
     Boolean (*runModal)(void);
     void (*run)(void);
 

@@ -4,6 +4,7 @@
 
 #ifndef ZCONF_H
 #define ZCONF_H
+#include "int32.h"
 
 #if (defined(_WIN32) || defined(__WIN32__)) && !defined(WIN32)
 #  define WIN32
@@ -32,7 +33,7 @@
 
 typedef unsigned char  Byte;
 typedef unsigned int   uInt;
-typedef unsigned long  uLong;
+typedef uint32_t  uLong;
 typedef Byte  FAR Bytef;
 typedef char  FAR charf;
 typedef int   FAR intf;
@@ -43,6 +44,6 @@ typedef void const *voidpc;
 typedef void FAR   *voidpf;
 typedef void       *voidp;
 
-#define z_off_t  long
+#define z_off_t  int32_t
 
 #endif

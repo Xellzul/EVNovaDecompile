@@ -77,7 +77,7 @@ void MainScreenRolloverIdle(void)
 #else
 void MainScreenRolloverIdle(void)
 {
-    unsigned long now;
+    uint32_t now;
     int i;
     void *sprite;
     short sel;

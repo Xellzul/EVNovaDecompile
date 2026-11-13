@@ -9,8 +9,8 @@ void BlitPixieBlitErase(
 	unsigned char *src,
 	unsigned char *dst,
 	unsigned char *bkg,
-	unsigned long srcRowBytes,
-	unsigned long dstRowBytes,
+	uint32_t srcRowBytes,
+	uint32_t dstRowBytes,
 	unsigned short bytes,
 	unsigned short rows)
 {

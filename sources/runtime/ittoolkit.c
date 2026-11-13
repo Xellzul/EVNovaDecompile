@@ -29,42 +29,42 @@ typedef struct RegionData {
     ITRect bound;                                /* +0x10, the rectangles follow */
 } RegionData;
 
-extern long IT_ViewGetItemRect(void *windowRef, long index, ITRect *r);     /* interfacetool.c */
-extern long IT_ViewGetItemEnabled(void *windowRef, long index,
+extern int32_t IT_ViewGetItemRect(void *windowRef, int32_t index, ITRect *r);     /* interfacetool.c */
+extern int32_t IT_ViewGetItemEnabled(void *windowRef, int32_t index,
                          unsigned char *enabled);                        /* interfacetool.c */
-extern long IT_ViewSetItemRect(void *windowRef, long index, const ITRect *r);  /* interfacetool.c */
-long _IT_ViewChange(void *windowRef, struct FolderSpec **folder, const char *file,
+extern int32_t IT_ViewSetItemRect(void *windowRef, int32_t index, const ITRect *r);  /* interfacetool.c */
+int32_t _IT_ViewChange(void *windowRef, struct FolderSpec **folder, const char *file,
                   const char *path, const char *anchor, void *unused);
-long _IT_ParseTupleCreate(WindowNode *window, ITSource *source, long where, const char *file,
+int32_t _IT_ParseTupleCreate(WindowNode *window, ITSource *source, int32_t where, const char *file,
                   void *unused);
-extern long FT_PathCurrent(const char *first, const char *second);        /* atfilespec.c */
+extern int32_t FT_PathCurrent(const char *first, const char *second);        /* atfilespec.c */
 extern unsigned char IndirectIsNormalizedEncoding(void **handle);                        /* atcharset.c */
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
-extern long IndirectNormalizeUnicode(void **handle, const char *charset);            /* atcharset.c */
+extern int32_t IndirectNormalizeUnicode(void **handle, const char *charset);            /* atcharset.c */
 #define IndirectNormalizeEncoding IndirectNormalizeUnicode
 #else
-extern long IndirectNormalizeEncoding(void **handle, const char *charset);            /* atcharset.c */
+extern int32_t IndirectNormalizeEncoding(void **handle, const char *charset);            /* atcharset.c */
 #endif
 extern ITPageTable *_IT_PageListCreate(ITElement *root);                       /* itattr.c */
 extern ITPage *_IT_GetPageByIndex(ITPageTable *table, ULong index);            /* itattr.c */
 void _IT_ParseTupleDispose(ITSource *source);
 void _IT_ViewUnload(WindowNode *window);
-long _IT_ViewPreloadIdle(WindowNode *window);
-long _IT_ViewPreload(WindowNode *window, ITElement *root);
-long _IT_ViewCheckPage(WindowNode *window, unsigned char *may);
-long _IT_ViewGoToPage(WindowNode *window, ITPage *page);
+int32_t _IT_ViewPreloadIdle(WindowNode *window);
+int32_t _IT_ViewPreload(WindowNode *window, ITElement *root);
+int32_t _IT_ViewCheckPage(WindowNode *window, unsigned char *may);
+int32_t _IT_ViewGoToPage(WindowNode *window, ITPage *page);
 extern ITPage *_IT_GetPageByName(ITPageTable *table, const char *name);      /* itattr.c */
 
 extern ITImage *DT_ContextCreate(void *window, unsigned char save);          /* itgfx.c */
 extern ITImage *DT_SurfaceCreateFromWindow(void *window);                              /* itgfx.c */
 
-extern long DT_AddValidRect(ITImage *image, const ITRect *r);               /* itgfx.c */
-extern long DT_SurfaceBlitRects(ITImage *image, ULong count, const ITRect *rects); /* itgfx.c */
-extern long DT_SurfaceDispose(ITImage *image);                                /* itgfx.c */
+extern int32_t DT_AddValidRect(ITImage *image, const ITRect *r);               /* itgfx.c */
+extern int32_t DT_SurfaceBlitRects(ITImage *image, ULong count, const ITRect *rects); /* itgfx.c */
+extern int32_t DT_SurfaceDispose(ITImage *image);                                /* itgfx.c */
 
-long __stdcall IT_ViewCreateParam(void *hwnd, unsigned int msg, unsigned int wParam, long lParam);
+int32_t __stdcall IT_ViewCreateParam(void *hwnd, unsigned int msg, unsigned int wParam, int32_t lParam);
 extern unsigned char IT_HandleWinEvent(void *hwnd, void *dc, unsigned int msg, unsigned int wParam,
-                                  long lParam, long *result);            /* atcursor.c */
+                                  int32_t lParam, int32_t *result);            /* atcursor.c */
 extern ITRect *DT_RectCenter(ITRect *r, const ITRect *size, const ITRect *bounds);  /* itrect.c */
 
 /* Win32's DLGTEMPLATE, which Windows reads packed: 18 bytes */
@@ -80,7 +80,7 @@ typedef struct Win32DialogTemplate {
 
 #ifdef MAC1010
 #define kITWindowKind 0x4954
-extern long _IT_WindowInstall(WindowNode *window, void *hwnd);
+extern int32_t _IT_WindowInstall(WindowNode *window, void *hwnd);
 #endif
 
 /* what the dialog procedure receives as its creation parameter */
@@ -89,7 +89,7 @@ typedef struct DialogParams {
     const char *file;
     const char *path;
     ITWindowProc proc;
-    long refcon;
+    int32_t refcon;
     char *result;
 } DialogParams;
 
@@ -138,7 +138,7 @@ ITControl *gIT_CurrentItem;                         /* 0x00870028 the control it
 void *DT_RegionCreate(void)
 {
     void *region;
-    long err;
+    int32_t err;
 
     err = 0;
     region = 0;
@@ -158,7 +158,7 @@ void *DT_RegionCreate(void)
 void *DT_RegionClone(void *region)
 {
     void *copy;
-    long err;
+    int32_t err;
 
     err = 0;
     copy = 0;
@@ -179,7 +179,7 @@ void *DT_RegionClone(void *region)
 #ifndef MAC1010
 void DT_RegionDispose(void *region)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     DeleteObject(region);
@@ -192,7 +192,7 @@ void DT_RegionDispose(void *region)
 #ifndef MAC1010
 ITRect *DT_GetRegionRect(ITRect *box, void *region)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     GetRgnBox(region, (WinRect *)box);
@@ -204,9 +204,9 @@ ITRect *DT_GetRegionRect(ITRect *box, void *region)
    obj 24, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051a0c8
 #ifndef MAC1010
-long DT_SetRegionRect(void *region, const ITRect *r)
+int32_t DT_SetRegionRect(void *region, const ITRect *r)
 {
-    long err;
+    int32_t err;
     ITRect clamped;
 
     err = 0;
@@ -226,10 +226,10 @@ long DT_SetRegionRect(void *region, const ITRect *r)
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051a110
 #ifndef MAC1010
-long DT_RegionScale(void *region, const ITRect *from, const ITRect *to)
+int32_t DT_RegionScale(void *region, const ITRect *from, const ITRect *to)
 {
     void *rebuilt;
-    long err;
+    int32_t err;
     RegionData *data;
     ULong size;
     ULong i;
@@ -308,7 +308,7 @@ done:
 // FUNCTION: EVNOVA 0x0051a2c0
 unsigned char DT_IsRegionEmpty(void *region)
 {
-    long err;
+    int32_t err;
     unsigned char result;
 
     err = 0;
@@ -324,7 +324,7 @@ unsigned char DT_IsRegionEmpty(void *region)
 ITPoint Sys2DT_Point(const ITPoint *pt)
 {
     ITPoint copy;
-    long err;
+    int32_t err;
 
     err = 0;
     copy.h = pt->h;
@@ -339,7 +339,7 @@ ITPoint Sys2DT_Point(const ITPoint *pt)
 #ifndef MAC1010
 ULong DT_2SysColor(const ITColor *color)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     return RGB(color->red, color->green, color->blue);
@@ -351,7 +351,7 @@ ULong DT_2SysColor(const ITColor *color)
 #ifndef MAC1010
 ITPoint *CopySys2DT_Point(ITPoint *dst, const ITPoint *src)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     dst->h = src->h;
@@ -365,7 +365,7 @@ ITPoint *CopySys2DT_Point(ITPoint *dst, const ITPoint *src)
 #ifndef MAC1010
 ITPoint *CopyDT_2SysPoint(ITPoint *dst, const ITPoint *src)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     dst->h = src->h;
@@ -380,7 +380,7 @@ ITPoint *CopyDT_2SysPoint(ITPoint *dst, const ITPoint *src)
 #ifndef MAC1010
 ITRect *CopySys2DT_Rect(ITRect *dst, const ITRect *src)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     dst->left = src->left;
@@ -398,11 +398,11 @@ ITRect *CopySys2DT_Rect(ITRect *dst, const ITRect *src)
 #ifndef MAC1010
 ITRect *CopyDT_2SysRect(ITRect *dst, const ITRect *src)
 {
-    long err;
-    long lo;
-    long hi;
-    long lo2;
-    long hi2;
+    int32_t err;
+    int32_t lo;
+    int32_t hi;
+    int32_t lo2;
+    int32_t hi2;
 
     err = 0;
     dst->left = src->left;
@@ -443,7 +443,7 @@ ITRect *CopyDT_2SysRect(ITRect *dst, const ITRect *src)
 #ifndef MAC1010
 ITColor *CopySys2DT_Color(ITColor *color, const ULong *ref)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     color->alpha = 0xff;
@@ -460,7 +460,7 @@ ITColor *CopySys2DT_Color(ITColor *color, const ULong *ref)
 #ifndef MAC1010
 ULong *CopyDT_2SysColor(ULong *ref, const ITColor *color)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     *ref = RGB(color->red, color->green, color->blue);
@@ -470,7 +470,7 @@ ULong *CopyDT_2SysColor(ULong *ref, const ITColor *color)
 
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
 extern char gIT_DefaultAnchor[0x100];
-long _IT_ViewSetAnchor(WindowNode *window, const char *anchor);
+int32_t _IT_ViewSetAnchor(WindowNode *window, const char *anchor);
 #endif
 
 /* IT_ViewCreate (a window record for a Windows window, or with hwnd -1 the record in `*out' set up
@@ -480,11 +480,11 @@ long _IT_ViewSetAnchor(WindowNode *window, const char *anchor);
    buffered root; the callback told (event 0); on failure an untitled record is destroyed). STATE:
    MATCH 100%, exe 145 / obj 145, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051a4ee
-long IT_ViewCreate(void *hwnd, const ITRect *bounds, ITWindowProc proc, long refcon,
-                  long unused, WindowNode **out)
+int32_t IT_ViewCreate(void *hwnd, const ITRect *bounds, ITWindowProc proc, int32_t refcon,
+                  int32_t unused, WindowNode **out)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     WindowNode *window;
     WindowNode *root;
 #ifdef MAC1010
@@ -607,14 +607,14 @@ done:
    100%, exe 147 / obj 147, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051a695
 #ifndef MAC1010
-long IT_ViewCreateModal(void *folder, const char *file, const char *path, ITWindowProc proc,
-                  long refcon, char *result)
+int32_t IT_ViewCreateModal(void *folder, const char *file, const char *path, ITWindowProc proc,
+                  int32_t refcon, char *result)
 {
-    long err;
-    long e;
-    long spare;
+    int32_t err;
+    int32_t e;
+    int32_t spare;
     unsigned short none;
-    long rc;
+    int32_t rc;
     void **handle;
     void **spare2;
     Win32DialogTemplate dlg;
@@ -657,7 +657,7 @@ long IT_ViewCreateModal(void *folder, const char *file, const char *path, ITWind
     params.result = result;
     IndirectSetLock(handle, 1);
     if (DialogBoxIndirectParamA(GetModuleHandleA(0), *handle, _PlatformGetWindow(),
-                                IT_ViewCreateParam, (long)&params) == -1) {
+                                IT_ViewCreateParam, (int32_t)&params) == -1) {
         err = GetLastError();
         err = kDialogFailed;
     }
@@ -677,14 +677,14 @@ done:
    reset and the refresh). STATE: MATCH 100%, exe 396 / obj 396, byte-identical yes. OPEN: none;
    the sixth argument is only passed on to 0x0051c3c1 */
 // FUNCTION: EVNOVA 0x0051a847
-long _IT_ViewChange(void *windowRef, struct FolderSpec **folder, const char *file,
+int32_t _IT_ViewChange(void *windowRef, struct FolderSpec **folder, const char *file,
                   const char *path, const char *anchor, void *unused)
 {
     static ITRect nowhere;
     WindowNode *window;
-    long err;
-    long e;
-    long spare;
+    int32_t err;
+    int32_t e;
+    int32_t spare;
     void *saved;
     void **data;
     unsigned char may;
@@ -743,7 +743,7 @@ long _IT_ViewChange(void *windowRef, struct FolderSpec **folder, const char *fil
             String2UpperCopySafe(window->path, path, sizeof(window->path));
         else if (path == 0)
             window->path[0] = 0;
-        e = _IT_ParseTupleCreate(window, &window->source, (long)folder, file, unused);
+        e = _IT_ParseTupleCreate(window, &window->source, (int32_t)folder, file, unused);
         if (e != 0) {
             err = e;
             goto done;
@@ -824,9 +824,9 @@ long _IT_ViewChange(void *windowRef, struct FolderSpec **folder, const char *fil
             else
 #endif
             StringCopySafe(name, value, sizeof(name));
-            err = FT_FileGetFlags((long)window->source.folder, name, 0, 0);
+            err = FT_FileGetFlags((int32_t)window->source.folder, name, 0, 0);
             if (err == 0) {
-                e = FT_FileLoad((long)window->source.folder, name, kChunkMax, 1, &data);
+                e = FT_FileLoad((int32_t)window->source.folder, name, kChunkMax, 1, &data);
                 if (e != 0) {
                     err = e;
                     goto done;
@@ -891,7 +891,7 @@ done:
 /* IT_ViewChange (the same, the entry the dialog and link code call). STATE: MATCH 100%, exe 9 /
    obj 9, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051ad55
-long IT_ViewChange(WindowNode *window, struct FolderSpec **folder, const char *file,
+int32_t IT_ViewChange(WindowNode *window, struct FolderSpec **folder, const char *file,
                   const char *path, const char *anchor)
 {
     return _IT_ViewChange(window, folder, file, path, anchor, 0);
@@ -900,11 +900,11 @@ long IT_ViewChange(WindowNode *window, struct FolderSpec **folder, const char *f
 /* IT_ViewGoToPage (go to the page named `name' when the current one may be left; the window
    refreshed either way). STATE: MATCH 100%, exe 44 / obj 44, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051ad74
-long IT_ViewGoToPage(void *windowRef, const char *name)
+int32_t IT_ViewGoToPage(void *windowRef, const char *name)
 {
     WindowNode *window;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char may;
 
     window = windowRef;
@@ -939,7 +939,7 @@ done:
 // FUNCTION: EVNOVA 0x0051add8
 #ifdef MAC1010
 #if !TARGET_API_MAC_CARBON
-long IT_ViewDispose(WindowNode *window)
+int32_t IT_ViewDispose(WindowNode *window)
 {
     ControlType *type;
     ITPreload *preload;
@@ -1007,7 +1007,7 @@ extern unsigned char _PlatformIsThreaded(void);
 
 static const Rect kOffscreenBounds = { 20000, 20000, 20050, 20050 };
 
-long IT_ViewDispose(WindowNode *window)
+int32_t IT_ViewDispose(WindowNode *window)
 {
     ControlType *type;
     ITPreload *preload;
@@ -1084,13 +1084,13 @@ long IT_ViewDispose(WindowNode *window)
 }
 #endif
 #else
-long IT_ViewDispose(WindowNode *window)
+int32_t IT_ViewDispose(WindowNode *window)
 {
     ControlType *type;
     ITPreload *preload;
     WindowNode **link;
-    long err, err2;
-    long e;
+    int32_t err, err2;
+    int32_t e;
 
     err = err2 = 0;
     if (window->hwnd != 0 && window->titled)
@@ -1165,7 +1165,7 @@ unsigned char IT_ViewExists(void *windowRef)
 {
     WindowNode *window = windowRef;
     WindowNode *w;
-    long err;
+    int32_t err;
 
     err = 0;
     CHECK_WINDOWS(window);
@@ -1181,7 +1181,7 @@ unsigned char IT_ViewExists(void *windowRef)
 WindowNode *IT_WindowFindView(void *hwnd)
 {
     WindowNode *w;
-    long err;
+    int32_t err;
 
     err = 0;
     CHECK_WINDOWS(0);
@@ -1218,10 +1218,10 @@ unsigned char IT_ViewIsWide(WindowNode *window)
     return wide;
 }
 
-long _IT_ViewSetAnchor(WindowNode *window, const char *anchor)
+int32_t _IT_ViewSetAnchor(WindowNode *window, const char *anchor)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     struct FolderSpec **folder;
     char *file;
     char *page;
@@ -1299,10 +1299,10 @@ done:
    and for a root window with images to preload, the next one loaded at most every half second).
    STATE: MATCH 100%, exe 55 / obj 55, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051afd6
-long _IT_ViewHandleIdle(WindowNode *window)
+int32_t _IT_ViewHandleIdle(WindowNode *window)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong elapsed;
 
     err = 0;
@@ -1335,10 +1335,10 @@ done:
    window, and a window still alive and dirty is refreshed). STATE: MATCH 100%, exe 68 / obj 68,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051b060
-long _IT_ViewHandleKey(WindowNode *window, const ITKeyEvent *key, ITClick *click)
+int32_t _IT_ViewHandleKey(WindowNode *window, const ITKeyEvent *key, ITClick *click)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char ok;
     unsigned char isChild;
 
@@ -1397,11 +1397,11 @@ done:
 /* _IT_ViewHandleEdit (an edit command, event 1..8, to the focused control of a window tree, then as
    _IT_ViewHandleKey). STATE: MATCH 100%, exe 81 / obj 81, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051b0f7
-long _IT_ViewHandleEdit(WindowNode *window, short event, ITClick *click)
+int32_t _IT_ViewHandleEdit(WindowNode *window, short event, ITClick *click)
 {
-    long err;
-    long e;
-    long result;
+    int32_t err;
+    int32_t e;
+    int32_t result;
     unsigned char ok;
     unsigned char isChild;
 
@@ -1458,10 +1458,10 @@ done:
 /* _IT_ViewHandleClick (a click to a window's controls, then as _IT_ViewHandleKey). STATE: MATCH 100%, exe 68
    / obj 68, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051b1b1
-long _IT_ViewHandleClick(WindowNode *window, ITInputEvent *event, ITClick *click)
+int32_t _IT_ViewHandleClick(WindowNode *window, ITInputEvent *event, ITClick *click)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char ok;
     unsigned char isChild;
 
@@ -1516,10 +1516,10 @@ done:
 /* _IT_ViewHandleHit (activate the control holding a focusable item, then as _IT_ViewHandleKey). STATE:
    MATCH 100%, exe 73 / obj 73, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051b248
-long _IT_ViewHandleHit(WindowNode *window, long item, ITClick *click)
+int32_t _IT_ViewHandleHit(WindowNode *window, int32_t item, ITClick *click)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char ok;
     unsigned char isChild;
 
@@ -1570,10 +1570,10 @@ done:
 /* _IT_ViewHandleTest (whether any control of a window claims an item). STATE: MATCH 100%, exe 21 / obj
    21, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051b2ec
-long _IT_ViewHandleTest(WindowNode *window, ULong item, unsigned char *hit)
+int32_t _IT_ViewHandleTest(WindowNode *window, ULong item, unsigned char *hit)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     *hit = 0;
@@ -1590,10 +1590,10 @@ long _IT_ViewHandleTest(WindowNode *window, ULong item, unsigned char *hit)
    colour, then the controls meeting the area; the buffer copied to the screen unless `noBlit';
    the area validated). STATE: MATCH 100%, exe 183 / obj 183, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051b31e
-long _IT_ViewHandleDraw(WindowNode *window, const ITRect *area, unsigned char noBlit)
+int32_t _IT_ViewHandleDraw(WindowNode *window, const ITRect *area, unsigned char noBlit)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char rebuilt;
     WindowNode *root;
     ITImage *target;
@@ -1693,10 +1693,10 @@ done:
 /* _IT_ViewHandleActivate (tell every control of a window that it activates or deactivates). STATE: MATCH
    100%, exe 17 / obj 17, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051b520
-long _IT_ViewHandleActivate(WindowNode *window, unsigned char active)
+int32_t _IT_ViewHandleActivate(WindowNode *window, unsigned char active)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     if (window->controls != 0) {
@@ -1711,10 +1711,10 @@ long _IT_ViewHandleActivate(WindowNode *window, unsigned char active)
    are cleared when it falls inside the window). STATE: MATCH 100%, exe 37 / obj 37, byte-
    identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051b549
-long _IT_ViewHandleCursor(WindowNode *window, ITInputEvent *event, unsigned short *modifiers)
+int32_t _IT_ViewHandleCursor(WindowNode *window, ITInputEvent *event, unsigned short *modifiers)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     if (DT_IsPointInRect(&event->where, &window->bounds))
@@ -1731,9 +1731,9 @@ long _IT_ViewHandleCursor(WindowNode *window, ITInputEvent *event, unsigned shor
    else none, -1 and none; each only when asked for). STATE: MATCH 100%, exe 50 / obj 50, byte-
    identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051b596
-long _IT_ViewGetFocus(WindowNode *window, ITControl **control, long *index, long *item)
+int32_t _IT_ViewGetFocus(WindowNode *window, ITControl **control, int32_t *index, int32_t *item)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     _IT_ViewValidateFocus(window, 0);
@@ -1760,20 +1760,20 @@ long _IT_ViewGetFocus(WindowNode *window, ITControl **control, long *index, long
    case `keep' leaves the focus where it was). STATE: MATCH 100%, exe 163 / obj 163, byte-identical
    yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051b60a
-long _IT_ViewSetFocus(WindowNode *window, ITControl *control, ULong item, unsigned char keep)
+int32_t _IT_ViewSetFocus(WindowNode *window, ITControl *control, ULong item, unsigned char keep)
 {
     WindowNode *owner;
     ULong held;
     ITFocus *focus;
-    long err;
-    long e;
-    long e2;
+    int32_t err;
+    int32_t e;
+    int32_t e2;
 
     err = 0;
     owner = window;
     _IT_ViewValidateFocus(window, 0);
     if (control != 0 && item == 0 && IndirectGetSize(control->items) != 0) {
-        item = *(long *)*control->items;
+        item = *(int32_t *)*control->items;
         e = _IT_GetObjectItem(window, window->controls, item, &owner, &control);
         if (e != 0) {
             err = e;
@@ -1848,14 +1848,14 @@ done:
    other item; the focus is cleared when nothing qualifies). STATE: MATCH 100%, exe 152 / obj 152,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051b7fc
-long _IT_ViewMoveFocus(WindowNode *window, unsigned char forward, WindowNode *skipWindow,
+int32_t _IT_ViewMoveFocus(WindowNode *window, unsigned char forward, WindowNode *skipWindow,
                   ITControl *skipControl, ULong only)
 {
-    long err;
+    int32_t err;
     ULong i;
-    long e2;
+    int32_t e2;
     ULong count;
-    long e;
+    int32_t e;
     void *current;
     ULong start;
     ULong item;
@@ -1882,13 +1882,13 @@ long _IT_ViewMoveFocus(WindowNode *window, unsigned char forward, WindowNode *sk
         }
         start = i;
         while (start != (i = (i + count + (forward != 0 ? 1 : -1)) % count)) {
-            item = ((long *)*window->focusables)[i];
+            item = ((int32_t *)*window->focusables)[i];
             if (only != 0 && only != item)
                 continue;
             if (skipControl != 0) {
                 n = IndirectGetSize(skipControl->items) >> 2;
                 for (j = 0; j < n; j++)
-                    if (item == ((long *)*skipControl->items)[j])
+                    if (item == ((int32_t *)*skipControl->items)[j])
                         break;
                 if (j < n)
                     continue;
@@ -1897,13 +1897,13 @@ long _IT_ViewMoveFocus(WindowNode *window, unsigned char forward, WindowNode *sk
                 break;
             n = IndirectGetSize(skipWindow->focusables) >> 2;
             for (j = 0; j < n; j++)
-                if (item == ((long *)*skipWindow->focusables)[j])
+                if (item == ((int32_t *)*skipWindow->focusables)[j])
                     break;
             if (j >= n)
                 break;
         }
         if (start != i) {
-            e = _IT_ViewSetFocus(window, 0, ((long *)*window->focusables)[i], 0);
+            e = _IT_ViewSetFocus(window, 0, ((int32_t *)*window->focusables)[i], 0);
             if (e != 0) {
                 err = e;
                 goto out;
@@ -1927,10 +1927,10 @@ out:
 /* _IT_ViewQueryFocus (rebuild a window's list of focusable items from its controls, and append it to
    `out' when given). STATE: MATCH 100%, exe 42 / obj 42, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051b9a9
-long _IT_ViewQueryFocus(WindowNode *window, void **out)
+int32_t _IT_ViewQueryFocus(WindowNode *window, void **out)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     _IT_ViewValidateFocus(window, 0);
@@ -1956,11 +1956,11 @@ done:
 /* _IT_ViewValidateFocus (a window tree's consistency probe: the window, or its root, has its focus record;
    always true). STATE: MATCH 100%, exe 22 / obj 22, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051ba0e
-unsigned char _IT_ViewValidateFocus(WindowNode *window, long self)
+unsigned char _IT_ViewValidateFocus(WindowNode *window, int32_t self)
 {
     WindowNode *root;
     ITFocus *focus;
-    long err;
+    int32_t err;
     unsigned char found;
 
     err = 0;
@@ -1978,10 +1978,10 @@ unsigned char _IT_ViewValidateFocus(WindowNode *window, long self)
 /* _IT_ViewInvalidate (mark a window dirty and its whole area to be redrawn). STATE: MATCH 100%, exe 28
    / obj 28, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051ba41
-long _IT_ViewInvalidate(WindowNode *window)
+int32_t _IT_ViewInvalidate(WindowNode *window)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ITRect everything;
 
     err = 0;
@@ -2004,10 +2004,10 @@ static unsigned short kTitleSepW[] = { ' ', '/', ' ', 0 };
    STATE: MATCH 100%, exe 109 / obj 109, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051ba8d
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
-long _IT_ViewValidate(WindowNode *window)
+int32_t _IT_ViewValidate(WindowNode *window)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     WindowRef hwnd;
     CFStringRef title;
     GrafPtr savedPort;
@@ -2065,10 +2065,10 @@ done:
     return err;
 }
 #elif defined(MAC1010)
-long _IT_ViewValidate(WindowNode *window)
+int32_t _IT_ViewValidate(WindowNode *window)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     void *hwnd;
     GrafPtr savedPort;
     RGBColor oldText;
@@ -2134,12 +2134,12 @@ done:
     return err;
 }
 #else
-long _IT_ViewValidate(WindowNode *window)
+int32_t _IT_ViewValidate(WindowNode *window)
 {
-    long err;
+    int32_t err;
     void *hwnd;
     void *dc;
-    long e;
+    int32_t e;
     ULong textColor;
     ULong backColor;
     char current[256];
@@ -2188,10 +2188,10 @@ done:
    holder (a blur) may refuse with -8404, which clears `may'). STATE: MATCH 100%, exe 42 / obj 42,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051bbec
-long _IT_ViewCheckPage(WindowNode *window, unsigned char *may)
+int32_t _IT_ViewCheckPage(WindowNode *window, unsigned char *may)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     *may = 1;
@@ -2228,7 +2228,7 @@ extern void IT_IndexDispose(ITElement *index);
 // FUNCTION: EVNOVA 0x0051bc51
 void _IT_ViewUnload(WindowNode *window)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (window->pages != 0) {
@@ -2260,13 +2260,13 @@ void _IT_ViewUnload(WindowNode *window)
    preloading; the window refreshed when dirty). STATE: MATCH 100%, exe 162 / obj 162, byte-
    identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051bcbe
-long _IT_ViewGoToPage(WindowNode *window, ITPage *page)
+int32_t _IT_ViewGoToPage(WindowNode *window, ITPage *page)
 {
-    long err;
+    int32_t err;
     ITRect clip;
     void *saved;
-    long e;
-    long result;
+    int32_t e;
+    int32_t result;
     unsigned char first;
 
     err = 0;
@@ -2350,17 +2350,17 @@ done:
 #ifdef MAC1010
 #define ViewItemIndex ULong
 #else
-#define ViewItemIndex long
+#define ViewItemIndex int32_t
 #endif
 
 /* _IT_ViewSetRect (move a window: when its origin changes every control is moved by the same amount,
    last first). STATE: MATCH 100%, exe 55 / obj 55, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051be77
-long _IT_ViewSetRect(WindowNode *window, const ITRect *bounds)
+int32_t _IT_ViewSetRect(WindowNode *window, const ITRect *bounds)
 {
     ViewItemIndex n;
     ITRect r;
-    long err;
+    int32_t err;
 
     err = 0;
     if (bounds->left != window->bounds.left || bounds->top != window->bounds.top) {
@@ -2379,11 +2379,11 @@ long _IT_ViewSetRect(WindowNode *window, const ITRect *bounds)
 /* _IT_ViewSetEnabled (show and enable a window: each control's enabled state re-applied, last first).
    STATE: MATCH 100%, exe 33 / obj 33, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051bef0
-long _IT_ViewSetEnabled(WindowNode *window, unsigned char visible, unsigned char enabled)
+int32_t _IT_ViewSetEnabled(WindowNode *window, unsigned char visible, unsigned char enabled)
 {
     ViewItemIndex n;
     unsigned char on;
-    long err;
+    int32_t err;
 
     err = 0;
     window->visible = visible;
@@ -2399,10 +2399,10 @@ long _IT_ViewSetEnabled(WindowNode *window, unsigned char visible, unsigned char
 /* _IT_ViewGetItemColor (offer an item to a window's controls: the first that claims it gets messages 0x4c
    and 0x4e). STATE: MATCH 100%, exe 23 / obj 23, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051bf40
-long _IT_ViewGetItemColor(WindowNode *window, ULong item, void *a, void *b, unsigned char *hit)
+int32_t _IT_ViewGetItemColor(WindowNode *window, ULong item, void *a, void *b, unsigned char *hit)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     *hit = 0;
@@ -2418,15 +2418,15 @@ long _IT_ViewGetItemColor(WindowNode *window, ULong item, void *a, void *b, unsi
    where, the control's index, the control's NAME; the current window and control are hidden from
    it meanwhile). STATE: MATCH 100%, exe 81 / obj 81, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051bf7a
-long _IT_ViewCallback(WindowNode *window, ITPage *page, ITControl *control, long event)
+int32_t _IT_ViewCallback(WindowNode *window, ITPage *page, ITControl *control, int32_t event)
 {
-    long index;
+    int32_t index;
     void *where;
     char buffer[256];
     char *name;
     WindowNode *savedWindow;
     ITControl *savedControl;
-    long result;
+    int32_t result;
 
     result = 0;
     index = -1;
@@ -2467,11 +2467,11 @@ long _IT_ViewCallback(WindowNode *window, ITPage *page, ITControl *control, long
    IMG or IMAGE attribute not queued yet goes on the root's list, pending). STATE: MATCH 100%, exe
    106 / obj 106, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051c06e
-long _IT_ViewPreload(WindowNode *window, ITElement *root)
+int32_t _IT_ViewPreload(WindowNode *window, ITElement *root)
 {
-    long n;
+    int32_t n;
     char *src;
-    long err;
+    int32_t err;
     ITPreload *p;
     ITElement *e;
     WindowNode *top;
@@ -2527,12 +2527,12 @@ long _IT_ViewPreload(WindowNode *window, ITElement *root)
    (-7201..-7203) only drops the request, any other error is answered). STATE: MATCH 100%, exe 90
    / obj 90, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051c181
-long _IT_ViewPreloadIdle(WindowNode *window)
+int32_t _IT_ViewPreloadIdle(WindowNode *window)
 {
     void **data;
-    long err;
+    int32_t err;
     ITPreload *p;
-    long e;
+    int32_t e;
     char message[256];
 
     err = 0;
@@ -2541,9 +2541,9 @@ long _IT_ViewPreloadIdle(WindowNode *window)
     for (p = window->preloads; p != 0 && !p->pending; p = p->next)
         ;
     if (p != 0 && p->pending) {
-        err = FT_FileGetFlags((long)window->source.folder, p->name, 0, 0);
+        err = FT_FileGetFlags((int32_t)window->source.folder, p->name, 0, 0);
         if (err == 0) {
-            e = FT_FileLoad((long)window->source.folder, p->name, kChunkMax, 1, &data);
+            e = FT_FileLoad((int32_t)window->source.folder, p->name, kChunkMax, 1, &data);
             if (e != 0) {
                 err = e;
                 goto done;
@@ -2575,11 +2575,11 @@ done:
    current file; -8400 for a URL, which the tool does not follow). STATE: MATCH 100%, exe 119 /
    obj 119, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051c289
-long _IT_ViewDissectLink(WindowNode *window, const char *link, char **file, char **anchor)
+int32_t _IT_ViewDissectLink(WindowNode *window, const char *link, char **file, char **anchor)
 {
     char *hash;
     ULong size;
-    long err;
+    int32_t err;
 
     err = 0;
     hash = 0;
@@ -2635,9 +2635,9 @@ done:
 }
 
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
-extern long IT_IndexLoad(long where, const char *file, ITElement **index, ITElement **root);
-extern long IT_IndexLookup(ITElement *index, const char *language, const char *path, char *a, char *b,
-                         char *c, unsigned short *d, long *f);
+extern int32_t IT_IndexLoad(int32_t where, const char *file, ITElement **index, ITElement **root);
+extern int32_t IT_IndexLookup(ITElement *index, const char *language, const char *path, char *a, char *b,
+                         char *c, unsigned short *d, int32_t *f);
 #endif
 
 /* _IT_ParseTupleCreate (open a page source: a folder named by `file' gives its index.iml (-8405 when it
@@ -2647,11 +2647,11 @@ extern long IT_IndexLookup(ITElement *index, const char *language, const char *p
    document only takes the folder). STATE: MATCH 100%, exe 173 / obj 173, byte-identical yes.
    OPEN: none (the first and fifth arguments are never read) */
 // FUNCTION: EVNOVA 0x0051c3c1
-long _IT_ParseTupleCreate(WindowNode *window, ITSource *source, long where, const char *file,
+int32_t _IT_ParseTupleCreate(WindowNode *window, ITSource *source, int32_t where, const char *file,
                   void *unused)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     void **data;
     struct FolderSpec **current;
     FTFileInfo info;
@@ -2692,7 +2692,7 @@ long _IT_ParseTupleCreate(WindowNode *window, ITSource *source, long where, cons
             err = e;
             goto done;
         }
-        err = FT_FileGetFlags((long)source->folder, kIndexFile, &info, 0);
+        err = FT_FileGetFlags((int32_t)source->folder, kIndexFile, &info, 0);
         if (err == kFTErrFileNotFound) {
             err = kNoIndex;
             goto done;
@@ -2729,7 +2729,7 @@ long _IT_ParseTupleCreate(WindowNode *window, ITSource *source, long where, cons
         err = kOutOfMemory;
         goto done;
     }
-    e = FT_FileLoad((long)source->folder, source->file, kChunkMax, 1, &data);
+    e = FT_FileLoad((int32_t)source->folder, source->file, kChunkMax, 1, &data);
     if (e != 0) {
         err = e;
         goto done;
@@ -2771,7 +2771,7 @@ done:
 // FUNCTION: EVNOVA 0x0051c5c9
 void _IT_ParseTupleDispose(ITSource *source)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (source->root != 0) {
@@ -2794,13 +2794,13 @@ void _IT_ParseTupleDispose(ITSource *source)
 #define kStubJump 0x207a0004    /* movea.l 4(pc),a0 */
 #define kStubJmp 0x4ed0         /* jmp (a0) */
 
-pascal long IT_WindowDefProc(short varCode, WindowPtr hwnd, short message, long param);
+pascal int32_t IT_WindowDefProc(short varCode, WindowPtr hwnd, short message, int32_t param);
 
-long _IT_WindowInstall(WindowNode *window, void *hwnd)
+int32_t _IT_WindowInstall(WindowNode *window, void *hwnd)
 {
-    long err;
+    int32_t err;
     Handle stub;
-    long proc;
+    int32_t proc;
 
     err = 0;
     stub = NewHandle(10);
@@ -2811,8 +2811,8 @@ long _IT_WindowInstall(WindowNode *window, void *hwnd)
     HLockHi(stub);
     *(ULong *)*stub = kStubJump;
     *(unsigned short *)(*stub + 4) = kStubJmp;
-    proc = (long)NewRoutineDescriptor((ProcPtr)IT_WindowDefProc, kWindowDefInfo, 1);
-    *(long *)(*stub + 6) = proc;
+    proc = (int32_t)NewRoutineDescriptor((ProcPtr)IT_WindowDefProc, kWindowDefInfo, 1);
+    *(int32_t *)(*stub + 6) = proc;
     if (proc == 0) {
         err = kOutOfMemory;
         goto done;
@@ -2825,10 +2825,10 @@ done:
     return err;
 }
 
-pascal long IT_WindowDefProc(short varCode, WindowPtr hwnd, short message, long param)
+pascal int32_t IT_WindowDefProc(short varCode, WindowPtr hwnd, short message, int32_t param)
 {
     WindowNode *window;
-    long msg;
+    int32_t msg;
     UniversalProcPtr def;
 
     window = IT_WindowFindView(hwnd);
@@ -2850,10 +2850,10 @@ pascal long IT_WindowDefProc(short varCode, WindowPtr hwnd, short message, long 
    else Windows' default). STATE: MATCH 100%, exe 37 / obj 37, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x0051c610
 #ifndef MAC1010
-long __stdcall IT_WindowProc(void *hwnd, unsigned int msg, unsigned int wParam, long lParam)
+int32_t __stdcall IT_WindowProc(void *hwnd, unsigned int msg, unsigned int wParam, int32_t lParam)
 {
-    long result;
-    long err;
+    int32_t result;
+    int32_t err;
 
     err = 0;
     result = 0;
@@ -2871,12 +2871,12 @@ long __stdcall IT_WindowProc(void *hwnd, unsigned int msg, unsigned int wParam, 
    WM_INITDIALOG leaves the dialog up with no page, as in the exe */
 // FUNCTION: EVNOVA 0x0051c664
 #ifndef MAC1010
-long __stdcall IT_ViewCreateParam(void *hwnd, unsigned int msg, unsigned int wParam, long lParam)
+int32_t __stdcall IT_ViewCreateParam(void *hwnd, unsigned int msg, unsigned int wParam, int32_t lParam)
 {
-    long handled;
-    long err;
-    long e;
-    long result;
+    int32_t handled;
+    int32_t err;
+    int32_t e;
+    int32_t result;
     WindowNode *window;
     DialogParams *params;
     ITRect r;

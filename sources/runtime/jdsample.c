@@ -355,8 +355,8 @@ jinit_upsampler (j_decompress_ptr cinfo)
     if (need_buffer) {
       upsample->color_buf[ci] = (*cinfo->mem->alloc_sarray)
 	((j_common_ptr) cinfo, JPOOL_IMAGE,
-	 (JDIMENSION) jround_up((long) cinfo->output_width,
-				(long) cinfo->max_h_samp_factor),
+	 (JDIMENSION) jround_up((int32_t) cinfo->output_width,
+				(int32_t) cinfo->max_h_samp_factor),
 	 (JDIMENSION) cinfo->max_v_samp_factor);
     }
   }

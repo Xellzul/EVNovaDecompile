@@ -48,31 +48,31 @@ extern "C" {
 typedef struct {
   unsigned char *ptr;
   unsigned char *buffer;
-  unsigned long endbyte;
-  unsigned long storage;
-  unsigned long endbit;
+  uint32_t endbyte;
+  uint32_t storage;
+  uint32_t endbit;
 } oggpack_buffer;
 
 typedef struct {
   unsigned char *header;
   unsigned char *body;
-  long header_len;
-  long body_len;
+  int32_t header_len;
+  int32_t body_len;
 } ogg_page;
 
 typedef struct {
   unsigned char   *body_data;
-  long    body_storage;
-  long    body_fill;
-  long    body_returned;
+  int32_t    body_storage;
+  int32_t    body_fill;
+  int32_t    body_returned;
 
   int     *lacing_vals;
   ogg_int64_t *granule_vals;
 
-  long    lacing_storage;
-  long    lacing_fill;
-  long    lacing_packet;
-  long    lacing_returned;
+  int32_t    lacing_storage;
+  int32_t    lacing_fill;
+  int32_t    lacing_packet;
+  int32_t    lacing_returned;
 
   unsigned char    header[282];
   int              header_fill;
@@ -81,8 +81,8 @@ typedef struct {
 
   int     b_o_s;
 
-  long    serialno;
-  long    pageno;
+  int32_t    serialno;
+  int32_t    pageno;
   ogg_int64_t  packetno;
 
   ogg_int64_t   granulepos;
@@ -91,9 +91,9 @@ typedef struct {
 
 typedef struct {
   unsigned char *packet;
-  long  bytes;
-  long  b_o_s;
-  long  e_o_s;
+  int32_t  bytes;
+  int32_t  b_o_s;
+  int32_t  e_o_s;
 
   ogg_int64_t  granulepos;
 
@@ -116,17 +116,17 @@ extern void  oggpack_writeinit(oggpack_buffer *b);
 extern void  oggpack_reset(oggpack_buffer *b);
 extern void  oggpack_writeclear(oggpack_buffer *b);
 extern void  oggpack_readinit(oggpack_buffer *b,unsigned char *buf,int bytes);
-extern void  oggpack_write(oggpack_buffer *b,unsigned long value,unsigned int bits);
-extern long  oggpack_look(oggpack_buffer *b,unsigned int bits);
-extern long  oggpack_look_huff(oggpack_buffer *b,int bits);
-extern long  oggpack_look1(oggpack_buffer *b);
+extern void  oggpack_write(oggpack_buffer *b,uint32_t value,unsigned int bits);
+extern int32_t  oggpack_look(oggpack_buffer *b,unsigned int bits);
+extern int32_t  oggpack_look_huff(oggpack_buffer *b,int bits);
+extern int32_t  oggpack_look1(oggpack_buffer *b);
 extern void  oggpack_adv(oggpack_buffer *b,unsigned int bits);
 extern int   oggpack_adv_huff(oggpack_buffer *b,int bits);
 extern void  oggpack_adv1(oggpack_buffer *b);
-extern long  oggpack_read(oggpack_buffer *b,unsigned int bits);
-extern long  oggpack_read1(oggpack_buffer *b);
-extern long  oggpack_bytes(oggpack_buffer *b);
-extern long  oggpack_bits(oggpack_buffer *b);
+extern int32_t  oggpack_read(oggpack_buffer *b,unsigned int bits);
+extern int32_t  oggpack_read1(oggpack_buffer *b);
+extern int32_t  oggpack_bytes(oggpack_buffer *b);
+extern int32_t  oggpack_bits(oggpack_buffer *b);
 extern unsigned char *oggpack_get_buffer(oggpack_buffer *b);
 
 extern int      ogg_stream_packetin(ogg_stream_state *os, ogg_packet *op);
@@ -138,9 +138,9 @@ extern int      ogg_sync_clear(ogg_sync_state *oy);
 extern int      ogg_sync_reset(ogg_sync_state *oy);
 extern int	ogg_sync_destroy(ogg_sync_state *oy);
 
-extern char    *ogg_sync_buffer(ogg_sync_state *oy, long size);
-extern int      ogg_sync_wrote(ogg_sync_state *oy, long bytes);
-extern long     ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og);
+extern char    *ogg_sync_buffer(ogg_sync_state *oy, int32_t size);
+extern int      ogg_sync_wrote(ogg_sync_state *oy, int32_t bytes);
+extern int32_t     ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og);
 extern int      ogg_sync_pageout(ogg_sync_state *oy, ogg_page *og);
 extern int      ogg_stream_pagein(ogg_stream_state *os, ogg_page *og);
 extern int      ogg_stream_packetout(ogg_stream_state *os,ogg_packet *op);
@@ -160,7 +160,7 @@ extern int      ogg_page_bos(ogg_page *og);
 extern int      ogg_page_eos(ogg_page *og);
 extern ogg_int64_t  ogg_page_granulepos(ogg_page *og);
 extern int      ogg_page_serialno(ogg_page *og);
-extern long     ogg_page_pageno(ogg_page *og);
+extern int32_t     ogg_page_pageno(ogg_page *og);
 extern int      ogg_page_packets(ogg_page *og);
 
 extern void     ogg_packet_clear(ogg_packet *op);

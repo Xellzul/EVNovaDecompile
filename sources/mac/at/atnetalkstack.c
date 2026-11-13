@@ -18,9 +18,9 @@ static short UnitCount(void)
     return *(short *)0x1d2;
 }
 
-long StackOpenAppleTalk(void)
+int32_t StackOpenAppleTalk(void)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (MPPOpen() != 0)
@@ -120,7 +120,7 @@ static const char *sHexDigits = "0123456789ABCDEF";
 
 void MakeUniqueNBPName(const unsigned char *name, unsigned char *out, ULong serial)
 {
-    long n;
+    int32_t n;
 
     IsMPPOpen();
     MslCopy((char *)out, (const char *)name);
@@ -129,7 +129,7 @@ void MakeUniqueNBPName(const unsigned char *name, unsigned char *out, ULong seri
         BlockMoveData(name, out, n);
     if (serial != 0) {
         ULong v;
-        long m;
+        int32_t m;
 
         v = (serial * 2 + 1) * TickCount();
         out[n] = '-';

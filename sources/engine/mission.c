@@ -52,11 +52,11 @@ void InitMissions(void)
     short i;
     short j;
     short resID;
-    unsigned long resType;
+    uint32_t resType;
     short numLoaded;
     short numMisns;
     unsigned char name[256];
-    long k;
+    int32_t k;
 
     lastMissionStellar = -1;
     offeringFromShip = 0;
@@ -457,7 +457,7 @@ void SetupMissionList(void)
     Str255 buf;
     short i;
     short count;
-    long len;
+    int32_t len;
     Rect box3;
     Rect box;
     Rect cellBounds;
@@ -474,7 +474,7 @@ void SetupMissionList(void)
     Str255 buf;
     short i;
     short count;
-    long len;
+    int32_t len;
     FontInfo fontInfo;
     Rect cellBounds;
     ListDefSpec ldefSpec;
@@ -489,7 +489,7 @@ void SetupMissionList(void)
     char buf[256];
     short i;
     short count;
-    long len;
+    int32_t len;
     Rect box3;
     Rect cellBounds;
     void *itemHandle;
@@ -538,7 +538,7 @@ void SetupMissionList(void)
 #endif
     HLock((Handle)missionList);
     (*missionList)->selFlags = lOnlyOne;
-    (*missionList)->refCon = (long)ldefColors;
+    (*missionList)->refCon = (int32_t)ldefColors;
     HUnlock((Handle)missionList);
 #else
 #ifdef CEFIX /* F12.01 */
@@ -1934,10 +1934,10 @@ void DoMissionSuccess(short mission)
 /* ApplyMissionPay (mac _ApplyMissionPay). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00440750
 // MAC: _ApplyMissionPay i386 0x00098326 ppc 0x000a3ffc
-void ApplyMissionPay(long amount)
+void ApplyMissionPay(int32_t amount)
 {
-    long i;
-    long govt;
+    int32_t i;
+    int32_t govt;
 
     if (amount > 0) {
         shipData[0].credits += amount;
@@ -2066,7 +2066,7 @@ void QuickMissionFailure(short mission)
 /* MissionFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00440c90
 // MAC: _MissionFilter i386 0x0009f7a9 ppc 0x000ab3fc
-Boolean MissionFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean MissionFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     EventKeyByte key;
     Rect box;
@@ -3124,8 +3124,8 @@ void MungeBriefing(Boolean briefing, short which)
     short sys;
     short bestIdx;
     short bestVal;
-    long pay;
-    long pct;
+    int32_t pay;
+    int32_t pct;
 
     stringHandle = NULL;
     stringHandle = AllocAHandle2(strlen(briefingTextPtr), 0);
@@ -3484,7 +3484,7 @@ tokens:
     }
 
 #ifdef MACBUILD
-    if ((unsigned long)GetAHandleSize(stringHandle) <= kBriefingSize) {
+    if ((uint32_t)GetAHandleSize(stringHandle) <= kBriefingSize) {
         BlockMoveData(*(Handle)stringHandle, briefingTextPtr, GetAHandleSize(stringHandle));
     } else {
         BlockMoveData(*(Handle)stringHandle, briefingTextPtr, kBriefingSize);
@@ -3552,7 +3552,7 @@ void SetupMissionInfoList(void)
     char nameBuf[255];
     short i;
     short count;
-    long len;
+    int32_t len;
     Rect box;
     Rect cellBounds;
 #if TARGET_API_MAC_CARBON
@@ -3589,7 +3589,7 @@ void SetupMissionInfoList(void)
     unsigned char hasScrollbar;
     Point cellSize;
     Point rowPt;
-    long len;
+    int32_t len;
 #endif
 
     for (i = 0; i < kMaxActiveMissions; i++)
@@ -3632,7 +3632,7 @@ void SetupMissionInfoList(void)
 #endif
     HLock((Handle)missionInfoList);
     (*missionInfoList)->selFlags = lOnlyOne;
-    (*missionInfoList)->refCon = (long)ldefColors;
+    (*missionInfoList)->refCon = (int32_t)ldefColors;
     HUnlock((Handle)missionInfoList);
 
     rowPt.h = rowPt.v = 0;
@@ -3879,7 +3879,7 @@ void DoMissionInfoDialog(void)
 /* MissionInfoFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00446770
 // MAC: _MissionInfoFilter i386 0x0009d6e5 ppc 0x000a9304
-Boolean MissionInfoFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean MissionInfoFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Rect box;
     short itemType;
@@ -4175,7 +4175,7 @@ short OfferOneMission(short mission)
 /* SingleMissionFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00447170
 // MAC: _SingleMissionFilter i386 0x00098d9a ppc 0x000a4984
-Boolean SingleMissionFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean SingleMissionFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
 #if V111
     Rect box;
@@ -4511,7 +4511,7 @@ Boolean ValidAuxShipSystem(short sys, short mission)
 {
     short spec;
     short i;
-    long xenophobic;
+    int32_t xenophobic;
 
     spec = currentMissions[mission].auxShipSyst;
     if (spec == -1 || spec == -6) {

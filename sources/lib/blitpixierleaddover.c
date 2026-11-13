@@ -9,13 +9,13 @@
 // MAC: _BlitPixieRLEAddOver i386 0x000c24bf ppc 0x000ce7f0
 #ifdef MACBUILD
 void BlitPixieRLEAddOver(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes)
+        int32_t dstRowBytes)
 {
-    unsigned long token, opcode, count;
+    uint32_t token, opcode, count;
     unsigned char *rowStart = dstPixel;
 
     do {
-        token = *(unsigned long *)rleTokens;
+        token = *(uint32_t *)rleTokens;
         opcode = token >> 24;
         rleTokens += 4;
         count = token & 0xffffff;
@@ -24,7 +24,7 @@ void BlitPixieRLEAddOver(unsigned char *rleTokens, unsigned char *dstPixel,
         case 2:
             BlitPixieAddOverCopy(dstPixel, rleTokens, count);
             rleTokens += count;
-            PtrAddBytes(rleTokens, (-(long)rleTokens) & 3);
+            PtrAddBytes(rleTokens, (-(int32_t)rleTokens) & 3);
             dstPixel += count;
             break;
 
@@ -33,7 +33,7 @@ void BlitPixieRLEAddOver(unsigned char *rleTokens, unsigned char *dstPixel,
             break;
 
         case 4:
-            BlitPixieMemSet(dstPixel, *(unsigned long *)rleTokens, count);
+            BlitPixieMemSet(dstPixel, *(uint32_t *)rleTokens, count);
             rleTokens += 4;
             dstPixel += count;
             break;
@@ -53,13 +53,13 @@ void BlitPixieRLEAddOver(unsigned char *rleTokens, unsigned char *dstPixel,
 }
 #else
 void BlitPixieRLEAddOver(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes)
+        int32_t dstRowBytes)
 {
-    unsigned long token, opcode, count;
+    uint32_t token, opcode, count;
     unsigned char *rowStart = dstPixel;
 
     do {
-        token = *(unsigned long *)rleTokens;
+        token = *(uint32_t *)rleTokens;
         opcode = token >> 24;
         rleTokens += 4;
         count = token & 0xffffff;
@@ -68,7 +68,7 @@ void BlitPixieRLEAddOver(unsigned char *rleTokens, unsigned char *dstPixel,
         case 2:
             BlitPixieAddOverCopy(dstPixel, rleTokens, count);
             rleTokens += count;
-            rleTokens += (-(long)rleTokens) & 3;
+            rleTokens += (-(int32_t)rleTokens) & 3;
             dstPixel += count;
             break;
 
@@ -77,7 +77,7 @@ void BlitPixieRLEAddOver(unsigned char *rleTokens, unsigned char *dstPixel,
             break;
 
         case 4:
-            BlitPixieMemSet(dstPixel, *(unsigned long *)rleTokens, count);
+            BlitPixieMemSet(dstPixel, *(uint32_t *)rleTokens, count);
             rleTokens += 4;
             dstPixel += count;
             break;

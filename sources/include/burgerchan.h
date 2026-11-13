@@ -17,21 +17,21 @@ struct adpcm_state {
 typedef struct AdpcmVoice {
     short valprev;                               /* +0x00 */
     unsigned short index;                        /* +0x02 */
-    unsigned long pos;                           /* +0x04 */
-    unsigned long total;                         /* +0x08 */
-    long lastLeft;                               /* +0x0c */
-    long lastRight;                              /* +0x10 */
+    uint32_t pos;                           /* +0x04 */
+    uint32_t total;                         /* +0x08 */
+    int32_t lastLeft;                               /* +0x0c */
+    int32_t lastRight;                              /* +0x10 */
 } AdpcmVoice;
 
 typedef struct SoundChannel {
-    unsigned long id;                            /* +0x00 */
+    uint32_t id;                            /* +0x00 */
     void *sound;                                 /* +0x04 */
-    unsigned long stream;                        /* +0x08, 16.16 step */
-    unsigned long device;                        /* +0x0c, 16.16 */
-    void (*done)(long reason, void *sound, void *ref);   /* +0x10 */
+    uint32_t stream;                        /* +0x08, 16.16 step */
+    uint32_t device;                        /* +0x0c, 16.16 */
+    void (*done)(int32_t reason, void *sound, void *ref);   /* +0x10 */
     void *data;                                  /* +0x14 */
     AdpcmVoice voice;                            /* +0x18 */
-    long unk2C;                                /* +0x2c */
+    int32_t unk2C;                                /* +0x2c */
     unsigned short leftLevel;                    /* +0x30 */
     unsigned short rightLevel;                   /* +0x32 */
     unsigned short priority;                     /* +0x34 */

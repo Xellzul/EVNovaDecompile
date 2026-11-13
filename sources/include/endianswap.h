@@ -10,7 +10,7 @@ static __inline short SwapEndianShort(const unsigned short *p)
     return *p;
 }
 
-static __inline long SwapEndianLong(const unsigned long *p)
+static __inline int32_t SwapEndianLong(const uint32_t *p)
 {
     return *p;
 }
@@ -26,9 +26,9 @@ static __inline short SwapEndianShort(const unsigned short *p)
     return t;
 }
 
-static __inline long SwapEndianLong(const unsigned long *p)
+static __inline int32_t SwapEndianLong(const uint32_t *p)
 {
-    register unsigned long t;
+    register uint32_t t;
 
     t = *p;
     asm { bswap t }

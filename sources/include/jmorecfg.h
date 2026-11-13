@@ -20,7 +20,7 @@ typedef unsigned short UINT16;
 
 typedef short INT16;
 
-typedef long INT32;
+typedef int32_t INT32;
 
 typedef unsigned int JDIMENSION;
 

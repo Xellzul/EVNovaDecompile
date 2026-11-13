@@ -7,7 +7,7 @@ short gBlitPixieProcessorType = kUnknownProcessor;
 
 /* BlitPixieVersion (mac _BlitPixieVersion, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieVersion i386 0x000c02d0 ppc 0x000cbf20
-unsigned long BlitPixieVersion( void )
+uint32_t BlitPixieVersion( void )
 {
 	return BLITPIXIE_VERSION_NUM;
 }
@@ -27,7 +27,7 @@ void BlitPixieVersionString( char string[BLITPIXIE_VERSION_STRINGLEN] )
 void BlitPixieGetProcessorType(void)
 {
 	OSErr		err;
-	long		response;
+	int32_t		response;
 	short		processor;
 
 	err = Gestalt(gestaltSysArchitecture,&response);

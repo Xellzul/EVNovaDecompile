@@ -14,7 +14,7 @@ extern void _ST_MixerDispatch(short *buffer, ULong frames);   /* atsndmem.c */
 
 extern void *gDirectSoundCreate;                       /* atsoundup.c, DirectSoundCreate */
 extern ULong gBytesPerBuffer;                    /* atsoundup.c, buffer bytes */
-extern long gSamplesPerBuffer;                   /* atsoundup.c, buffer frames */
+extern int32_t gSamplesPerBuffer;                   /* atsoundup.c, buffer frames */
 extern ULong gDurationBuffer;                    /* atsoundup.c, buffer ms */
 extern ULong gSampleBits;                        /* atsoundup.c, bits */
 extern ULong gNumChannels;                       /* atsoundup.c, channels */
@@ -53,9 +53,9 @@ ULong __stdcall _ST_PumpThread(void *param);
 
 /* _ST_CreateSoundPump. STATE: MATCH 100%, exe 251 / obj 251, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00507300
-long _ST_CreateSoundPump(void)
+int32_t _ST_CreateSoundPump(void)
 {
-    long err, e;
+    int32_t err, e;
     ULong threadId;
     WaveFormat format;
     DSBufferDesc desc;
@@ -242,10 +242,10 @@ void _ST_DisposeSoundPump(void)
 /* _ST_GetCurrentSampleRate. STATE: MATCH 100%, exe 38 / obj 38, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00507820
-long _ST_GetCurrentSampleRate(ULong *rate)
+int32_t _ST_GetCurrentSampleRate(ULong *rate)
 {
     WaveOutCaps caps;
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     e = waveOutGetDevCapsA(kWaveMapper, &caps, sizeof(caps));
@@ -266,9 +266,9 @@ long _ST_GetCurrentSampleRate(ULong *rate)
 /* _ST_GetWaveVolume. STATE: MATCH 100%, exe 96 / obj 96, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x005078a0
-long _ST_GetWaveVolume(ULong *left, ULong *right, ULong *max)
+int32_t _ST_GetWaveVolume(ULong *left, ULong *right, ULong *max)
 {
-    long err, e;
+    int32_t err, e;
     WaveOutCaps caps;
     ULong volume;
 
@@ -279,7 +279,7 @@ long _ST_GetWaveVolume(ULong *left, ULong *right, ULong *max)
         *max = 0;
 
     if (gDirectSound != 0) {
-        e = gSndDSPrimaryBuffer->vtbl->GetVolume(gSndDSPrimaryBuffer, (long *)&volume);
+        e = gSndDSPrimaryBuffer->vtbl->GetVolume(gSndDSPrimaryBuffer, (int32_t *)&volume);
         if (e != 0) {
             err = e;
             err = kVolumeFailed;
@@ -316,9 +316,9 @@ long _ST_GetWaveVolume(ULong *left, ULong *right, ULong *max)
 /* _ST_SetWaveVolume. STATE: MATCH 100%, exe 77 / obj 77, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x005079f0
-long _ST_SetWaveVolume(ULong left, ULong right)
+int32_t _ST_SetWaveVolume(ULong left, ULong right)
 {
-    long err, e;
+    int32_t err, e;
     WaveOutCaps caps;
 
     err = 0;
@@ -366,7 +366,7 @@ unsigned char _ST_SupportsSystemVolume(void)
 
 /* _ST_GetSystemVolume. STATE: MATCH 100%, exe 9 / obj 9 instrs, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00507af0
-long _ST_GetSystemVolume(ULong *left, ULong *right, ULong *max)
+int32_t _ST_GetSystemVolume(ULong *left, ULong *right, ULong *max)
 {
     return _ST_GetWaveVolume(left, right, max);
 }
@@ -392,7 +392,7 @@ ULong __stdcall _ST_PumpThread(void *param)
     ULong length;
     ULong shift;
     ULong cursor;
-    long which;
+    int32_t which;
     WaveHdr *hdr;
     char *data;
 

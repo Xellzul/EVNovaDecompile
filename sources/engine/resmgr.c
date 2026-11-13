@@ -11,7 +11,7 @@
 #include "burgerplat.h"
 
 struct ListRec *gRezFiles;
-long gResourcesReleased;
+int32_t gResourcesReleased;
 
 /* one (type -> contiguous record run) entry per resource type in a rez file */
 
@@ -28,13 +28,13 @@ long gResourcesReleased;
 
 /* nv_FindResourceRecord (mac (port layer)). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cdfa0
-ResRecord *nv_FindResourceRecord(unsigned long type, short id)
+ResRecord *nv_FindResourceRecord(uint32_t type, short id)
 {
     ListNode *node;
     ResRecord *rec;
-    long remaining;
+    int32_t remaining;
     RezFile *rez;
-    long n;
+    int32_t n;
     RezTypeEntry *entry;
 
     if (gRezFiles == NULL)
@@ -68,10 +68,10 @@ ResRecord *nv_FindResourceRecord(unsigned long type, short id)
    passes the remainder down to the next one */
 /* nv_FindIndResourceRecord. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ce030
-ResRecord *nv_FindIndResourceRecord(unsigned long type, short index)
+ResRecord *nv_FindIndResourceRecord(uint32_t type, short index)
 {
     ListNode *node;
-    long remaining;
+    int32_t remaining;
     RezTypeEntry *entry;
 
     if (gRezFiles == NULL)
@@ -96,12 +96,12 @@ ResRecord *nv_FindIndResourceRecord(unsigned long type, short index)
 
 /* nv_CountResourceRecords. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ce0b0
-long nv_CountResourceRecords(unsigned long type)
+int32_t nv_CountResourceRecords(uint32_t type)
 {
     ListNode *node;
-    long remaining;
+    int32_t remaining;
     RezTypeEntry *entry;
-    long total;
+    int32_t total;
 
     total = 0;
     if (gRezFiles == NULL)
@@ -124,12 +124,12 @@ long nv_CountResourceRecords(unsigned long type)
 
 /* nv_FindNamedResourceRecord. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ce110
-ResRecord *nv_FindNamedResourceRecord(unsigned long type, const char *name)
+ResRecord *nv_FindNamedResourceRecord(uint32_t type, const char *name)
 {
     ListNode *node;
-    long remaining;
+    int32_t remaining;
     RezTypeEntry *entry;
-    long count;
+    int32_t count;
     ResRecord *rec;
 
     if (gRezFiles == NULL)
@@ -163,10 +163,10 @@ ResRecord *nv_FindResourceRecordForHandle(Handle h)
 {
     ListNode *node;
     RezFile *rez;
-    long index;
-    long remaining;
+    int32_t index;
+    int32_t remaining;
     RezTypeEntry *entry;
-    long count;
+    int32_t count;
     ResRecord *rec;
     int idx;
 
@@ -199,7 +199,7 @@ ResRecord *nv_FindResourceRecordForHandle(Handle h)
 
 /* GetResource (mac (Toolbox shim)). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ce250
-Handle GetResource(unsigned long type, short id)
+Handle GetResource(uint32_t type, short id)
 {
     ResRecord *rec;
     Handle h;
@@ -216,7 +216,7 @@ Handle GetResource(unsigned long type, short id)
 
 /* GetIndResource. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ce2a0
-Handle GetIndResource(unsigned long type, short index)
+Handle GetIndResource(uint32_t type, short index)
 {
     ResRecord *rec;
     Handle h;
@@ -236,7 +236,7 @@ Handle GetIndResource(unsigned long type, short index)
 
 /* GetNamedResource. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ce300
-Handle GetNamedResource(unsigned long type, const unsigned char *name)
+Handle GetNamedResource(uint32_t type, const unsigned char *name)
 {
     ResRecord *rec;
     Handle h;
@@ -259,7 +259,7 @@ void ReleaseResource(Handle h)
 {
     ListNode *node;
     RezFile *rez;
-    long index;
+    int32_t index;
 
     if (gRezFiles == NULL)
         return;
@@ -282,7 +282,7 @@ void DetachResource(Handle h)
 {
     ListNode *node;
     RezFile *rez;
-    long index;
+    int32_t index;
 
     if (gRezFiles == NULL)
         return;
@@ -298,14 +298,14 @@ void DetachResource(Handle h)
 
 /* CountResources (mac (Toolbox shim)). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ce470
-long CountResources(unsigned long type)
+int32_t CountResources(uint32_t type)
 {
     return nv_CountResourceRecords(type);
 }
 
 /* GetResInfo (mac (Toolbox shim)). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ce480
-void GetResInfo(Handle h, short *id, unsigned long *type, unsigned char *name)
+void GetResInfo(Handle h, short *id, uint32_t *type, unsigned char *name)
 {
     ResRecord *rec;
 

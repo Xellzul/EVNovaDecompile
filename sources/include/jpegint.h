@@ -237,8 +237,8 @@ EXTERN(void) jinit_merged_upsampler JPP((j_decompress_ptr cinfo));
 
 EXTERN(void) jinit_memory_mgr JPP((j_common_ptr cinfo));
 
-EXTERN(long) jdiv_round_up JPP((long a, long b));
-EXTERN(long) jround_up JPP((long a, long b));
+EXTERN(int32_t) jdiv_round_up JPP((int32_t a, int32_t b));
+EXTERN(int32_t) jround_up JPP((int32_t a, int32_t b));
 EXTERN(void) jcopy_sample_rows JPP((JSAMPARRAY input_array, int source_row,
 				    JSAMPARRAY output_array, int dest_row,
 				    int num_rows, JDIMENSION num_cols));

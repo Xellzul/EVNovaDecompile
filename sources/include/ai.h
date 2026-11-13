@@ -86,7 +86,7 @@ extern Boolean RegScramE2(void);
 #endif
 extern short FindNearestShipToPlayer(void);
 extern short FindNearestThreatToParent(ShipObj *me, short spob);
-extern long IsShipANearbyThreatToParent(ShipObj *ship, ShipObj *me,
+extern int32_t IsShipANearbyThreatToParent(ShipObj *ship, ShipObj *me,
                                         short range);
 extern short FindNextShipInSystem(short cur, short system);
 extern short FindPrevShipInSystem(short cur, short system);

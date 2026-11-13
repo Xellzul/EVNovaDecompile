@@ -36,14 +36,14 @@ typedef struct NBPResolver {
     ULong flags;
     MutexList *freeList;
     MutexList *doneList;
-    long unk30;
+    int32_t unk30;
     struct NBPResolver *self;
     MPPParamBlock pb;
     char *buffer;
     ULong bufferSize;
     MutexList requests;
-    long deadline;
-    long wanted;
+    int32_t deadline;
+    int32_t wanted;
     NetLookup *current;
     char entity[0x100];
     char name[0x100];
@@ -57,9 +57,9 @@ static MPPCompletionUPP sResolverDoneNBP = &sResolverDoneNBPDesc;
 
 NetResolver *ResolverCreateNBP(NetStackID stack, void *ref, NetProc proc, MutexList *doneList, MutexList *freeList)
 {
-    long err;
+    int32_t err;
     NBPResolver *r;
-    long e;
+    int32_t e;
 
     err = 0;
     IsMPPOpen();
@@ -104,7 +104,7 @@ done:
 void ResolverTickleNBP(NBPResolver *r)
 {
     MPPParamBlock pb;
-    long state;
+    int32_t state;
 
     IsMPPOpen();
     if (r->deadline != 0 && r->deadline <= TickCount()) {
@@ -132,9 +132,9 @@ void ResolverDisposeNBP(NBPResolver *r)
     MemoryDeallocate(r);
 }
 
-long ResolverOpenNBP(NBPResolver *r)
+int32_t ResolverOpenNBP(NBPResolver *r)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     IsMPPOpen();
@@ -153,7 +153,7 @@ done:
     return err;
 }
 
-long ResolverControlNBP(void *ref, NetLookup *lookup)
+int32_t ResolverControlNBP(void *ref, NetLookup *lookup)
 {
     NBPResolver *r;
 
@@ -254,7 +254,7 @@ static void ResolverNextNBP(NBPResolver *r, unsigned char start)
                 r->deadline = wait + now;
             }
             {
-                long e;
+                int32_t e;
 
                 e = PLookupName(&r->pb, true);
                 if (e != 0) {
@@ -281,7 +281,7 @@ static void ResolverDoneNBP(MPPPBPtr pb)
     NetLookup *lookup;
     AddrBlock addr;
     char *name;
-    long n;
+    int32_t n;
     char *to;
     ULong i;
 

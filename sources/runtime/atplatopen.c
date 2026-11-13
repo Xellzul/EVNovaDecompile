@@ -9,8 +9,8 @@
 #include "win32.h"
 
 typedef void (*PlatformCallback)(void);
-typedef long (__stdcall *WindowProc)(void *window, ULong message,
-                                     ULong wparam, long lparam);
+typedef int32_t (__stdcall *WindowProc)(void *window, ULong message,
+                                     ULong wparam, int32_t lparam);
 
 typedef struct MessageHook {
     struct MessageHook *next;
@@ -21,19 +21,19 @@ typedef struct MessageHook {
 extern void exit(int code);
 
 void _ClockTimerProc(PlatformTimer *timer, void *arg);         /* 0x004d3927 */
-extern long ThreadsPreflight(long count, ULong stackSize);      /* atthreadtbl.c */
-extern long TimerCreate(void *ref, void *arg, TimerProc proc);
-extern long _EncodingPreflight(void);
+extern int32_t ThreadsPreflight(int32_t count, ULong stackSize);      /* atthreadtbl.c */
+extern int32_t TimerCreate(void *ref, void *arg, TimerProc proc);
+extern int32_t _EncodingPreflight(void);
 extern void _AtomicResetCritical(void);                  /* atplatlock2.c */
 
 extern PlatformTimer gClockTimer;               /* atticks.c */
 
-long _PlatformCreateWindow(void);                         /* 0x004d376d */
+int32_t _PlatformCreateWindow(void);                         /* 0x004d376d */
 int __stdcall SystemSignalHandle(ULong type);          /* 0x004d38c2 */
-long __stdcall _SystemExceptionFilter(void *info);         /* 0x004d38f1 */
+int32_t __stdcall _SystemExceptionFilter(void *info);         /* 0x004d38f1 */
 void SystemLeaveCallback(int unlock);                   /* 0x004d3589 */
-long __stdcall _PlatformWindowProc(void *window, ULong message, ULong wparam,
-                            long lparam);       /* 0x004d3667 */
+int32_t __stdcall _PlatformWindowProc(void *window, ULong message, ULong wparam,
+                            int32_t lparam);       /* 0x004d3667 */
 void *_PlatformFindConsoleWindow(void);                        /* 0x004d36b9 */
 
 #define kSeedBits     32
@@ -82,15 +82,15 @@ void *gPlatSavedExceptionFilterProc;                              /* 0x00870710 
 ULongLong gPlatformTime;                          /* 0x0086e660 */
 ULong gRandomSeed;                              /* 0x00870058 seed */
 unsigned char gPlatformOpen;                      /* 0x00870e10, 1 B */
-long gInterruptCount;                            /* 0x00870088 */
+int32_t gInterruptCount;                            /* 0x00870088 */
 MessageHook *gMsgHooksList;                       /* 0x00870718 hook list */
 
 /* PlatformOpen. STATE: MATCH 100%, exe 117 / obj 117 instrs, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004d3163
-long PlatformOpen(void)
+int32_t PlatformOpen(void)
 {
-    long err, e;
+    int32_t err, e;
     ULong shift;
     ULong seed;
 
@@ -179,7 +179,7 @@ done:
 // FUNCTION: EVNOVA 0x004d332d
 void PlatformClose(void)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     _AtomicCheckCritical();
@@ -203,7 +203,7 @@ unsigned char IsPlatformOpen(void)
 void SystemIdle(void)
 {
     ULong i;
-    long err;
+    int32_t err;
 
     err = 0;
     _AtomicCheckCritical();
@@ -227,7 +227,7 @@ void SystemWait(ULong ms)
     ULongLong deadline;
     long long remaining;
     ULongLong slice;
-    long err;
+    int32_t err;
 
     err = 0;
     _AtomicCheckCritical();
@@ -253,7 +253,7 @@ void SystemWait(ULong ms)
 // FUNCTION: EVNOVA 0x004d3457
 void SystemSetIdleProc(PlatformCallback fn)
 {
-    long err;
+    int32_t err;
     ULong i;
 
     err = 0;
@@ -276,7 +276,7 @@ void SystemSetIdleProc(PlatformCallback fn)
 // FUNCTION: EVNOVA 0x004d34a0
 void SystemSetQuitProc(PlatformCallback fn)
 {
-    long err;
+    int32_t err;
     ULong i;
 
     err = 0;
@@ -295,7 +295,7 @@ void SystemSetQuitProc(PlatformCallback fn)
 void _SystemQuitCallback(void)
 {
     PlatformCallback fn;
-    long err;
+    int32_t err;
 
     err = 0;
     if (gSystemQuitRecurse != 0)
@@ -338,7 +338,7 @@ void _SystemQuitCallback(void)
 void SystemLeaveCallback(int unlock)
 {
     ULong depth;
-    long err;
+    int32_t err;
 
     err = 0;
     depth = 0;
@@ -359,7 +359,7 @@ void SystemLeaveCallback(int unlock)
 // FUNCTION: EVNOVA 0x004d35ea
 unsigned char SystemCheckCallback(void)
 {
-    long err;
+    int32_t err;
     unsigned char result;
     int inside;
 
@@ -392,7 +392,7 @@ void _PlatformSetWindow(void *window)
 // FUNCTION: EVNOVA 0x004d363c
 WindowProc _PlatformFindMessageHook(ULong message)
 {
-    long err;
+    int32_t err;
     MessageHook *hook;
 
     err = 0;
@@ -406,8 +406,8 @@ WindowProc _PlatformFindMessageHook(ULong message)
 /* _PlatformWindowProc. STATE: MATCH 100%, exe 38 / obj 38, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004d3667
-long __stdcall _PlatformWindowProc(void *window, ULong message, ULong wparam,
-                            long lparam)
+int32_t __stdcall _PlatformWindowProc(void *window, ULong message, ULong wparam,
+                            int32_t lparam)
 {
     WindowProc proc;
 
@@ -455,9 +455,9 @@ void *_PlatformFindConsoleWindow(void)
 /* _PlatformCreateWindow. STATE: MATCH 100%, exe 94 / obj 94 instrs, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004d376d
-long _PlatformCreateWindow(void)
+int32_t _PlatformCreateWindow(void)
 {
-    long err = 0;
+    int32_t err = 0;
     char name[kNameBufferSize] = "";
     WNDCLASSA wc;
     void *window;
@@ -526,15 +526,15 @@ int __stdcall SystemSignalHandle(ULong type)
 
 /* _SystemExceptionFilter. STATE: MATCH 100%, exe 20 / obj 20, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004d38f1
-long __stdcall _SystemExceptionFilter(void *info)
+int32_t __stdcall _SystemExceptionFilter(void *info)
 {
     ULong *code;
-    long result;
+    int32_t result;
 
     code = info;
     result = EXCEPTION_EXECUTE_HANDLER;
     if (gPlatSavedExceptionFilterProc != 0)
-        result = ((long (__stdcall *)(void *))gPlatSavedExceptionFilterProc)(info);
+        result = ((int32_t (__stdcall *)(void *))gPlatSavedExceptionFilterProc)(info);
     if (code[0] != STATUS_CONTROL_C_EXIT || result != EXCEPTION_CONTINUE_EXECUTION)
         PlatformClose();
     return result;

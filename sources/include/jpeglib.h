@@ -421,7 +421,7 @@ struct jpeg_error_mgr {
 
   int trace_level;
 
-  long num_warnings;
+  int32_t num_warnings;
 
   const char * const * jpeg_message_table;
   int last_jpeg_message;
@@ -434,8 +434,8 @@ struct jpeg_error_mgr {
 struct jpeg_progress_mgr {
   JMETHOD(void, progress_monitor, (j_common_ptr cinfo));
 
-  long pass_counter;
-  long pass_limit;
+  int32_t pass_counter;
+  int32_t pass_limit;
   int completed_passes;
   int total_passes;
 };
@@ -455,7 +455,7 @@ struct jpeg_source_mgr {
 
   JMETHOD(void, init_source, (j_decompress_ptr cinfo));
   JMETHOD(boolean, fill_input_buffer, (j_decompress_ptr cinfo));
-  JMETHOD(void, skip_input_data, (j_decompress_ptr cinfo, long num_bytes));
+  JMETHOD(void, skip_input_data, (j_decompress_ptr cinfo, int32_t num_bytes));
   JMETHOD(boolean, resync_to_restart, (j_decompress_ptr cinfo, int desired));
   JMETHOD(void, term_source, (j_decompress_ptr cinfo));
 };
@@ -505,9 +505,9 @@ struct jpeg_memory_mgr {
   JMETHOD(void, free_pool, (j_common_ptr cinfo, int pool_id));
   JMETHOD(void, self_destruct, (j_common_ptr cinfo));
 
-  long max_memory_to_use;
+  int32_t max_memory_to_use;
 
-  long max_alloc_chunk;
+  int32_t max_alloc_chunk;
 };
 
 typedef JMETHOD(boolean, jpeg_marker_parser_method, (j_decompress_ptr cinfo));

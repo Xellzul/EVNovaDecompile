@@ -48,7 +48,7 @@ typedef struct WaitRec {
 
 typedef struct ThreadRec {
     MutexNode link;
-    long unk8[3];
+    int32_t unk8[3];
     void (*proc)(struct ThreadRec *t, void *arg);
     void *arg;
     WaitRec *wait;
@@ -56,7 +56,7 @@ typedef struct ThreadRec {
     unsigned short index;
     unsigned char running;
     unsigned char dead;
-    long unk28;
+    int32_t unk28;
     struct ThreadMutex *owned;
     ULong stackBytes;
     Ptr stack;
@@ -79,7 +79,7 @@ typedef struct ThreadSlot {
 typedef struct ThreadTimer {
     TMTask task;
     short pad;
-    long ref;
+    int32_t ref;
 } ThreadTimer;
 
 extern LeaveNotifierProc gLeaveNotifier;
@@ -91,7 +91,7 @@ static MutexList gThreadsReady;
 static MutexList gThreadsWaiting;
 static MutexList gThreadsPreempted;
 ThreadRec gMainThread;
-static long gCriticalToken[4];
+static int32_t gCriticalToken[4];
 static ThreadRec gIdleThread;
 ULong gThreadFlags;
 static ULongLong gThreadSliceStart;
@@ -109,16 +109,16 @@ void ThreadDeferredInstall(void);
 void _ThreadDeferredProc(void);
 static void _ThreadSwitch(ThreadRec *from, ThreadRec *to, MutexList *list);
 void ThreadsPostflight(void);
-extern long AtomicCompareSwap(void *word, long oldValue, long newValue);
+extern int32_t AtomicCompareSwap(void *word, int32_t oldValue, int32_t newValue);
 void ThreadYield(void);
-long _ThreadRecordClose(void *ref);
+int32_t _ThreadRecordClose(void *ref);
 unsigned char _ThreadMutexEnter(ThreadMutex *m);
-long _ThreadMutexLeave(ThreadMutex *m);
-extern long ThreadDispose(ULong id);
+int32_t _ThreadMutexLeave(ThreadMutex *m);
+extern int32_t ThreadDispose(ULong id);
 extern void _AtomicEnter2(void);
 extern void _AtomicLeave2(void);
 
-static long _ThreadRecordCreate(ULong stackSize);
+static int32_t _ThreadRecordCreate(ULong stackSize);
 static void _ThreadRecordFree(ThreadRec *rec);
 static void _ThreadListMove(ThreadMutex *m, ThreadMutex **from, ThreadMutex **to);
 static ThreadRec *_ThreadChoose(void);
@@ -156,7 +156,7 @@ extern unsigned char _PlatformIsThreaded(void);
 
 static TaskStorageIndex gCriticalIndex = kNoIndex;
 
-long _MutexCreate(TaskMutex **out)
+int32_t _MutexCreate(TaskMutex **out)
 {
     TaskMutex *m;
     MPSemaphoreID semaphore;
@@ -180,7 +180,7 @@ long _MutexCreate(TaskMutex **out)
     return e;
 }
 
-long _MutexDispose(TaskMutex *m)
+int32_t _MutexDispose(TaskMutex *m)
 {
     OSStatus e;
 
@@ -198,7 +198,7 @@ long _MutexDispose(TaskMutex *m)
     return e;
 }
 
-long _MutexEnter(TaskMutex *m, Duration timeout)
+int32_t _MutexEnter(TaskMutex *m, Duration timeout)
 {
     MPTaskID self;
     OSStatus e;
@@ -218,7 +218,7 @@ long _MutexEnter(TaskMutex *m, Duration timeout)
     return e;
 }
 
-long _MutexLeave(TaskMutex *m)
+int32_t _MutexLeave(TaskMutex *m)
 {
     MPTaskID self;
     OSStatus e;
@@ -237,7 +237,7 @@ long _MutexLeave(TaskMutex *m)
     return e;
 }
 
-long _MutexDepth(TaskMutex *m, ULong *depth)
+int32_t _MutexDepth(TaskMutex *m, ULong *depth)
 {
     MPTaskID self;
 
@@ -266,10 +266,10 @@ ULong ThreadsCount(void)
     return n;
 }
 
-long CriticalCreateFromProvider(void *lock, void *provider)
+int32_t CriticalCreateFromProvider(void *lock, void *provider)
 {
     MacMutex *m;
-    long err;
+    int32_t err;
 
     m = lock;
     err = 0;
@@ -292,10 +292,10 @@ done:
     return err;
 }
 
-long CriticalCreate(void *lock)
+int32_t CriticalCreate(void *lock)
 {
     MacMutex *m;
-    long err;
+    int32_t err;
 
     m = lock;
     err = 0;
@@ -319,10 +319,10 @@ done:
     return err;
 }
 
-long CriticalDispose(void *lock)
+int32_t CriticalDispose(void *lock)
 {
     MacMutex *m;
-    long err;
+    int32_t err;
 
     m = lock;
     err = 0;
@@ -401,16 +401,16 @@ static TimerUPP sThreadTimer = &sThreadTimerDesc;
 static RoutineDescriptor sThreadDeferredDesc = BUILD_ROUTINE_DESCRIPTOR(uppDeferredTaskProcInfo, _ThreadDeferredProc);
 static DeferredTaskUPP sThreadDeferred = &sThreadDeferredDesc;
 
-long ThreadsPreflight(long count, ULong stackSize)
+int32_t ThreadsPreflight(int32_t count, ULong stackSize)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     AtomicMaskTest(&gThreadFlags, kThreadsInit);
     if (stackSize < kMinStack)
         stackSize = kMinStack;
     if (!AtomicMaskApply(&gThreadFlags, kThreadsOpen)) {
-        long response;
+        int32_t response;
 
         MemoryClear(&gMainThread, kThreadRecBytes);
         gMainThread.id = 1;
@@ -507,10 +507,10 @@ void ThreadsPostflight(void)
     }
 }
 
-long ThreadDispose(ULong id)
+int32_t ThreadDispose(ULong id)
 {
     ThreadRec *t;
-    long err;
+    int32_t err;
     unsigned char held1;
     unsigned char held2;
     ThreadRec *old;
@@ -602,11 +602,11 @@ ULong ThreadsCount(void)
     return n;
 }
 
-long _ThreadRecordClose(void *ref)
+int32_t _ThreadRecordClose(void *ref)
 {
     ThreadRec *t;
     ThreadMutex *m;
-    long err;
+    int32_t err;
 
     m = ref;
     t = _ThreadRecordCurrent();
@@ -638,16 +638,16 @@ unsigned char _ThreadMutexEnter(ThreadMutex *m)
         _ThreadTableUnlock();
         got = 1;
     } else if (m->owner == t->id) {
-        AtomicIncrement((long *)&m->depth, 1);
+        AtomicIncrement((int32_t *)&m->depth, 1);
         got = 1;
     }
     return got;
 }
 
-long _ThreadMutexLeave(ThreadMutex *m)
+int32_t _ThreadMutexLeave(ThreadMutex *m)
 {
     ThreadRec *t;
-    long err;
+    int32_t err;
 
     t = _ThreadRecordCurrent();
     err = 0;
@@ -655,7 +655,7 @@ long _ThreadMutexLeave(ThreadMutex *m)
         err = kMutexOwnedElse;
     } else if (m->owner != t->id) {
         err = kMutexOwnedElse;
-    } else if (m->depth != 0 && AtomicIncrement((long *)&m->depth, -1) == 1) {
+    } else if (m->depth != 0 && AtomicIncrement((int32_t *)&m->depth, -1) == 1) {
         _ThreadTableLock();
         m->owner = 0;
         _ThreadListMove(m, &t->owned, &sAllMutexes);
@@ -695,10 +695,10 @@ extern void *_PlatformFindSymbol(const char *library, const char *name);
 
 static ULong gCriticalIndex = kNoIndex;
 
-long CriticalCreateFromProvider(void *lock, void *provider)
+int32_t CriticalCreateFromProvider(void *lock, void *provider)
 {
     MacMutex *m;
-    long err;
+    int32_t err;
 
     m = lock;
     err = 0;
@@ -721,7 +721,7 @@ done:
     return err;
 }
 
-long CriticalCreate(void *lock)
+int32_t CriticalCreate(void *lock)
 {
     MacMutex *m;
 
@@ -733,7 +733,7 @@ long CriticalCreate(void *lock)
     return 0;
 }
 
-long CriticalDispose(void *lock)
+int32_t CriticalDispose(void *lock)
 {
     MemoryClear(lock, sizeof(MacMutex));
     return 0;
@@ -779,9 +779,9 @@ unsigned char _ThreadCheckCritical(void)
     return held;
 }
 
-static long _ThreadRecordCreate(ULong stackSize)
+static int32_t _ThreadRecordCreate(ULong stackSize)
 {
-    long err;
+    int32_t err;
     ThreadRec *t;
     ThreadSlot *slots;
 
@@ -892,7 +892,7 @@ static ThreadRec *_ThreadChoose(void)
         ULong used;
 
         used = now - gThreadSliceStart;
-        if ((long)(now - gThreadSliceNow) >= kHeadroomMicros)
+        if ((int32_t)(now - gThreadSliceNow) >= kHeadroomMicros)
             next = &gIdleThread;
         if (next == 0 && sThreadIdleNow != &gIdleThread && !sThreadIdleNow->dead && used * sThreadsPreempted < kSliceMicros)
             next = _ThreadWake(sThreadIdleNow, now) ? sThreadIdleNow : 0;
@@ -965,14 +965,14 @@ void ThreadDeferredInstall(void)
 
 void _ThreadDeferredProc(void)
 {
-    long saved;
+    int32_t saved;
     ULongLong now;
 
     QueueTransfer(&gThreadsPreempted, &gThreadsWaiting);
     if (!AtomicMaskTest(&gThreadFlags, kThreadsLocked) && !QueueIsEmpty(&gThreadsPreempted)) {
         _AtomicEnter2();
-        saved = *(long *)kThreadSliceGlobal;
-        *(long *)kThreadSliceGlobal = 0;
+        saved = *(int32_t *)kThreadSliceGlobal;
+        *(int32_t *)kThreadSliceGlobal = 0;
         sThreadsPreempted = QueueGetCount(&gThreadsPreempted);
         if (sThreadsPreempted > kTableMax)
             sThreadsPreempted = kTableMax;
@@ -985,7 +985,7 @@ void _ThreadDeferredProc(void)
         sThreadsPreempted = 0;
         gThreadSliceNow = 0;
         gThreadSliceStart = 0;
-        *(long *)kThreadSliceGlobal = saved;
+        *(int32_t *)kThreadSliceGlobal = saved;
         _AtomicLeave2();
     }
     PrimeTime((QElemPtr)&gThreadTimer, AtomicMaskTest(&gThreadFlags, kThreadsLocked) ? kPeriodBusy : kPeriodNormal);

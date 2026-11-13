@@ -43,7 +43,7 @@ METHODDEF(void)
 init_source (j_decompress_ptr cinfo)
 {
   my_src_ptr src = (my_src_ptr) cinfo->src;
-  long err;
+  int32_t err;
 
   err = 0;
   ((my_src_ptr) cinfo->src)->start_of_file = TRUE;
@@ -57,8 +57,8 @@ METHODDEF(boolean)
 fill_input_buffer (j_decompress_ptr cinfo)
 {
   my_src_ptr src = (my_src_ptr) cinfo->src;
-  long err = 0;
-  long e;
+  int32_t err = 0;
+  int32_t e;
   size_t nbytes;
 
   nbytes = src->stream->size - src->stream->pos;
@@ -92,15 +92,15 @@ done:
    OPEN: none */
 // FUNCTION: EVNOVA 0x0051440b
 METHODDEF(void)
-skip_input_data (j_decompress_ptr cinfo, long num_bytes)
+skip_input_data (j_decompress_ptr cinfo, int32_t num_bytes)
 {
   my_src_ptr src = (my_src_ptr) cinfo->src;
-  long err;
+  int32_t err;
 
   err = 0;
 
   if (num_bytes > 0) {
-    while (num_bytes > (long) src->pub.bytes_in_buffer) {
+    while (num_bytes > (int32_t) src->pub.bytes_in_buffer) {
       num_bytes -=  src->pub.bytes_in_buffer;
        fill_input_buffer(cinfo);
     }
@@ -115,7 +115,7 @@ METHODDEF(void)
 term_source (j_decompress_ptr cinfo)
 {
   my_src_ptr src = (my_src_ptr) cinfo->src;
-  long err;
+  int32_t err;
 
   err = 0;
 }
@@ -127,7 +127,7 @@ METHODDEF(void)
 error_exit (j_common_ptr cinfo)
 {
   my_error_ptr myerr = (my_error_ptr) cinfo->err;
-  long err = 0;
+  int32_t err = 0;
 
   if (myerr->pub.output_message != NULL)
     (*myerr->pub.output_message) (cinfo);
@@ -178,7 +178,7 @@ METHODDEF(void)
 format_message (j_common_ptr cinfo, char * buffer)
 {
   struct jpeg_error_mgr * err = cinfo->err;
-  long e = 0;
+  int32_t e = 0;
   const char * msgtext = NULL;
   int msg_code = err->msg_code;
   const char * const * addon;
@@ -268,13 +268,13 @@ unsigned char JPEG_CheckFileType(const void *buffer, ULong size)
 /* JPEG_Decode (load a JPEG off a stream into a new 32-bit image, row by row as a r g b).
    STATE: MATCH 100%, exe 249 / obj 249, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00514627
-long JPEG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
+int32_t JPEG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                   ITTransparent *trans, ITBackground *bg)
 {
-    long err;
+    int32_t err;
     ITImage *spare;
     ITImage *mask;
-    long e;
+    int32_t e;
     ULong y;
     unsigned char locked;
     JSAMPROW scan;

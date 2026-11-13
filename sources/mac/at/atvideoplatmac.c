@@ -15,12 +15,12 @@ static unsigned short kVTRestoreCode[12] = { 0x41fa, 0x0010, 0x209f, 0x2600, 0x4
 static unsigned short kVTStripVisibleCode[12] = { 0x41fa, 0x0012, 0x209f, 0x7000, 0xaaf2, 0x41fa, 0x0008, 0x2f10, 0x4e75 };
 static unsigned short kVTStripShowCode[13] = { 0x41fa, 0x0014, 0x209f, 0x303c, 0x0101, 0xaaf2, 0x41fa, 0x0008, 0x2f10, 0x4e75 };
 
-long VT_CallSave(void)
+int32_t VT_CallSave(void)
 {
     return CallUniversalProc((UniversalProcPtr)kVTSaveCode, 0x32);
 }
 
-void VT_CallRestore(long value)
+void VT_CallRestore(int32_t value)
 {
     CallUniversalProc((UniversalProcPtr)kVTRestoreCode, 0x1802, value);
 }
@@ -35,9 +35,9 @@ void VT_StripShow(unsigned char show)
     CallUniversalProc((UniversalProcPtr)kVTStripShowCode, 0x1c8, 1, show);
 }
 
-long _ShowMenuBar(void)
+int32_t _ShowMenuBar(void)
 {
-    long err;
+    int32_t err;
     RgnHandle shown;
     RgnHandle bar;
     GrafPtr wmgr;
@@ -47,7 +47,7 @@ long _ShowMenuBar(void)
     Rect r;
     RGBColor fore;
     RGBColor black = gVTBlack;
-    long response;
+    int32_t response;
     EventRecord event;
     WindowPtr front;
 
@@ -122,16 +122,16 @@ done:
     return err;
 }
 
-long _HideMenuBar(void)
+int32_t _HideMenuBar(void)
 {
-    long err;
+    int32_t err;
     short height;
     RgnHandle hidden;
     RgnHandle saved;
     RgnHandle gray;
     GDHandle gd;
     GrafPtr port;
-    long response;
+    int32_t response;
     EventRecord event;
     WindowPtr front;
 
@@ -206,7 +206,7 @@ void VT_LockDevices(void)
 
 unsigned char VT_CheckScreens(void)
 {
-    long offset;
+    int32_t offset;
     short **list;
     ULong i;
     CGrafPtr port;
@@ -288,7 +288,7 @@ VTClut *VT_ClutCopy(VTDevice *device)
     return clut;
 }
 
-long VT_ClutSet(VTDevice *device, VTClut *clut)
+int32_t VT_ClutSet(VTDevice *device, VTClut *clut)
 {
     GDHandle saved;
     CTabHandle table;
@@ -332,9 +332,9 @@ static inline void VTCopy(void *dst, const void *src, ULong n)
 GammaTblPtr VT_GammaGet(VTDevice *device)
 {
     GammaTblPtr copy;
-    long size;
+    int32_t size;
     ULong data;
-    long head;
+    int32_t head;
     GammaTblPtr table;
     CntrlParam pb;
 
@@ -361,9 +361,9 @@ done:
     return copy;
 }
 
-long VT_GammaSet(VTDevice *device, GammaTblPtr table)
+int32_t VT_GammaSet(VTDevice *device, GammaTblPtr table)
 {
-    long err;
+    int32_t err;
     char state;
     GDHandle saved;
     CTabHandle clut;
@@ -412,13 +412,13 @@ void VT_GammaBlend(VTDevice *device, GammaTblPtr out, GammaTblPtr from, GammaTbl
 {
     ULong most;
     ULong width;
-    long head;
+    int32_t head;
     unsigned char *a;
     unsigned char *b;
     unsigned char *o;
     ULong chan;
     ULong i;
-    long delta;
+    int32_t delta;
 
     width = out->gFormulaSize;
     head = width + kGammaHead;
@@ -510,9 +510,9 @@ static inline void VTStrCat(unsigned char *dst, const unsigned char *src)
         ;
 }
 
-static inline long VTStrLen(const char *s)
+static inline int32_t VTStrLen(const char *s)
 {
-    long n;
+    int32_t n;
     const unsigned char *p;
 
     p = (const unsigned char *)s - 1;
@@ -523,15 +523,15 @@ static inline long VTStrLen(const char *s)
     return n;
 }
 
-long VT_DeviceModes(VTDevice *device)
+int32_t VT_DeviceModes(VTDevice *device)
 {
-    long err;
+    int32_t err;
     DMListType list;
     DMListIndexType count;
     ULong i;
     VTModeEntry *entry;
     ULong depth;
-    long e;
+    int32_t e;
     VDResolutionInfoRec resolution;
     CntrlParam pb;
 
@@ -611,10 +611,10 @@ done:
     return err;
 }
 
-long VT_DMCurrentMode(VTDevice *device, VTMode *mode)
+int32_t VT_DMCurrentMode(VTDevice *device, VTMode *mode)
 {
     ULong count;
-    long err;
+    int32_t err;
     ULong i;
     VDSwitchInfoRec info;
 
@@ -643,13 +643,13 @@ done:
     return err;
 }
 
-long VT_DMSetMode(VTDevice *device, VTMode *mode)
+int32_t VT_DMSetMode(VTDevice *device, VTMode *mode)
 {
     Handle token;
     ULong depth;
-    long err;
+    int32_t err;
     ULong color;
-    volatile long saved;
+    volatile int32_t saved;
 
     err = 0;
     token = 0;
@@ -660,7 +660,7 @@ long VT_DMSetMode(VTDevice *device, VTMode *mode)
         }
         if (device->mode.index != mode->index) {
             depth = mode->depth;
-            err = DMSetDisplayMode(device->gd, device->modes[mode->index].displayMode, &depth, (unsigned long)&device->modes[mode->index].info, token);
+            err = DMSetDisplayMode(device->gd, device->modes[mode->index].displayMode, &depth, (uint32_t)&device->modes[mode->index].info, token);
             if (err == kDMDriverNotDisplayMgrAwareErr)
                 err = 0;
             if (err != 0) {
@@ -691,7 +691,7 @@ done:
 static unsigned char VT_HasDisplayManager(void)
 {
     unsigned char has;
-    long response;
+    int32_t response;
 
     has = 0;
     if (Gestalt('dply', &response) == 0 && (response & 1) != 0 && DMGetDisplayMode != 0)
@@ -699,9 +699,9 @@ static unsigned char VT_HasDisplayManager(void)
     return has;
 }
 
-static long VT_DisplayManagerVersion(void)
+static int32_t VT_DisplayManagerVersion(void)
 {
-    long response;
+    int32_t response;
 
     if (Gestalt('dplv', &response) != 0)
         response = 0;
@@ -710,7 +710,7 @@ static long VT_DisplayManagerVersion(void)
 
 static inline void VTP2C(unsigned char *dst, const unsigned char *src)
 {
-    long n;
+    int32_t n;
     unsigned char *p;
 
     n = *src + 1;

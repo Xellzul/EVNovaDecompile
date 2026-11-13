@@ -61,7 +61,7 @@ short raceCount;
 #ifndef MACBUILD
 unsigned char DAT_007d17ac[8];
 #endif
-long raceBetAmount;
+int32_t raceBetAmount;
 
 EXTERN_C_BEGIN
 
@@ -69,7 +69,7 @@ EXTERN_C_BEGIN
 static inline void LicenseParity(void)
 {
     short parity;
-    unsigned long code;
+    uint32_t code;
 
     code = fakeLicenseCode;
     parity = 0;
@@ -283,7 +283,7 @@ void DoBarDialog(void)
 /* BarFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047cdb0
 // MAC: _BarFilter i386 0x00047a4b ppc 0x000503e8
-Boolean BarFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean BarFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Point where;
     short button;
@@ -557,7 +557,7 @@ void NewsDialogUpdate(void)
 /* NewsDialogFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047d560
 // MAC: _NewsDialogFilter i386 0x00048160 ppc 0x00050acc
-Boolean NewsDialogFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean NewsDialogFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
 #if V111
     char key;
@@ -636,7 +636,7 @@ void RandomizeNewsDialog(void)
     short cronNewsID[kMaxCrons];
     Str255 line;
     Str255 tmp;
-    unsigned long code;
+    uint32_t code;
     short eligible;
     short matching;
     short j;
@@ -777,8 +777,8 @@ void DoRaceDialog(void)
     Boolean done;
     short i;
     short j;
-    long payout;
-    long credits;
+    int32_t payout;
+    int32_t credits;
 
     raceDialog = NULL;
     raceDialog = GetNewDialog(kRaceDialogID, RaceDialogUpdate,
@@ -899,7 +899,7 @@ void DoRaceDialog(void)
 /* RaceFilter. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0047e150
 // MAC: _RaceFilter i386 0x0004890e ppc 0x00051284
-Boolean RaceFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean RaceFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
 #if V111
     char key;

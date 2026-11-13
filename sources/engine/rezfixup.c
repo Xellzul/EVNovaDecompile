@@ -227,10 +227,10 @@ unsigned short addr_0057612c[2] = {   /* covers 0x4 == minSize */
 
 /* FixupResourceByType. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004ce700
-void FixupResourceByType(Handle h, unsigned long type)
+void FixupResourceByType(Handle h, uint32_t type)
 {
     unsigned short *desc;
-    unsigned long minSize = 0;
+    uint32_t minSize = 0;
 
     switch (type) {
     case kMisnType: desc = addr_00575eb0; minSize = kMisnResSize; break;

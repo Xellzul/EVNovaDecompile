@@ -46,10 +46,10 @@
 #define kFlagWritable 1
 #define kFlagHidden   3
 
-extern long FT_FileSetFlags(long folder, const char *name, struct FTFileInfo *info);
+extern int32_t FT_FileSetFlags(int32_t folder, const char *name, struct FTFileInfo *info);
 extern ULongLong gMainHash;
 extern void RT3_LicenseTextToCode(const char *text, ULongLong *code);
-extern ULongLong RT3_CalcMainHash(const char *product, const char *name, long copies);
+extern ULongLong RT3_CalcMainHash(const char *product, const char *name, int32_t copies);
 extern void RT3_FixLicenseName(char *out, const char *src);
 
 RT3License gRT3_License;
@@ -86,12 +86,12 @@ ULong gSavedWhenFirstRun = 0xffffffff;
 /* a random even-parity nibble for the top of a license code */
 static ULongLong kCodeTags[8] = { 0, 3, 5, 6, 9, 10, 12, 15 };
 
-static long _RT3_WriteLogEntry(RT3LogEntry *entry);
-static long _RT3_ReadLogEntry(RT3LogEntry *entry);
+static int32_t _RT3_WriteLogEntry(RT3LogEntry *entry);
+static int32_t _RT3_ReadLogEntry(RT3LogEntry *entry);
 #if TARGET_API_MAC_CARBON
 static ULong _RT3_CalcLoginHash(void);
 extern unsigned char RT3_CanSetSystemLicense(void);
-extern long WriteToFileAsSuperUser(char *path, const void *data, long size);
+extern int32_t WriteToFileAsSuperUser(char *path, const void *data, int32_t size);
 extern char *GetPathToSystemPreferences(const char *name);
 extern unsigned char _PlatformIsThreaded(void);
 extern void *_PlatformFindBundleSymbol(CFStringRef bundleName, CFStringRef symbolName);
@@ -135,9 +135,9 @@ done:
     return hash;
 }
 
-static inline long RT3_LoadResString(short id, char *dst)
+static inline int32_t RT3_LoadResString(short id, char *dst)
 {
-    long err = 0;
+    int32_t err = 0;
     Handle h;
 
     dst[0] = 0;
@@ -158,13 +158,13 @@ static inline ULong RT3_LicenseCopies(void)
     return gRT3_License.copies > 0 ? gRT3_License.copies : 0;
 }
 
-static long _RT3_LicenseLoad(void ***license, unsigned char *created)
+static int32_t _RT3_LicenseLoad(void ***license, unsigned char *created)
 {
     ULong pm;
     ULong hash;
     void **h;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     char fileName[kTextSize];
     ULong machine;
     unsigned char valid;
@@ -218,7 +218,7 @@ static long _RT3_LicenseLoad(void ***license, unsigned char *created)
         hash = RT3_CalcIdentifier(gRT3_LicensePaths[i]);
 #if TARGET_API_MAC_CARBON
         if (machine != pm && machine != hash) {
-            long diff = (machine ^ productHash) - (hash ^ productHash);
+            int32_t diff = (machine ^ productHash) - (hash ^ productHash);
 
             if (diff < 0)
                 diff *= -1;
@@ -265,8 +265,8 @@ static long _RT3_LicenseLoad(void ***license, unsigned char *created)
     if (gLogStuff != 0 && ok && ((RT3License *)*h)->copies != 0) {
         ULong closeStamp;
         ULong saveStamp;
-        long sinceClose;
-        long sinceSave;
+        int32_t sinceClose;
+        int32_t sinceSave;
         unsigned char renew = 0;
         ULong now;
 
@@ -344,18 +344,18 @@ done:
 }
 
 #if TARGET_API_MAC_CARBON
-static long _RT3_LicenseSave(void **license, ULong key, ULong when, unsigned char systemWide)
+static int32_t _RT3_LicenseSave(void **license, ULong key, ULong when, unsigned char systemWide)
 #else
-static long _RT3_LicenseSave(void **license, ULong key, ULong when)
+static int32_t _RT3_LicenseSave(void **license, ULong key, ULong when)
 #endif
 {
     ULong licensed;
-    long e;
-    long err = 0;
-    long folder = kPreferences;
+    int32_t e;
+    int32_t err = 0;
+    int32_t folder = kPreferences;
     void **copy;
     char fileName[kTextSize];
-    long skew;
+    int32_t skew;
     ULong stamp;
 
     StringCopySafe(fileName, gPrivateProductName, kTextSize);
@@ -452,10 +452,10 @@ done:
     return err;
 }
 
-static long _RT3_LicenseRefresh(void)
+static int32_t _RT3_LicenseRefresh(void)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 #if TARGET_API_MAC_CARBON
     ULong dates[kFolderCount] = { 1, 1 };
 #else
@@ -531,8 +531,8 @@ done:
 /* the login's hash, through System.framework: Mac OS X only */
 static ULong _RT3_CalcLoginHash(void)
 {
-    typedef unsigned long (*GetUidProc)(void);
-    typedef char **(*GetPwUidProc)(unsigned long);
+    typedef uint32_t (*GetUidProc)(void);
+    typedef char **(*GetPwUidProc)(uint32_t);
     char *name;
     ULong hash;
     GetUidProc getUid;
@@ -559,15 +559,15 @@ static ULong _RT3_CalcLoginHash(void)
 }
 #endif
 
-static long _RT3_ReadLogEntry(RT3LogEntry *entry)
+static int32_t _RT3_ReadLogEntry(RT3LogEntry *entry)
 {
-    long err;
+    int32_t err;
     void **log;
     unsigned char tampered;
     unsigned char reset;
     ULong i;
     ULong size;
-    long e;
+    int32_t e;
     FTFileInfo info;
     char name[kTextSize] = kLogName;
     char product[kTextSize];
@@ -653,13 +653,13 @@ done:
     return err;
 }
 
-static long _RT3_WriteLogEntry(RT3LogEntry *entry)
+static int32_t _RT3_WriteLogEntry(RT3LogEntry *entry)
 {
-    long err;
+    int32_t err;
     void **log;
     ULong i;
     ULong size;
-    long e;
+    int32_t e;
     FTFileInfo info;
     char name[kTextSize] = kLogName;
     char product[kTextSize];
@@ -724,11 +724,11 @@ done:
     return err;
 }
 
-long RT3_Open(unsigned char tracked, unsigned short mode, const char *product,
+int32_t RT3_Open(unsigned char tracked, unsigned short mode, const char *product,
                   const char *company)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
 
     if (gRT3_Open != 0)
         goto done;
@@ -788,8 +788,8 @@ done:
 
 void RT3_Idle(void)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
     ULong elapsed;
 
     if (gRT3_Open != 0) {
@@ -806,8 +806,8 @@ void RT3_Idle(void)
 
 void RT3_Close(void)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
 
     if (gRT3_Open != 0) {
         if (gLogStuff != 0) {
@@ -836,9 +836,9 @@ void RT3_Close(void)
     }
 }
 
-long RT3_IncNumLaunches(void)
+int32_t RT3_IncNumLaunches(void)
 {
-    long err = 0;
+    int32_t err = 0;
 
     _RT3_ReadLogEntry(&gLogEntry);
     gSavedNumLaunches++;
@@ -849,7 +849,7 @@ long RT3_IncNumLaunches(void)
 
 void RT3_EnableCrackDetection(unsigned char enable)
 {
-    long err = 0;
+    int32_t err = 0;
 
     if (enable) {
         gRT3_IsRegisteredPtr1 = "";
@@ -910,9 +910,9 @@ void *RT3_GetLicenseName(void)
     return gPrivateLicenseName;
 }
 
-long RT3_GetLicenseCopies(void)
+int32_t RT3_GetLicenseCopies(void)
 {
-    long copies;
+    int32_t copies;
 
     if (gRT3_License.copies > 0)
         copies = gRT3_License.copies;
@@ -923,7 +923,7 @@ long RT3_GetLicenseCopies(void)
 
 ULong RT3_IsRegistered(void)
 {
-    long result = 0;
+    int32_t result = 0;
 
     if (gRT3_License.copies > 0)
         result = 1 << gRT3_License.level;

@@ -153,7 +153,7 @@ Boolean KeyFilter(DialogPtr dialog, EventRecord *ev, short *itemHit)
     Point where;
     Handle item;
     Rect box;
-    long n;
+    int32_t n;
     short i;
     short code;
     short sel;
@@ -201,7 +201,7 @@ Boolean KeyFilter(DialogPtr dialog, EventRecord *ev, short *itemHit)
     return false;
 }
 #else
-Boolean KeyFilter(long unused, EventRecord *ev, short *itemHit)
+Boolean KeyFilter(int32_t unused, EventRecord *ev, short *itemHit)
 {
     Rect box;
     short itemType;
@@ -209,7 +209,7 @@ Boolean KeyFilter(long unused, EventRecord *ev, short *itemHit)
     short v;
     short h;
     int i;
-    long code;
+    int32_t code;
     short sel;
 
     SetDialogGWorld(keyDialog);
@@ -399,7 +399,7 @@ void KeyDialogUpdate(void)
 // MAC: _AdjustMenus i386 0x000176b4 ppc 0x0001b254
 void AdjustMenus(void)
 {
-    long response;
+    int32_t response;
     MenuHandle fileMenu;
     MenuHandle menu;
 

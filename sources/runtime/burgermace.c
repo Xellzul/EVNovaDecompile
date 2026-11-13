@@ -235,12 +235,12 @@ static const short Table8Big[128][8] = {
 /* Step1 (BurgerLib PkMACE, static): one MACE 6:1 step; the row index is pre-shifted into the
    flat table. STATE: MATCH 100%, exe 64 / obj 64, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005303c0
-static long Step1(Word Val, Word Use8, MACEState_t *State)
+static int32_t Step1(Word Val, Word Use8, MACEState_t *State)
 {
-    long TableIndex;
-    long Current;
-    long Direction;
-    long Slope;
+    int32_t TableIndex;
+    int32_t Current;
+    int32_t Direction;
+    int32_t Slope;
 
     TableIndex = State->TableIndex;
     if (Use8) {
@@ -278,10 +278,10 @@ void MACEExp1to6(const Word8 *InBufPtr, Word8 *OutBufPtr, Word32 Count,
     MACEState_t *InStatePtr, MACEState_t *OutStatePtr, Word NumChannels, Word WhichChannel)
 {
     MACEState_t Temp;
-    long Last;
-    long Prev;
-    long Current;
-    long Value;
+    int32_t Last;
+    int32_t Prev;
+    int32_t Current;
+    int32_t Value;
     Word Packed;
 
     if (!InStatePtr) {
@@ -344,11 +344,11 @@ void MACEExp1to3(const Word8 *InBufPtr, Word8 *OutBufPtr, Word32 Count,
     MACEState_t *InStatePtr, MACEState_t *OutStatePtr, Word NumChannels, Word WhichChannel)
 {
     MACEState_t TempState;
-    long Sample2;
-    long Sample1;
+    int32_t Sample2;
+    int32_t Sample1;
     Word InputByte;
     Word Index;
-    long Temp;
+    int32_t Temp;
 
     if (!InStatePtr) {
         FastMemSet(&TempState, 0, sizeof(TempState));

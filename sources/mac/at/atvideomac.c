@@ -5,14 +5,14 @@
 
 static VTColor gVTFadeBlack;
 
-long MT_Open(void)
+int32_t MT_Open(void)
 {
     ULong offset;
-    long e;
-    long err;
+    int32_t e;
+    int32_t err;
     ULong i;
     ULong count;
-    long response;
+    int32_t response;
 
     err = 0;
     if (Gestalt('qdrw', &response) != 0) {
@@ -74,7 +74,7 @@ void DisposeGammaTools(void)
     gVTOpen = 0;
 }
 
-long MT_GetMode(ULong id, VTRequest *info)
+int32_t MT_GetMode(ULong id, VTRequest *info)
 {
     VTDevice *device;
 
@@ -92,17 +92,17 @@ long MT_GetMode(ULong id, VTRequest *info)
     return 0;
 }
 
-long MT_SetMode(ULong id, VTRequest *req)
+int32_t MT_SetMode(ULong id, VTRequest *req)
 {
     ULong *wantDepth;
     ULong score;
     VTDevice *device;
     VTModeEntry *entry;
-    long err;
+    int32_t err;
     ULong bestScore;
     VTMode want;
     VTMode best;
-    long e;
+    int32_t e;
 
     device = VT_DeviceFind(id);
     err = 0;
@@ -150,10 +150,10 @@ done:
     return err;
 }
 
-long GammaFadeTo(ULong id, ULong level, ULong ticks)
+int32_t GammaFadeTo(ULong id, ULong level, ULong ticks)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     const ULong *from;
     VTColor black;
 
@@ -172,11 +172,11 @@ long GammaFadeTo(ULong id, ULong level, ULong ticks)
     return err;
 }
 
-long GammaFadeToColor(ULong id, void *target, ULong percent, ULong ticks, unsigned char linear)
+int32_t GammaFadeToColor(ULong id, void *target, ULong percent, ULong ticks, unsigned char linear)
 {
     unsigned long long start;
     VTDevice *d;
-    long err;
+    int32_t err;
     ULong last;
     ULong elapsed;
     ULong level;
@@ -252,10 +252,10 @@ unsigned char VT_Capture(void)
     return gVTMenuWasShown; /* 1.0.10 pad @_VT_Release: a stripped body's first reference to gVTMenuWasShown, ahead of gVTSavedDevice's (the exe's TC order); no held build has its words */
 }
 
-long VT_Release(void)
+int32_t VT_Release(void)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     VT_LockDevices();
@@ -276,10 +276,10 @@ done:
     return err;
 }
 
-long ShowMenuBar(void)
+int32_t ShowMenuBar(void)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     VT_LockDevices();
@@ -298,10 +298,10 @@ done:
     return err;
 }
 
-long HideMenuBar(void)
+int32_t HideMenuBar(void)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     VT_LockDevices();

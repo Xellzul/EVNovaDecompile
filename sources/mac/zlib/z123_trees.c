@@ -557,8 +557,8 @@ local void gen_bitlen(s, desc)
             if (m > max_code) continue;
             if ((unsigned) tree[m].Len != (unsigned) bits) {
                 Trace((stderr,"code %d bits %d->%d\n", m, tree[m].Len, bits));
-                s->opt_len += ((long)bits - (long)tree[m].Len)
-                              *(long)tree[m].Freq;
+                s->opt_len += ((int32_t)bits - (int32_t)tree[m].Len)
+                              *(int32_t)tree[m].Freq;
                 tree[m].Len = (ush)bits;
             }
             n--;
@@ -1046,7 +1046,7 @@ int _tr_tally (s, dist, lc)
     if ((s->last_lit & 0x1fff) == 0 && s->level > 2) {
         /* Compute an upper bound for the compressed length */
         ulg out_length = (ulg)s->last_lit*8L;
-        ulg in_length = (ulg)((long)s->strstart - s->block_start);
+        ulg in_length = (ulg)((int32_t)s->strstart - s->block_start);
         int dcode;
         for (dcode = 0; dcode < D_CODES; dcode++) {
             out_length += (ulg)s->dyn_dtree[dcode].Freq *

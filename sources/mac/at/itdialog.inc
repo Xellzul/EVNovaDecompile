@@ -6,20 +6,20 @@
 #define kOffScreenRight 32300
 #define kOffScreenBot   32400
 
-extern long IT_ViewChange();
+extern int32_t IT_ViewChange();
 extern unsigned char IT_ViewExists(void *windowRef);
 extern unsigned char _PlatformIsThreaded(void);
 extern pascal Boolean IT_ViewModalFilter(DialogPtr dialog, EventRecord *event, short *item);
 
-long IT_ViewCreateDialog(const char *title, unsigned char closeBox, unsigned char show,
-                  const ITRect *bounds, long spare, void *folder, const char *file,
-                  const char *path, const char *anchor, ITWindowProc proc, long refcon,
-                  long unused, WindowNode **out)
+int32_t IT_ViewCreateDialog(const char *title, unsigned char closeBox, unsigned char show,
+                  const ITRect *bounds, int32_t spare, void *folder, const char *file,
+                  const char *path, const char *anchor, ITWindowProc proc, int32_t refcon,
+                  int32_t unused, WindowNode **out)
 {
-    long err;
+    int32_t err;
     Handle items;
-    long e;
-    long offset;
+    int32_t e;
+    int32_t offset;
     short procID;
     ULong draw;
     WindowNode *window;
@@ -152,11 +152,11 @@ done:
     return err;
 }
 
-long IT_ViewCreateModal(void *folder, const char *file, const char *path, ITWindowProc proc,
-                  long refcon, char *result)
+int32_t IT_ViewCreateModal(void *folder, const char *file, const char *path, ITWindowProc proc,
+                  int32_t refcon, char *result)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ModalFilterUPP filter;
     WindowNode *view;
     short item;

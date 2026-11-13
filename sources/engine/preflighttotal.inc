@@ -1,9 +1,9 @@
 /* body of PreflightMemoryUsageTotal: the head is in setup.c at both of its positions */
 {
-    long engineGlow;
-    long runningLights;
-    long weaponGlow;
-    long total;
+    int32_t engineGlow;
+    int32_t runningLights;
+    int32_t weaponGlow;
+    int32_t total;
 
     PreflightMemoryUsage(&total, &engineGlow, &runningLights, &weaponGlow);
     if (settings.runningLights)

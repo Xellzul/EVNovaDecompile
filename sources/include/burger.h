@@ -34,45 +34,45 @@ extern void * FOpenExpandedPath(const char *path, const char *mode);
 #ifdef MACBUILD
 #define AllocAPointerClear(size) NewPtrClear(size)
 #else
-extern void * AllocAPointerClear(unsigned long size);
+extern void * AllocAPointerClear(uint32_t size);
 #endif
-extern void * ResizeAPointer(void *mem, unsigned long size);
-extern long IndirectDeallocate(void **p);               /* atplatheap.c */
+extern void * ResizeAPointer(void *mem, uint32_t size);
+extern int32_t IndirectDeallocate(void **p);               /* atplatheap.c */
 
 /* the platform heap (atplatheap.c) */
-extern void * MemoryAllocate(unsigned long size);
-extern void MemoryClear(void *p, unsigned long n);
+extern void * MemoryAllocate(uint32_t size);
+extern void MemoryClear(void *p, uint32_t n);
 extern void MemoryDeallocate(void *p);
-extern void MemoryCopy(void *dst, const void *src, unsigned long n);
-extern void MemoryFill(void *p, int c, unsigned long n);
+extern void MemoryCopy(void *dst, const void *src, uint32_t n);
+extern void MemoryFill(void *p, int c, uint32_t n);
 extern void SystemSetQuitProc(void (*fn)(void));
 extern void SystemSetIdleProc(void (*fn)(void));
 extern void _SystemQuitCallback(void);
 #ifndef MACBUILD /* the mac's Escape Velocity.c calls it undeclared */
-extern long PlatformOpen(void);
+extern int32_t PlatformOpen(void);
 #endif
-extern long FT_Open(void);
-extern long SetDisplayToSize(unsigned long w, unsigned long h, unsigned long depth, unsigned long flags);
+extern int32_t FT_Open(void);
+extern int32_t SetDisplayToSize(uint32_t w, uint32_t h, uint32_t depth, uint32_t flags);
 extern unsigned char SystemCheckCallback(void);
 extern void SystemWait(ULong ms);
 extern ULong TimerGetLocalSeconds(void);
-extern long TimerPrime(void *ref, long period);
+extern int32_t TimerPrime(void *ref, int32_t period);
 extern ULong TimerGetTicks(void);                 /* atticks.c: milliseconds since boot */
 extern ULong TimerGetTickRate(void);                 /* atticks.c: the tick rate that goes with it */
 extern void *_PlatformGetWindow(void);                 /* atplatopen.c */
-extern long _IndirectValidate(void **handle);         /* atplatheap.c: the heap check */
+extern int32_t _IndirectValidate(void **handle);         /* atplatheap.c: the heap check */
 extern unsigned char _AtomicCheckCritical(void);
 extern unsigned char _ThreadCheckCritical(void);
-extern void * MemoryAllocateClear(unsigned long size);
+extern void * MemoryAllocateClear(uint32_t size);
 extern void FastMemSet(void *DestPtr, Word Fill, Word32 Length);
 extern void DebugXString(const char *string);
 
 /* the hash table (athashtbl.c) */
 struct HashTable;
-extern struct HashTable * HashCreate(unsigned long flags);
+extern struct HashTable * HashCreate(uint32_t flags);
 extern void HashDispose(void *ref);
 extern struct HashTable *HashLoad(ULong flags, void **text);
-extern long _HashInsertAppend(void *ref, const void *key, ULong keyLen,
+extern int32_t _HashInsertAppend(void *ref, const void *key, ULong keyLen,
     const void *value, ULong valueLen, unsigned char tag, unsigned char front, ULong kind);
 extern struct HashTable *HashInitialize(ULong flags, const char *text);
 extern struct HashTable *HashInitializeUnicode(ULong flags, const unsigned short *text);
@@ -84,9 +84,9 @@ extern struct HashTable *HashClone(void *ref);
 extern unsigned char HashIsEmpty(void *ref);
 extern char *HashLookup(void *reply, const char *key, void *after);
 extern ULong HashGetFlags(void *ref);
-extern long HashAppendData(struct HashTable *t, const char *key, const void *value, ULong valueLen);
-extern long HashInsertData(struct HashTable *t, const char *key, const void *value, ULong valueLen);
-extern long HashAppendUnicodeData(struct HashTable *t, const unsigned short *key, const void *value,
+extern int32_t HashAppendData(struct HashTable *t, const char *key, const void *value, ULong valueLen);
+extern int32_t HashInsertData(struct HashTable *t, const char *key, const void *value, ULong valueLen);
+extern int32_t HashAppendUnicodeData(struct HashTable *t, const unsigned short *key, const void *value,
     ULong valueLen);
 
 /* the interface tool's image layer (itblit.c) */
@@ -94,7 +94,7 @@ struct ITStream;
 struct ITImage;
 struct ITPort;
 struct ITPixels;
-extern long DT_BufferRead(struct ITStream *stream, void *dst, ULong count);
+extern int32_t DT_BufferRead(struct ITStream *stream, void *dst, ULong count);
 extern struct ITPort *_DT_SurfaceGetContext(void *image);
 extern struct ITPort *_DT_ContextGetContext(struct ITImage *image);
 extern struct ITPixels *_DT_SurfaceGetImage(void *image);
@@ -102,7 +102,7 @@ extern struct ITPixels *_DT_ImageGetImage(struct ITImage *image);
 extern struct ITPixels *_DT_ImageGetAlpha(struct ITImage *image);
 struct ITDib;
 struct ITDevice;
-extern long DT_SyncDib(struct ITDib *dib, unsigned char store, unsigned char load);
+extern int32_t DT_SyncDib(struct ITDib *dib, unsigned char store, unsigned char load);
 extern void _DT_ContextDispose(struct ITPort *port);
 extern void _DT_PrinterDispose(struct ITDevice *device);
 extern void _DT_ImageDispose(struct ITPixels *pixels);
@@ -111,10 +111,10 @@ struct ITPalette;
 struct ITRect;
 extern struct ITImage *_DT_SurfaceCreate(struct ITPort **portOut, struct ITDevice **deviceOut,
                                     struct ITPixels **pixelsOut);
-extern long _DT_SurfaceDispose(struct ITImage *image, unsigned char fromPort,
+extern int32_t _DT_SurfaceDispose(struct ITImage *image, unsigned char fromPort,
                          unsigned char fromDevice, unsigned char fromPixels);
 extern void _DT_PaletteToInverse(unsigned char *table, const struct ITPalette *palette);
-extern long _DT_ImageCalcFormat(ULong format, unsigned char *flag, unsigned char *bits,
+extern int32_t _DT_ImageCalcFormat(ULong format, unsigned char *flag, unsigned char *bits,
                          unsigned char *shift, unsigned char *mask, unsigned short *scale);
 extern ULong _DT_ImageCalcStamp(const struct ITPixels *info);
 #ifdef MAC1010
@@ -122,16 +122,16 @@ extern struct Rect *CopyDT_2SysRect(struct Rect *dst, const struct ITRect *src);
 #else
 extern struct ITRect *CopyDT_2SysRect(struct ITRect *dst, const struct ITRect *src);
 #endif
-extern long _DT_ImageLock(struct ITImage *image, struct ITImage *other,
+extern int32_t _DT_ImageLock(struct ITImage *image, struct ITImage *other,
                          unsigned char *rebuilt);
 struct ITPixelInfo;
-extern long DT_ImageLock(struct ITImage *image, struct ITImage *other,
+extern int32_t DT_ImageLock(struct ITImage *image, struct ITImage *other,
                          struct ITPixelInfo *info, unsigned char *rebuilt);
 extern void DT_ImageUnlock(struct ITImage *image, struct ITImage *other);
 extern void _DT_ImageReplace(struct ITImage *a, struct ITImage *b);
 extern void _DT_SurfaceReplace(struct ITImage *a, struct ITImage *b);
-extern struct ITRect *DT_SetRect(struct ITRect *r, long left, long top, long right,
-                                   long bottom);
+extern struct ITRect *DT_SetRect(struct ITRect *r, int32_t left, int32_t top, int32_t right,
+                                   int32_t bottom);
 struct ITTransparent;
 struct ITBackground;
 struct ITColor;
@@ -141,50 +141,50 @@ extern void DT_ImageSetRawColors(struct ITImage *image, struct ITImage *mask, UL
                          const struct ITColor *src);
 extern struct ITImage *DT_ImageCreate(const struct ITRect *bounds, ULong format,
                                     const struct ITPalette *palette);
-extern long DT_ImageDispose(struct ITImage *image);
+extern int32_t DT_ImageDispose(struct ITImage *image);
 extern void DT_ImageSetRawPixels(struct ITImage *image, struct ITImage *mask, ULong row,
                          const unsigned char *src);
 struct PictColorTable;
-extern long _PICT_ReadRect(struct ITStream *stream, short *rect);
-extern long _PICT_ReadColorTable(struct ITStream *stream, struct PictColorTable *table);
+extern int32_t _PICT_ReadRect(struct ITStream *stream, short *rect);
+extern int32_t _PICT_ReadColorTable(struct ITStream *stream, struct PictColorTable *table);
 extern struct ITPalette gDT_AlphaPalette;        /* atpalinit.c: the greyscale palette */
-extern unsigned long gDT_Mults[9];            /* atpalinit.c: channel width to 16-bit factor */
+extern uint32_t gDT_Mults[9];            /* atpalinit.c: channel width to 16-bit factor */
 
 /* the interface tool's image loaders, one per file format: (stream, image, mask, transparency
    answer, background answer) */
-extern long BMP_Decode(struct ITStream *stream, struct ITImage **imageOut,
+extern int32_t BMP_Decode(struct ITStream *stream, struct ITImage **imageOut,
                          struct ITImage **maskOut, struct ITTransparent *trans,
                          struct ITBackground *bg);
-extern long GIF_Decode(struct ITStream *stream, struct ITImage **imageOut,
+extern int32_t GIF_Decode(struct ITStream *stream, struct ITImage **imageOut,
                          struct ITImage **maskOut, struct ITTransparent *trans,
                          struct ITBackground *bg);
-extern long JPEG_Decode(struct ITStream *stream, struct ITImage **imageOut,
+extern int32_t JPEG_Decode(struct ITStream *stream, struct ITImage **imageOut,
                          struct ITImage **maskOut, struct ITTransparent *trans,
                          struct ITBackground *bg);
-extern long PNG_Decode(struct ITStream *stream, struct ITImage **imageOut,
+extern int32_t PNG_Decode(struct ITStream *stream, struct ITImage **imageOut,
                          struct ITImage **maskOut, struct ITTransparent *trans,
                          struct ITBackground *bg);
-extern long PICT_Decode(struct ITStream *stream, struct ITImage **imageOut,
+extern int32_t PICT_Decode(struct ITStream *stream, struct ITImage **imageOut,
                          struct ITImage **maskOut, struct ITTransparent *trans,
                          struct ITBackground *bg);
-extern long PPAT_Decode(struct ITStream *stream, struct ITImage **imageOut,
+extern int32_t PPAT_Decode(struct ITStream *stream, struct ITImage **imageOut,
                          struct ITImage **maskOut, struct ITTransparent *trans,
                          struct ITBackground *bg);
-extern long TGA_Decode(struct ITStream *stream, struct ITImage **imageOut,
+extern int32_t TGA_Decode(struct ITStream *stream, struct ITImage **imageOut,
                          struct ITImage **maskOut, struct ITTransparent *trans,
                          struct ITBackground *bg);
 extern struct ITRect *DT_ImageGetRect(struct ITImage *image, struct ITRect *bounds);
-extern struct ITRect *DT_RectOffset(struct ITRect *r, long dh, long dv);
-extern long DT_ImageResize(struct ITImage *image, struct ITImage *mask, const struct ITRect *bounds);
+extern struct ITRect *DT_RectOffset(struct ITRect *r, int32_t dh, int32_t dv);
+extern int32_t DT_ImageResize(struct ITImage *image, struct ITImage *mask, const struct ITRect *bounds);
 extern unsigned char DT_IsRectEqual(const struct ITRect *a, const struct ITRect *b);
-extern long DT_ImageCopy(struct ITImage *dst, const struct ITRect *dstRect, unsigned char copy,
+extern int32_t DT_ImageCopy(struct ITImage *dst, const struct ITRect *dstRect, unsigned char copy,
                          struct ITImage *src, struct ITImage *srcMask,
                          const struct ITTransparent *trans, const struct ITRect *srcRect);
 struct ITPoint;
-extern long DT_ImageTile(struct ITImage *dst, const struct ITRect *dstRect,
+extern int32_t DT_ImageTile(struct ITImage *dst, const struct ITRect *dstRect,
                          const struct ITPoint *origin, unsigned char copy, struct ITImage *src,
                          struct ITImage *srcMask, const struct ITTransparent *trans);
-extern long DT_ImagePreflightTile(struct ITImage *image, struct ITImage *mask);
+extern int32_t DT_ImagePreflightTile(struct ITImage *image, struct ITImage *mask);
 
 /* the REGGIE client (reggie.c) */
 struct GlobalEntry;
@@ -192,17 +192,17 @@ extern void _ReggiePrivateTickle(void);
 extern struct GlobalEntry *_ReggieVersionInsert(const char *name, struct HashTable *reply);
 
 /* string helpers (atplatstr.c) */
-extern unsigned long StringGetLength(const unsigned char *s);
-extern unsigned char *StringAppendSafe(unsigned char *dst, const unsigned char *src, unsigned long n);
-extern void * IndirectInitialize(const void *src, unsigned long size);
-extern long StringCompare(const char *a, const char *b);
+extern uint32_t StringGetLength(const unsigned char *s);
+extern unsigned char *StringAppendSafe(unsigned char *dst, const unsigned char *src, uint32_t n);
+extern void * IndirectInitialize(const void *src, uint32_t size);
+extern int32_t StringCompare(const char *a, const char *b);
 extern ULong unicode_toupper(ULong c);
-extern char *StringFormatSafe(char *out, long size, const char *fmt, ...);
+extern char *StringFormatSafe(char *out, int32_t size, const char *fmt, ...);
 extern char *StringFormat(char *out, const char *fmt, ...);
 #ifdef va_start                 /* <stdarg.h> included */
 extern char *StringFormatVarg(char *out, ULong size, const char *fmt, va_list args);   /* atformat.c */
 #endif
-extern long StringCompareSafe(const char *a, const char *b, ULong n);
+extern int32_t StringCompareSafe(const char *a, const char *b, ULong n);
 extern char *StringTokenize(char *s, int delim, char **next);
 extern ULong StringToNumber(const char *s);
 extern char *StringFindDelimiter(const char *s, const char *set);
@@ -210,7 +210,7 @@ extern char *StringFindDelimiter(const char *s, const char *set);
 /* the mutex-guarded list (atmutexlist.c) and the atomic bit set (atplatlock2.c) */
 struct MutexList;
 struct MutexNode;
-extern long QueueCreate(void *ref);
+extern int32_t QueueCreate(void *ref);
 extern void QueueDispose(struct MutexList *list);
 extern void QueueInsert(void *ref, void *element);
 extern struct MutexNode *QueueRemove(struct MutexList *list);
@@ -238,8 +238,8 @@ extern void NetworkQueueEmpty(struct MutexList *list);
 extern void _EndpointUnregister(struct NetSocket *s, unsigned short kind);
 extern unsigned char AddressCompare(const void *refA, const void *refB);
 extern void DatagramDispose(void *ref);
-extern void DatagramClose(void *ref, long unused);
-extern long NetworkQueueFill(struct MutexList *list, unsigned short kind, ULong count, ULong size);
+extern void DatagramClose(void *ref, int32_t unused);
+extern int32_t NetworkQueueFill(struct MutexList *list, unsigned short kind, ULong count, ULong size);
 extern struct MutexNode *NetworkQueuePoll(struct MutexList *list);
 extern void _EndpointRegister(struct NetSocket *s, unsigned short kind);
 extern unsigned short AddressToNetworkStack(const struct NetAddress *a);
@@ -254,15 +254,15 @@ extern struct NetSocket *DatagramCreate(NetStackID stack, void *ref,
     struct MutexList *sentList, struct MutexList *freeList, struct MutexList *recvList,
     struct MutexList *recvList2);
 extern void DatagramTickle(struct NetSocket *s);
-extern long DatagramControl(void *ref, void *out, ULong option, ULong value);
-extern long DatagramOpen(void *ref, struct NetAddress *address);
-extern long DatagramSend(void *ref, struct NetPacket *packet);
-extern long DatagramGetAddress(void *ref, struct NetAddress *out);
-extern long _EndpointGetError(struct NetSocket *s);
+extern int32_t DatagramControl(void *ref, void *out, ULong option, ULong value);
+extern int32_t DatagramOpen(void *ref, struct NetAddress *address);
+extern int32_t DatagramSend(void *ref, struct NetPacket *packet);
+extern int32_t DatagramGetAddress(void *ref, struct NetAddress *out);
+extern int32_t _EndpointGetError(struct NetSocket *s);
 extern unsigned char NetworkStackGetAvail(unsigned short mode);
 extern unsigned char _AddressFromString(struct NetAddress *address, const char *text);
 extern struct MutexNode *NetworkQueueWait(struct MutexList *list, ULong seconds);
-extern long SimpleResolve(NetStackID stack, const char *host, struct NetAddress *out);
+extern int32_t SimpleResolve(NetStackID stack, const char *host, struct NetAddress *out);
 
 /* the TCP stream socket (atnet.c) */
 struct NetStream;
@@ -274,24 +274,24 @@ extern struct NetStream *StreamCreate(NetStackID stack, void *ref,
 extern void StreamTickle(struct NetStream *s);
 extern void StreamDispose(struct NetSocket *sock);
 extern void StreamClose(struct NetSocket *sock, unsigned char graceful);
-extern long StreamAcceptServer(void *ref, void *other);
-extern long StreamOpenClient(void *ref, struct NetAddress *local,
+extern int32_t StreamAcceptServer(void *ref, void *other);
+extern int32_t StreamOpenClient(void *ref, struct NetAddress *local,
     const struct NetAddress *remote, ULong timeout);
-extern long StreamSend(void *ref, struct NetChunk *chunk);
-extern long StreamGetAddress(void *ref, struct NetAddress *local,
+extern int32_t StreamSend(void *ref, struct NetChunk *chunk);
+extern int32_t StreamGetAddress(void *ref, struct NetAddress *local,
     struct NetAddress *remote);
 
 /* a TCP stream cut into frames (atnet.c) and the socket accessors (reggie.c) */
 extern struct NetStream *StreamCreateBuffered(NetStackID stack, void *ref,
-    void (*proc)(struct NetSocket *s, void *ref, unsigned short event), long frameMode,
+    void (*proc)(struct NetSocket *s, void *ref, unsigned short event), int32_t frameMode,
     struct MutexList *sentList, struct MutexList *freeList, struct MutexList *outList,
     struct MutexList *outList2);
 extern unsigned short BufferedStreamStatus(struct NetSocket *s, unsigned short state);
 extern void _EndpointTickleAll(void);
 extern void _EndpointDisposeAll(void);
-extern long NetworkStackLoad(ULong wanted);
+extern int32_t NetworkStackLoad(ULong wanted);
 extern ULong NetworkStackGetAddressList(unsigned short kind, struct NetAddress *out, ULong max);
-extern long SimpleSend(struct NetSocket *s, const struct NetAddress *to, void **h);
+extern int32_t SimpleSend(struct NetSocket *s, const struct NetAddress *to, void **h);
 extern unsigned short EndpointGetElem(void *ref);
 extern unsigned short EndpointGetStack(void *ref);
 extern unsigned short EndpointGetStatus(void *ref);
@@ -310,23 +310,23 @@ extern struct NetResolver *ResolverCreate(NetStackID stack, void *ref,
     struct MutexList *doneList, struct MutexList *freeList);
 extern void ResolverTickle(struct NetSocket *s);
 extern void ResolverDispose(void *ref);
-extern long ResolverOpen(void *ref);
-extern long ResolverControl(void *ref, struct NetLookup *lookup);
+extern int32_t ResolverOpen(void *ref);
+extern int32_t ResolverControl(void *ref, struct NetLookup *lookup);
 extern void ResolverClose(void *ref);
-extern long CriticalDispose(void *lock);
+extern int32_t CriticalDispose(void *lock);
 extern ULong _PlatformResumeThread(void *thread);
 extern ULong _PlatformSuspendThread(void *thread);
-extern long CriticalCreate(void *lock);
-extern long AtomicIncrement(long *value, long delta);
+extern int32_t CriticalCreate(void *lock);
+extern int32_t AtomicIncrement(int32_t *value, int32_t delta);
 
 /* a handle deflated / inflated through a kept zlib stream (atzstream.c) */
 struct ZState;
 extern void ProgressiveDispose(struct ZState *state);
-extern long ProgressiveDecompress(void **h, struct ZState *state);
-extern long ProgressiveCompress(void **h, struct ZState *state);
+extern int32_t ProgressiveDecompress(void **h, struct ZState *state);
+extern int32_t ProgressiveCompress(void **h, struct ZState *state);
 
 /* UTF-16 / UTF-8 (atcharset.c, atutf162.c, convertutf.c) */
-extern long UnicodeCompare(const unsigned short *a, const unsigned short *b);
+extern int32_t UnicodeCompare(const unsigned short *a, const unsigned short *b);
 extern unsigned short *Unicode2UpperCopySafe(unsigned short *dst, const unsigned short *src,
                                     ULong dstBytes, ULong maxChars);
 extern ULong UnicodeGetCharCountFromBytes(const unsigned short *s, ULong bytes);
@@ -334,24 +334,24 @@ extern ULong UnicodeGetCharByIndex(const unsigned short *s, ULong index);
 extern ULong count_UTF8_to_UTF16(const unsigned char *s, ULong limit);
 extern ULong count_UTF16_to_UTF8(const unsigned short *s, ULong limit);
 extern unsigned short *convert_UTF8_to_UTF16(unsigned short *dst, const unsigned char *src,
-                                    ULong dstBytes, long budget, long terminate);
+                                    ULong dstBytes, int32_t budget, int32_t terminate);
 extern unsigned char *convert_UTF16_to_UTF8(unsigned char *dst, const unsigned short *src,
-                                   ULong dstBytes, long budget, long terminate);
+                                   ULong dstBytes, int32_t budget, int32_t terminate);
 /* the converters' character budget and NUL-stop flag: 1.0.10 counts the budget unsigned and takes a signed flag */
 #ifdef MAC1010
 #define UTFBudget ULong
-#define UTFFlags long
+#define UTFFlags int32_t
 #else
-#define UTFBudget long
+#define UTFBudget int32_t
 #define UTFFlags ULong
 #endif
-extern long ConvertUTF32toUTF16(const ULong **sourceStart, const ULong *sourceEnd,
+extern int32_t ConvertUTF32toUTF16(const ULong **sourceStart, const ULong *sourceEnd,
                          unsigned short **targetStart, unsigned short *targetEnd,
                          UTFBudget *budget, UTFFlags flags);
-extern long ConvertUTF16toUTF8(const unsigned short **sourceStart, const unsigned short *sourceEnd,
+extern int32_t ConvertUTF16toUTF8(const unsigned short **sourceStart, const unsigned short *sourceEnd,
                          unsigned char **targetStart, unsigned char *targetEnd,
                          UTFBudget *budget, UTFFlags flags);
-extern long ConvertUTF8toUTF16(const unsigned char **sourceStart, const unsigned char *sourceEnd,
+extern int32_t ConvertUTF8toUTF16(const unsigned char **sourceStart, const unsigned char *sourceEnd,
                          unsigned short **targetStart, unsigned short *targetEnd,
                          UTFBudget *budget, UTFFlags flags);
 
@@ -364,7 +364,7 @@ struct ListRec;
 struct PrefsNode;
 struct RezFile;
 struct SessionContext;
-extern unsigned long GetAPointerSize(void *mem);
+extern uint32_t GetAPointerSize(void *mem);
 #ifndef MAC1010
 extern void DetachResource(Handle h);
 #endif
@@ -382,7 +382,7 @@ extern void CloseADirectory(struct DirectorySearch_t *dir);
 extern void ImageRemapIndexed(struct Image_t *img, const Word8 *remap);
 extern Word PaletteFindColorIndex(const Word8 *pal, Word red, Word green,
                                   Word blue, Word count);
-extern long ParseSoundFileImage(struct AudioDesc *info, Word8 *data,
+extern int32_t ParseSoundFileImage(struct AudioDesc *info, Word8 *data,
                                 ULong size);
 extern void ExpandAPathToBuffer(char *dst, const char *path);   /* BurgerLib form */
 extern void ExpandAPathToBufferNative(char *dst, const char *path);   /* a Windows path */
@@ -392,11 +392,11 @@ extern Word DeleteAFileNative(const char *name);
 extern char *GetAVolumeName(Word driveNum);
 extern Word FindAVolumeByName(const char *name);
 extern Word ResourceGetRezNum(struct RezFile *rez, const char *name);
-extern Handle ResourceLoadHandle(struct RezFile *rez, long index);
+extern Handle ResourceLoadHandle(struct RezFile *rez, int32_t index);
 extern Handle ResourceLoadHandleByName(struct RezFile *rez, const char *name);
 extern unsigned int SetAPrefix(unsigned int prefix, const char *path);
 extern void PopAPrefix(unsigned int prefix);
-extern void *LoadAFile(const char *fileName, unsigned long *length);
+extern void *LoadAFile(const char *fileName, uint32_t *length);
 extern char *GetFileExtension(const char *name);
 extern Handle StrCopyHandle(const char *text);
 extern char *StrCopy(const char *text);
@@ -408,20 +408,20 @@ extern char ErrorMsg[512];                       /* burgerfatal.c */
 extern Word IAmExiting;                          /* burgerfatal2.c */
 extern void DebugXLongWord(Word32 value);
 extern char *NumberToAsciiHex(char *dst, ULong value, ULong flags);
-extern void *PrefFileNewFromMemory(const char *text, unsigned long size);
+extern void *PrefFileNewFromMemory(const char *text, uint32_t size);
 extern void ClosePrefsFile(struct PrefsNode *file);
 extern void *OpenPrefsFile(const char *name);
 extern struct PrefsNode *PrefsFindGroup(struct PrefsNode *file, const char *name);
 extern void PrefsGetString(struct PrefsNode *group, const char *key, const char *dflt,
-                           char *out, long outSize);
+                           char *out, int32_t outSize);
 extern int stricmp(const char *s1, const char *s2);   /* MSL Extras */
-extern long WritePrefsFile(struct PrefsNode *file, const char *path);
+extern int32_t WritePrefsFile(struct PrefsNode *file, const char *path);
 
 /* runtime-block globals */
 extern void *gPlatWindow;
-extern unsigned long gSaveLeftVolume;
-extern unsigned long gSaveMaxVolume;
-extern long MouseClicked;
+extern uint32_t gSaveLeftVolume;
+extern uint32_t gSaveMaxVolume;
+extern int32_t MouseClicked;
 extern char gPlatCritSec[24];
 extern char gCriticalSection[16];
 extern unsigned char gSoundToolOpen;
@@ -442,9 +442,9 @@ extern void DeallocAHandle(void *MemHandle);
 #ifdef MACBUILD
 #define GetAHandleSize(h) GetHandleSize((Handle)(h))
 #else
-extern unsigned long GetAHandleSize(Handle h);
+extern uint32_t GetAHandleSize(Handle h);
 #endif
-extern Handle ResizeAHandle(Handle h, unsigned long size);
+extern Handle ResizeAHandle(Handle h, uint32_t size);
 #ifdef MACBUILD
 /* the mac engine locks with the Memory Manager */
 #define LockAHandle(h) HLock((Handle)(h))
@@ -466,7 +466,7 @@ extern void HUnlock(Handle h);
 extern void HPurge(Handle h);
 #endif
 #ifndef MACBUILD
-extern void Gestalt(long selector, long *result);
+extern void Gestalt(int32_t selector, int32_t *result);
 #endif
 #ifndef MAC1010
 extern short EnterMovies(void);
@@ -474,14 +474,14 @@ extern void ExitMovies(void);
 #endif
 extern void FUN_004fc310(void *gworld);
 #ifndef MACBUILD
-extern void SetTrackGWorld(void *track, void *movieData, long a3,
-                           short (*proc)(void), long a5);
-extern long GetTimeBaseFlags(void *timeBase);
-extern void SetTimeBaseFlags(void *timeBase, long flags);
+extern void SetTrackGWorld(void *track, void *movieData, int32_t a3,
+                           short (*proc)(void), int32_t a5);
+extern int32_t GetTimeBaseFlags(void *timeBase);
+extern void SetTimeBaseFlags(void *timeBase, int32_t flags);
 #endif
 
 extern ULong RT3_GetDaysHad(void);
-extern long RT3_GetLicenseCopies(void);
+extern int32_t RT3_GetLicenseCopies(void);
 #if defined(MACBUILD) && !defined(MAC1010)
 extern char *RT3_GetLicenseName(void);
 #else
@@ -496,27 +496,27 @@ extern void ST_DisposeSound(void *snd);
 extern unsigned short ST_IsSoundPlaying(void *snd);
 
 #ifdef MAC1010
-extern long RT3_ExtractLicenseBlock1(unsigned long long v);
+extern int32_t RT3_ExtractLicenseBlock1(unsigned long long v);
 #elif defined(MACBUILD)
 extern ULong RT3_ExtractLicenseBlock1(unsigned long long v);
 #else
 extern unsigned short RT3_ExtractLicenseBlock1(unsigned long long v);
 #endif
-extern long DT_Open(void);
-extern long IT_Open(void);
-extern long IT_OpenBrowser(const char *command);
+extern int32_t DT_Open(void);
+extern int32_t IT_Open(void);
+extern int32_t IT_OpenBrowser(const char *command);
 
 /* the resource manager (engine/resmgr.c) */
 #ifndef MAC1010
-extern Handle GetResource(unsigned long type, short id);
+extern Handle GetResource(uint32_t type, short id);
 #endif
 #ifndef MACBUILD
-extern long CountResources(unsigned long type);
+extern int32_t CountResources(uint32_t type);
 #endif
 #ifndef MAC1010
-extern Handle GetIndResource(unsigned long type, short index);
+extern Handle GetIndResource(uint32_t type, short index);
 extern void ReleaseResource(Handle h);
-extern void GetResInfo(Handle h, short *id, unsigned long *type,
+extern void GetResInfo(Handle h, short *id, uint32_t *type,
                        unsigned char *name);
 #endif
 
@@ -528,7 +528,7 @@ extern void PlatformClose(void);
 extern void ST_Close(void);
 extern void FT_Close(void);
 extern void IT_Close(void);
-extern unsigned long DRHash64(unsigned long long lic);
+extern uint32_t DRHash64(unsigned long long lic);
 extern ULong UFix32_Divide(ULong device, ULong rate);
 extern ULong UFix32_Multiply(ULong ratio, ULong rate);
 extern unsigned char (*gIndirectBusy)(void *p);
@@ -568,9 +568,9 @@ typedef struct VTRequest {
     ULong rateRule;
     ULong rate;
 } VTRequest;
-extern long MT_Open(void);
-extern long MT_GetMode(ULong id, VTRequest *info);
-extern long MT_SetMode(ULong id, VTRequest *req);
+extern int32_t MT_Open(void);
+extern int32_t MT_GetMode(ULong id, VTRequest *info);
+extern int32_t MT_SetMode(ULong id, VTRequest *req);
 #endif
 extern void DrawShapeLowLevel(Word x, Word y, Word width, Word height, Word skip,
                               void *shape);
@@ -602,7 +602,7 @@ extern void WaitTicks(Word tickCount);
 /* the file tool: a spec from kSpecIDMin to kSpecIDMax is a folder number, not a handle */
 #define kSpecIDMin          -5
 #define kSpecIDMax          100
-#define IsSpecID(spec)      ((long)(spec) >= kSpecIDMin && (long)(spec) <= kSpecIDMax)
+#define IsSpecID(spec)      ((int32_t)(spec) >= kSpecIDMin && (int32_t)(spec) <= kSpecIDMax)
 
 #define Swap32(v)  ((((v) >> 24) & 0xffUL) | (((v) >> 8) & 0xff00UL) \
                     | (((v) & 0xff00UL) << 8) | (((v) & 0xffUL) << 24))
@@ -657,23 +657,23 @@ extern void WaitTicks(Word tickCount);
 
 /* AmbrosiaTools' AssertMacros.h: the code is copied once, then tested */
 #define require_noerr(errorCode, exceptionLabel) \
-    do { long evalOnceErrorCode = (errorCode); \
+    do { int32_t evalOnceErrorCode = (errorCode); \
          if (0 != evalOnceErrorCode) goto exceptionLabel; } while (0)
 
 /* video globals */
 extern Word VideoColorDepth;
-extern unsigned long VideoWidth;
+extern uint32_t VideoWidth;
 extern char *VideoPointer;
-extern unsigned long ScreenWidth;
-extern unsigned long ScreenHeight;
-extern long ScreenFlags;                         /* burgergraphics.c */
+extern uint32_t ScreenWidth;
+extern uint32_t ScreenHeight;
+extern int32_t ScreenFlags;                         /* burgergraphics.c */
 extern void *Win95MainWindow;
 extern char **__argv;                            /* MSL setupargs.obj */
 extern Word Win95ApplsActive;                    /* burgeronce.c */
 extern short Win95DirectSoundVolumes[256];       /* burgeronce.c */
 extern unsigned char Win95UseBackBuffer;         /* burgergraphics.c */
 extern char *VideoOffscreen;
-extern long VideoPageLocked;
+extern int32_t VideoPageLocked;
 extern unsigned char CurrentPalette[0x300];
 extern void *BurgerHPalette;
 extern void *BurgerHBitMap;
@@ -685,13 +685,13 @@ extern void *BurgerHBitMap;
 #define gGamePalette CurrentPalette
 
 /* input globals (burgerinput.c) */
-extern long Win95MouseX;
-extern long Win95MouseY;
+extern int32_t Win95MouseX;
+extern int32_t Win95MouseY;
 extern Word JoystickPresent;                     /* globaldefs.c */
 extern Word32 Win95MouseButton;                  /* burgerkbwin.c */
-extern long VideoFullScreen;                     /* burgervideomode.c */
-extern long Win95DestScreenX;                    /* burgervideomode.c */
-extern long Win95DestScreenY;                    /* burgervideomode.c */
+extern int32_t VideoFullScreen;                     /* burgervideomode.c */
+extern int32_t Win95DestScreenX;                    /* burgervideomode.c */
+extern int32_t Win95DestScreenY;                    /* burgervideomode.c */
 
 /* sound globals (burgersndwin.c) */
 struct DSound;
@@ -711,22 +711,22 @@ extern void AtomicEnterCritical(void *token);
 extern void AtomicLeaveCritical(void *token);
 extern ULongLong TimerGetMilliseconds(void);
 extern void SystemIdle(void);
-extern long ST_Open(unsigned short channels, ULong device);
-extern long fgetstr(char *buf, long size, evn_FILE *stream);
-extern void fwritelong(long value, evn_FILE *stream);
+extern int32_t ST_Open(unsigned short channels, ULong device);
+extern int32_t fgetstr(char *buf, int32_t size, evn_FILE *stream);
+extern void fwritelong(int32_t value, evn_FILE *stream);
 extern void fwritestr(const char *s, evn_FILE *stream);
-extern long fgetlong(evn_FILE *stream);
-extern void *LoadAFileFP(evn_FILE *fp, unsigned long *length);
+extern int32_t fgetlong(evn_FILE *stream);
+extern void *LoadAFileFP(evn_FILE *fp, uint32_t *length);
 extern ULong fgetfilesize(evn_FILE *fp);     /* BurgerLib fgetfilesize */
-extern long CreateDirectoryPathNative(char *path);            /* BurgerLib CreateDirectoryPathNative */
-extern char *ParseQuotedString(char *out, long outSize, const char *src);
-extern void MouseSetRange(long width, long height);   /* BurgerLib MouseSetRange */
+extern int32_t CreateDirectoryPathNative(char *path);            /* BurgerLib CreateDirectoryPathNative */
+extern char *ParseQuotedString(char *out, int32_t outSize, const char *src);
+extern void MouseSetRange(int32_t width, int32_t height);   /* BurgerLib MouseSetRange */
 extern void OpenGLTextureDraw2DSubRect(Word TexNum, int x, int y, Word Width, Word Height,
                                        const float *UVPtr);
 extern unsigned char IndirectSetLock(void **handle, unsigned char lock);
 extern ULong IndirectGetSize(void **handle);
-extern long IndirectSetSize(void **handle, ULong size);
-extern char *StringCopySafe(char *dst, const char *src, unsigned long size);
+extern int32_t IndirectSetSize(void **handle, ULong size);
+extern char *StringCopySafe(char *dst, const char *src, uint32_t size);
 extern char *StringFromNumber(char *out, ULong value);
 extern char *String2UpperCopySafe(char *dst, const char *src, ULong n);
 extern char *String2LowerCopySafe(char *dst, const char *src, ULong n);
@@ -741,8 +741,8 @@ extern char *StringC2P(char *s);
 #endif
 extern unsigned char IndirectGetLock(void **handle);
 struct ITElement;
-extern long IT_ItemHandlerInstall(struct WindowNode *owner, const char *name,
-                         long (*proc)(void *hwnd, void *dc, struct ITElement *element,
+extern int32_t IT_ItemHandlerInstall(struct WindowNode *owner, const char *name,
+                         int32_t (*proc)(void *hwnd, void *dc, struct ITElement *element,
                                       void **data, ULong msg, ULong a, void *b));
 
 /* the interface tool's settings, window layer, drawing and input, called from its control
@@ -751,30 +751,30 @@ struct ITKeyEvent;
 struct ITInputEvent;
 struct ITClick;
 extern unsigned char IT_ItemCallbackIsViewEnabled(void);
-extern long IT_ItemCallbackSoundEvent(long event);
+extern int32_t IT_ItemCallbackSoundEvent(int32_t event);
 extern char *IT_ItemCallbackGetParam(const char *key, unsigned char inherit);
-extern long IT_ItemCallbackGetNumber(const char *s);
+extern int32_t IT_ItemCallbackGetNumber(const char *s);
 extern struct ITColor IT_ItemCallbackGetColor(const char *s);
 extern unsigned char IT_ItemCallbackGetFlag(const char *s);
-extern unsigned char IT_ItemCallbackGetAlign(long *align);
+extern unsigned char IT_ItemCallbackGetAlign(int32_t *align);
 #ifdef MAC1010
 extern struct Point *CopyDT_2SysPoint(struct Point *dst, const struct ITPoint *src);
 #else
 extern struct ITPoint *CopyDT_2SysPoint(struct ITPoint *dst, const struct ITPoint *src);
 #endif
-extern long _IT_ViewHandleIdle(struct WindowNode *window);
-extern long _IT_ViewHandleKey(struct WindowNode *window, const struct ITKeyEvent *key,
+extern int32_t _IT_ViewHandleIdle(struct WindowNode *window);
+extern int32_t _IT_ViewHandleKey(struct WindowNode *window, const struct ITKeyEvent *key,
                          struct ITClick *click);
-extern long _IT_ViewHandleClick(struct WindowNode *window, struct ITInputEvent *event,
+extern int32_t _IT_ViewHandleClick(struct WindowNode *window, struct ITInputEvent *event,
                          struct ITClick *click);
-extern long _IT_ViewHandleActivate(struct WindowNode *window, unsigned char active);
-extern long _IT_ViewHandleCursor(struct WindowNode *window, struct ITInputEvent *event,
+extern int32_t _IT_ViewHandleActivate(struct WindowNode *window, unsigned char active);
+extern int32_t _IT_ViewHandleCursor(struct WindowNode *window, struct ITInputEvent *event,
                          unsigned short *modifiers);
 extern struct ITImage *DT_ContextCreateRaw(void *dc, unsigned char save);
-extern long DT_ResetAttributes(struct ITImage *image, unsigned char pen, unsigned char brush,
+extern int32_t DT_ResetAttributes(struct ITImage *image, unsigned char pen, unsigned char brush,
                          unsigned char font, unsigned char clip, unsigned char origin);
-extern long DT_SetLineAttributes(struct ITImage *image, const struct ITColor *fore,
-                         const struct ITColor *back, const unsigned char *pattern, long width);
+extern int32_t DT_SetLineAttributes(struct ITImage *image, const struct ITColor *fore,
+                         const struct ITColor *back, const unsigned char *pattern, int32_t width);
 extern unsigned char InputReadMouseState(void *hwnd, struct ITInputEvent *event);
 extern struct ITColor gDT_ColorBlack;              /* atpalinit.c: default text colour, black */
 extern unsigned char gDT_PatternLtGray[];           /* atpalinit.c: the light grey pattern */
@@ -793,30 +793,30 @@ extern struct WindowNode *gIT_ViewList;          /* atcursor.c */
 struct ITControl;
 struct ITPage;
 struct FolderSpec;
-extern long DT_ImageFileLoad(void **handle, struct ITImage **imageOut, struct ITImage **maskOut,
+extern int32_t DT_ImageFileLoad(void **handle, struct ITImage **imageOut, struct ITImage **maskOut,
                          struct ITTransparent *trans, struct ITBackground *bg);
 extern void *DT_PeekAtSysContext(struct ITImage *image);
-extern long DT_ContextDispose(struct ITImage *image);
-extern long DT_GetFillBackColor(struct ITImage *image, struct ITColor *back);
-extern long DT_SetFillBackColor(struct ITImage *image, const struct ITColor *back);
+extern int32_t DT_ContextDispose(struct ITImage *image);
+extern int32_t DT_GetFillBackColor(struct ITImage *image, struct ITColor *back);
+extern int32_t DT_SetFillBackColor(struct ITImage *image, const struct ITColor *back);
 extern void *DT_GetClipRegion(struct ITImage *image);
-extern long DT_SetClipRegion(struct ITImage *image, void *region);
-extern long DT_SetClipRect(struct ITImage *image, const struct ITRect *r);
-extern long DT_AddInvalidRect(struct ITImage *image, const struct ITRect *r);
+extern int32_t DT_SetClipRegion(struct ITImage *image, void *region);
+extern int32_t DT_SetClipRect(struct ITImage *image, const struct ITRect *r);
+extern int32_t DT_AddInvalidRect(struct ITImage *image, const struct ITRect *r);
 #ifdef MAC1010
-extern long DT_DrawImageTile(struct ITImage *image, const struct ITRect *clip,
+extern int32_t DT_DrawImageTile(struct ITImage *image, const struct ITRect *clip,
                          const struct ITPoint *origin, struct ITImage *src,
                          struct ITImage *mask, const struct ITTransparent *trans,
                          const struct ITRect *srcRect);
 #else
-extern long DT_DrawImageTile(struct ITImage *image, const struct ITRect *clip,
+extern int32_t DT_DrawImageTile(struct ITImage *image, const struct ITRect *clip,
                          const struct ITPoint *origin, struct ITImage *src,
-                         struct ITImage *mask, long unused, const struct ITRect *srcRect);
+                         struct ITImage *mask, int32_t unused, const struct ITRect *srcRect);
 #endif
-extern long DT_EraseRect(struct ITImage *image, const struct ITRect *r);
+extern int32_t DT_EraseRect(struct ITImage *image, const struct ITRect *r);
 extern unsigned char DT_IsPointInRect(const struct ITPoint *pt, const struct ITRect *r);
 extern unsigned char DT_IsRectEmpty(const struct ITRect *r);
-extern struct ITRect *DT_RectInset(struct ITRect *r, long dh, long dv);
+extern struct ITRect *DT_RectInset(struct ITRect *r, int32_t dh, int32_t dv);
 extern struct ITRect *DT_RectIntersect(struct ITRect *r, const struct ITRect *a,
                                    const struct ITRect *b);
 extern void DT_RegionDispose(void *region);
@@ -833,26 +833,26 @@ extern struct ITPoint *CopySys2DT_Point(struct ITPoint *dst, const struct ITPoin
 extern struct ITRect *CopySys2DT_Rect(struct ITRect *dst, const struct ITRect *src);
 extern struct ITColor *CopySys2DT_Color(struct ITColor *color, const ULong *ref);
 #endif
-extern long IT_ViewChange(struct WindowNode *window, struct FolderSpec **folder, const char *file,
+extern int32_t IT_ViewChange(struct WindowNode *window, struct FolderSpec **folder, const char *file,
                          const char *path, const char *anchor);
-extern long IT_ViewDispose(struct WindowNode *window);
-extern long _IT_ViewHandleTest(struct WindowNode *window, ULong item, unsigned char *hit);
-extern long _IT_ViewHandleDraw(struct WindowNode *window, const struct ITRect *area,
+extern int32_t IT_ViewDispose(struct WindowNode *window);
+extern int32_t _IT_ViewHandleTest(struct WindowNode *window, ULong item, unsigned char *hit);
+extern int32_t _IT_ViewHandleDraw(struct WindowNode *window, const struct ITRect *area,
                          unsigned char noBlit);
-extern long _IT_ViewSetFocus(struct WindowNode *window, struct ITControl *control, unsigned long item,
+extern int32_t _IT_ViewSetFocus(struct WindowNode *window, struct ITControl *control, uint32_t item,
                          unsigned char keep);
-extern long _IT_ViewMoveFocus(struct WindowNode *window, unsigned char forward,
+extern int32_t _IT_ViewMoveFocus(struct WindowNode *window, unsigned char forward,
                          struct WindowNode *skipWindow, struct ITControl *skipControl,
                          ULong only);
-extern long _IT_ViewQueryFocus(struct WindowNode *window, void **out);
-extern long _IT_ViewValidate(struct WindowNode *window);
-extern long _IT_ViewCallback(struct WindowNode *window, struct ITPage *page,
-                         struct ITControl *control, long event);
-extern long _IT_ViewDissectLink(struct WindowNode *window, const char *link, char **file,
+extern int32_t _IT_ViewQueryFocus(struct WindowNode *window, void **out);
+extern int32_t _IT_ViewValidate(struct WindowNode *window);
+extern int32_t _IT_ViewCallback(struct WindowNode *window, struct ITPage *page,
+                         struct ITControl *control, int32_t event);
+extern int32_t _IT_ViewDissectLink(struct WindowNode *window, const char *link, char **file,
                          char **anchor);
-extern long _IT_ItemCallback(struct WindowNode *window, struct ITControl *control, ULong msg,
+extern int32_t _IT_ItemCallback(struct WindowNode *window, struct ITControl *control, ULong msg,
                          ULong a, void *b);
-extern long IT_ViewSetItemEnabled(void *windowRef, long index, unsigned char enable);
+extern int32_t IT_ViewSetItemEnabled(void *windowRef, int32_t index, unsigned char enable);
 extern struct ITElement *PT_ParseTreeInsertNode(struct ITElement *root, struct ITElement *where,
                                       struct ITElement *node, unsigned char before);
 extern struct ITElement *PT_ParseTreeGetParent(struct ITElement *root, struct ITElement *node);
@@ -864,7 +864,7 @@ extern struct ITElement *_IT_ParseTreeFindLastNode(void *doc, struct ITElement *
 extern char *_IT_ParseTreeFindAttribute(struct ITElement *root, struct ITElement *element, const char *tag,
                           const char *key, unsigned char inherit);
 extern char *_IT_SimpleFindAttribute(struct ITElement *element, const char *key);
-extern long _IT_ParseAttributeGetNumber(unsigned char wide, const char *s);
+extern int32_t _IT_ParseAttributeGetNumber(unsigned char wide, const char *s);
 extern struct ITColor _IT_ParseAttributeGetColor(unsigned char wide, const char *s);
 #ifdef MAC1010
 extern void _IT_ParseAttributeGetRect(void *rect, unsigned char wide, char *s);
@@ -874,63 +874,63 @@ extern struct ITRect *_IT_ParseAttributeGetRect(void *rect, unsigned char wide, 
 #ifdef MAC1010
 extern void _IT_PageListDispose(void *tableRef);
 #else
-extern long _IT_PageListDispose(void *tableRef);
+extern int32_t _IT_PageListDispose(void *tableRef);
 #endif
 extern unsigned char IndirectIsUnicode(void **handle, char *nameOut);
-extern long FT_PathDispose(struct FolderSpec **spec);
+extern int32_t FT_PathDispose(struct FolderSpec **spec);
 
 /* called by the nag screen (rt3nag.c) */
 extern void *FT_GetResFile(void);                 /* atfilespec.c */
-extern long FT_ResourceLoad(void *module, unsigned short id, const char *resType, ULong macType,
-                         ULong maxSize, long unused, void ***handle);
-extern long FT_VirtualPathMount(void **handle, unsigned char mode, struct FolderSpec ***result);
+extern int32_t FT_ResourceLoad(void *module, unsigned short id, const char *resType, ULong macType,
+                         ULong maxSize, int32_t unused, void ***handle);
+extern int32_t FT_VirtualPathMount(void **handle, unsigned char mode, struct FolderSpec ***result);
 extern unsigned char DT_IsOpen(void);         /* atpalinit.c */
 extern unsigned char IT_IsOpen(void);         /* atcursor.c */
 extern ULong RT3_GetHoursUsed(void);             /* rt3.c */
-extern long IT_ViewCreateModal(void *folder, const char *file, const char *path,
-                         long (*proc)(struct WindowNode *window, long refcon, long event,
-                                      void *where, long index, const char *name),
-                         long refcon, char *result);   /* ittoolkit.c */
-extern long IT_ViewGetNamedItem(struct WindowNode *window, const char *name);   /* ittoolkit.c */
-extern long IT_ViewSetItemVisible(void *windowRef, long index, unsigned char show);
+extern int32_t IT_ViewCreateModal(void *folder, const char *file, const char *path,
+                         int32_t (*proc)(struct WindowNode *window, int32_t refcon, int32_t event,
+                                      void *where, int32_t index, const char *name),
+                         int32_t refcon, char *result);   /* ittoolkit.c */
+extern int32_t IT_ViewGetNamedItem(struct WindowNode *window, const char *name);   /* ittoolkit.c */
+extern int32_t IT_ViewSetItemVisible(void *windowRef, int32_t index, unsigned char show);
 
 /* the interface tool's control procs, registered by name (atwndclass.c) */
-extern long IT_ButtonHandler(void *hwnd, void *dc, struct ITElement *element, void **data,
+extern int32_t IT_ButtonHandler(void *hwnd, void *dc, struct ITElement *element, void **data,
                          ULong msg, ULong a, void *b);       /* BUTTON, IMAGE, IMG: ittoolkit.c */
-extern long IT_BorderHandler(void *hwnd, void *dc, struct ITElement *element, void **data,
+extern int32_t IT_BorderHandler(void *hwnd, void *dc, struct ITElement *element, void **data,
                          ULong msg, ULong a, void *b);       /* BORDER: itborder.c */
-extern long IT_FrameHandler(void *hwnd, void *dc, struct ITElement *element, void **data,
+extern int32_t IT_FrameHandler(void *hwnd, void *dc, struct ITElement *element, void **data,
                          ULong msg, ULong a, void *b);       /* FRAME: itframe.c */
-extern long IT_PopupHandler(void *hwnd, void *dc, struct ITElement *element, void **data,
+extern int32_t IT_PopupHandler(void *hwnd, void *dc, struct ITElement *element, void **data,
                          ULong msg, ULong a, void *b);       /* POPUP: itpopup.c */
-extern long IT_TextHandler(void *hwnd, void *dc, struct ITElement *element, void **data,
+extern int32_t IT_TextHandler(void *hwnd, void *dc, struct ITElement *element, void **data,
                          ULong msg, ULong a, void *b);       /* TEXTBOX: ittextbox.c */
-extern long _FT_FileRead(struct FTFile *file, ULong count, void *buffer);
-extern long _FT_FileWrite(struct FTFile *file, ULong count, const void *buffer);
-extern long _FT_FileGetEOF(struct FTFile *file, ULong *size);
-extern long _FT_FileSetEOF(struct FTFile *file, ULong size);
-extern long _FT_FileGetMark(struct FTFile *file, ULong *position);
-extern long _FT_FileSetMark(struct FTFile *file, ULong position);
-extern long _FT_ChunkRead(struct FTFile *file, ULong count, void *buffer);
-extern long _FT_ChunkWrite(struct FTFile *file, ULong count, const void *buffer);
-extern long _FT_ChunkGetEOF(struct FTFile *file, ULong *size);
-extern long _FT_ChunkSetEOF(struct FTFile *file, ULong size);
-extern long _FT_ChunkGetMark(struct FTFile *file, ULong *position);
-extern long _FT_ChunkSetMark(struct FTFile *file, ULong position);
-extern long _FT_BufferRead(struct FTFile *file, ULong count, void *buffer);
-extern long _FT_BufferWrite(struct FTFile *file, ULong count, const void *buffer);
-extern long _FT_BufferGetEOF(struct FTFile *file, ULong *size);
-extern long _FT_BufferSetEOF(struct FTFile *file, ULong size);
-extern long _FT_BufferGetMark(struct FTFile *file, ULong *position);
-extern long _FT_BufferSetMark(struct FTFile *file, ULong position);
+extern int32_t _FT_FileRead(struct FTFile *file, ULong count, void *buffer);
+extern int32_t _FT_FileWrite(struct FTFile *file, ULong count, const void *buffer);
+extern int32_t _FT_FileGetEOF(struct FTFile *file, ULong *size);
+extern int32_t _FT_FileSetEOF(struct FTFile *file, ULong size);
+extern int32_t _FT_FileGetMark(struct FTFile *file, ULong *position);
+extern int32_t _FT_FileSetMark(struct FTFile *file, ULong position);
+extern int32_t _FT_ChunkRead(struct FTFile *file, ULong count, void *buffer);
+extern int32_t _FT_ChunkWrite(struct FTFile *file, ULong count, const void *buffer);
+extern int32_t _FT_ChunkGetEOF(struct FTFile *file, ULong *size);
+extern int32_t _FT_ChunkSetEOF(struct FTFile *file, ULong size);
+extern int32_t _FT_ChunkGetMark(struct FTFile *file, ULong *position);
+extern int32_t _FT_ChunkSetMark(struct FTFile *file, ULong position);
+extern int32_t _FT_BufferRead(struct FTFile *file, ULong count, void *buffer);
+extern int32_t _FT_BufferWrite(struct FTFile *file, ULong count, const void *buffer);
+extern int32_t _FT_BufferGetEOF(struct FTFile *file, ULong *size);
+extern int32_t _FT_BufferSetEOF(struct FTFile *file, ULong size);
+extern int32_t _FT_BufferGetMark(struct FTFile *file, ULong *position);
+extern int32_t _FT_BufferSetMark(struct FTFile *file, ULong position);
 extern struct ControlType *gIT_HandlerList;
 extern void StreamHandleInitPut(struct TextBuilder *b);
 extern void StreamHandleDestroy(struct TextBuilder *b);
 extern void StreamHandleEndSave(struct TextBuilder *b);
-extern void StreamHandlePutByte(struct TextBuilder *b, long ch);
+extern void StreamHandlePutByte(struct TextBuilder *b, int32_t ch);
 extern void StreamHandlePutStringNoZero(struct TextBuilder *b, const char *s);
 extern void FastMemSet16(void *dst, ULong value, ULong bytes);
-extern unsigned long crc32(unsigned long crc, const unsigned char *buf,
+extern uint32_t crc32(uint32_t crc, const unsigned char *buf,
                            unsigned len);
 extern void adpcm_coder(short indata[], char outdata[], int len,
                         struct adpcm_state *state);
@@ -940,32 +940,32 @@ extern unsigned char ADPCM_Mixer(ULong *data, short **out, ULong frames, ULong s
 
 extern unsigned char gPlatformOpen;
 extern unsigned char gClockReadyFlag;
-extern long gNumVoices;
+extern int32_t gNumVoices;
 extern ULong gSaveRightVolume;
 extern ULong gSampleRate;
 extern ULong BurgerSndExitIn;                    /* burgerfile.c */
-extern long BurgerSndKillProcs[3];               /* burgerfile.c */
+extern int32_t BurgerSndKillProcs[3];               /* burgerfile.c */
 
 extern unsigned char _ST_SupportsSystemVolume(void);
-extern long _ST_GetSystemVolume(ULong *left, ULong *right, ULong *max);
+extern int32_t _ST_GetSystemVolume(ULong *left, ULong *right, ULong *max);
 extern ULong UFix32_To_UInt32(ULong rate);
 extern void CriticalEnter(void *lock);
 extern void CriticalLeave(void *lock);
 extern void _ReggieFixProductName(char *out, const char *src);
-extern long HashInsert(struct HashTable *t, const char *key, const char *value);
-extern long HashAppend(struct HashTable *t, const char *key, const char *value);
+extern int32_t HashInsert(struct HashTable *t, const char *key, const char *value);
+extern int32_t HashAppend(struct HashTable *t, const char *key, const char *value);
 extern unsigned char HashRemove(struct HashTable *t, const char *key);
 struct WindowNode;
-extern long IT_ViewParamText(struct WindowNode *window, const char *key, const char *value);
+extern int32_t IT_ViewParamText(struct WindowNode *window, const char *key, const char *value);
 extern ULong RT3_GetNumLaunches(void);
-extern long IT_SetCursor(short cursorId);
+extern int32_t IT_SetCursor(short cursorId);
 extern void MemoryMove(void *dst, const void *src, ULong n);
-extern long IndirectAppendData(void **handle, const void *data, ULong length);
-extern long IndirectReplaceData(void **handle, const void *data, ULong length);
-extern long IndirectAppend(void **handle, void **from);
-extern long IndirectReplace(void **handle, void **from);
-extern long IndirectInsertData(void **handle, const void *data, ULong length);
-extern long IndirectSpliceData(void **handle, ULong offset, ULong oldLength, const void *data,
+extern int32_t IndirectAppendData(void **handle, const void *data, ULong length);
+extern int32_t IndirectReplaceData(void **handle, const void *data, ULong length);
+extern int32_t IndirectAppend(void **handle, void **from);
+extern int32_t IndirectReplace(void **handle, void **from);
+extern int32_t IndirectInsertData(void **handle, const void *data, ULong length);
+extern int32_t IndirectSpliceData(void **handle, ULong offset, ULong oldLength, const void *data,
                          ULong newLength);
 extern ULong UnicodeGetByteCount(const unsigned short *s);
 extern const unsigned short *UnicodeAdvance(const unsigned short *s, ULong *code);
@@ -988,8 +988,8 @@ static inline char *CopyString(char *dst, const char *src)
 
 extern void **IndirectDuplicate(void **handle);
 extern ULong TimerGetUTCSeconds(void);
-extern unsigned long TimerGetElapsedSeconds(void);
-extern long _RT3_LicenseRefresh(void);
+extern uint32_t TimerGetElapsedSeconds(void);
+extern int32_t _RT3_LicenseRefresh(void);
 extern struct RT3License gRT3_License;
 extern struct RT3LogEntry gLogEntry;
 extern char gPrivateLicenseName[256];
@@ -1007,43 +1007,43 @@ typedef struct PackInfo {       /* filled by the handle packers when not NULL */
     ULong packedSum;
     ULong reserved[2];
 } PackInfo;
-extern long IndirectDecompress(void **handle, ULong tag, PackInfo *info);
-extern long IndirectCompress(void **handle, ULong tag, PackInfo *info);
+extern int32_t IndirectDecompress(void **handle, ULong tag, PackInfo *info);
+extern int32_t IndirectCompress(void **handle, ULong tag, PackInfo *info);
 /* 1.0.10 passes the get-flags and save flag in a byte */
 #ifdef MAC1010
 #define FTFlagArg unsigned char
 #else
-#define FTFlagArg long
+#define FTFlagArg int32_t
 #endif
-extern long FT_FileGetFlags(long folder, const char *name, struct FTFileInfo *info, FTFlagArg flags);
-extern long FT_FileLoad(long folder, const char *name, ULong maxSize, long flags,
+extern int32_t FT_FileGetFlags(int32_t folder, const char *name, struct FTFileInfo *info, FTFlagArg flags);
+extern int32_t FT_FileLoad(int32_t folder, const char *name, ULong maxSize, int32_t flags,
                          void ***handle);
-extern long FT_FileSave(long folder, const char *name, FTFlagArg flags, ULong type,
+extern int32_t FT_FileSave(int32_t folder, const char *name, FTFlagArg flags, ULong type,
                          ULong creator, void **handle);
-extern long FT_FileDelete(long folder, const char *name);
+extern int32_t FT_FileDelete(int32_t folder, const char *name);
 struct FileTypeMap;
 extern void _FT_FileTypesLookup(const char *name, ULong type, struct FileTypeMap *entry);
 extern unsigned char AtomicMaskTest(ULong *word, ULong bit);
 extern void **IndirectAllocateTempMem(ULong size);
-extern long PT_ParseEncode(void **h, unsigned char wide, unsigned char url,
+extern int32_t PT_ParseEncode(void **h, unsigned char wide, unsigned char url,
                          unsigned char spaces, unsigned char quotes);
 extern unsigned char IsPlatformOpen(void);
 extern unsigned char _FT_IsIndirectBusy(void *p);
 extern void **IndirectAllocate(ULong size);
 #ifndef MAC1010
-extern void GetDateTime(unsigned long *seed);
+extern void GetDateTime(uint32_t *seed);
 #endif
 extern void ResourceDestroy(struct RezFile *rez);
 extern float FUN_004eed20(float lenSquared);
-extern long MemoryChecksum(void *data, unsigned long size);
+extern int32_t MemoryChecksum(void *data, uint32_t size);
 extern char *ConvertNativePathToPath(const char *path);
 extern void *LoadAFileHandle(const char *path);
 extern void **AllocAHandleClear(ULong size);
 extern void _PlatformSetWindow(void *window);
 #ifdef MAC1010
-extern unsigned long RT3_IsRegistered(void);
+extern uint32_t RT3_IsRegistered(void);
 #else
-extern long RT3_IsRegistered(void);
+extern int32_t RT3_IsRegistered(void);
 #endif
 extern void RT3_Idle(void);
 #ifdef MAC1010
@@ -1051,13 +1051,13 @@ extern unsigned char NetworkStackGetActive(unsigned short mode);
 #else
 extern char NetworkStackGetActive(unsigned short mode);
 #endif
-extern long ReggieVersionBegin(struct SessionContext *ctx, const char *name);
-extern void VideoGetCurrentMode(long *out);
-extern long VideoSetMode(long *rec);
+extern int32_t ReggieVersionBegin(struct SessionContext *ctx, const char *name);
+extern void VideoGetCurrentMode(int32_t *out);
+extern int32_t VideoSetMode(int32_t *rec);
 extern void DrawARect16(int x, int y, Word Width, Word Height, Word Color);
 extern void KeyboardFlush(void);
-extern long CreateDirectoryPath(const char *path);
-extern long Win95Allow1Instance(const char *name);
+extern int32_t CreateDirectoryPath(const char *path);
+extern int32_t Win95Allow1Instance(const char *name);
 extern void KillSoundPlayer(void);
 extern void JoystickDestroy(void);
 extern void Fatal(const char *fmt, ...);
@@ -1155,13 +1155,13 @@ extern Word8 *ReadFileStreamGetData(struct ReadFileStream_t *Input, Word32 *Leng
 extern void StopASound(ULong cookie);
 extern unsigned int OSCursorIsVisible(void);
 extern void CStr2PStr(char *dst, const char *src);
-extern long TimerGetSeconds(void);
-extern long ST_PlaySound(void *snd, unsigned short priority, unsigned short level);
+extern int32_t TimerGetSeconds(void);
+extern int32_t ST_PlaySound(void *snd, unsigned short priority, unsigned short level);
 extern ULong ST_PlaySoundParam(SoundRequest *req);
 
 extern unsigned char KeyArray[128];
 extern unsigned char *DAT_00576ce8;
-extern long gGDIDIBSectionFunc;
+extern int32_t gGDIDIBSectionFunc;
 
 #ifdef __cplusplus
 }

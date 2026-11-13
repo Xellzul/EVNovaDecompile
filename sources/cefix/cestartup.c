@@ -37,11 +37,11 @@
 
 __declspec(dllimport) unsigned int __stdcall GetPrivateProfileIntA(const char *app,
     const char *key, int def, const char *file);
-__declspec(dllimport) unsigned long __stdcall GetPrivateProfileStringA(const char *app,
-    const char *key, const char *def, char *out, unsigned long size, const char *file);
+__declspec(dllimport) uint32_t __stdcall GetPrivateProfileStringA(const char *app,
+    const char *key, const char *def, char *out, uint32_t size, const char *file);
 __declspec(dllimport) int __stdcall PostMessageA(void *hwnd, unsigned int msg,
-    unsigned int wParam, long lParam);
-__declspec(dllimport) void __stdcall SHChangeNotify(long eventId, unsigned int flags,
+    unsigned int wParam, int32_t lParam);
+__declspec(dllimport) void __stdcall SHChangeNotify(int32_t eventId, unsigned int flags,
     const void *item1, const void *item2);
 
 extern int __argc;                              /* MSL runtime */
@@ -154,8 +154,8 @@ double CE_IniDouble(const char *key, const char *def)
 /* Replaces the monitor setup: ddraw.ini's game_width and game_height, else the desktop. */
 void CE_InitializeMonitor(void)
 {
-    long width;
-    long height;
+    int32_t width;
+    int32_t height;
 
     width = GetPrivateProfileIntA(kCEIniSection, "game_width", 0, ceIniPath);
     height = GetPrivateProfileIntA(kCEIniSection, "game_height", 0, ceIniPath);
@@ -171,12 +171,12 @@ void CE_InitializeMonitor(void)
 unsigned char CE_IsWindowed(void)
 {
     void *ddraw;
-    long (__stdcall *isWindowed)(void);
+    int32_t (__stdcall *isWindowed)(void);
 
     isWindowed = NULL;
     ddraw = GetModuleHandleA("ddraw.dll");
     if (ddraw != NULL)
-        isWindowed = (long (__stdcall *)(void))GetProcAddress(ddraw, "DDIsWindowed");
+        isWindowed = (int32_t (__stdcall *)(void))GetProcAddress(ddraw, "DDIsWindowed");
     if (isWindowed == NULL)
         return settings.windowedPending;
     return isWindowed() != 0;
@@ -189,7 +189,7 @@ void CE_ToggleFullscreen(void)
 }
 
 /* After a resize over the client area the cursor is the game's again, not an hourglass. */
-long __stdcall CE_WndProc(void *hwnd, unsigned long msg, unsigned long wParam, long lParam)
+int32_t __stdcall CE_WndProc(void *hwnd, uint32_t msg, uint32_t wParam, int32_t lParam)
 {
     if (msg == kWMSetCursor && (lParam & 0xffff) == kHTClient)
         SetCursor(gCustomCursorH != NULL ? gCustomCursorH : LoadCursorA(NULL, kIDCArrow));

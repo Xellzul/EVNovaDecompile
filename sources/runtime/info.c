@@ -42,7 +42,7 @@ void vorbis_comment_add_tag(vorbis_comment *vc,char *tag,char *contents){
 // FUNCTION: EVNOVA 0x00532d40
 void vorbis_comment_clear(vorbis_comment *vc){
   if(vc){
-    long i;
+    int32_t i;
     for(i=0;i<vc->comments;i++)
       if(vc->user_comments[i])_ogg_free(vc->user_comments[i]);
     if(vc->user_comments)_ogg_free(vc->user_comments);

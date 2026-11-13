@@ -21,27 +21,27 @@
 
 extern pascal void IT_FrameRectHook(signed char verb, const Rect *rect);
 extern pascal void IT_FrameRgnHook(signed char verb, RgnHandle region);
-extern long IT_ButtonHandler();
-extern long IT_BorderHandler();
-extern long IT_FrameHandler();
-extern long IT_PopupHandler();
-extern long IT_TextHandler();
+extern int32_t IT_ButtonHandler();
+extern int32_t IT_BorderHandler();
+extern int32_t IT_FrameHandler();
+extern int32_t IT_PopupHandler();
+extern int32_t IT_TextHandler();
 extern WindowNode *IT_WindowFindView(void *hwnd);
 extern unsigned char MacEventToMouseEvent(const EventRecord *mac, ITInputEvent *event);
 extern unsigned char MacEventToKeyEvent(const EventRecord *mac, ITKeyEvent *key);
 extern unsigned char InputReadMouseState(void *hwnd, ITInputEvent *event);
 extern void _IT_SoundFlush(unsigned char wait);
-extern long IT_ViewDispose();
-extern long _IT_ViewHandleEdit(WindowNode *window, short edit, ITClick *click);
+extern int32_t IT_ViewDispose();
+extern int32_t _IT_ViewHandleEdit(WindowNode *window, short edit, ITClick *click);
 extern void *_PlatformFindSymbol(const char *library, const char *name);
 extern unsigned char _PlatformIsThreaded(void);
-extern long IT_ReadLanguages(char *languages);
+extern int32_t IT_ReadLanguages(char *languages);
 extern void *_PlatformFindBundleSymbol(CFStringRef bundleName, CFStringRef symbolName);
 extern void _AtomicEnter(void);
 extern void _AtomicLeave(void);
 
 CQDProcs gIT_StdCProcs;
-OSErr (*gIT_SetControlData)(ControlHandle control, short part, ResType tag, long size, void *data);
+OSErr (*gIT_SetControlData)(ControlHandle control, short part, ResType tag, int32_t size, void *data);
 unsigned char gIT_Open = 0;
 WindowNode *gIT_ViewList = 0;
 WindowNode *gIT_CurrentView = 0;
@@ -61,10 +61,10 @@ char gIT_DefaultAnchor[0x100] = "";
 void IT_Idle(void);
 void IT_Close(void);
 
-long IT_Open(void)
+int32_t IT_Open(void)
 {
-    long err, e;
-    long response;
+    int32_t err, e;
+    int32_t response;
 
     err = 0;
     if (gIT_Open)
@@ -238,9 +238,9 @@ typedef struct MacKeyEvent {
     short pad;
 } MacKeyEvent;
 
-long IT_HandleMacEvent(EventRecord *event, short edit, short *cursor)
+int32_t IT_HandleMacEvent(EventRecord *event, short edit, short *cursor)
 {
-    long err = 0;
+    int32_t err = 0;
     WindowNode *view;
     WindowPtr window;
     GrafPtr port;
@@ -267,7 +267,7 @@ long IT_HandleMacEvent(EventRecord *event, short edit, short *cursor)
             case inMenuBar:
                 window = FrontWindow();
                 if (window != 0 && (view = IT_WindowFindView(window)) != 0) {
-                    long e;
+                    int32_t e;
 
                     e = _IT_ViewHandleEdit(view, edit, &click);
                     if (e != 0) {
@@ -278,7 +278,7 @@ long IT_HandleMacEvent(EventRecord *event, short edit, short *cursor)
                 break;
             case inContent:
                 if ((view = IT_WindowFindView(window)) != 0) {
-                    long e;
+                    int32_t e;
 
                     MacEventToMouseEvent(event, &mouse);
                     e = _IT_ViewHandleClick(view, &mouse, &click);
@@ -325,7 +325,7 @@ long IT_HandleMacEvent(EventRecord *event, short edit, short *cursor)
         case autoKey:
             window = FrontWindow();
             if (window != 0 && (view = IT_WindowFindView(window)) != 0) {
-                long e;
+                int32_t e;
 
                 if (event->what != autoKey && (event->modifiers & cmdKey) != 0) {
                     e = _IT_ViewHandleEdit(view, edit, &click);
@@ -403,7 +403,7 @@ long IT_HandleMacEvent(EventRecord *event, short edit, short *cursor)
     }
     view = 0;
     if (cursor != 0 && FindWindow(event->where, &window) == inContent && window == FrontWindow() && (view = IT_WindowFindView(window)) != 0) {
-        long e;
+        int32_t e;
 
         InputReadMouseState(0, &state);
         e = _IT_ViewHandleCursor(view, &state, (unsigned short *)cursor);
@@ -426,9 +426,9 @@ static Cursor gIT_WatchCursor = {
     { 0, 7 }
 };
 
-long IT_SetCursor(short cursorId)
+int32_t IT_SetCursor(short cursorId)
 {
-    long err;
+    int32_t err;
     Handle h;
     CursHandle c;
 
@@ -468,18 +468,18 @@ done:
 #define kBrowserFailed  -8402
 #define kWaitCursor     4
 
-long IT_OpenBrowser(const char *url)
+int32_t IT_OpenBrowser(const char *url)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
     void **h;
 #if TARGET_API_MAC_CARBON
     CFStringRef string = 0;
     CFURLRef location = 0;
-    long (*open)(CFURLRef url, void *out);
+    int32_t (*open)(CFURLRef url, void *out);
 #endif
-    long selStart = 0;
-    long selEnd = 0;
+    int32_t selStart = 0;
+    int32_t selEnd = 0;
     ICInstance ic = 0;
     ProcessSerialNumber psn = { 0, kCurrentProcess };
     ProcessInfoRec info;
@@ -564,9 +564,9 @@ extern const CFStringRef kCFPreferencesCurrentApplication;
 #define kLanguagesFailed    -8400
 #define kMaxLanguages       5
 
-long IT_ReadLanguages(char *languages)
+int32_t IT_ReadLanguages(char *languages)
 {
-    long err = 0;
+    int32_t err = 0;
     CFArrayRef list;
     CFIndex i;
     CFIndex count;
@@ -581,9 +581,9 @@ long IT_ReadLanguages(char *languages)
         goto done;
     }
     count = CFArrayGetCount(list);
-    if ((unsigned long)count > kMaxLanguages)
+    if ((uint32_t)count > kMaxLanguages)
         count = kMaxLanguages;
-    for (i = 0; i < (unsigned long)count; i++) {
+    for (i = 0; i < (uint32_t)count; i++) {
         language = CFArrayGetValueAtIndex(list, i);
         if (language != 0) {
             if (!CFStringGetCString(language, name, sizeof(name), kCFStringEncodingASCII)) {

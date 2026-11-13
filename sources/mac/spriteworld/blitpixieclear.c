@@ -7,10 +7,10 @@
 // MAC: _BlitPixieClear i386 0x000bfc85 ppc 0x000cb8e4
 void BlitPixieClear(
 	unsigned char *dst,
-	unsigned long dstRowBytes,
+	uint32_t dstRowBytes,
 	unsigned short bytes,
 	unsigned short rows,
-	unsigned long clear )
+	uint32_t clear )
 {
 	BLITPIXIE_ASSERT(rows > 0 );
 	BLITPIXIE_ASSERT(bytes > 0 );

@@ -49,7 +49,7 @@ static ULong _InputReadModifiers(void *hwnd)
     KeyMap keys;
     const char *map;
 #endif
-    long bits;
+    int32_t bits;
 
     modifiers = 0;
     _AtomicEnter();
@@ -121,7 +121,7 @@ unsigned char InputReadMouseState(void *hwnd, ITInputEvent *event)
         LocalToGlobal(&pt);
     } else
 #endif
-    *(long *)&pt = *(long *)0x830;
+    *(int32_t *)&pt = *(int32_t *)0x830;
     _AtomicLeave();
     event->where = Sys2DT_Point(&pt);
     event->screen = event->where;

@@ -26,9 +26,9 @@ static unsigned char sStirByte;
 unsigned char *gStirPointer = &sStirByte;
 #define kContextSize        0x59                 /* up to the first byte of names */
 
-long FT_Open(void)
+int32_t FT_Open(void)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     if (gFT_Open != 0)
@@ -96,7 +96,7 @@ done:
 
 void FT_Close(void)
 {
-    long err;
+    int32_t err;
     FolderSpec **folder;
     FTFile *file;
 
@@ -130,31 +130,31 @@ void FT_Close(void)
     gFT_Open = 0;
 }
 
-long FT_FileCreate(long where, FTFileInfo *info);
-long FT_FileOpen(long where, const char *name, unsigned char write, FTFile **result);
-long FT_FileSetFlags(long where, const char *name, FTFileInfo *info);
-long FT_FileFlush(void *ref);
-long FT_FileRead(void *ref, ULong count, void *buffer);
-long FT_FileWrite(FTFile *file, ULong count, const void *buffer);
-long FT_FileGetEOF(FTFile *file, ULong *size);
-long FT_FileSetEOF(FTFile *file, ULong size);
-long FT_FileSetMark(FTFile *file, ULong position);
-long _FT_FileSaveAppend(long where, const char *name, unsigned char replace, unsigned char append,
+int32_t FT_FileCreate(int32_t where, FTFileInfo *info);
+int32_t FT_FileOpen(int32_t where, const char *name, unsigned char write, FTFile **result);
+int32_t FT_FileSetFlags(int32_t where, const char *name, FTFileInfo *info);
+int32_t FT_FileFlush(void *ref);
+int32_t FT_FileRead(void *ref, ULong count, void *buffer);
+int32_t FT_FileWrite(FTFile *file, ULong count, const void *buffer);
+int32_t FT_FileGetEOF(FTFile *file, ULong *size);
+int32_t FT_FileSetEOF(FTFile *file, ULong size);
+int32_t FT_FileSetMark(FTFile *file, ULong position);
+int32_t _FT_FileSaveAppend(int32_t where, const char *name, unsigned char replace, unsigned char append,
                   ULong type, ULong creator, void **handle);
 
-long FT_VirtualFileOpen(void **handle, unsigned char mode, FTFile **result);
+int32_t FT_VirtualFileOpen(void **handle, unsigned char mode, FTFile **result);
 
-long FT_PathCreate(FolderSpec **where, const char *name, FolderSpec ***result)
+int32_t FT_PathCreate(FolderSpec **where, const char *name, FolderSpec ***result)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     FolderSpec **spec;
 
     err = 0;
     spec = 0;
     *result = 0;
-    if ((long)where >= kFolderShared && (long)where <= kFolderApplication &&
-        (long)name != -1 && (name == 0 || *name == 0)) {
+    if ((int32_t)where >= kFolderShared && (int32_t)where <= kFolderApplication &&
+        (int32_t)name != -1 && (name == 0 || *name == 0)) {
         *result = where;
     } else {
         e = _FT_PathModify(gFT_Path, where, &spec, 0);
@@ -177,10 +177,10 @@ done:
     return err;
 }
 
-long FT_PathCurrent(const char *first, const char *second)
+int32_t FT_PathCurrent(const char *first, const char *second)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     e = _FT_PathModify(gFT_Path, (void *)first, 0, 0);
@@ -194,15 +194,15 @@ long FT_PathCurrent(const char *first, const char *second)
     return err;
 }
 
-long FT_PathDispose(FolderSpec **spec)
+int32_t FT_PathDispose(FolderSpec **spec)
 {
     if (IsSpecID(spec) || _FT_PathLookup(spec))
         _FT_PathDispose(spec);
 }
 
-long FT_FileCreate(long where, FTFileInfo *info)
+int32_t FT_FileCreate(int32_t where, FTFileInfo *info)
 {
-    long err, e;
+    int32_t err, e;
     ULong entries;
     char leaf[256];
     FTFile *archive;
@@ -307,9 +307,9 @@ done:
     return err;
 }
 
-long FT_FileDelete(long where, const char *name)
+int32_t FT_FileDelete(int32_t where, const char *name)
 {
-    long err, e, e2;
+    int32_t err, e, e2;
     int isFile;
     char leaf[256];
     FTFile *archive;
@@ -375,9 +375,9 @@ done:
     return err;
 }
 
-long FT_FileGetFlags(long where, const char *name, FTFileInfo *info, unsigned char flags)
+int32_t FT_FileGetFlags(int32_t where, const char *name, FTFileInfo *info, unsigned char flags)
 {
-    long err, e;
+    int32_t err, e;
     int isFile;
     unsigned char probe;
     char leaf[256];
@@ -444,9 +444,9 @@ done:
     return err;
 }
 
-long FT_FileSetFlags(long where, const char *name, FTFileInfo *info)
+int32_t FT_FileSetFlags(int32_t where, const char *name, FTFileInfo *info)
 {
-    long err, e;
+    int32_t err, e;
     FTFile *file;
     FolderSpec **spec;
     char leaf[256];
@@ -491,9 +491,9 @@ done:
 }
 
 #if TARGET_API_MAC_CARBON
-long FT_DirGetEntry(long where, ULong index, FTFileInfo *info, unsigned char flags)
+int32_t FT_DirGetEntry(int32_t where, ULong index, FTFileInfo *info, unsigned char flags)
 {
-    long err, e;
+    int32_t err, e;
     FTFile *file;
     FolderSpec **spec;
 
@@ -523,9 +523,9 @@ done:
 }
 #endif
 
-long FT_FileOpen(long where, const char *name, unsigned char write, FTFile **result)
+int32_t FT_FileOpen(int32_t where, const char *name, unsigned char write, FTFile **result)
 {
-    long err, e;
+    int32_t err, e;
     int isFile, hasName;
     FolderSpec **spec;
 
@@ -566,12 +566,12 @@ done:
     return err;
 }
 
-long FT_FileClose(void *ref)
+int32_t FT_FileClose(void *ref)
 {
     FTFile *file;
     FTLink *link;
-    long err;
-    long result;
+    int32_t err;
+    int32_t result;
 
     file = ref;
     err = 0;
@@ -611,13 +611,13 @@ long FT_FileClose(void *ref)
     return err;
 }
 
-long _FT_FileFlush(FTFile *file);
-long _FT_BufferFlush(FTFile *file);
+int32_t _FT_FileFlush(FTFile *file);
+int32_t _FT_BufferFlush(FTFile *file);
 
-long FT_FileFlush(void *ref)
+int32_t FT_FileFlush(void *ref)
 {
     FTFile *file;
-    long err, e, result;
+    int32_t err, e, result;
 
     file = ref;
     err = 0;
@@ -637,10 +637,10 @@ long FT_FileFlush(void *ref)
     return err;
 }
 
-long FT_FileRead(void *ref, ULong count, void *buffer)
+int32_t FT_FileRead(void *ref, ULong count, void *buffer)
 {
     FTFile *file;
-    long err, e;
+    int32_t err, e;
 
     file = ref;
     err = 0;
@@ -654,9 +654,9 @@ long FT_FileRead(void *ref, ULong count, void *buffer)
     return err;
 }
 
-long FT_FileWrite(FTFile *file, ULong count, const void *buffer)
+int32_t FT_FileWrite(FTFile *file, ULong count, const void *buffer)
 {
-    long err = 0, e = -1;
+    int32_t err = 0, e = -1;
 
     e = file->procs.proc[kFTWrite](file, count, buffer);
     if (e != 0)
@@ -664,9 +664,9 @@ long FT_FileWrite(FTFile *file, ULong count, const void *buffer)
     return err;
 }
 
-long FT_FileGetEOF(FTFile *file, ULong *size)
+int32_t FT_FileGetEOF(FTFile *file, ULong *size)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     e = file->procs.proc[kFTSize](file, size);
@@ -675,9 +675,9 @@ long FT_FileGetEOF(FTFile *file, ULong *size)
     return err;
 }
 
-long FT_FileSetEOF(FTFile *file, ULong size)
+int32_t FT_FileSetEOF(FTFile *file, ULong size)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     e = file->procs.proc[kFTSetSize](file, size);
@@ -686,9 +686,9 @@ long FT_FileSetEOF(FTFile *file, ULong size)
     return err;
 }
 
-long FT_FileSetMark(FTFile *file, ULong position)
+int32_t FT_FileSetMark(FTFile *file, ULong position)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     if (file->position > file->size)
@@ -701,9 +701,9 @@ long FT_FileSetMark(FTFile *file, ULong position)
     return err;
 }
 
-long FT_FileLoad(long where, const char *name, ULong maxSize, long flags, void ***handle)
+int32_t FT_FileLoad(int32_t where, const char *name, ULong maxSize, int32_t flags, void ***handle)
 {
-    long err, e;
+    int32_t err, e;
     FTFile *file;
     ULong size;
     void **(*alloc)(ULong size);
@@ -750,10 +750,10 @@ done:
     return err;
 }
 
-long _FT_FileSaveAppend(long where, const char *name, unsigned char replace, unsigned char append,
+int32_t _FT_FileSaveAppend(int32_t where, const char *name, unsigned char replace, unsigned char append,
                   ULong type, ULong creator, void **handle)
 {
-    long err, e;
+    int32_t err, e;
     unsigned char create;
     unsigned char locked;
     unsigned char created;
@@ -859,20 +859,20 @@ done:
     return err;
 }
 
-long FT_FileSave(long where, const char *name, unsigned char flags, ULong type, ULong creator,
+int32_t FT_FileSave(int32_t where, const char *name, unsigned char flags, ULong type, ULong creator,
                   void **handle)
 {
     return _FT_FileSaveAppend(where, name, flags, 0, type, creator, handle);
 }
 
-long _FT_BufferOpenWrapper(void **handle, unsigned char mode, FTFile **result);
-long FT_VirtualFileOpen(void **handle, unsigned char mode, FTFile **result);
+int32_t _FT_BufferOpenWrapper(void **handle, unsigned char mode, FTFile **result);
+int32_t FT_VirtualFileOpen(void **handle, unsigned char mode, FTFile **result);
 
 #define kFolderSpecSize     0x59
 
-long FT_VirtualPathMount(void **handle, unsigned char mode, FolderSpec ***result)
+int32_t FT_VirtualPathMount(void **handle, unsigned char mode, FolderSpec ***result)
 {
-    long err, e;
+    int32_t err, e;
     FTFile *file;
     FolderSpec **spec, **s;
 
@@ -910,9 +910,9 @@ done:
     return err;
 }
 
-long FT_VirtualFileOpen(void **handle, unsigned char mode, FTFile **result)
+int32_t FT_VirtualFileOpen(void **handle, unsigned char mode, FTFile **result)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     *result = 0;

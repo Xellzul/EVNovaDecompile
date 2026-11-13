@@ -206,7 +206,7 @@ unsigned char ShowScrollingText(short strListID)
     short y;
     short maxWidth;
     short fade;
-    unsigned long startTicks;
+    uint32_t startTicks;
     short delay;
     unsigned char shown;
     unsigned char finished;

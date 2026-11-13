@@ -22,34 +22,34 @@ typedef struct QTPixMap {
     Rect bounds;                                 /* +0x06 */
     short pmVersion;                             /* +0x0e */
     short packType;                              /* +0x10 */
-    long packSize;                               /* +0x12 */
-    long hRes;                                   /* +0x16 */
-    long vRes;                                   /* +0x1a */
+    int32_t packSize;                               /* +0x12 */
+    int32_t hRes;                                   /* +0x16 */
+    int32_t vRes;                                   /* +0x1a */
     short pixelType;                             /* +0x1e */
     short pixelSize;                             /* +0x20 */
     short cmpCount;                              /* +0x22 */
     short cmpSize;                               /* +0x24 */
-    long planeBytes;                             /* +0x26 */
+    int32_t planeBytes;                             /* +0x26 */
     void *pmTable;                               /* +0x2a */
-    long pmReserved;                             /* +0x2e */
+    int32_t pmReserved;                             /* +0x2e */
 } QTPixMap, **QTPixMapHandle;
 
 typedef struct QTImageDescription {
-    long idSize;                                 /* +0x00 */
-    unsigned long cType;                         /* +0x04 */
-    long resvd1;                                 /* +0x08 */
+    int32_t idSize;                                 /* +0x00 */
+    uint32_t cType;                         /* +0x04 */
+    int32_t resvd1;                                 /* +0x08 */
     short resvd2;                                /* +0x0c */
     short dataRefIndex;                          /* +0x0e */
     short version;                               /* +0x10 */
     short revisionLevel;                         /* +0x12 */
-    long vendor;                                 /* +0x14 */
-    long temporalQuality;                        /* +0x18 */
-    long spatialQuality;                         /* +0x1c */
+    int32_t vendor;                                 /* +0x14 */
+    int32_t temporalQuality;                        /* +0x18 */
+    int32_t spatialQuality;                         /* +0x1c */
     short width;                                 /* +0x20 */
     short height;                                /* +0x22 */
-    long hRes;                                   /* +0x24 */
-    long vRes;                                   /* +0x28 */
-    long dataSize;                               /* +0x2c */
+    int32_t hRes;                                   /* +0x24 */
+    int32_t vRes;                                   /* +0x28 */
+    int32_t dataSize;                               /* +0x2c */
     short frameCount;                            /* +0x30 */
     unsigned char name[32];                      /* +0x32 */
     short depth;                                 /* +0x52 */
@@ -64,22 +64,22 @@ typedef struct QTGDevice **QTGDHandle;
 typedef struct PICTPixmap_t {
     short version;                               /* +0x00 */
     short pack_type;                             /* +0x02 */
-    long pack_size;                              /* +0x04 */
-    long horizontal_resolution;                  /* +0x08 */
-    long vertical_resolution;                    /* +0x0c */
+    int32_t pack_size;                              /* +0x04 */
+    int32_t horizontal_resolution;                  /* +0x08 */
+    int32_t vertical_resolution;                    /* +0x0c */
     short pixel_type;                            /* +0x10 */
     short bits_per_pixel;                        /* +0x12 */
     short component_count;                       /* +0x14 */
     short component_size;                        /* +0x16 */
-    long plane_bytes;                            /* +0x18 */
-    long table;                                  /* +0x1c */
-    long reserved;                               /* +0x20 */
+    int32_t plane_bytes;                            /* +0x18 */
+    int32_t table;                                  /* +0x1c */
+    int32_t reserved;                               /* +0x20 */
 } PICTPixmap_t;
 
 /* QuickTime selector stubs, qtmlClient.lib. The last three are QuickTime's GetPixBaseAddr,
    GetGWorldDevice and GetGWorldPixMap, linked under address names (tools/qtorder.tsv); those
    Toolbox names belong to the port's QuickDraw code. */
-extern Handle NewHandle(long size);                                  /* 0x004f1450 */
+extern Handle NewHandle(int32_t size);                                  /* 0x004f1450 */
 extern void DisposeHandle(Handle h);                                 /* 0x004f1490 */
 extern void MacSetRect(Rect *r, short left, short top, short right, short bottom);
                                                                      /* 0x004f2a10 */
@@ -87,7 +87,7 @@ extern short DecompressImage(char *data, QTImageDescriptionHandle desc, QTPixMap
                              const Rect *srcRect, const Rect *dstRect, short mode,
                              void *mask);                            /* 0x004fc270 */
 extern short NewImageGWorld(QTGWorldPtr *gworld, QTImageDescriptionHandle desc,
-                            unsigned long flags);                    /* 0x004fc290 */
+                            uint32_t flags);                    /* 0x004fc290 */
 extern unsigned char LockPixels(QTPixMapHandle pm);                  /* 0x004fc2f0 */
 extern void GetGWorld(QTGWorldPtr *port, QTGDHandle *device);        /* 0x004fc330 */
 extern void SetGWorld(QTGWorldPtr port, QTGDHandle device);          /* 0x004fc350 */

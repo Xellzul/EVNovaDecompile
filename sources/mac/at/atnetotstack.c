@@ -14,7 +14,7 @@
 #endif
 extern unsigned char _PlatformIsThreaded(void);
 
-extern long CriticalCreateFromProvider(void *lock, ProviderRef provider);
+extern int32_t CriticalCreateFromProvider(void *lock, ProviderRef provider);
 
 #if TARGET_API_MAC_CARBON
 #define InitOpenTransport() InitOpenTransportInContext(kInitOTForApplicationMask, 0)
@@ -61,20 +61,20 @@ extern pascal void DatagramNotifierOT(void *ref, OTEventCode code, OTResult resu
 extern pascal void StreamNotifierOT(void *ref, OTEventCode code, OTResult result, void *cookie);
 #endif
 
-long StackOpenOT(ULong wanted)
+int32_t StackOpenOT(ULong wanted)
 {
     OSStatus status;
-    long response;
+    int32_t response;
     ULong wantInet;
     ULong wantAppleTalk;
-    long err;
+    int32_t err;
     OTConfigurationRef config;
 
     err = 0;
     status = 0;
     response = 0;
     if (IsPlatformOpen() == 0) {
-        long e = PlatformOpen();
+        int32_t e = PlatformOpen();
         if (e != 0) {
             err = e;
             goto done;
@@ -245,14 +245,14 @@ unsigned char StackGetAvailOT(unsigned short mode)
     available = 0;
     switch (mode) {
     case kStackInet: {
-        long ok = 0;
+        int32_t ok = 0;
         if (InetAvailableOT() && InetInitOT() && InetActiveOT())
             ok = 1;
         available = ok;
         break;
     }
     case kStackAppleTalk: {
-        long ok = 0;
+        int32_t ok = 0;
         if (AppleTalkAvailableOT() && AppleTalkInitOT() && AppleTalkActiveOT())
             ok = 1;
         available = ok;
@@ -279,8 +279,8 @@ ULong StackGetAddressListOT(unsigned short kind, NetAddress *out, ULong max)
     switch (kind) {
     case kStackInet: {
         ULong loopback;
-        long response;
-        long interface;
+        int32_t response;
+        int32_t interface;
         unsigned char hasSecondary;
         InetInterfaceInfo info;
 
@@ -362,7 +362,7 @@ done:
 
 unsigned char InetAvailableOT(void)
 {
-    long response;
+    int32_t response;
     unsigned char ok;
 
     ok = 1;
@@ -396,7 +396,7 @@ unsigned char InetInitOT(void)
 unsigned char InetActiveOT(void)
 {
     InetInterfaceInfo info;
-    long response;
+    int32_t response;
     unsigned char ok;
 
     ok = 1;
@@ -415,7 +415,7 @@ unsigned char InetActiveOT(void)
 
 unsigned char AppleTalkAvailableOT(void)
 {
-    long response;
+    int32_t response;
     unsigned char ok;
 
     ok = 1;
@@ -448,7 +448,7 @@ unsigned char AppleTalkInitOT(void)
 
 unsigned char AppleTalkActiveOT(void)
 {
-    long response;
+    int32_t response;
     unsigned char ok;
 
     ok = 1;
@@ -467,10 +467,10 @@ unsigned char AppleTalkActiveOT(void)
 static const char *sHexDigitsOT = "0123456789ABCDEF";
 
 /* MSL's strlen, which the exe has inline */
-static inline long MslLength(const char *s)
+static inline int32_t MslLength(const char *s)
 {
     const unsigned char *p;
-    long n;
+    int32_t n;
 
     p = (const unsigned char *)s - 1;
     n = -1;
@@ -484,7 +484,7 @@ void MakeUniqueNBPNameOT(const char *name, char *out, ULong serial)
 {
     char *mark;
     ULong len;
-    long n;
+    int32_t n;
 
 #if !TARGET_API_MAC_CARBON
     IsMPPOpen();
@@ -533,12 +533,12 @@ static inline void PascalToC(char *dst, const unsigned char *src)
     dst[1] = 0;
 }
 
-long GetNameResource(char *out)
+int32_t GetNameResource(char *out)
 {
-    long err;
+    int32_t err;
     StringHandle h;
 #if TARGET_API_MAC_CARBON
-    static long (*sGetHostName)(char *name, long size);
+    static int32_t (*sGetHostName)(char *name, int32_t size);
     char name[kHostNameBytes];
 #endif
 

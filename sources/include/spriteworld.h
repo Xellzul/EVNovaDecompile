@@ -127,7 +127,7 @@ extern void BlitPixieRLETranslucentDrawProc(SWFrameRec *srcFrameP, SWFrameRec *d
                                  Rect *srcRect, Rect *dstRect);        /* 0x004711e0 */
 extern void BlitPixieFloatingRectDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP,
                                  Rect *srcRect, Rect *dstRect, short level,
-                                 long backgroundValue);                /* 0x00470680 */
+                                 int32_t backgroundValue);                /* 0x00470680 */
 extern void BlitPixieMaskDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP,
                                  Rect *srcRect, Rect *dstRect);        /* 0x00470960 */
 extern void BlitPixiePartialMaskDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP,
@@ -142,18 +142,18 @@ extern void CopyLine(FramePtr srcFrameP, FramePtr dstFrameP,
                                  Point srcPoint, Point dstPoint);      /* 0x00479c50 */
 #ifdef MACBUILD
 extern void BlitTranslucentLine(FramePtr dstFrameP, Point srcPoint, Point dstPoint,
-                                 unsigned long color, unsigned long alpha, unsigned long dstShade,
-                                 unsigned long srcRamp, unsigned long dstRamp);
+                                 uint32_t color, uint32_t alpha, uint32_t dstShade,
+                                 uint32_t srcRamp, uint32_t dstRamp);
 #else
 extern void BlitTranslucentLine(FramePtr dstFrameP, Point srcPoint, Point dstPoint,
-                                 unsigned long color, long srcShade, long dstShade,
-                                 unsigned long srcRamp, unsigned long dstRamp);
+                                 uint32_t color, int32_t srcShade, int32_t dstShade,
+                                 uint32_t srcRamp, uint32_t dstRamp);
                                                                        /* 0x004797b0 */
 #endif
-extern void DrawBeam(FramePtr dstFrameP, Point srcPoint, Point dstPoint, unsigned long color,
-                     short halfWidth, unsigned long coronaColor, short fadeStep); /* 0x00479fe0 */
+extern void DrawBeam(FramePtr dstFrameP, Point srcPoint, Point dstPoint, uint32_t color,
+                     short halfWidth, uint32_t coronaColor, short fadeStep); /* 0x00479fe0 */
 extern void DrawLightningBeam(FramePtr frameA, FramePtr frameB, Point srcPoint, Point dstPoint,
-                              unsigned long color, short width, short segPercent, short jitter,
+                              uint32_t color, short width, short segPercent, short jitter,
                               short shade);                    /* 0x0047a410 */
 extern void EraseBeam(FramePtr srcFrameP, FramePtr dstFrameP, Point srcPoint, Point dstPoint,
                       short halfWidth, short fadeStep);        /* 0x0047ac50 */
@@ -182,100 +182,100 @@ EXTERN_CPP_END
 
 /* --- the rect blitters: whole-rect copies, src first --- */
 extern void BlitPixieRect(unsigned char *srcPixels, unsigned char *dstPixels,
-        long srcRowBytes, long dstRowBytes, unsigned short byteWidth,
+        int32_t srcRowBytes, int32_t dstRowBytes, unsigned short byteWidth,
         unsigned short numRows);                         /* 0x00471cf0 */
 extern void BlitPixieFloatingRect(unsigned char *srcPixels, unsigned char *dstPixels,
-        long srcRowBytes, long dstRowBytes, unsigned short byteWidth,
+        int32_t srcRowBytes, int32_t dstRowBytes, unsigned short byteWidth,
         unsigned short numRows, unsigned short level);   /* 0x00471d30 */
 extern void BlitPixieMask(unsigned char *srcPixels, unsigned char *dstPixels,
-        unsigned char *maskPixels, unsigned long srcRowBytes, unsigned long dstRowBytes,
+        unsigned char *maskPixels, uint32_t srcRowBytes, uint32_t dstRowBytes,
         unsigned short byteWidth, unsigned short numRows);      /* 0x00471a70 */
 extern void BlitPixiePartialMask(unsigned char *srcPixels, unsigned char *dstPixels,
-        unsigned char *maskPixels, unsigned long srcRowBytes, unsigned long dstRowBytes,
+        unsigned char *maskPixels, uint32_t srcRowBytes, uint32_t dstRowBytes,
         unsigned short byteWidth, unsigned short numRows);      /* 0x00471b70 */
 extern Boolean BlitPixieRLECollision(unsigned char *srcTokens, unsigned char *dstTokens,
         Rect *srcRect, Rect *dstRect);                   /* 0x00472190 */
 extern Boolean BlitPixieRLECollisionWithPoint(unsigned char *rleData, Point *pt,
         Rect *r);                                        /* 0x00472420 */
 extern short BlitPixieRLEParsePixels(unsigned char *srcPixels, unsigned char *maskPixels,
-        unsigned long rowBytes, unsigned short byteWidth, unsigned short numRows,
+        uint32_t rowBytes, unsigned short byteWidth, unsigned short numRows,
         unsigned short depth, void ***frameData);        /* 0x00472510 */
 
 /* --- the RLE blitters: token stream in, one sprite each --- */
 extern void BlitPixieRLETranslucent(unsigned char *rleTokens, unsigned char *dstPixel,
-                            long dstRowBytes);           /* 0x00472900 */
+                            int32_t dstRowBytes);           /* 0x00472900 */
 extern void BlitPixieRLEAddOver(unsigned char *rleTokens, unsigned char *dstPixel,
-                            long dstRowBytes);           /* 0x00472b30 */
+                            int32_t dstRowBytes);           /* 0x00472b30 */
 extern void BlitPixieRLETranslucent8(unsigned char *rleTokens, unsigned char *dstPixel,
-                            long dstRowBytes);           /* 0x00472bb0 */
+                            int32_t dstRowBytes);           /* 0x00472bb0 */
 extern void BlitPixieRLEAddOver8(unsigned char *rleTokens, unsigned char *dstPixel,
-                            long dstRowBytes);           /* 0x00472cf0 */
+                            int32_t dstRowBytes);           /* 0x00472cf0 */
 extern void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dstPixel,
-                            long dstRowBytes, Rect *srcBlitRect);    /* 0x00472d70 */
+                            int32_t dstRowBytes, Rect *srcBlitRect);    /* 0x00472d70 */
 extern void BlitPixieRLEAddOverClipped(unsigned char *rleTokens, unsigned char *dstPixel,
-                            long dstRowBytes, Rect *srcBlitRect);    /* 0x004730d0 */
+                            int32_t dstRowBytes, Rect *srcBlitRect);    /* 0x004730d0 */
 extern void BlitPixieRLETranslucentClipped8(unsigned char *rleTokens, unsigned char *dstPixel,
-                            long dstRowBytes, Rect *srcBlitRect);    /* 0x00473270 */
+                            int32_t dstRowBytes, Rect *srcBlitRect);    /* 0x00473270 */
 extern void BlitPixieRLEAddOverClipped8(unsigned char *rleTokens, unsigned char *dstPixel,
-                            long dstRowBytes, Rect *srcBlitRect);    /* 0x00473500 */
+                            int32_t dstRowBytes, Rect *srcBlitRect);    /* 0x00473500 */
 
 /* --- the pixie blitters: one scanline each, dst first --- */
 #if defined(MAC1010) || !(defined(MACBUILD) && defined(SW_DEFINES_FLOATINGRECT8))   /* BlitPixieRect.o calls it undeclared */
 extern void BlitPixieTranslucentClearCopy8(unsigned char *dstPixels,
-        unsigned char *srcPixels, long numPixels,
+        unsigned char *srcPixels, int32_t numPixels,
         unsigned char clearValue);                       /* 0x00473dc0 */
 #endif
 #if defined(MACBUILD) && !defined(MAC1010) && !defined(SW_DEFINES_FLOATINGRECT8)
 extern void BlitPixieFloatingRect8();   /* the fork calls it with no prototype in scope */
 #elif defined(MACBUILD)
 extern void BlitPixieFloatingRect8(unsigned char *srcPixels,
-        unsigned char *dstPixels, unsigned long srcRowBytes, unsigned long dstRowBytes,
+        unsigned char *dstPixels, uint32_t srcRowBytes, uint32_t dstRowBytes,
         unsigned short byteWidth, unsigned short numRows,
         unsigned short backgroundValue);
 #else
 extern void BlitPixieFloatingRect8(unsigned char *srcPixels,
-        unsigned char *dstPixels, long srcRowBytes, long dstRowBytes,
+        unsigned char *dstPixels, int32_t srcRowBytes, int32_t dstRowBytes,
         unsigned short byteWidth, unsigned short numRows,
         unsigned short backgroundValue);                 /* 0x00471dc0 */
 #endif
 extern void BlitPixieMemCopy(unsigned char *dstPixels, unsigned char *srcPixels,
-                             long byteWidth);            /* 0x00474350 */
-extern void BlitPixieMemSet(unsigned char *dstPixels, unsigned long value,
-                            long byteWidth);             /* 0x00474410 */
+                             int32_t byteWidth);            /* 0x00474350 */
+extern void BlitPixieMemSet(unsigned char *dstPixels, uint32_t value,
+                            int32_t byteWidth);             /* 0x00474410 */
 extern void BlitPixieAddOverCopy(unsigned char *dstPixels, unsigned char *srcPixels,
-                                 long byteWidth);        /* 0x00473b60 */
+                                 int32_t byteWidth);        /* 0x00473b60 */
 extern void BlitPixieAddOverCopy8(unsigned char *dstPixels, unsigned char *srcPixels,
-                                  long count);           /* 0x00473fa0 */
+                                  int32_t count);           /* 0x00473fa0 */
 extern void BlitPixieTranslucentCopy(unsigned char *dstPixels, unsigned char *srcPixels,
-                                     long byteWidth);    /* 0x004736c0 */
+                                     int32_t byteWidth);    /* 0x004736c0 */
 extern void BlitPixieTranslucentCopy8(unsigned char *dstPixels, unsigned char *srcPixels,
-                                      long count);       /* 0x00473c20 */
+                                      int32_t count);       /* 0x00473c20 */
 extern void BlitPixieTranslucentBiasCopy8(unsigned char *dstPixels, unsigned char *srcPixels,
-                                          long count);   /* 0x00473e00 */
+                                          int32_t count);   /* 0x00473e00 */
 extern void BlitPixieRLE(unsigned char *rleTokens, unsigned char *dstPixel,
-                         long dstRowBytes);              /* 0x00471e10 */
+                         int32_t dstRowBytes);              /* 0x00471e10 */
 extern void BlitPixieRLEClipped(unsigned char *rleTokens, unsigned char *dstPixel,
-                                long dstRowBytes, Rect *srcBlitRect); /* 0x00471e90 */
-extern unsigned long fix_power_of_two(unsigned long level);  /* 0x004736a0 */
+                                int32_t dstRowBytes, Rect *srcBlitRect); /* 0x00471e90 */
+extern uint32_t fix_power_of_two(uint32_t level);  /* 0x004736a0 */
 #ifndef MACBUILD
-extern long GetMainDevice(void);                         /* 0x004f2a50 */
+extern int32_t GetMainDevice(void);                         /* 0x004f2a50 */
 #endif
 
 /* --- the blitters' shared state --- */
 #pragma cplusplus on
 EXTERN_CPP_BEGIN
-extern unsigned long alpha;                              /* 0x007ceac8 */
-extern unsigned long alphaR;                             /* 0x007ceacc */
-extern unsigned long alphaG;                             /* 0x007cead0 */
-extern unsigned long alphaB;                             /* 0x007cead4 */
-extern unsigned long overR;                              /* 0x007cead8 */
-extern unsigned long overG;                              /* 0x007ceadc */
-extern unsigned long overB;                              /* 0x007ceae0 */
-extern unsigned long overBias;                           /* 0x007ceae4 */
+extern uint32_t alpha;                              /* 0x007ceac8 */
+extern uint32_t alphaR;                             /* 0x007ceacc */
+extern uint32_t alphaG;                             /* 0x007cead0 */
+extern uint32_t alphaB;                             /* 0x007cead4 */
+extern uint32_t overR;                              /* 0x007cead8 */
+extern uint32_t overG;                              /* 0x007ceadc */
+extern uint32_t overB;                              /* 0x007ceae0 */
+extern uint32_t overBias;                           /* 0x007ceae4 */
 extern short scaleR;                                     /* 0x007ceae8 */
 extern short scaleG;                                     /* 0x007ceaea */
 extern short scaleB;                                     /* 0x007ceaec */
-extern unsigned long biasColor;                          /* 0x007ceaf0 */
+extern uint32_t biasColor;                          /* 0x007ceaf0 */
 extern unsigned char *alphaTable[5][256];                /* 0x007ceaf4 */
 EXTERN_CPP_END
 #pragma cplusplus reset
@@ -283,11 +283,11 @@ EXTERN_CPP_END
 /* --- translucent blends (mac _Trans8Bit/_Trans16Bit, inlined in the win build) --- */
 #if defined(MACBUILD) && (!defined(MAC1010) || defined(SW_DEFINES_TRANS))
 #ifndef SW_DEFINES_TRANS
-extern char Trans8Bit(unsigned long src, unsigned long dst, long alpha);
-extern unsigned short Trans16Bit(unsigned long src, unsigned long dst, long alpha);
+extern char Trans8Bit(uint32_t src, uint32_t dst, int32_t alpha);
+extern unsigned short Trans16Bit(uint32_t src, uint32_t dst, int32_t alpha);
 #endif
 #else
-static inline char Trans8Bit(char src, char dst, unsigned long alpha)
+static inline char Trans8Bit(char src, char dst, uint32_t alpha)
 {
     /* BUG: any alpha above 3 skips the blend, so (31 - alpha) >> 3 only ever selects row 3 */
     if (alpha > 3)
@@ -295,9 +295,9 @@ static inline char Trans8Bit(char src, char dst, unsigned long alpha)
     return alphaTable[(31 - alpha) >> 3][src][dst];
 }
 
-static inline unsigned short Trans16Bit(unsigned long src, unsigned long dst, unsigned long alpha)
+static inline unsigned short Trans16Bit(uint32_t src, uint32_t dst, uint32_t alpha)
 {
-    unsigned long srcSplit, dstSplit, blended;
+    uint32_t srcSplit, dstSplit, blended;
 
     srcSplit = SW_SPLIT15(src);
     dstSplit = SW_SPLIT15(dst);
@@ -316,7 +316,7 @@ EXTERN_CPP_END
 
 /* --- lines --- */
 extern void DrawTranslucentLine(FramePtr dstFrameP, Point srcPoint, Point dstPoint,
-                                unsigned long color, short srcShade, short dstShade,
+                                uint32_t color, short srcShade, short dstShade,
                                 short srcRamp, short dstRamp);        /* 0x00479590 */
 #ifdef MACBUILD
 extern Boolean SWClipLineWithRect(Point *srcPoint, Point *dstPoint, Rect *clipRect);
@@ -380,7 +380,7 @@ extern void ShipCollisionHandler(SpriteRec *shipSpr, SpriteRec *otherSpr,
 extern void AsteroidCollisionHandler(SpriteRec *roidSpr, SpriteRec *otherSpr,
                                      Rect *sectRect);    /* 0x00436f70 */
 
-extern unsigned long SWGetValueFromColor(SWFrameRec *dstFrameP, RGBColor *color);
+extern uint32_t SWGetValueFromColor(SWFrameRec *dstFrameP, RGBColor *color);
                                                          /* 0x004719d0 */
 extern short SWCreateWindowFrame(CWindowPtr srcWindowP, SWFrameRec **newFrameP,
                                  Rect *frameRect, short maxHeight); /* 0x004765d0 */
@@ -485,56 +485,56 @@ extern Boolean SWHasSystem7(void);
 /* BlitPixieInterface.c's draw procs the win port dropped */
 #define SW_68K 0
 typedef struct BlitPixieOffsetInfo {
-    long srcOffsetAtoB;
-    long srcOffsetBtoA;
-    long dstOffsetAtoB;
-    long dstOffsetBtoA;
+    int32_t srcOffsetAtoB;
+    int32_t srcOffsetBtoA;
+    int32_t dstOffsetAtoB;
+    int32_t dstOffsetBtoA;
 } BlitPixieOffsetInfo, *BlitPixieOffsetInfoPtr;
-typedef void (*BlitFuncPtr)(long srcRowBytes, long dstRowBytes, char *srcBaseAddr,
+typedef void (*BlitFuncPtr)(int32_t srcRowBytes, int32_t dstRowBytes, char *srcBaseAddr,
         char *dstBaseAddr);
 #define BP_EQUAL_RECT(srcRect, dstRect) \
     (srcRect.top == dstRect.top && \
      srcRect.bottom == dstRect.bottom && \
      srcRect.left == dstRect.left && \
      srcRect.right == dstRect.right)
-extern void BlitPixieClear(unsigned char *dstPixel, unsigned long dstRowBytes,
-        unsigned short bytes, unsigned short rows, unsigned long color);
+extern void BlitPixieClear(unsigned char *dstPixel, uint32_t dstRowBytes,
+        unsigned short bytes, unsigned short rows, uint32_t color);
 extern void BlitPixieDoubleRects(unsigned char *src, unsigned char *dst, unsigned short bytesA,
         unsigned short bytesB, unsigned short rows, BlitPixieOffsetInfo *info);
-extern void BlitPixieMaskColor(unsigned long srcColor, unsigned char *dstPixel,
-        unsigned char *maskPixel, unsigned long srcRowBytes, unsigned long dstRowBytes,
+extern void BlitPixieMaskColor(uint32_t srcColor, unsigned char *dstPixel,
+        unsigned char *maskPixel, uint32_t srcRowBytes, uint32_t dstRowBytes,
         unsigned short bytes, unsigned short rows);
 extern Boolean BlitPixieMaskCollision(unsigned char *maskPtr1, unsigned char *maskPtr2,
-        unsigned long rowBytes1, unsigned long rowBytes2, unsigned short bytes,
+        uint32_t rowBytes1, uint32_t rowBytes2, unsigned short bytes,
         unsigned short rows);
 extern void BlitPixieFlip8Bit(unsigned char *srcPixel, unsigned char *dstPixel,
-        unsigned long srcRowBytes, unsigned long dstRowBytes, unsigned short width,
+        uint32_t srcRowBytes, uint32_t dstRowBytes, unsigned short width,
         unsigned short height);
 extern void BlitPixieFlip16Bit(unsigned short *srcPixel, unsigned short *dstPixel,
-        unsigned long srcRowBytes, unsigned long dstRowBytes, unsigned short width,
+        uint32_t srcRowBytes, uint32_t dstRowBytes, unsigned short width,
         unsigned short height);
-extern void BlitPixieFlip32Bit(unsigned long *srcPixel, unsigned long *dstPixel,
-        unsigned long srcRowBytes, unsigned long dstRowBytes, unsigned short width,
+extern void BlitPixieFlip32Bit(uint32_t *srcPixel, uint32_t *dstPixel,
+        uint32_t srcRowBytes, uint32_t dstRowBytes, unsigned short width,
         unsigned short height);
 extern void BlitPixieFlipMask8Bit(unsigned char *srcPixel, unsigned char *dstPixel,
-        unsigned char *maskPixel, unsigned long srcRowBytes, unsigned long dstRowBytes,
+        unsigned char *maskPixel, uint32_t srcRowBytes, uint32_t dstRowBytes,
         unsigned short width, unsigned short height);
 extern void BlitPixieFlipMask16Bit(unsigned short *srcPixel, unsigned short *dstPixel,
-        unsigned short *maskPixel, unsigned long srcRowBytes, unsigned long dstRowBytes,
+        unsigned short *maskPixel, uint32_t srcRowBytes, uint32_t dstRowBytes,
         unsigned short width, unsigned short height);
-extern void BlitPixieFlipMask32Bit(unsigned long *srcPixel, unsigned long *dstPixel,
-        unsigned long *maskPixel, unsigned long srcRowBytes, unsigned long dstRowBytes,
+extern void BlitPixieFlipMask32Bit(uint32_t *srcPixel, uint32_t *dstPixel,
+        uint32_t *maskPixel, uint32_t srcRowBytes, uint32_t dstRowBytes,
         unsigned short width, unsigned short height);
 extern Boolean BlitPixieFlipMaskCollision(unsigned char *maskPtr1, unsigned char *maskPtr2,
-        unsigned long rowBytes1, unsigned long rowBytes2, unsigned short bytes,
+        uint32_t rowBytes1, uint32_t rowBytes2, unsigned short bytes,
         unsigned short rows);
-extern void BlitPixieFlipMaskColor(unsigned long srcColor, unsigned char *dstPixel,
-        unsigned char *maskPixel, unsigned long srcRowBytes, unsigned long dstRowBytes,
+extern void BlitPixieFlipMaskColor(uint32_t srcColor, unsigned char *dstPixel,
+        unsigned char *maskPixel, uint32_t srcRowBytes, uint32_t dstRowBytes,
         unsigned short bytes, unsigned short rows);
-extern void BlitPixieRLEColor(unsigned char *srcTokens, unsigned long srcColor,
-        unsigned char *dstPixel, unsigned long dstRowBytes);
-extern void BlitPixieRLEColorClipped(unsigned char *srcTokens, unsigned long srcColor,
-        unsigned char *dstPixel, unsigned long dstRowBytes, Rect *dstClipRect);
+extern void BlitPixieRLEColor(unsigned char *srcTokens, uint32_t srcColor,
+        unsigned char *dstPixel, uint32_t dstRowBytes);
+extern void BlitPixieRLEColorClipped(unsigned char *srcTokens, uint32_t srcColor,
+        unsigned char *dstPixel, uint32_t dstRowBytes, Rect *dstClipRect);
 typedef struct StarArray {
     short horizLoc;
     short vertLoc;
@@ -542,7 +542,7 @@ typedef struct StarArray {
     short oldVertLoc;
     short horizSpeed;
     short vertSpeed;
-    unsigned long color;
+    uint32_t color;
     Boolean isOn;
     Boolean needsToBeErased;
     short userData;
@@ -553,11 +553,11 @@ typedef struct StarArray {
 #define SW_NIBBLEGET(p,n) (((p)[n >> 1] & ~(0x0F << ((n & 1) << 2))) >> (((~n) & 1) << 2))
 #define SW_NIBBLESET(p,n,c) (p)[n >> 1] = (((c) & 0x0F) << (((~n) & 1) << 2)) | \
         ((p)[n >> 1] & (0x0F << ((n & 1) << 2)))
-extern void SWGetColorFromValue(FramePtr dstFrameP, RGBColor *color, unsigned long pixelValue);
-extern void SWSetPixel(FramePtr dstFrameP, short x, short y, unsigned long color);
-extern unsigned long SWGetPixel(FramePtr srcFrameP, short x, short y);
+extern void SWGetColorFromValue(FramePtr dstFrameP, RGBColor *color, uint32_t pixelValue);
+extern void SWSetPixel(FramePtr dstFrameP, short x, short y, uint32_t color);
+extern uint32_t SWGetPixel(FramePtr srcFrameP, short x, short y);
 extern void SWAnimateStarField(SpriteWorldPtr spriteWorldP, StarArray *starArray, short numStars,
-        unsigned long backColor);
+        uint32_t backColor);
 extern void SWCopyBitsDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP, Rect *srcRect, Rect *dstRect);
 extern void BlitPixieClearDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP, Rect *srcRect, Rect *dstRect);
 extern void BlitPixieMaskColorDrawProc(SWFrameRec *srcFrameP, SWFrameRec *dstFrameP, Rect *srcRect, Rect *dstRect);
@@ -615,7 +615,7 @@ typedef enum {
 extern RgnHandle gSWCollisionSpareRgn;
 extern RgnHandle gSWCollisionSectRgn;
 
-extern void DebugInteger(long n);
+extern void DebugInteger(int32_t n);
 extern OSErr SWCreateSpriteFromPictResource(SpriteWorldPtr destSpriteWorldP, SpritePtr *newSpriteP,
         void *spriteStorageP, short pictResID, short maskResID, short maxFrames,
         MaskType maskType);
@@ -629,7 +629,7 @@ extern OSErr SWCloneSpriteFromTile(SpriteWorldPtr spriteWorldP, SpritePtr *newSp
 extern void SWRemoveSpriteFromAnimation(SpriteWorldPtr spriteWorldP, SpritePtr spriteP,
         Boolean disposeOfSprite);
 extern void SWFlipSprite(SpritePtr srcSpriteP, FlipType direction);
-extern OSErr SWInsertFrame(SpritePtr srcSpriteP, FramePtr newFrameP, long frameIndex);
+extern OSErr SWInsertFrame(SpritePtr srcSpriteP, FramePtr newFrameP, int32_t frameIndex);
 extern void SWRemoveFrame(SpritePtr srcSpriteP, FramePtr oldFrameP);
 extern void SWStdSpriteColorDrawProc(FramePtr srcFrameP, FramePtr dstFrameP, Rect *srcRect,
         Rect *dstRect);
@@ -639,11 +639,11 @@ extern void SWSetSpriteFlippedMode(SpritePtr srcSpriteP, Boolean flippedHorizont
         Boolean flippedVertical);
 extern void SWSetSpriteFrameAdvance(SpritePtr srcSpriteP, short frameAdvance);
 extern void SWSetSpriteFrameAdvanceMode(SpritePtr srcSpriteP, AdvanceType advanceMode);
-extern void SWSetSpriteFrameTime(SpritePtr srcSpriteP, long timeInterval);
+extern void SWSetSpriteFrameTime(SpritePtr srcSpriteP, int32_t timeInterval);
 extern void SWSetSpriteFrameProc(SpritePtr srcSpriteP, FrameProcPtr frameProc);
 extern void SWSetSpriteMoveBounds(SpritePtr srcSpriteP, Rect *moveBoundsRect);
 extern void SWSetSpriteMoveDelta(SpritePtr srcSpriteP, short horizDelta, short vertDelta);
-extern void SWSetSpriteMoveTime(SpritePtr srcSpriteP, long timeInterval);
+extern void SWSetSpriteMoveTime(SpritePtr srcSpriteP, int32_t timeInterval);
 extern void SWSetSpriteMoveProc(SpritePtr srcSpriteP, MoveProcPtr moveProc);
 extern short SWGetSpriteVertLoc(SpritePtr srcSpriteP);
 extern short SWGetSpriteHorizLoc(SpritePtr srcSpriteP);
@@ -725,7 +725,7 @@ extern void SWRestoreWorldRect(SpriteWorldPtr spriteWorldP);
 extern void SWUpdateWindow(SpriteWorldPtr spriteWorldP);
 extern void SWSetCleanUpSpriteWorld(SpriteWorldPtr spriteWorldP);
 extern void SWSetCleanUpFunction(CleanUpCallBackPtr callBackP);
-extern unsigned long SWGetSpriteWorldVersion(void);
+extern uint32_t SWGetSpriteWorldVersion(void);
 extern void SWProcessNonScrollingLayers(SpriteWorldPtr spriteWorldP);
 extern void SWProcessSpriteLayer(SpriteWorldPtr spriteWorldP, SpriteLayerPtr curSpriteLayerP);
 extern void SWCheckIdleSpritesWithTiles(SpriteWorldPtr spriteWorldP, SpritePtr headIdleSpriteP);

@@ -7,16 +7,16 @@
 
 /* The value rounded to float precision, then truncated: CE's fstp dword and cvttss2si.
    The float parameter is the rounding, so a caller passes the product unconverted. */
-long CE_TruncF32(float value)
+int32_t CE_TruncF32(float value)
 {
     return value;
 }
 
 /* FIST's rounding in its default mode, to nearest with ties to even, where a C cast
    truncates. */
-long CE_RoundD(double value)
+int32_t CE_RoundD(double value)
 {
-    long whole;
+    int32_t whole;
     double rest;
 
     whole = value;

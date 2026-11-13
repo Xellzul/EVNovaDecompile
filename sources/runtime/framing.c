@@ -27,7 +27,7 @@ int ogg_page_eos(ogg_page *og){
 
 ogg_int64_t ogg_page_granulepos(ogg_page *og){
   unsigned char *page=og->header;
-  unsigned long hi,lo;
+  uint32_t hi,lo;
   hi=page[13];
   hi=(hi<<8)|page[12];
   hi=(hi<<8)|page[11];
@@ -51,9 +51,9 @@ int ogg_page_serialno(ogg_page *og){
   return(serialno);
 }
 
-long ogg_page_pageno(ogg_page *og){
+int32_t ogg_page_pageno(ogg_page *og){
   unsigned char *page=og->header;
-  long pageno=page[21];
+  int32_t pageno=page[21];
   pageno=(pageno<<8)|page[20];
   pageno=(pageno<<8)|page[19];
   pageno=(pageno<<8)|page[18];
@@ -165,16 +165,16 @@ void ogg_stream_clear(ogg_stream_state *os){
 }
 
 static void _os_body_expand(ogg_stream_state *os,size_t needed){
-  long storage=os->body_storage;
-  if(storage<=os->body_fill+(long)needed){
+  int32_t storage=os->body_storage;
+  if(storage<=os->body_fill+(int32_t)needed){
     storage+=(needed+1024);
     os->body_storage=storage;
     os->body_data=(unsigned char *)_ogg_realloc(os->body_data,storage*sizeof(*os->body_data));
   }
 }
 
-static void _os_lacing_expand(ogg_stream_state *os,long needed){
-  long storage=os->lacing_storage;
+static void _os_lacing_expand(ogg_stream_state *os,int32_t needed){
+  int32_t storage=os->lacing_storage;
   if(storage<=os->lacing_fill+needed){
     storage+=(needed+32);
     os->lacing_storage=storage;
@@ -199,7 +199,7 @@ void ogg_page_checksum_set(ogg_page *og){
     crc_reg=0;
     {
       unsigned char *p;
-      long n=og->header_len;
+      int32_t n=og->header_len;
       if(n){
         p=header;
         do{
@@ -246,7 +246,7 @@ int ogg_sync_clear(ogg_sync_state *oy){
 /* ogg_sync_buffer. STATE: BurgerLib's libogg 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00531300
-char *ogg_sync_buffer(ogg_sync_state *oy, long size){
+char *ogg_sync_buffer(ogg_sync_state *oy, int32_t size){
 
   if(oy->returned){
     oy->fill-=oy->returned;
@@ -256,7 +256,7 @@ char *ogg_sync_buffer(ogg_sync_state *oy, long size){
   }
 
   if(size>oy->storage-oy->fill){
-    long newsize=size+oy->fill+4096;
+    int32_t newsize=size+oy->fill+4096;
     oy->data=(unsigned char *)_ogg_realloc(oy->data,newsize);
     oy->storage=newsize;
   }
@@ -267,7 +267,7 @@ char *ogg_sync_buffer(ogg_sync_state *oy, long size){
 /* ogg_sync_wrote. STATE: genuine libogg 1.0rc3 (runtime band, a floor).
    OPEN: none (MATCH at the committed line too). */
 // FUNCTION: EVNOVA 0x00531390
-int ogg_sync_wrote(ogg_sync_state *oy, long bytes){
+int ogg_sync_wrote(ogg_sync_state *oy, int32_t bytes){
   bytes+=oy->fill;
   if(bytes>oy->storage)return(-1);
   oy->fill=bytes;
@@ -277,10 +277,10 @@ int ogg_sync_wrote(ogg_sync_state *oy, long bytes){
 /* ogg_sync_pageseek. STATE: BurgerLib's libogg 1.0rc3, MATCH, byte-identical (554 B).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x005313b0
-long ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og){
+int32_t ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og){
   unsigned char *page=oy->data+oy->returned;
   unsigned char *next;
-  long bytes=oy->fill-oy->returned;
+  int32_t bytes=oy->fill-oy->returned;
 
   if(oy->headerbytes==0){
     int headerbytes,i;
@@ -320,7 +320,7 @@ long ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og){
 
   {
     unsigned char *page=oy->data+oy->returned;
-    long bytes;
+    int32_t bytes;
 
     if(og){
       og->header=page;
@@ -355,7 +355,7 @@ long ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og){
 int ogg_sync_pageout(ogg_sync_state *oy, ogg_page *og){
 
   while(1){
-    long ret=ogg_sync_pageseek(oy,og);
+    int32_t ret=ogg_sync_pageseek(oy,og);
     if(ret>0){
       return(1);
     }
@@ -378,7 +378,7 @@ int ogg_sync_pageout(ogg_sync_state *oy, ogg_page *og){
 int ogg_stream_pagein(ogg_stream_state *os, ogg_page *og){
   unsigned char *header=og->header;
   unsigned char *body=og->body;
-  long           bodysize=og->body_len;
+  int32_t           bodysize=og->body_len;
   int            segptr=0;
 
   int version=ogg_page_version(og);
@@ -387,12 +387,12 @@ int ogg_stream_pagein(ogg_stream_state *os, ogg_page *og){
   int eos=ogg_page_eos(og);
   ogg_int64_t granulepos=ogg_page_granulepos(og);
   int serialno=ogg_page_serialno(og);
-  long pageno=ogg_page_pageno(og);
+  int32_t pageno=ogg_page_pageno(og);
   int segments=header[26];
 
   {
-    long lr=os->lacing_returned;
-    long br=os->body_returned;
+    int32_t lr=os->lacing_returned;
+    int32_t br=os->body_returned;
 
     if(br){
       os->body_fill-=br;

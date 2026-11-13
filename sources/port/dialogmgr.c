@@ -30,18 +30,18 @@
 
 /* the dialog manager's globals */
 DialogPtr gCurDialog;
-long gDialogCount;
+int32_t gDialogCount;
 DialogPtr gDialogStack[16];
-long gBlinkTick;
-long gLastModifiers;
-unsigned long gClickTime;
+int32_t gBlinkTick;
+int32_t gLastModifiers;
+uint32_t gClickTime;
 void *gClickDialog;
 void *gClickItem;
 unsigned char DAT_00864f9c[4];
-long gRezOpenPending;
-long paintBlackFlag;
+int32_t gRezOpenPending;
+int32_t paintBlackFlag;
 void *gKeyboardHook;
-long gUseKeyboardHook;
+int32_t gUseKeyboardHook;
 OSVERSIONINFOA gOSVersionInfo;
 
 /* the port has exactly one window, so there is nothing to search */
@@ -93,7 +93,7 @@ typedef struct DlgListEntry {
 
 typedef struct DlgListRec {
     char title[0x100];          /* +0x000 */
-    long count;                 /* +0x100 */
+    int32_t count;                 /* +0x100 */
     DlgListEntry item[256];     /* +0x104 */
 } DlgListRec;
 
@@ -150,7 +150,7 @@ typedef struct DlgListRec {
 #define kRadioButtonItem  6
 #define kStaticTextItem   8
 
-long gCaretPhase = 1;                             /* 0x00576130 (name invented) */
+int32_t gCaretPhase = 1;                             /* 0x00576130 (name invented) */
 
 /* 0x0056f118 / 11e / 124 / 12a (names invented) */
 static const RGBColor bevelGray1 = { 50000, 50000, 50000 };
@@ -171,7 +171,7 @@ typedef struct CntlTemplate {
     short max;                       /* +0x0c, discarded */
     short min;                       /* +0x0e */
     short procID;                    /* +0x10 */
-    long refCon;                     /* +0x12 */
+    int32_t refCon;                     /* +0x12 */
     unsigned char title[1];          /* +0x16, Str255 */
 } CntlTemplate;
 #pragma options align=reset
@@ -264,8 +264,8 @@ typedef char (*DialogEventProc)(DialogPtr dlg, EventRecord *ev,
  */
 
 typedef struct WinPoint {
-    long x;
-    long y;
+    int32_t x;
+    int32_t y;
 } WinPoint;
 
 typedef struct MINMAXINFO {
@@ -301,7 +301,7 @@ typedef struct MINMAXINFO {
 
 /* nv_GetDialogItemRecord. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cea90
-void *nv_GetDialogItemRecord(DialogPtr dlg, long item)
+void *nv_GetDialogItemRecord(DialogPtr dlg, int32_t item)
 {
     void *rec;
 
@@ -314,23 +314,23 @@ void *nv_GetDialogItemRecord(DialogPtr dlg, long item)
 
 /* LoadMenuListItem. STATE: MATCH 149/149, byte-identical, relocregcheck 0 of 13. OPEN: none */
 // FUNCTION: EVNOVA 0x004ceac0
-void LoadMenuListItem(ControlRecord *rec, long menuID, unsigned char *promptTitle,
-                  long resType)
+void LoadMenuListItem(ControlRecord *rec, int32_t menuID, unsigned char *promptTitle,
+                  int32_t resType)
 {
     DlgListRec *list;
     Handle h;
     unsigned char *scratch;
-    long i, idx;
-    long count;
+    int32_t i, idx;
+    int32_t count;
     Handle rh;
     unsigned char *p;
     char *dest;
     unsigned char entry[256];
     unsigned char name[256];
     short id;
-    unsigned long type;
+    uint32_t type;
     unsigned char title[256];
-    long slot;
+    int32_t slot;
     char *line;
     unsigned char flag;
 
@@ -345,7 +345,7 @@ void LoadMenuListItem(ControlRecord *rec, long menuID, unsigned char *promptTitl
     list = (DlgListRec *)rec->data;
     SwapEndianShort((unsigned short *)p);
     SwapEndianShort((unsigned short *)(p + 6));
-    SwapEndianLong((unsigned long *)(p + 0xa));
+    SwapEndianLong((uint32_t *)(p + 0xa));
     title[0] = p[0xe];
     p += 0xf;
     memcpy(&title[1], p, title[0]);
@@ -388,10 +388,10 @@ void LoadMenuListItem(ControlRecord *rec, long menuID, unsigned char *promptTitl
 
 /* LoadControlResource. STATE: MATCH. OPEN: none. see notes */
 // FUNCTION: EVNOVA 0x004cecf0
-void LoadControlResource(ControlRecord *rec, unsigned long resID)
+void LoadControlResource(ControlRecord *rec, uint32_t resID)
 {
-    long min;
-    unsigned long refCon;
+    int32_t min;
+    uint32_t refCon;
     short procID;
     unsigned char title[256];
     CntlTemplate *t;
@@ -410,7 +410,7 @@ void LoadControlResource(ControlRecord *rec, unsigned long resID)
     SwapEndianShort((unsigned short *)&t->max);
     min = SwapEndianShort((unsigned short *)&t->min);
     procID = SwapEndianShort((unsigned short *)&t->procID);
-    refCon = SwapEndianLong((unsigned long *)&t->refCon);
+    refCon = SwapEndianLong((uint32_t *)&t->refCon);
     title[0] = t->title[0];
     memcpy(&title[1], &t->title[1], title[0]);
     ReleaseResource(h);
@@ -428,12 +428,12 @@ void LoadControlResource(ControlRecord *rec, unsigned long resID)
 
 /* nv_AppendDialogItem. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cede0
-ControlRecord *nv_AppendDialogItem(long kind, long value, long minValue,
-                                   long maxValue, const Rect *box,
-                                   const void *data, unsigned long dataLen,
+ControlRecord *nv_AppendDialogItem(int32_t kind, int32_t value, int32_t minValue,
+                                   int32_t maxValue, const Rect *box,
+                                   const void *data, uint32_t dataLen,
                                    DialogPtr dlg)
 {
-    long index;
+    int32_t index;
     ControlRecord *rec;
 
     index = dlg->itemCount;
@@ -466,7 +466,7 @@ ControlRecord *nv_AppendDialogItem(long kind, long value, long minValue,
             goto done;
         break;
     default:
-        if ((long)dataLen > 0) {
+        if ((int32_t)dataLen > 0) {
             rec->data = AllocAPointer(dataLen);
             memcpy(rec->data, data, dataLen);
         }
@@ -478,13 +478,13 @@ done:
 /* nv_SetDialogTemplateBounds. STATE: MATCH, byte-identical. OPEN: none
    Second live use of itemsID forces early widening (notes). */
 // FUNCTION: EVNOVA 0x004ceec0
-long nv_SetDialogTemplateBounds(DialogPtr dlg, const unsigned short *tmpl)
+int32_t nv_SetDialogTemplateBounds(DialogPtr dlg, const unsigned short *tmpl)
 {
-    long itemsID;
-    long halfWidth;
-    long halfHeight;
-    long centerX;
-    long centerY;
+    int32_t itemsID;
+    int32_t halfWidth;
+    int32_t halfHeight;
+    int32_t centerX;
+    int32_t centerY;
 
     dlg->bounds.top = SwapEndianShort(&tmpl[0]);
     dlg->bounds.left = SwapEndianShort(&tmpl[1]);
@@ -506,13 +506,13 @@ long nv_SetDialogTemplateBounds(DialogPtr dlg, const unsigned short *tmpl)
 // FUNCTION: EVNOVA 0x004cef50
 void ParseDITL(DialogPtr dlg, unsigned char *p)
 {
-    long lastIndex;
-    long i;
-    long type;
+    int32_t lastIndex;
+    int32_t i;
+    int32_t type;
     unsigned char rawType;
-    long value;
-    long dataLen;
-    long len0;
+    int32_t value;
+    int32_t dataLen;
+    int32_t len0;
     Rect box;
     unsigned char text[256];
     ControlRecord *item;
@@ -587,32 +587,32 @@ void ParseDITL(DialogPtr dlg, unsigned char *p)
                 item->kind != 1)
                 dlg->editItem = item->itemNo;
         }
-        if (((long)p & 1) != 0)
+        if (((int32_t)p & 1) != 0)
             p += 1;
     }
 }
 
 /* PopUpListSelect. STATE: MATCH, exe 397 / obj 397, byte-identical yes. OPEN: none. see notes */
 // FUNCTION: EVNOVA 0x004cf1c0
-long PopUpListSelect(DialogPtr dlg, ControlRecord *rec)
+int32_t PopUpListSelect(DialogPtr dlg, ControlRecord *rec)
 {
     GWorldContainer gw;
     Rect box;
     Rect hilite;
     Point pt;
     Rect *portRect;
-    long result;
-    long scroll;
-    long maxScroll;
+    int32_t result;
+    int32_t scroll;
+    int32_t maxScroll;
     CGrafPtr savedPort;
     DlgListRec *list;
-    long w;
-    long i;
+    int32_t w;
+    int32_t i;
     short lastV;
     short lastH;
     short h;
-    long v;
-    long x;
+    int32_t v;
+    int32_t x;
 
     list = (DlgListRec *)rec->data;
     result = 0;
@@ -766,7 +766,7 @@ DialogPtr GetNewDialog(short dlogID, void *updateProc, void *eventProc)
 void DisposeDialog(DialogPtr dlg)
 {
     ControlPtr item;
-    long i;
+    int32_t i;
 
     if (dlg->items != NULL) {
         for (i = 0; i < dlg->itemCount; i++) {
@@ -809,7 +809,7 @@ void DisposeDialog(DialogPtr dlg)
 
 /* GetDialogItem. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cf960
-void GetDialogItem(DialogPtr dlg, long item, short *type, Handle *handle,
+void GetDialogItem(DialogPtr dlg, int32_t item, short *type, Handle *handle,
                    Rect *box)
 {
     ControlRecord *rec;
@@ -829,7 +829,7 @@ void GetDialogItem(DialogPtr dlg, long item, short *type, Handle *handle,
 
 /* SetDialogItem. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cf9f0
-void SetDialogItem(DialogPtr dlg, long item, short type, void *handle,
+void SetDialogItem(DialogPtr dlg, int32_t item, short type, void *handle,
                    const Rect *box)
 {
     ControlRecord *rec;
@@ -848,7 +848,7 @@ void SetDialogItem(DialogPtr dlg, long item, short type, void *handle,
 
 /* SetDialogDefaultItem. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cfa40
-void SetDialogDefaultItem(DialogPtr dlg, long value)
+void SetDialogDefaultItem(DialogPtr dlg, int32_t value)
 {
     dlg->defaultItem = value;
     dlg->needsUpdate = 1;
@@ -887,7 +887,7 @@ void GetMenuItemText(ControlPtr ctl, int index, unsigned char *text)
 void SetControlText(ControlPtr ctl, const char *text)
 {
     char changed;
-    long len;
+    int32_t len;
 
     changed = 0;
     if (ctl->data != NULL) {
@@ -945,7 +945,7 @@ void GetDialogItemText(Handle item, unsigned char *text)
 
 /* InvalDialogItem. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cfc60
-void InvalDialogItem(DialogPtr dlg, long item)
+void InvalDialogItem(DialogPtr dlg, int32_t item)
 {
     dlg->needsUpdate = 1;
 }
@@ -964,10 +964,10 @@ void SetControlTitle(ControlPtr ctl, const unsigned char *text)
 
 /* SelectDialogItemText. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cfca0
-void SelectDialogItemText(DialogPtr dlg, long item, long start, long end)
+void SelectDialogItemText(DialogPtr dlg, int32_t item, int32_t start, int32_t end)
 {
     ControlRecord *rec;
-    long len;
+    int32_t len;
 
     rec = (ControlRecord *)nv_GetDialogItemRecord(dlg, item);
     if (rec != NULL) {
@@ -1008,10 +1008,10 @@ Rect *GetDialogPortRect(DialogPtr dlg)
 #ifndef MACBUILD
 /* SetControlValue. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cfd40
-void SetControlValue(ControlPtr ctl, long value)
+void SetControlValue(ControlPtr ctl, int32_t value)
 {
-    long lo;
-    long hi;
+    int32_t lo;
+    int32_t hi;
 
     if (ctl != NULL) {
         lo = ctl->minValue;
@@ -1027,9 +1027,9 @@ void SetControlValue(ControlPtr ctl, long value)
 
 /* GetControlValue. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cfd80
-long GetControlValue(ControlPtr ctl)
+int32_t GetControlValue(ControlPtr ctl)
 {
-    long value;
+    int32_t value;
 
     value = 0;
     if (ctl != NULL)
@@ -1069,46 +1069,46 @@ void InvalDialogRect(DialogPtr dlg, Rect *box)
 void ModalDialog(void *filterProc, short *itemHitPtr)
 {
 #ifndef MACBUILD
-    extern int PtInRect(long h, long v, Rect *r);
+    extern int PtInRect(int32_t h, int32_t v, Rect *r);
 #endif
     char handled;
-    long mods;
-    unsigned long saved;    /* the tick rate, then the eventProc's itemHit save: one register */
-    long temp;
-    long doubleClick;
-    long clicked;
-    long localH;
-    long keyChar;
+    int32_t mods;
+    uint32_t saved;    /* the tick rate, then the eventProc's itemHit save: one register */
+    int32_t temp;
+    int32_t doubleClick;
+    int32_t clicked;
+    int32_t localH;
+    int32_t keyChar;
     short itemHit;
-    long tick;
+    int32_t tick;
     Point pt;
     ControlRecord *esc;
-    unsigned long list;     /* the double-click threshold, then the DOWN arm's DlgListRec */
-    long val;
+    uint32_t list;     /* the double-click threshold, then the DOWN arm's DlgListRec */
+    int32_t val;
     char res;
     ControlRecord *next;
     DialogPtr dlg;
-    long keyItem;
+    int32_t keyItem;
     ControlRecord *rec;
     short lastV;
     short boxTop;
-    long key;
+    int32_t key;
     short boxLeft;
-    long shift;
-    long item;
-    long i;
+    int32_t shift;
+    int32_t item;
+    int32_t i;
     short lastH;
     short boxBottom;
-    long cur;
+    int32_t cur;
     ControlRecord *editRec;
-    long found;
-    long j;
-    long w;
-    long n;
-    long clickKind;
-    long pos;
-    long located;
-    long editKind;
+    int32_t found;
+    int32_t j;
+    int32_t w;
+    int32_t n;
+    int32_t clickKind;
+    int32_t pos;
+    int32_t located;
+    int32_t editKind;
     EventRecord event;
     Point pt2;
 
@@ -1157,7 +1157,7 @@ void ModalDialog(void *filterProc, short *itemHitPtr)
         }
         saved = TimerGetTickRate();
         list = saved / 2;
-        list = (long)list;  /* code-free signedness round trip: the exe's EBX colouring */
+        list = (int32_t)list;  /* code-free signedness round trip: the exe's EBX colouring */
         if (TimerGetTicks() - gClickTime < list) {
             if (gClickItem == rec && gClickDialog == dlg)
                 doubleClick = 1;
@@ -1169,7 +1169,7 @@ void ModalDialog(void *filterProc, short *itemHitPtr)
             event.where.h = localH;
             event.where.v = clicked;
             event.modifiers = mods;
-            saved = *(unsigned long *)&itemHit;   /* the exe's dword load; `= itemHit' is movsx */
+            saved = *(uint32_t *)&itemHit;   /* the exe's dword load; `= itemHit' is movsx */
             event.what = kMouseDown;
             res = ((DialogEventProc)dlg->eventProc)(dlg, &event, &itemHit);
             if (res != 0)
@@ -1245,7 +1245,7 @@ void ModalDialog(void *filterProc, short *itemHitPtr)
                     keyChar = localH - (rec->box.left + 2);
                     localH = strlen((char *)rec->data);
                     located = 0;
-                    temp = (long)rec->data;
+                    temp = (int32_t)rec->data;
                     if (doubleClick != 0) {
                         rec->minValue = 0;
                         rec->maxValue = localH;
@@ -1378,8 +1378,8 @@ void ModalDialog(void *filterProc, short *itemHitPtr)
                         }
                     } else if (keyChar == ASCII_DOWNARROW) {
                         if (editKind == kListItem) {
-                            list = (unsigned long)editRec->data;
-                            list = (long)list;  /* the same round trip */
+                            list = (uint32_t)editRec->data;
+                            list = (int32_t)list;  /* the same round trip */
                             if (editRec->value < ((DlgListRec *)list)->count) {
                                 editRec->value += 1;
                                 dlg->needsUpdate = 1;
@@ -1425,9 +1425,9 @@ void ModalDialog(void *filterProc, short *itemHitPtr)
 // FUNCTION: EVNOVA 0x004d0610
 void SetControlTextKeepSelection(ControlPtr ctl, const char *text)
 {
-    long selStart;
-    long selEnd;
-    long caret;
+    int32_t selStart;
+    int32_t selEnd;
+    int32_t caret;
 
     selStart = ctl->minValue;
     selEnd = ctl->maxValue;
@@ -1440,7 +1440,7 @@ void SetControlTextKeepSelection(ControlPtr ctl, const char *text)
 
 /* EditTextKey. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d0640
-void EditTextKey(ControlRecord *rec, long key, long mods)
+void EditTextKey(ControlRecord *rec, int32_t key, int32_t mods)
 {
     char buf[256];
     char prefix[256];
@@ -1449,8 +1449,8 @@ void EditTextKey(ControlRecord *rec, long key, long mods)
     char dest2[256];
     char dest[256];
     char dest3[256];
-    long len;
-    long pos;
+    int32_t len;
+    int32_t pos;
 
     GetControlText(rec, buf);
     len = strlen(buf);
@@ -1576,8 +1576,8 @@ void DrawBevel(Rect *r, const RGBColor *fill, const RGBColor *light,
 // FUNCTION: EVNOVA 0x004d0b70
 void MeasureTextBox(const char *text, int left, int bottom, Rect *box)
 {
-    long width;
-    long height;
+    int32_t width;
+    int32_t height;
 
     width = MeasureCString(text);
     height = MeasureWrappedText(text, strlen(text), width);
@@ -1633,26 +1633,26 @@ void DrawDottedFrame(Rect *r)
 // FUNCTION: EVNOVA 0x004d0d00
 void DrawDialog(DialogPtr dlg)
 {
-    long x;
-    long i;
-    long y;
+    int32_t x;
+    int32_t i;
+    int32_t y;
     char *shown;
-    long caretX;
+    int32_t caretX;
     void (*updateProc)(void);
-    long rightBound;
-    long width;
-    long rowWidth;
-    long titleWidth;
+    int32_t rightBound;
+    int32_t width;
+    int32_t rowWidth;
+    int32_t titleWidth;
     short maxW;
     ControlRecord *item;
     DlgListRec *list;
-    long row;
-    long count;
-    long rowY;
+    int32_t row;
+    int32_t count;
+    int32_t rowY;
     char *entry;
-    long prefix;
-    long titleX;
-    long titleY;
+    int32_t prefix;
+    int32_t titleX;
+    int32_t titleY;
     CGrafPtr savedPort;
     Rect sel;
     Rect focus;
@@ -2092,13 +2092,13 @@ void LSetDrawingMode(char value, ScrollRec **list)
 
 /* LSetCell (mac _LSetCell, a Carbon import). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d1b80
-void LSetCell(void *text, long length, Point cell, ScrollRec **rec)
+void LSetCell(void *text, int32_t length, Point cell, ScrollRec **rec)
 {
-    long lineNo;
+    int32_t lineNo;
     short start;
-    long delta;
-    long k;
-    long next;
+    int32_t delta;
+    int32_t k;
+    int32_t next;
 
     start = (*rec)->cellArray[lineNo = cell.v];
     next = cell.v + 1;
@@ -2142,7 +2142,7 @@ void LSetSelect(int track, Point pt, ScrollRec **list)
 
 /* LGetSelect. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d1d10
-char LGetSelect(long unused, Point *pt, ScrollRec **list)
+char LGetSelect(int32_t unused, Point *pt, ScrollRec **list)
 {
     int same;
 
@@ -2156,10 +2156,10 @@ char LGetSelect(long unused, Point *pt, ScrollRec **list)
 // FUNCTION: EVNOVA 0x004d1d40
 void LAutoScroll(ScrollRec **h)
 {
-    long page;
-    long sel;
+    int32_t page;
+    int32_t sel;
     ScrollRec *sc;
-    long scroll;
+    int32_t scroll;
 
     sc = *h;
     page = (sc->rView.bottom - sc->rView.top) / sc->cellSize.v;
@@ -2179,9 +2179,9 @@ void LAutoScroll(ScrollRec **h)
 char LClick(Point where, short modifiers, ScrollRec **h)
 {
     Rect r;
-    long t;
-    long line;
-    long thumb;
+    int32_t t;
+    int32_t line;
+    int32_t thumb;
 
     SetRect(&r, 0, 0, 15, (*h)->rView.bottom - (*h)->rView.top);
     OffsetRect(&r, (*h)->rView.right, (*h)->rView.top);
@@ -2225,10 +2225,10 @@ void GetListCellRect(Rect *box, Point cell, ScrollRec **h)
 
 /* LScroll. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d1fb0
-void LScroll(long unused, short delta, ScrollRec **h)
+void LScroll(int32_t unused, short delta, ScrollRec **h)
 {
     ScrollRec *sc;
-    long limit;
+    int32_t limit;
 
     if ((*h)->hasScrollBar == 0)
         return;
@@ -2246,17 +2246,17 @@ void LScroll(long unused, short delta, ScrollRec **h)
 void LUpdate(void *list)
 {
     Rect *vr;
-    long i;
+    int32_t i;
     short penV;
-    long t;
+    int32_t t;
     Point *pen;
     short penH;
     ScrollRec **h;
-    long last;
-    long line;
+    int32_t last;
+    int32_t line;
     ScrollRec *lp;
-    long j;
-    long cellH;
+    int32_t j;
+    int32_t cellH;
     short start;
     Point cell;
     CGrafPtr port;
@@ -2331,11 +2331,11 @@ void LUpdate(void *list)
 
 /* KeyboardHookProc. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d23f0
-long __stdcall KeyboardHookProc(int code, unsigned long wParam, long lParam)
+int32_t __stdcall KeyboardHookProc(int code, uint32_t wParam, int32_t lParam)
 {
-    long *key;
+    int32_t *key;
 
-    key = (long *)lParam;
+    key = (int32_t *)lParam;
 #ifndef CEFIX /* F27.01 */
     if (code == HC_ACTION) {
         if (*key == VK_LWIN)
@@ -2349,8 +2349,8 @@ long __stdcall KeyboardHookProc(int code, unsigned long wParam, long lParam)
 
 /* WinGameWndProc. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d2440
-long __stdcall WinGameWndProc(void *hwnd, unsigned long msg,
-                            unsigned long wParam, long lParam)
+int32_t __stdcall WinGameWndProc(void *hwnd, uint32_t msg,
+                            uint32_t wParam, int32_t lParam)
 {
     PAINTSTRUCT ps;
     WinRect wr;
@@ -2358,7 +2358,7 @@ long __stdcall WinGameWndProc(void *hwnd, unsigned long msg,
     WinRect lr;
     WinRect mr;
     void *dc;
-    long savedSuspend;
+    int32_t savedSuspend;
     MINMAXINFO *mmi;
 
     switch (msg) {
@@ -2496,7 +2496,7 @@ void ShutdownWinGame(void)
 
 /* CreateGameWindow. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004d2950
-void CreateGameWindow(void *hInstance, long nCmdShow)
+void CreateGameWindow(void *hInstance, int32_t nCmdShow)
 {
     WNDCLASSA wc;
     int classAtom;

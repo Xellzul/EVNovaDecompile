@@ -16,12 +16,12 @@
 #define kVersionTextSize    9
 
 __declspec(dllimport) int __stdcall MultiByteToWideChar(unsigned int codePage,
-    unsigned long flags, const char *src, int srcCount, unsigned short *dst, int dstCount);
+    uint32_t flags, const char *src, int srcCount, unsigned short *dst, int dstCount);
 __declspec(dllimport) int __stdcall DrawTextW(void *hdc, const unsigned short *text,
     int count, WinRect *r, unsigned int format);
 
 /* One UTF-16 unit per MacRoman byte, so a byte count is still the character count. */
-int CE_MacRomanToWide(const void *text, unsigned long count, char *out, unsigned long outCount)
+int CE_MacRomanToWide(const void *text, uint32_t count, char *out, uint32_t outCount)
 {
     return MultiByteToWideChar(kCPMacCP, 0, text, count,
                                (unsigned short *)out, outCount);

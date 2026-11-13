@@ -84,7 +84,7 @@ float vorbis_lpc_from_curve(float *curve,float *lpc,lpc_lookup *l){
 /* lpc_init. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x0054cc10
-void lpc_init(lpc_lookup *l,long mapped, int m){
+void lpc_init(lpc_lookup *l,int32_t mapped, int m){
   FastMemSet(l,0,sizeof(*l));
 
   l->ln=mapped;

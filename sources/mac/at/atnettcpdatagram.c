@@ -46,7 +46,7 @@ typedef struct UDPMacTCP {
     MutexList *recvList;
     MutexList *recvList2;
     NetAddress local;
-    long unk13c;
+    int32_t unk13c;
     StreamPtr stream;
     Ptr buffer;
     UDPiopb sendPb;
@@ -56,7 +56,7 @@ typedef struct UDPMacTCP {
     MutexList sendQueue;
     NetPacket *sending;
     NetPacket *receiving;
-    long sendBytes;
+    int32_t sendBytes;
 } UDPMacTCP;
 
 void DatagramPostMacTCP(UDPMacTCP *s);
@@ -105,7 +105,7 @@ done:
 void DatagramTickleMacTCP(NetSocket *ref)
 {
     UDPMacTCP *s;
-    long state;
+    int32_t state;
 
     s = (UDPMacTCP *)ref;
     state = s->state;
@@ -124,9 +124,9 @@ void DatagramDisposeMacTCP(UDPMacTCP *s)
     MemoryDeallocate(s);
 }
 
-long DatagramControlMacTCP(UDPMacTCP *s, void *out, ULong option, ULong value)
+int32_t DatagramControlMacTCP(UDPMacTCP *s, void *out, ULong option, ULong value)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     switch (option) {
@@ -149,10 +149,10 @@ long DatagramControlMacTCP(UDPMacTCP *s, void *out, ULong option, ULong value)
     return err;
 }
 
-long DatagramOpenMacTCP(void *ref, NetAddress *address)
+int32_t DatagramOpenMacTCP(void *ref, NetAddress *address)
 {
     UDPMacTCP *s;
-    long err, e;
+    int32_t err, e;
     unsigned short port;
     ULong ip;
     GetAddrParamBlock addr;
@@ -222,7 +222,7 @@ done:
     return err;
 }
 
-long DatagramSendMacTCP(void *ref, NetPacket *packet)
+int32_t DatagramSendMacTCP(void *ref, NetPacket *packet)
 {
     UDPMacTCP *s;
 
@@ -234,12 +234,12 @@ long DatagramSendMacTCP(void *ref, NetPacket *packet)
     return 0;
 }
 
-void DatagramCloseMacTCP(UDPMacTCP *s, long graceful)
+void DatagramCloseMacTCP(UDPMacTCP *s, int32_t graceful)
 {
     UDPiopb pb;
 
     SystemCheckCallback();
-    if ((unsigned char)graceful != 0 && (long)s->state != 0 && s->stream != 0) {
+    if ((unsigned char)graceful != 0 && (int32_t)s->state != 0 && s->stream != 0) {
         s->state = kStateClosing;
         while (s->sending != 0 || !QueueIsEmpty(&s->sendQueue))
             SystemIdle();
@@ -272,7 +272,7 @@ void DatagramCloseMacTCP(UDPMacTCP *s, long graceful)
     NetworkMakeCallback(s->proc, s->ref, (NetSocket *)s, kEventClosed);
 }
 
-long DatagramGetAddressMacTCP(void *ref, NetAddress *out)
+int32_t DatagramGetAddressMacTCP(void *ref, NetAddress *out)
 {
     AddressDuplicate(out, &((UDPMacTCP *)ref)->local);
     return 0;
@@ -316,9 +316,9 @@ void DatagramPostMacTCP(UDPMacTCP *s)
 
 void DatagramReceiveMacTCP(UDPMacTCP *s)
 {
-    long err;
+    int32_t err;
     NetPacket *packet;
-    long e;
+    int32_t e;
 
     err = 0;
     if (AtomicMaskTest(&s->flags, kFlagPosted) && !AtomicMaskApply(&s->flags, kFlagUdpBusy)) {

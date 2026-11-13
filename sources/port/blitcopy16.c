@@ -7,15 +7,15 @@
 // FUNCTION: EVNOVA 0x004b74c0
 void CopyBitsCopy16(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
 {
-    long width;
-    long height;
-    long srcRow;
-    long dstRow;
+    int32_t width;
+    int32_t height;
+    int32_t srcRow;
+    int32_t dstRow;
     unsigned short *srcP;
     unsigned short *dstP;
-    long n;
-    unsigned long a;
-    unsigned long b;
+    int32_t n;
+    uint32_t a;
+    uint32_t b;
 
     width = dstRect->right - dstRect->left;
     height = dstRect->bottom - dstRect->top;
@@ -32,17 +32,17 @@ void CopyBitsCopy16(PixMapPtr src, PixMapPtr dst, Rect *srcRect, Rect *dstRect)
             n = width;
             if (n > 3) {
                 do {
-                    a = ((unsigned long *)srcP)[0];
-                    b = ((unsigned long *)srcP)[1];
-                    ((unsigned long *)dstP)[0] = a;
-                    ((unsigned long *)dstP)[1] = b;
+                    a = ((uint32_t *)srcP)[0];
+                    b = ((uint32_t *)srcP)[1];
+                    ((uint32_t *)dstP)[0] = a;
+                    ((uint32_t *)dstP)[1] = b;
                     srcP += 4;
                     dstP += 4;
                     n -= 4;
                 } while (n > 3);
             }
             if (n > 1) {
-                *(unsigned long *)dstP = *(unsigned long *)srcP;
+                *(uint32_t *)dstP = *(uint32_t *)srcP;
                 srcP += 2;
                 dstP += 2;
                 n -= 2;

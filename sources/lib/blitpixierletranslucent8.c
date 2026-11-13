@@ -14,11 +14,11 @@
 // MAC: _BlitPixieRLETranslucent8 i386 0x000c1cff ppc 0x000cde9c
 #ifdef MACBUILD
 void BlitPixieRLETranslucent8(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes)
+        int32_t dstRowBytes)
 {
-    unsigned long token, opcode, count;
+    uint32_t token, opcode, count;
     unsigned char *rowStart;
-    long level;
+    int32_t level;
     Boolean useTint;
 
     alpha = gSWCurrentSpriteBeingDrawn->translucency;
@@ -42,7 +42,7 @@ void BlitPixieRLETranslucent8(unsigned char *rleTokens, unsigned char *dstPixel,
     rowStart = dstPixel;
 
     do {
-        token = *(unsigned long *)rleTokens;
+        token = *(uint32_t *)rleTokens;
         opcode = token >> 24;
         rleTokens += 4;
         count = token & 0xffffff;
@@ -54,7 +54,7 @@ void BlitPixieRLETranslucent8(unsigned char *rleTokens, unsigned char *dstPixel,
             else
                 BlitPixieTranslucentCopy8(dstPixel, rleTokens, count);
             rleTokens += count;
-            PtrAddBytes(rleTokens, (-(long)rleTokens) & 3);
+            PtrAddBytes(rleTokens, (-(int32_t)rleTokens) & 3);
             dstPixel += count;
             break;
 
@@ -63,7 +63,7 @@ void BlitPixieRLETranslucent8(unsigned char *rleTokens, unsigned char *dstPixel,
             break;
 
         case 4:
-            BlitPixieMemSet(dstPixel, *(unsigned long *)rleTokens, count);
+            BlitPixieMemSet(dstPixel, *(uint32_t *)rleTokens, count);
             rleTokens += 4;
             dstPixel += count;
             break;
@@ -83,9 +83,9 @@ void BlitPixieRLETranslucent8(unsigned char *rleTokens, unsigned char *dstPixel,
 }
 #else
 void BlitPixieRLETranslucent8(unsigned char *rleTokens, unsigned char *dstPixel,
-        long dstRowBytes)
+        int32_t dstRowBytes)
 {
-    unsigned long token, opcode, count;
+    uint32_t token, opcode, count;
     unsigned char *rowStart;
     Boolean useBias;
 
@@ -107,7 +107,7 @@ void BlitPixieRLETranslucent8(unsigned char *rleTokens, unsigned char *dstPixel,
     rowStart = dstPixel;
 
     do {
-        token = *(unsigned long *)rleTokens;
+        token = *(uint32_t *)rleTokens;
         opcode = token >> 24;
         rleTokens += 4;
         count = token & 0xffffff;
@@ -120,7 +120,7 @@ void BlitPixieRLETranslucent8(unsigned char *rleTokens, unsigned char *dstPixel,
                 BlitPixieTranslucentCopy8(dstPixel, rleTokens, count);
 
             rleTokens += count;
-            rleTokens += (-(long)rleTokens) & 3;
+            rleTokens += (-(int32_t)rleTokens) & 3;
             dstPixel += count;
             break;
 
@@ -129,7 +129,7 @@ void BlitPixieRLETranslucent8(unsigned char *rleTokens, unsigned char *dstPixel,
             break;
 
         case 4:
-            BlitPixieMemSet(dstPixel, *(unsigned long *)rleTokens, count);
+            BlitPixieMemSet(dstPixel, *(uint32_t *)rleTokens, count);
             rleTokens += 4;
             dstPixel += count;
             break;

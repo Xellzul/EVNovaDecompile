@@ -60,7 +60,7 @@
 /* ---- DoMainScreen (0x00486880) ---- */
 
 #ifndef MACBUILD
-unsigned long LastTick;                   /* 0x008700f0 */
+uint32_t LastTick;                   /* 0x008700f0 */
 #endif
 
 /* 0x0058f8ac, 0x0058f8b0 and 0x0058f710 are IAT slots, not variables:
@@ -79,13 +79,13 @@ unsigned long LastTick;                   /* 0x008700f0 */
 void DoMainScreen(void)
 {
     Str255 versionURL;
-    long err;
+    int32_t err;
 #if TARGET_API_MAC_OS8
     Point diskPt;
     Boolean gotEvent;
 #endif
     unsigned char ch;
-    long menuChoice;
+    int32_t menuChoice;
     short i;
     short sleep;
 
@@ -241,7 +241,7 @@ void DoMainScreen(void)
             break;
 #if TARGET_API_MAC_OS8
         case diskEvt:
-            if ((long)gEvent.message >> 16) {
+            if ((int32_t)gEvent.message >> 16) {
                 diskPt.v = diskPt.h = 100;
                 DILoad();
                 DIBadMount(diskPt, gEvent.message);
@@ -273,13 +273,13 @@ void DoMainScreen(void)
 #else
 void DoMainScreen(void)
 {
-    long mouseV;
+    int32_t mouseV;
     Str255 confirm;
-    long mouseH;
+    int32_t mouseH;
     Str255 versionURL;
-    long mode[4];
+    int32_t mode[4];
     Point where;
-    long err;
+    int32_t err;
     short delay;
     int key;
     int upper;
@@ -474,7 +474,7 @@ void FUN_00486ec0(void)
     Handle bar;
     MenuHandle menu;
 #if TARGET_API_MAC_CARBON
-    long response;
+    int32_t response;
 
     Gestalt(gestaltMenuMgrAttr, &response);
     if (response & gestaltMenuMgrAquaLayoutMask)
@@ -772,7 +772,7 @@ void MainScreenKey(char key, unsigned char code, short modifiers)
     }
 }
 #else
-void MainScreenKey(char key, long a, long b)
+void MainScreenKey(char key, int32_t a, int32_t b)
 {
     key = tolower(key);
     if (key == 'n') {
@@ -816,7 +816,7 @@ void MainScreenKey(char key, long a, long b)
 #ifdef MACBUILD
 /* DoMenuClick (mac _DoMenuClick): mac only. */
 // MAC: _DoMenuClick i386 0x00019c49 ppc 0x0001d8f8
-void DoMenuClick(long menuChoice)
+void DoMenuClick(int32_t menuChoice)
 #ifdef MAC1010
 ;
 #else

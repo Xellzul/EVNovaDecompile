@@ -6,16 +6,16 @@
 /* BlitPixieMaskColor (mac _BlitPixieMaskColor, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieMaskColor i386 0x000c105e ppc 0x000ccf1c
 void BlitPixieMaskColor(
-	unsigned long srcColor,
+	uint32_t srcColor,
 	unsigned char *dstPixelP,
 	unsigned char *maskPixelP,
-	unsigned long srcOffset,
-	unsigned long dstOffset,
+	uint32_t srcOffset,
+	uint32_t dstOffset,
 	unsigned short numBytesPerRow,
 	unsigned short rowsToCopy)
 {
-	unsigned long index;
-	unsigned long mask;
+	uint32_t index;
+	uint32_t mask;
 
 	srcOffset -= numBytesPerRow;
 	dstOffset -= numBytesPerRow;
@@ -26,10 +26,10 @@ void BlitPixieMaskColor(
 
 		for ( index=0; index < (numBytesPerRow >> 2); index++)
 		{
-			mask = *((unsigned long *) maskPixelP);
-			maskPixelP += sizeof(unsigned long);
-			*((unsigned long *) dstPixelP) = (*((unsigned long *) dstPixelP) & mask) | (srcColor &~ mask);
-			dstPixelP += sizeof(unsigned long);
+			mask = *((uint32_t *) maskPixelP);
+			maskPixelP += sizeof(uint32_t);
+			*((uint32_t *) dstPixelP) = (*((uint32_t *) dstPixelP) & mask) | (srcColor &~ mask);
+			dstPixelP += sizeof(uint32_t);
 		}
 
 		if ( numBytesPerRow & 2 )

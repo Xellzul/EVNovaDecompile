@@ -60,51 +60,51 @@ typedef struct NetPacket {
     char data[1];
 } NetPacket;
 
-extern long IndirectSetSize(void **h, ULong size);
-extern char *StringFormatSafe(char *out, long size, const char *fmt, ...);
+extern int32_t IndirectSetSize(void **h, ULong size);
+extern char *StringFormatSafe(char *out, int32_t size, const char *fmt, ...);
 extern char *StringFindString(const char *s, const char *sub);
 extern char *StringTokenize(char *s, int delim, char **next);
-extern long SimpleResolve(void *unused, const char *host, NetAddress *out);
-extern long QueueCreate(void *queue);
+extern int32_t SimpleResolve(void *unused, const char *host, NetAddress *out);
+extern int32_t QueueCreate(void *queue);
 extern void QueueDispose(MutexList *list);
 extern void QueueEmpty(MutexList *list);
 extern void QueueInsert(void *queue, void *element);
 extern struct MutexNode *QueueRemove(MutexList *list);
-extern long NetworkQueueFill(MutexList *list, unsigned short kind, ULong count, ULong size);
+extern int32_t NetworkQueueFill(MutexList *list, unsigned short kind, ULong count, ULong size);
 extern struct MutexNode *NetworkQueueWait(MutexList *list, ULong seconds);
 extern NetStream *StreamCreate(void *unused, void *ref, void (*proc)(NetSocket *s, void *ref, unsigned short event), MutexList *sentList, MutexList *freeList, MutexList *recvList, MutexList *recvList2);
-extern long StreamOpenClient(void *stream, NetAddress *local, const NetAddress *remote, ULong timeout);
-extern long StreamSend(void *stream, NetChunk *chunk);
+extern int32_t StreamOpenClient(void *stream, NetAddress *local, const NetAddress *remote, ULong timeout);
+extern int32_t StreamSend(void *stream, NetChunk *chunk);
 extern void StreamClose(NetSocket *sock, unsigned char graceful);
 extern void StreamDispose(NetSocket *sock);
 extern NetSocket *DatagramCreate(void *unused, void *ref, void (*proc)(NetSocket *s, void *ref, unsigned short event), MutexList *sentList, MutexList *freeList, MutexList *recvList, MutexList *recvList2);
-extern long DatagramOpen(void *dgram, NetAddress *address);
-extern long DatagramSend(void *dgram, NetPacket *packet);
+extern int32_t DatagramOpen(void *dgram, NetAddress *address);
+extern int32_t DatagramSend(void *dgram, NetPacket *packet);
 extern void DatagramDispose(void *dgram);
 extern void AddressDuplicate(void *to, const NetAddress *src);
 extern void AddressComposeEmpty(NetAddress *a);
 extern unsigned char AddressIsEmpty(const NetAddress *a);
 extern void AddressComposeTCPIP(void *a, unsigned short port, ULong ip);
 extern void AddressDecomposeTCPIP(const void *a, unsigned short *port, ULong *ip);
-extern void DatagramClose(void *dgram, long unused);
-extern long DatagramControl(void *dgram, void *out, ULong option, ULong value);
+extern void DatagramClose(void *dgram, int32_t unused);
+extern int32_t DatagramControl(void *dgram, void *out, ULong option, ULong value);
 extern void NetworkQueueEmpty(MutexList *list);
 extern unsigned char NetworkStackGetLoaded(ULong which);
-extern long NetworkStackLoad(ULong wanted);
+extern int32_t NetworkStackLoad(ULong wanted);
 extern struct NetResolver *ResolverCreate(void *unused, void *ref, void (*proc)(NetSocket *s, void *ref, unsigned short event), MutexList *doneList, MutexList *freeList);
-extern long ResolverOpen(void *resolver);
+extern int32_t ResolverOpen(void *resolver);
 extern void ResolverClose(void *resolver);
 extern void ResolverDispose(void *resolver);
-extern long ResolveName(void *resolver, void *request);
+extern int32_t ResolveName(void *resolver, void *request);
 extern unsigned char SystemCheckCallback(void);
 extern void SystemSetQuitProc(void (*proc)(void));
 extern void SystemIdle(void);
 extern ULongLong TimerGetMilliseconds(void);
 
-extern long GetHTTPProxy(char *host, char *user, char *password);
-extern long RenewLicenseTCP(const char *server, const char *proxy, const char *product, const char *name,
+extern int32_t GetHTTPProxy(char *host, char *user, char *password);
+extern int32_t RenewLicenseTCP(const char *server, const char *proxy, const char *product, const char *name,
                             const char *copies, const char *code, char *newCode, char *message);
-extern long RenewLicenseUDP(const char *server, const char *product, const char *name, const char *copies,
+extern int32_t RenewLicenseUDP(const char *server, const char *product, const char *name, const char *copies,
                             const char *code, char *newCode, char *message);
 
 #endif

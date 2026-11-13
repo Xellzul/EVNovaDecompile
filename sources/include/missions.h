@@ -30,7 +30,7 @@ extern void EvalCurrentMissionBitSetString(char *expr, short mission); /* 0x0044
 extern void EvalSetExp(void);     /* 0x00449370 */
 extern short EvalTestExp(short *err);  /* 0x00449020 */
 extern Boolean DoMissionCargoPickup(short cargo, short needed);        /* 0x00440370 cargo room */
-extern void ApplyMissionPay(long amount);  /* 0x00440750 */
+extern void ApplyMissionPay(int32_t amount);  /* 0x00440750 */
 extern void HandleComm(void);                  /* 0x0042f1b0 (gameloop.c; mac _HandleComm) */
 extern void LoadCurrentMissionData(short mission, short slot);   /* 0x0043f8c0 */
 extern void MissionHandler(void);                /* 0x00443760 */
@@ -39,7 +39,7 @@ extern void MissionLandCheck(void);                      /* 0x00443780 */
 extern void MissionObjectivesCheck(short slot);           /* 0x00443c60 */
 extern void MissionPostLoadValidCheck(void);     /* 0x0043c3e0 */
 extern short OfferOneMission(short mission);                  /* 0x00442510 */
-extern Boolean PlayerMeetsRequirements(unsigned long reqLo, unsigned long reqHi); /* 0x0046cd80 */
+extern Boolean PlayerMeetsRequirements(uint32_t reqLo, uint32_t reqHi); /* 0x0046cd80 */
 extern void QuickMissionFailure(short mission);                  /* 0x00440bf0 */
 extern char *RT3_GetDisplayName(void);                       /* 0x004d45a0 */
 extern void RandomizeMissionData(void);                         /* 0x0043cf00 */
@@ -75,8 +75,8 @@ EXTERN_CPP_END
 
 /* the two mission-list ModalDialog filter procs; MyModalDialog takes the address
    as void *, so nothing at a call site checks these */
-extern Boolean MissionFilter(long unused, EventRecord *ev, short *itemHit);      /* 0x00440c90 */
-extern Boolean SingleMissionFilter(long unused, EventRecord *ev,
+extern Boolean MissionFilter(int32_t unused, EventRecord *ev, short *itemHit);      /* 0x00440c90 */
+extern Boolean SingleMissionFilter(int32_t unused, EventRecord *ev,
                                 short *itemHit);                              /* 0x00447170 */
 
 #ifdef __cplusplus

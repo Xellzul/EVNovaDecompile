@@ -4,7 +4,7 @@
 
 /* Trans8Bit (mac _Trans8Bit, mac-only). STATE: see the mac gate. */
 // MAC: _Trans8Bit i386 0x000c2bf0 ppc 0x000cf024
-char Trans8Bit(char src, char dst, unsigned long alpha)
+char Trans8Bit(char src, char dst, uint32_t alpha)
 {
     /* BUG: any alpha above 3 skips the blend, so (31 - alpha) >> 3 only ever selects row 3 */
     if (alpha > 3)
@@ -14,9 +14,9 @@ char Trans8Bit(char src, char dst, unsigned long alpha)
 
 /* Trans16Bit (mac _Trans16Bit, mac-only). STATE: see the mac gate. */
 // MAC: _Trans16Bit i386 0x000c2c2c ppc 0x000cf058
-unsigned short Trans16Bit(unsigned long src, unsigned long dst, unsigned long alpha)
+unsigned short Trans16Bit(uint32_t src, uint32_t dst, uint32_t alpha)
 {
-    unsigned long srcSplit, dstSplit, blended;
+    uint32_t srcSplit, dstSplit, blended;
 
     srcSplit = SW_SPLIT15(src);
     dstSplit = SW_SPLIT15(dst);

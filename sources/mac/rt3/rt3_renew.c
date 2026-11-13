@@ -33,10 +33,10 @@ static void EncodeParameterSafe(char *dst, const char *src, ULong size)
 }
 
 // MAC: _RenewLicenseTCP i386 0x000d55c8 ppc 0x000e08a0
-long RenewLicenseTCP(const char *server, const char *proxy, const char *product, const char *name, const char *copies, const char *code, char *newCode, char *message)
+int32_t RenewLicenseTCP(const char *server, const char *proxy, const char *product, const char *name, const char *copies, const char *code, char *newCode, char *message)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
     char *eol = 0;
     MutexList recvQueue;
     MutexList sentQueue;
@@ -50,7 +50,7 @@ long RenewLicenseTCP(const char *server, const char *proxy, const char *product,
     const char *body;
     NetChunk *chunk;
     char *token;
-    long len;
+    int32_t len;
 
     *newCode = 0;
     *message = 0;
@@ -170,10 +170,10 @@ cleanup:
 }
 
 // MAC: _RenewLicenseUDP i386 0x000d5b23 ppc 0x000e0ce4
-long RenewLicenseUDP(const char *server, const char *product, const char *name, const char *copies, const char *code, char *newCode, char *message)
+int32_t RenewLicenseUDP(const char *server, const char *product, const char *name, const char *copies, const char *code, char *newCode, char *message)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
     char *next;
     MutexList sentQueue;
     MutexList recvQueue;

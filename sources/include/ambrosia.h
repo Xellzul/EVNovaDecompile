@@ -180,7 +180,7 @@
 #define kTransparentKey     5
 
 /* the interface tool: limits */
-#define kMinLong            ((long)0x80000000)
+#define kMinLong            ((int32_t)0x80000000)
 #define kMaxLong            0x7fffffff
 #define kChunkMax           0x32000
 #define kPressMs            120

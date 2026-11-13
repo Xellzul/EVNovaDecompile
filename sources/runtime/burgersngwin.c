@@ -156,7 +156,7 @@ static void DigitalMusicForegroundTask(void *Data)
     Word32 Got;
     Word Room;
     Word8 *Dest;
-    long Result;
+    int32_t Result;
     Word32 Offset;
     Word Count;
     Word Temp;

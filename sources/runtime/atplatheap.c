@@ -14,9 +14,9 @@
 #ifdef MAC1010
 #undef IndirectGetLock
 #undef IndirectSetLock
-extern long IndirectGetLock(void **handle);
-extern long IndirectSetLock(void **handle, unsigned char lock);
-#define LockResult long /* the Mac returns the bit whole; callers' prototype is a byte */
+extern int32_t IndirectGetLock(void **handle);
+extern int32_t IndirectSetLock(void **handle, unsigned char lock);
+#define LockResult int32_t /* the Mac returns the bit whole; callers' prototype is a byte */
 #else
 #define LockResult unsigned char
 #endif
@@ -36,7 +36,7 @@ extern void *gProcessHeap;                       /* atplatopen.c */
 // FUNCTION: EVNOVA 0x004fe1f9
 void *MemoryAllocate(ULong size)
 {
-    long err;
+    int32_t err;
     void *p;
 
     err = 0;
@@ -59,7 +59,7 @@ void *MemoryAllocate(ULong size)
 // FUNCTION: EVNOVA 0x004fe22c
 void *MemoryAllocateClear(ULong size)
 {
-    long err;
+    int32_t err;
     void *p;
 
     err = 0;
@@ -81,7 +81,7 @@ void *MemoryAllocateClear(ULong size)
 // FUNCTION: EVNOVA 0x004fe25f
 void MemoryDeallocate(void *p)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     SystemCheckCallback();
@@ -96,10 +96,10 @@ void MemoryDeallocate(void *p)
 
 /* MemoryChecksum. STATE: MATCH 100%, exe 18 / obj 18, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004fe285
-long MemoryChecksum(void *data, unsigned long size)
+int32_t MemoryChecksum(void *data, uint32_t size)
 {
-    long crc;
-    long err;
+    int32_t crc;
+    int32_t err;
 
     err = 0;
     crc = crc32(0, 0, 0);
@@ -146,7 +146,7 @@ void MemoryClear(void *p, ULong n)
 // FUNCTION: EVNOVA 0x004fe2b0
 void MemoryClear(void *p, ULong n)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     memset(p, 0, n);
@@ -158,7 +158,7 @@ void MemoryClear(void *p, ULong n)
 // FUNCTION: EVNOVA 0x004fe2c3
 void MemoryFill(void *p, int c, ULong n)
 {
-    long err;
+    int32_t err;
 #ifdef MAC1010 /* 1.0.10 spelling */
     unsigned char b;
     ULong fill;
@@ -198,7 +198,7 @@ void MemoryFill(void *p, int c, ULong n)
 // FUNCTION: EVNOVA 0x004fe31a
 void MemoryCopy(void *dst, const void *src, ULong n)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (n != 0)
@@ -213,7 +213,7 @@ void MemoryCopy(void *dst, const void *src, ULong n)
 // FUNCTION: EVNOVA 0x004fe338
 void MemoryMove(void *dst, const void *src, ULong n)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (n != 0)
@@ -232,9 +232,9 @@ static MemBlock *gMemBlockList;                   /* 0x008676f0 block list */
 /* Add a block of `count` free records (256 when 0) to the list. */
 /* IndirectPreflight. STATE: MATCH 100%, exe 51 / obj 51, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004fe356
-long IndirectPreflight(ULong count)
+int32_t IndirectPreflight(ULong count)
 {
-    long err;
+    int32_t err;
     MemBlock *block;
     ULong i;
 
@@ -267,7 +267,7 @@ long IndirectPreflight(ULong count)
 // FUNCTION: EVNOVA 0x004fe3de
 void **IndirectAllocate(ULong size)
 {
-    long err, e;
+    int32_t err, e;
     MemBlock *block;
     MemRecord *rec;
     MemRecord *found;
@@ -334,7 +334,7 @@ void **IndirectAllocate(ULong size)
 // FUNCTION: EVNOVA 0x004fe493
 void **IndirectAllocateTempMem(ULong size)
 {
-    long err;
+    int32_t err;
     void **result;
 #ifdef MAC1010
     OSErr e;
@@ -370,7 +370,7 @@ void **IndirectDuplicate(void **handle)
 }
 #else
 {
-    long err;
+    int32_t err;
     void **copy;
     ULong size;
     MemRecord *rec;
@@ -398,7 +398,7 @@ AT_EXTERN unsigned char (*gIndirectBusy)(void *p);         /* 0x008707f8, releas
 // FUNCTION: EVNOVA 0x004fe501
 void *IndirectInitialize(const void *src, ULong size)
 {
-    long err;
+    int32_t err;
     void **p;
 
     err = 0;
@@ -416,10 +416,10 @@ void *IndirectInitialize(const void *src, ULong size)
 
 /* IndirectDeallocate. STATE: MATCH 100%, exe 41 / obj 41, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004fe546
-long IndirectDeallocate(void **p)
+int32_t IndirectDeallocate(void **p)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     SystemCheckCallback();
@@ -459,7 +459,7 @@ ULong IndirectGetSize(void **handle)
 }
 #else
 {
-    long err;
+    int32_t err;
     ULong result;
     MemRecord *rec;
     MemBlock *block;
@@ -475,10 +475,10 @@ ULong IndirectGetSize(void **handle)
 
 /* IndirectSetSize. STATE: MATCH 100%, exe 45 / obj 45, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004fe5cd
-long IndirectSetSize(void **handle, ULong size)
+int32_t IndirectSetSize(void **handle, ULong size)
 #ifdef MAC1010
 {
-    long err;
+    int32_t err;
 
     err = 0;
     SystemCheckCallback();
@@ -495,7 +495,7 @@ long IndirectSetSize(void **handle, ULong size)
 }
 #else
 {
-    long err;
+    int32_t err;
     MemRecord *rec;
     MemBlock *block;
     void *p;
@@ -529,7 +529,7 @@ LockResult IndirectGetLock(void **handle)
 #ifdef MAC1010
 {
     LockResult result;
-    long state;
+    int32_t state;
 
     result = 0;
     state = HGetState((Handle)handle);
@@ -541,7 +541,7 @@ LockResult IndirectGetLock(void **handle)
 }
 #else
 {
-    long err;
+    int32_t err;
     unsigned char result;
     MemRecord *rec;
     MemBlock *block;
@@ -561,7 +561,7 @@ LockResult IndirectSetLock(void **handle, unsigned char lock)
 #ifdef MAC1010
 {
     LockResult old;
-    long state;
+    int32_t state;
 
     old = 0;
     SystemCheckCallback();
@@ -581,7 +581,7 @@ LockResult IndirectSetLock(void **handle, unsigned char lock)
 #else
 {
     unsigned char old;
-    long err;
+    int32_t err;
     MemRecord *rec;
     MemBlock *block;
 
@@ -602,9 +602,9 @@ LockResult IndirectSetLock(void **handle, unsigned char lock)
 /* IndirectAppend (append one handle's bytes to another). STATE: MATCH 100%, exe 53 / obj 53, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004fe674
-long IndirectAppend(void **handle, void **from)
+int32_t IndirectAppend(void **handle, void **from)
 {
-    long err, e;
+    int32_t err, e;
     ULong old;
     ULong length;
 
@@ -631,9 +631,9 @@ long IndirectAppend(void **handle, void **from)
 /* IndirectReplace (make a handle a copy of another). STATE: MATCH 100%, exe 41 / obj 41, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004fe6f1
-long IndirectReplace(void **handle, void **from)
+int32_t IndirectReplace(void **handle, void **from)
 {
-    long err, e;
+    int32_t err, e;
     ULong length;
 
     err = 0;
@@ -656,9 +656,9 @@ long IndirectReplace(void **handle, void **from)
 /* IndirectInsertData (insert bytes at the front of a handle). STATE: MATCH 100%, exe 51 / obj 51, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004fe74e
-long IndirectInsertData(void **handle, const void *data, ULong length)
+int32_t IndirectInsertData(void **handle, const void *data, ULong length)
 {
-    long err, e;
+    int32_t err, e;
     ULong old;
 
     err = 0;
@@ -685,9 +685,9 @@ long IndirectInsertData(void **handle, const void *data, ULong length)
 /* IndirectAppendData (append bytes to a handle). STATE: MATCH 100%, exe 46 / obj 46,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004fe7c3
-long IndirectAppendData(void **handle, const void *data, ULong length)
+int32_t IndirectAppendData(void **handle, const void *data, ULong length)
 {
-    long err, e;
+    int32_t err, e;
     ULong old;
 
     err = 0;
@@ -712,9 +712,9 @@ long IndirectAppendData(void **handle, const void *data, ULong length)
 /* IndirectReplaceData (replace a handle's contents with length bytes of data). STATE: MATCH 100%, exe 37 / obj 37, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004fe82c
-long IndirectReplaceData(void **handle, const void *data, ULong length)
+int32_t IndirectReplaceData(void **handle, const void *data, ULong length)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     SystemCheckCallback();
@@ -735,16 +735,16 @@ long IndirectReplaceData(void **handle, const void *data, ULong length)
 /* Replaces oldLength bytes at offset with newLength bytes of data. */
 /* IndirectSpliceData. STATE: MATCH 100%, exe 78 / obj 78, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004fe884
-long IndirectSpliceData(void **handle, ULong offset, ULong oldLength, const void *data,
+int32_t IndirectSpliceData(void **handle, ULong offset, ULong oldLength, const void *data,
                   ULong newLength)
 {
 #ifdef MAC1010 /* 1.0.10 spelling */
     ULong end;
-    long err, e;
+    int32_t err, e;
     ULong size;
     ULong len;
 #else
-    long err, e;
+    int32_t err, e;
     ULong size;
     ULong end;
     ULong len;
@@ -800,16 +800,16 @@ done:
 /* IndirectCompress. STATE: MATCH 100%, exe 571 / obj 571, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004fe949
-long IndirectCompress(void **handle, ULong tag, PackInfo *info)
+int32_t IndirectCompress(void **handle, ULong tag, PackInfo *info)
 {
-    long err;
+    int32_t err;
     void **out;
     unsigned char locked;
     unsigned char zopen;
     unsigned char finished;
     z_stream z;
     int zerr;
-    long e;
+    int32_t e;
     ULong size, pos, outPos, run, cap, n, i;
     unsigned int a, b, a1, b1, b2;
     unsigned short width;
@@ -1057,12 +1057,12 @@ done:
 /* Unpacks a handle in place; the inverse of IndirectCompress. */
 /* IndirectDecompress. STATE: MATCH 100%, exe 468 / obj 468, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004ff112
-long IndirectDecompress(void **handle, ULong tag, PackInfo *info)
+int32_t IndirectDecompress(void **handle, ULong tag, PackInfo *info)
 #ifdef MAC1010
 #include "../runtime/indirectdecompress1010.inc"
 #else
 {
-    long err;
+    int32_t err;
     void **out;
     unsigned char locked;
     unsigned char zopen;
@@ -1080,7 +1080,7 @@ long IndirectDecompress(void **handle, ULong tag, PackInfo *info)
     unsigned int c;
     unsigned int b0;
     unsigned int b1;
-    long r;
+    int32_t r;
 
     err = 0;
     out = 0;
@@ -1311,9 +1311,9 @@ done:
 #ifndef MAC1010
 /* _IndirectValidate. STATE: MATCH 100%, exe 70 / obj 70, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004ff774
-long _IndirectValidate(void **handle)
+int32_t _IndirectValidate(void **handle)
 {
-    long err;
+    int32_t err;
     MemBlock *block;
     ULong i;
     unsigned char found;

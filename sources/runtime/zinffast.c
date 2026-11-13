@@ -26,7 +26,7 @@ unsigned start;
     unsigned whave;
     unsigned write;
     unsigned char FAR *window;
-    unsigned long hold;
+    uint32_t hold;
     unsigned bits;
     code const FAR *lcode;
     code const FAR *dcode;
@@ -58,9 +58,9 @@ unsigned start;
 
     do {
         if (bits < 15) {
-            hold += (unsigned long)(PUP(in)) << bits;
+            hold += (uint32_t)(PUP(in)) << bits;
             bits += 8;
-            hold += (unsigned long)(PUP(in)) << bits;
+            hold += (uint32_t)(PUP(in)) << bits;
             bits += 8;
         }
         this = lcode[hold & lmask];
@@ -77,7 +77,7 @@ unsigned start;
             op &= 15;
             if (op) {
                 if (bits < op) {
-                    hold += (unsigned long)(PUP(in)) << bits;
+                    hold += (uint32_t)(PUP(in)) << bits;
                     bits += 8;
                 }
                 len += (unsigned)hold & ((1U << op) - 1);
@@ -85,9 +85,9 @@ unsigned start;
                 bits -= op;
             }
             if (bits < 15) {
-                hold += (unsigned long)(PUP(in)) << bits;
+                hold += (uint32_t)(PUP(in)) << bits;
                 bits += 8;
-                hold += (unsigned long)(PUP(in)) << bits;
+                hold += (uint32_t)(PUP(in)) << bits;
                 bits += 8;
             }
             this = dcode[hold & dmask];
@@ -100,10 +100,10 @@ unsigned start;
                 dist = (unsigned)(this.val);
                 op &= 15;
                 if (bits < op) {
-                    hold += (unsigned long)(PUP(in)) << bits;
+                    hold += (uint32_t)(PUP(in)) << bits;
                     bits += 8;
                     if (bits < op) {
-                        hold += (unsigned long)(PUP(in)) << bits;
+                        hold += (uint32_t)(PUP(in)) << bits;
                         bits += 8;
                     }
                 }

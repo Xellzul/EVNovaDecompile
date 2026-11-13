@@ -594,7 +594,7 @@ get_interesting_appn (j_decompress_ptr cinfo)
 
   INPUT_SYNC(cinfo);
   if (length > 0)
-    (*cinfo->src->skip_input_data) (cinfo, (long) length);
+    (*cinfo->src->skip_input_data) (cinfo, (int32_t) length);
 
   return TRUE;
 }
@@ -695,7 +695,7 @@ save_marker (j_decompress_ptr cinfo)
 
   INPUT_SYNC(cinfo);
   if (length > 0)
-    (*cinfo->src->skip_input_data) (cinfo, (long) length);
+    (*cinfo->src->skip_input_data) (cinfo, (int32_t) length);
 
   return TRUE;
 }
@@ -717,7 +717,7 @@ skip_variable (j_decompress_ptr cinfo)
 
   INPUT_SYNC(cinfo);
   if (length > 0)
-    (*cinfo->src->skip_input_data) (cinfo, (long) length);
+    (*cinfo->src->skip_input_data) (cinfo, (int32_t) length);
 
   return TRUE;
 }
@@ -1051,11 +1051,11 @@ jpeg_save_markers (j_decompress_ptr cinfo, int marker_code,
 		   unsigned int length_limit)
 {
   my_marker_ptr marker = (my_marker_ptr) cinfo->marker;
-  long maxlength;
+  int32_t maxlength;
   jpeg_marker_parser_method processor;
 
   maxlength = cinfo->mem->max_alloc_chunk - SIZEOF(struct jpeg_marker_struct);
-  if (((long) length_limit) > maxlength)
+  if (((int32_t) length_limit) > maxlength)
     length_limit = (unsigned int) maxlength;
 
   if (length_limit) {

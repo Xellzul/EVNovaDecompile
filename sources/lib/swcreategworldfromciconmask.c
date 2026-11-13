@@ -107,18 +107,18 @@ short SWCreateGWorldFromCIconMask(SpriteWorldPtr destSpriteWorld,
     CGrafPtr saveGWorld;
     Rect bounds;
     CGrafPtr tempGWorldP;
-    long srcSkip;
+    int32_t srcSkip;
     short err;
     PixMapPtr maskPix;
     PixMapPtr pixBounds;
     void *saveGDevice;
     short depth;
-    long y;
-    long width;
-    long x;
+    int32_t y;
+    int32_t width;
+    int32_t x;
     unsigned char *src;
     unsigned short *dst;
-    long dstSkip;
+    int32_t dstSkip;
 
     GetPort(&saveGWorld);
     saveGDevice = GetGWorldDevice(saveGWorld);

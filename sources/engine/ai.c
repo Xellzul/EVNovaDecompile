@@ -112,21 +112,21 @@ void AIDispatch(ShipObj *ship, Boolean noBrains)
             } else
                 ship->foldDir = 1;
         }
-    } else if ((long)ship->aiSubstate != kSubHypJmp && (long)ship->aiSubstate != kSubJmpPar) {
+    } else if ((int32_t)ship->aiSubstate != kSubHypJmp && (int32_t)ship->aiSubstate != kSubJmpPar) {
         if (ship->aiState == kAIStateJumpIn)
             ship->aiState = kAIStateHiJack;
         if (ship->hasEscorts != 0 &&
             frameCounter % 8 == ship->index >> 3)
             AIIssueEscortOrders(ship);
         if (noBrains == 0 &&
-            (long)ship->aiSubstate != kSubBoard && (long)ship->aiSubstate != kSubAfterBurn &&
-            (long)ship->aiState != kAIStateJumpIn &&
-            (long)ship->aiState != kAIStateRefuel &&
-            (long)ship->aiState != kAIStateRepair &&
-            (long)ship->aiState != kAIStateHiJack &&
-            (long)ship->aiSubstate != kSubLoJack &&
-            (long)ship->aiSubstate != kSubKillAst &&
-            (long)ship->aiState != kAIStateDestStel &&
+            (int32_t)ship->aiSubstate != kSubBoard && (int32_t)ship->aiSubstate != kSubAfterBurn &&
+            (int32_t)ship->aiState != kAIStateJumpIn &&
+            (int32_t)ship->aiState != kAIStateRefuel &&
+            (int32_t)ship->aiState != kAIStateRepair &&
+            (int32_t)ship->aiState != kAIStateHiJack &&
+            (int32_t)ship->aiSubstate != kSubLoJack &&
+            (int32_t)ship->aiSubstate != kSubKillAst &&
+            (int32_t)ship->aiState != kAIStateDestStel &&
             aiComplexity != 0 &&
             frameCounter % aiComplexity != ship->index % aiComplexity)
             skip = 1;
@@ -239,7 +239,7 @@ void ScanPlayer(ShipObj *ship)
 {
     short i;
     short fine;
-    long amt;
+    int32_t amt;
     float speed;
     short j;
     char c;
@@ -740,14 +740,14 @@ void WarshipAI(ShipObj *ship)
     short n;
     short i;
     short f;
-    long thresh;
+    int32_t thresh;
 
     if (IsDisabled(ship) != 0)
         return;
-    if ((long)ship->aiState == kAIStateRefuel ||
-        (long)ship->aiState == kAIStateRepair)
+    if ((int32_t)ship->aiState == kAIStateRefuel ||
+        (int32_t)ship->aiState == kAIStateRepair)
         return;
-    if ((long)ship->aiState == kAIStateCountWait)
+    if ((int32_t)ship->aiState == kAIStateCountWait)
         return;
 
     if (ship->govt != -1 && ship->jumpTimer > -900.0F && ship->jumpTimer <= 0.0F) {
@@ -768,17 +768,17 @@ void WarshipAI(ShipObj *ship)
     }
 
     if (ship->aiSubstate == kSubHypJmp &&
-        (long)ship->aiState != kAIStateHypOut &&
-        (long)ship->aiState != kAIStateHypPr)
+        (int32_t)ship->aiState != kAIStateHypOut &&
+        (int32_t)ship->aiState != kAIStateHypPr)
         ship->aiState = kAIStateHypOut;
 
-    if ((long)ship->aiState == kAIStateHiJack) {
+    if ((int32_t)ship->aiState == kAIStateHiJack) {
         if (ship->targetShip != -1) {
             if (ship->jumpTimer <= 0.0F &&
-                (long)ship->aiState != kAIStateInspect)
+                (int32_t)ship->aiState != kAIStateInspect)
                 ship->aiState = kAIStateFightSh;
         } else if (ship->jumpTimer <= 0.0F &&
-                   (long)ship->aiState != kAIStateDefRet) {
+                   (int32_t)ship->aiState != kAIStateDefRet) {
             if (ship->targetShip == -1) {
                 SelectWarshipTarget(ship);
                 if (ship->targetShip != -1)
@@ -895,8 +895,8 @@ void WarshipAI(ShipObj *ship)
     }
 
     if (ship->targetShip != -1 &&
-        (long)ship->aiState != kAIStateInspect &&
-        (long)ship->aiState != kAIStateDefRet) {
+        (int32_t)ship->aiState != kAIStateInspect &&
+        (int32_t)ship->aiState != kAIStateDefRet) {
         if (ship->jumpTimer <= 0.0F)
             ship->aiState = kAIStateFightSh;
 
@@ -915,15 +915,15 @@ void WarshipAI(ShipObj *ship)
         if (ship->shield < thresh && ship->parentShip == -1 &&
             ship->govt != -1 &&
             (govtData[ship->govt].flags & kGovtRetreatsWhenHurt) != 0) {
-            if ((long)ship->aiState != kAIStateHypOut && (long)ship->aiState != kAIStateDefRet
-                    && (long)ship->aiState != kAIStateHypPr)
+            if ((int32_t)ship->aiState != kAIStateHypOut && (int32_t)ship->aiState != kAIStateDefRet
+                    && (int32_t)ship->aiState != kAIStateHypPr)
                 ship->aiState = kAIStateDefRet;
         }
 
         if ((shipClass[ship->type].flags2 & kShipAmmoAware) != 0 &&
             AIShipIsOutOfAmmo(ship) != 0) {
-            if ((long)ship->aiState != kAIStateHypOut && (long)ship->aiState != kAIStateDefRet
-                    && (long)ship->aiState != kAIStateHypPr)
+            if ((int32_t)ship->aiState != kAIStateHypOut && (int32_t)ship->aiState != kAIStateDefRet
+                    && (int32_t)ship->aiState != kAIStateHypPr)
                 ship->aiState = kAIStateDefRet;
         }
     }
@@ -975,8 +975,8 @@ void PirateWarshipAI(ShipObj *ship)
         }
     }
 
-    if ((long)ship->aiState == kAIStateHiJack ||
-        (ship->targetShip == -1 && (long)ship->aiState != kAIStateUnPlunder)) {
+    if ((int32_t)ship->aiState == kAIStateHiJack ||
+        (ship->targetShip == -1 && (int32_t)ship->aiState != kAIStateUnPlunder)) {
         ship->targetShip = -1;
         AIFindShipToPlunder(ship);
         if (ship->targetShip == -1)
@@ -1015,8 +1015,8 @@ void PirateWarshipAI(ShipObj *ship)
     }
 
     if (ship->targetShip != -1 &&
-        ((long)ship->aiState == kAIStatePlunder ||
-         (long)ship->aiState == kAIStateFightSh)) {
+        ((int32_t)ship->aiState == kAIStatePlunder ||
+         (int32_t)ship->aiState == kAIStateFightSh)) {
         if ((ship->targetShip == 0 ||
              shipData[ship->targetShip].formerEscort >= 0 ||
              shipClass[shipData[ship->targetShip].type].inherentAI <=
@@ -1076,8 +1076,8 @@ void PirateWarshipAI(ShipObj *ship)
         }
     }
 
-    if (((long)ship->aiState == kAIStateFightSh ||
-         (long)ship->aiState == kAIStatePlunder) &&
+    if (((int32_t)ship->aiState == kAIStateFightSh ||
+         (int32_t)ship->aiState == kAIStatePlunder) &&
         AIShipIsOutOfAmmo(ship) == 2) {
         ship->aiState = kAIStateHiJack;
         ship->aiSubstate = kSubLoJack;
@@ -1106,7 +1106,7 @@ void InterceptorAI(ShipObj *ship)
 
     if (IsDisabled(ship) != 0)
         return;
-    if ((long)ship->aiState == kAIStateCountWait)
+    if ((int32_t)ship->aiState == kAIStateCountWait)
         return;
 
     if (ship->persType == kPersCaptainHector) {
@@ -1128,7 +1128,7 @@ void InterceptorAI(ShipObj *ship)
                         ship->aiState = kAIStateInspect;
                         ship->targetShip = 0;
                     }
-                } else if ((long)ship->aiState != kAIStateFightSh) {
+                } else if ((int32_t)ship->aiState != kAIStateFightSh) {
                     if (AIShipHasFuelForJump(ship))
                         AIMakeShipLeave(ship);
                     else
@@ -1139,8 +1139,8 @@ void InterceptorAI(ShipObj *ship)
         return;
     }
 
-    if ((long)ship->aiState == kAIStateRefuel ||
-        (long)ship->aiState == kAIStateRepair)
+    if ((int32_t)ship->aiState == kAIStateRefuel ||
+        (int32_t)ship->aiState == kAIStateRepair)
         return;
 
     if (ship->govt != -1 && ship->jumpTimer > -900.0F && ship->jumpTimer <= 0.0F) {
@@ -1161,10 +1161,10 @@ void InterceptorAI(ShipObj *ship)
     }
 
     if (ship->grudge > 0 && ship->targetShip != -1 &&
-        (long)ship->aiState != kAIStateDefRet &&
-        (long)ship->aiState != kAIStateInspect &&
-        (long)ship->aiState != kAIStateRefuel &&
-        (long)ship->aiState != kAIStateRepair &&
+        (int32_t)ship->aiState != kAIStateDefRet &&
+        (int32_t)ship->aiState != kAIStateInspect &&
+        (int32_t)ship->aiState != kAIStateRefuel &&
+        (int32_t)ship->aiState != kAIStateRepair &&
         ship->jumpTimer <= 0.0F)
         ship->aiState = kAIStateFightSh;
 
@@ -1173,9 +1173,9 @@ void InterceptorAI(ShipObj *ship)
             ship->lastInspected = -1;
     }
 
-    if (((long)ship->aiState == kAIStateHiJack ||
-         (long)ship->aiState == kAIStateGoStel ||
-         (long)ship->aiState == kAIStateGoHGate) &&
+    if (((int32_t)ship->aiState == kAIStateHiJack ||
+         (int32_t)ship->aiState == kAIStateGoStel ||
+         (int32_t)ship->aiState == kAIStateGoHGate) &&
         ship->aiTimer <= 0.0F) {
         if (ship->targetShip != -1) {
             if (ship->jumpTimer <= 0.0F &&
@@ -1297,8 +1297,8 @@ void InterceptorAI(ShipObj *ship)
 
     if ((shipClass[ship->type].flags2 & kShipAmmoAware) != 0 &&
         AIShipIsOutOfAmmo(ship) != 0) {
-        if ((long)ship->aiState != kAIStateHypOut && (long)ship->aiState != kAIStateDefRet
-                && (long)ship->aiState != kAIStateHypPr)
+        if ((int32_t)ship->aiState != kAIStateHypOut && (int32_t)ship->aiState != kAIStateDefRet
+                && (int32_t)ship->aiState != kAIStateHypPr)
             ship->aiState = kAIStateDefRet;
     }
 
@@ -1334,11 +1334,11 @@ void EscortAI(ShipObj *ship)
     short orders;
     short ammo;
 
-    if ((long)ship->aiState == kAIStateCountWait)
+    if ((int32_t)ship->aiState == kAIStateCountWait)
         return;
     parent = ship->parentShip;
-    if (parent != 0 && ((long)ship->aiState == kAIStateRefuel ||
-                        (long)ship->aiState == kAIStateRepair))
+    if (parent != 0 && ((int32_t)ship->aiState == kAIStateRefuel ||
+                        (int32_t)ship->aiState == kAIStateRepair))
         return;
     if (parent == -1) {
         ship->aiType = shipClass[ship->type].inherentAI;
@@ -1404,7 +1404,7 @@ void EscortAI(ShipObj *ship)
         }
     } else if (ship->parentShip != -1 && shipData[ship->parentShip].parentShip == 0) {
         orders = shipData[ship->parentShip].escortOrder;
-        if ((long)orders == kOrderAttack || (long)orders == kOrderDefend) {
+        if ((int32_t)orders == kOrderAttack || (int32_t)orders == kOrderDefend) {
             if (shipData[ship->parentShip].aiState == kAIStateFlyPr)
                 ship->escortOrder = kOrderRegroup;
             else
@@ -1414,8 +1414,8 @@ void EscortAI(ShipObj *ship)
         }
     }
 
-    if (((long)ship->escortOrder == kOrderAttack ||
-         (long)ship->escortOrder == kOrderDefend) &&
+    if (((int32_t)ship->escortOrder == kOrderAttack ||
+         (int32_t)ship->escortOrder == kOrderDefend) &&
             (shipClass[ship->type].flags2 & kShipAmmoAware) != 0) {
         ammo = AIShipIsOutOfAmmo(ship);
         if (ammo != 0) {
@@ -1436,7 +1436,7 @@ void EscortAI(ShipObj *ship)
             ship->jumpTimer = 0.0f;
             return;
         }
-    } else if ((long)ship->escortOrder == kOrderDefend) {
+    } else if ((int32_t)ship->escortOrder == kOrderDefend) {
         ship->jumpTimer = -1.0f;
         ship->aiTimer = -1.0f;
         if (ship->targetShip != -1) {
@@ -1463,7 +1463,7 @@ void EscortAI(ShipObj *ship)
         } else {
             ship->aiState = kAIStateFightSh;
         }
-    } else if ((long)ship->escortOrder == kOrderAttack) {
+    } else if ((int32_t)ship->escortOrder == kOrderAttack) {
         ship->jumpTimer = -1.0f;
         ship->aiTimer = -1.0f;
         if (ship->targetShip == -1) {
@@ -1489,12 +1489,12 @@ void EscortAI(ShipObj *ship)
         } else {
             ship->aiState = kAIStateFightSh;
         }
-    } else if ((long)ship->escortOrder == kOrderHold) {
+    } else if ((int32_t)ship->escortOrder == kOrderHold) {
         ship->targetShip = -1;
         ship->targetStellar = -1;
         ship->aiState = kAIStateWait;
         AIFireTurret(ship);
-    } else if (ship->aiType == kShipTypeFighter && (long)ship->escortOrder == kOrderRegroup) {
+    } else if (ship->aiType == kShipTypeFighter && (int32_t)ship->escortOrder == kOrderRegroup) {
         ship->aiState = kAIStateGoHome;
         ship->targetShip = -1;
         ship->targetStellar = ship->parentShip;
@@ -1531,7 +1531,7 @@ void DefenseShipAI(ShipObj *ship)
     short i;
     short pass;
     short bestIndex;
-    long bestDist;
+    int32_t bestDist;
     short target;
 
     if (IsDying(ship))
@@ -2464,8 +2464,8 @@ void LowLevelAIHandler(ShipObj *ship)
     short angle;
     short course;
     short limit;
-    long bestDist;
-    long dist;
+    int32_t bestDist;
+    int32_t dist;
     float step;
     short leader;
     Boolean disabled;
@@ -3679,7 +3679,7 @@ void AIFireGun(ShipObj *ship, Boolean allowUnguided)
     short score;
     Boolean sawGuided;
     short pick;
-    long dist;
+    int32_t dist;
 
     bestWeap[0] = bestWeap[1] = -1;
     best[0] = best[1] = 0;
@@ -4001,9 +4001,9 @@ void SelectWarshipTarget(ShipObj *ship)
     short threats;
     short count;
     short myStrength;
-    long best;
-    long dx;
-    long dy;
+    int32_t best;
+    int32_t dx;
+    int32_t dy;
     short range;
     float fdx;
     float fdy;
@@ -4011,9 +4011,9 @@ void SelectWarshipTarget(ShipObj *ship)
     Boolean hostile;
     Boolean hasDestroying;
     Boolean hunts;
-    long bestMass;
+    int32_t bestMass;
     KeyCheckFlag bad[5];
-    long dist[kMaxShips];
+    int32_t dist[kMaxShips];
     short strength[kMaxShips];
     Boolean cand[kMaxShips];
 
@@ -4033,8 +4033,8 @@ void SelectWarshipTarget(ShipObj *ship)
     }
 
     if (ship->targetShip != -1 &&
-        ((long)ship->aiState == kAIStateFightSh ||
-         (long)ship->aiState == kAIStateDefRet) &&
+        ((int32_t)ship->aiState == kAIStateFightSh ||
+         (int32_t)ship->aiState == kAIStateDefRet) &&
         shipData[ship->targetShip].active != 0)
         return;
 
@@ -4180,8 +4180,8 @@ void SelectWarshipTarget(ShipObj *ship)
                         continue;
                     if (shipData[i].targetShip == -1)
                         continue;
-                    if (!((long)shipData[i].aiState == kAIStateFightSh ||
-                          (long)shipData[i].aiState == kAIStateDefRet))
+                    if (!((int32_t)shipData[i].aiState == kAIStateFightSh ||
+                          (int32_t)shipData[i].aiState == kAIStateDefRet))
                         continue;
                     if (GovtAllies(ship->govt, shipData[i].govt) == 0)
                         continue;
@@ -5387,11 +5387,11 @@ void AIMakeShipStopRefuelling(ShipObj *ship)
 // MAC: _AIInGunRange i386 0x0007f9d5 ppc 0x000895dc
 Boolean AIInGunRange(ShipObj *me, ShipObj *target, short weapType)
 {
-    long distSq;
-    long dx;
-    long dy;
-    long range;
-    long i;
+    int32_t distSq;
+    int32_t dx;
+    int32_t dy;
+    int32_t range;
+    int32_t i;
 
     dx = abs(me->pos.x - target->pos.x);
     dy = abs(me->pos.y - target->pos.y);
@@ -5660,10 +5660,10 @@ short FindNearestThreatToParent(ShipObj *me, short spob)
    OPEN: none. */
 // FUNCTION: EVNOVA 0x00412090
 // MAC: _IsShipANearbyThreatToParent i386 0x000836a4 ppc 0x0008db5c
-long IsShipANearbyThreatToParent(ShipObj *ship, ShipObj *me, short range)
+int32_t IsShipANearbyThreatToParent(ShipObj *ship, ShipObj *me, short range)
 {
-    long dist;
-    long score;
+    int32_t dist;
+    int32_t score;
     short aiType1;
     short aiType2;
     Boolean threat;
@@ -5739,8 +5739,8 @@ void AIFindShipToPlunder(ShipObj *ship)
 {
     short i;
     short best;
-    long bestDist;
-    long dist;
+    int32_t bestDist;
+    int32_t dist;
     Boolean armed;
 
     best = -1;
@@ -5808,7 +5808,7 @@ void AIPlunderShipContents(ShipObj *me, ShipObj *target)
     short taken;
     short myStr;
     short targStr;
-    long credits;
+    int32_t credits;
     short oddsL;
 
     if (IsDying(target) != 0 || target->active == 0)
@@ -6529,7 +6529,7 @@ void FireAIShipWeapon(ShipObj *ship)
                                         &shipData[ship->targetShip].pos);
 #ifdef MACBUILD
                             if (weaponStats[ship->selectedWeapon].guidance == kGuidanceFrontQuad)
-                                cone = abs((long)(angle - ship->heading)) % kFullCircle;
+                                cone = abs((int32_t)(angle - ship->heading)) % kFullCircle;
                             if (weaponStats[ship->selectedWeapon].guidance == kGuidanceRearQuad)
                                 cone = abs(angle
                                            - ((short)ship->heading + kHalfTurnDeg)
@@ -6804,16 +6804,16 @@ void AIIssueEscortOrders(ShipObj *ship)
     }
 
     state = ship->aiState;
-    if ((long)state != kAIStateDefRet && (long)state != kAIStateFightSh
-            && (long)state != kAIStatePlunder && (long)state != kAIStateConfused) {
+    if ((int32_t)state != kAIStateDefRet && (int32_t)state != kAIStateFightSh
+            && (int32_t)state != kAIStatePlunder && (int32_t)state != kAIStateConfused) {
         advice[0] = kOrderRegroup;
         advice[1] = kOrderRegroup;
         advice[2] = kOrderRegroup;
         advice[3] = kOrderRegroup;
     }
-    if ((long)state == kAIStateDefRet) {
+    if ((int32_t)state == kAIStateDefRet) {
         substate = ship->aiSubstate;
-        if ((long)substate == kSubHypJmp || (long)substate == kSubKillSpd) {
+        if ((int32_t)substate == kSubHypJmp || (int32_t)substate == kSubKillSpd) {
             advice[0] = kOrderRegroup;
             advice[1] = kOrderRegroup;
             advice[2] = kOrderRegroup;
@@ -6824,7 +6824,7 @@ void AIIssueEscortOrders(ShipObj *ship)
             advice[1] = kOrderDefend;
         }
     }
-    if ((long)state == kAIStateHypOut) {
+    if ((int32_t)state == kAIStateHypOut) {
         advice[0] = kOrderRegroup;
         advice[1] = kOrderRegroup;
         advice[2] = kOrderRegroup;
@@ -6848,8 +6848,8 @@ void AICheckParentExists(ShipObj *ship)
 {
     short i;
     short chosen;
-    long best;
-    long mass;
+    int32_t best;
+    int32_t mass;
 
     if (ship->parentShip < 0 || ship->parentShip >= kMaxShips)
         return;

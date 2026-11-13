@@ -242,11 +242,11 @@ unsigned char TGA_CheckFileType(const void *buffer, ULong size)
    when the file has alpha, an 8-bit mask). STATE: MATCH 100%, exe 1231 / obj 1231,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x005189a5
-long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
+int32_t TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                   ITTransparent *trans, ITBackground *bg)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     char *cmap;
     char *row;
     ITColor *pixels;
@@ -266,7 +266,7 @@ long TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     ULong r;
     ULong g;
     ULong b;
-    long alphaBits;
+    int32_t alphaBits;
     unsigned char keyMask;
     unsigned char *key;
     unsigned char id[255];

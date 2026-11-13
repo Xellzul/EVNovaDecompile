@@ -2,7 +2,7 @@
 {
 #ifdef MAC1010
     Rect box;
-    long missionResID;
+    int32_t missionResID;
     short refuseDescID;
     Handle itemHandle;
     Point pt;
@@ -27,7 +27,7 @@
 #elif defined(MACBUILD)
     Point pt;
     Rect box;
-    long missionResID;
+    int32_t missionResID;
     short refuseDescID;
     Handle itemHandle;
     short itemType;
@@ -53,7 +53,7 @@
     short refuseDescID;
     Boolean refused;
     Boolean done;
-    long missionResID;
+    int32_t missionResID;
     void *itemHandle;
     short itemType;
     short itemHit;

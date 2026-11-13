@@ -167,7 +167,7 @@ Word32 DigitalMusicULaw(DigitalMusicReadState_t *State, Word Command, Word8 *Buf
     Word32 Result;
     Word32 Remaining;
     Word32 Chunk;
-    long Got;
+    int32_t Got;
     const short *Table;
     Word8 *Src;
 
@@ -227,7 +227,7 @@ Word32 DigitalMusicALaw(DigitalMusicReadState_t *State, Word Command, Word8 *Buf
     Word32 Result;
     Word32 Remaining;
     Word32 Chunk;
-    long Got;
+    int32_t Got;
     const short *Table;
     Word8 *Src;
 
@@ -728,7 +728,7 @@ Word32 DigitalMusicOgg(DigitalMusicReadState_t *State, Word Command, Word8 *Buff
     char *Data;
     int i;
     int Eos;
-    long Got;
+    int32_t Got;
     float **Pcm;
     int Samples;
     int Bout;

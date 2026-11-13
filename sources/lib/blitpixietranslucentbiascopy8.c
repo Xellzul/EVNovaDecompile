@@ -12,9 +12,9 @@
 // FUNCTION: EVNOVA 0x00473e00
 // MAC: _BlitPixieTranslucentBiasCopy8 i386 0x000c17e6 ppc 0x000cd840
 void BlitPixieTranslucentBiasCopy8(unsigned char *dstPixels,
-                                   unsigned char *srcPixels, long count)
+                                   unsigned char *srcPixels, int32_t count)
 {
-    long i;
+    int32_t i;
     unsigned char *s;
     unsigned char *d;
 

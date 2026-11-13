@@ -42,15 +42,15 @@ typedef struct OutfRecord {
     short dailyRoll;
     short sameNameIndex;
     short govtRestrict;
-    long cost;
+    int32_t cost;
     unsigned short scanMask;
     unsigned char name[64];
     char availability[255];
     char onPurchase[255];
     char onSell[255];
     Boolean pad367;
-    long contributes[2];
-    long requires[2];
+    int32_t contributes[2];
+    int32_t requires[2];
     Boolean persistent;
     char pad379[3];
 } OutfRecord;
@@ -58,8 +58,8 @@ typedef struct OutfRecord {
 struct ShipRec;
 struct ShipObj;
 
-extern long AdjustedItemCost(OutfRecord *outf, struct ShipRec *ship);
-extern long AdjustedItemMass(OutfRecord *outf, struct ShipRec *ship);
+extern int32_t AdjustedItemCost(OutfRecord *outf, struct ShipRec *ship);
+extern int32_t AdjustedItemMass(OutfRecord *outf, struct ShipRec *ship);
 extern void GetShipPaintColor(struct ShipObj *ship, unsigned short *red,
                          unsigned short *green, unsigned short *blue);
 extern void MungeBriefing(Boolean briefing, short which);
@@ -67,7 +67,7 @@ extern unsigned char LaunchFighter(struct ShipObj *parent, short fighterType);
 #ifdef MACBUILD
 extern void SpawnSmoke(FloatPoint pos, short type, short sprite);
 #else
-extern void SpawnSmoke(float x, float y, long type, short sprite);
+extern void SpawnSmoke(float x, float y, int32_t type, short sprite);
 #endif
 
 typedef struct ShipRec {
@@ -93,11 +93,11 @@ typedef struct ShipRec {
     float weapDecay;
     float shieldRech;
     float armorRech;
-    long cost;
-    long shield;
-    long armor;
-    long escUpgradeCost;
-    long tradeIn;
+    int32_t cost;
+    int32_t shield;
+    int32_t armor;
+    int32_t escUpgradeCost;
+    int32_t tradeIn;
     unsigned char name[64];
     unsigned char subtitle[64];
     char availability[255];
@@ -141,8 +141,8 @@ typedef struct ShipRec {
     unsigned short dailyHireRoll;
     unsigned short dailySaleRoll;
     char padA2E[2];
-    long contributes[2];
-    long requires[2];
+    int32_t contributes[2];
+    int32_t requires[2];
     Boolean cargoNotFixed;
     unsigned char canAppear;
     ShortPoint weapPos[4][4];
@@ -248,7 +248,7 @@ typedef struct ShanRec {
 /* one packed 24-bit colour, 3 bytes used of 4 */
 typedef union RawTriple {
     unsigned short w;
-    unsigned long rgb;
+    uint32_t rgb;
 } RawTriple;
 
 typedef struct IntfRec {
@@ -313,7 +313,7 @@ typedef struct MisnRes {
     short dropOffMode;
     short scanMask;
     short unused1A;
-    long payVal;
+    int32_t payVal;
     short shipCount;
     short shipSyst;
     short shipDude;
@@ -350,8 +350,8 @@ typedef struct MisnRes {
     char onSuccess[255];
     char onFailure[255];
     char onAbort[255];
-    unsigned long require1;
-    unsigned long require2;
+    uint32_t require1;
+    uint32_t require2;
     short datePostInc;
     char onShipDone[255];
     char acceptButton[32];
@@ -364,7 +364,7 @@ typedef struct SpobRes {
     short xPos;
     short yPos;
     short type;
-    unsigned long flags;
+    uint32_t flags;
     short tribute;
     short techLevel;
     short specialTech[3];
@@ -380,10 +380,10 @@ typedef struct SpobRes {
     short hyperLink[8];
     char onDominate[255];
     char onRelease[255];
-    long fee;
+    int32_t fee;
     short gravity;
     short weapon;
-    long strength;
+    int32_t strength;
     short deadType;
     short deadTime;
     short explodType;
@@ -401,17 +401,17 @@ typedef struct OutfRes {
     short modVal;
     short max;
     short flags;
-    long cost;
+    int32_t cost;
     short modType2;
     short modVal2;
     short modType3;
     short modVal3;
     short modType4;
     short modVal4;
-    unsigned long contribute1;
-    unsigned long contribute2;
-    unsigned long require1;
-    unsigned long require2;
+    uint32_t contribute1;
+    uint32_t contribute2;
+    uint32_t require1;
+    uint32_t require2;
     char availability[255];
     char onPurchase[255];
     char onSell[255];
@@ -429,9 +429,9 @@ typedef struct RankRes {
     short weight;
     short attachTo;
     short flags;
-    long salary;
-    long salaryCap;
-    unsigned long contribute[2];
+    int32_t salary;
+    int32_t salaryCap;
+    uint32_t contribute[2];
     short priceMod;
     char name[64];
     char shortName[64];
@@ -451,7 +451,7 @@ typedef struct SystRes {
     short interference;
     short person[8];
     short personProb[8];
-    unsigned long bkgndColor;
+    uint32_t bkgndColor;
     short murk;
     short astTypes;
     char visibility[256];
@@ -483,12 +483,12 @@ typedef struct WeapRes {
     short partVel;
     short partLifeMin;
     short partLifeMax;
-    unsigned long partColor;
+    uint32_t partColor;
     short beamLength;
     short beamWidth;
     short falloff;
-    unsigned long beamColor;
-    unsigned long coronaColor;
+    uint32_t beamColor;
+    uint32_t coronaColor;
     short subCount;
     short subType;
     short subTheta;
@@ -499,7 +499,7 @@ typedef struct WeapRes {
     short hitParticles;
     short hitPartLife;
     short hitPartVel;
-    unsigned long hitPartColor;
+    uint32_t hitPartColor;
     short recoil;
     short exitType;
     short burstCount;
@@ -511,7 +511,7 @@ typedef struct WeapRes {
     short maxAmmo;
     short liCohesive;
     short liAmplitude;
-    unsigned long liColor;
+    uint32_t liColor;
     short reserved[8];
 } WeapRes;
 
@@ -541,11 +541,11 @@ typedef struct GovtRes {
     short scanMask;
     char commName[16];
     char targetCode[16];
-    unsigned long require[2];
+    uint32_t require[2];
     short inhJam[4];
     char mediumName[64];
-    unsigned long color;
-    unsigned long shipColor;
+    uint32_t color;
+    uint32_t shipColor;
     short interfaceID;
     short newsPic;
     short reserved[8];
@@ -592,8 +592,8 @@ typedef struct CronRes {
     char enableOn[255];
     char onStart[255];
     char onEnd[255];
-    unsigned long contribute[2];
-    unsigned long require[2];
+    uint32_t contribute[2];
+    uint32_t require[2];
     short newsGovt[4];
     short govtNewsStr[4];
 } CronRes;
@@ -604,7 +604,7 @@ typedef struct RoidRes {
     short yieldType;
     short yieldQty;
     short partCount;
-    unsigned long partColor;
+    uint32_t partColor;
     short fragType[2];
     short fragCount;
     short explodType;
@@ -613,17 +613,17 @@ typedef struct RoidRes {
 } RoidRes;
 
 typedef struct ColrRes {
-    unsigned long buttonColor[3];
+    uint32_t buttonColor[3];
     char menuFont[64];
     short menuFontSize;
-    unsigned long menuColor[2];
-    unsigned long gridColor[2];
+    uint32_t menuColor[2];
+    uint32_t gridColor[2];
     Rect progressBar;
-    unsigned long progressColor[3];
+    uint32_t progressColor[3];
     short buttonPos[12];
-    unsigned long floatingMapColor;
-    unsigned long listColor[3];
-    unsigned long escortHiliteColor;
+    uint32_t floatingMapColor;
+    uint32_t listColor[3];
+    uint32_t escortHiliteColor;
     char buttonFont[64];
     short buttonFontSize;
     short logoPos[2];
@@ -647,7 +647,7 @@ typedef struct ShipRes {
     short maxGun;
     short maxTur;
     short techLevel;
-    long cost;
+    int32_t cost;
     short deathDelay;
     short armorRe;
     short explode[2];
@@ -665,8 +665,8 @@ typedef struct ShipRes {
     short fuelRegen;
     short skillVar;
     short flags2;
-    unsigned long contribute1;
-    unsigned long contribute2;
+    uint32_t contribute1;
+    uint32_t contribute2;
     char availability[255];
     char appearOn[255];
     char onPurchase[255];
@@ -675,8 +675,8 @@ typedef struct ShipRes {
     short keyCarried;
     short defaultItems2[4];
     short itemCount2[4];
-    unsigned long require1;
-    unsigned long require2;
+    uint32_t require1;
+    uint32_t require2;
     short buyRandom;
     short hireRandom;
     short unused38C[34];
@@ -692,8 +692,8 @@ typedef struct ShipRes {
     char subtitle[64];
     short flags3;
     short upgradeTo;
-    unsigned long escUpgrdCost;
-    unsigned long escSellValue;
+    uint32_t escUpgrdCost;
+    uint32_t escSellValue;
     short escortType;
     short reserved[8];
 } ShipRes;
@@ -708,7 +708,7 @@ typedef struct PersRes {
     Rect weapType;
     Rect weapCount;
     Rect ammoLoad;
-    long credits;
+    int32_t credits;
     short shieldMod;
     short hailPict;
     short commQuote;
@@ -720,7 +720,7 @@ typedef struct PersRes {
     short grantCount;
     short grantProb;
     char subtitle[64];
-    unsigned long shipColor;
+    uint32_t shipColor;
     short flags2;
     short reserved[8];
 } PersRes;
@@ -768,8 +768,8 @@ typedef struct CronRecord {
     short indNewsStr;
     unsigned short flags;
     char pad3E[2];
-    long contributes[2];
-    long requires[2];
+    int32_t contributes[2];
+    int32_t requires[2];
     char enableOn[255];
     char onStart[255];
     char onEnd[258];
@@ -791,7 +791,7 @@ typedef struct PersRecord {
     short weapCount[256];
     char unk218[0x200];
     short weapAmmo[256];
-    long credits;
+    int32_t credits;
     float shieldMod;
     Boolean loaded;
     Boolean grudge;
@@ -856,7 +856,7 @@ typedef struct SystRecord {
     RGBColor rgb;
     unsigned short astTypes;
     char pad1F6[2];
-    unsigned long mapPixel;
+    uint32_t mapPixel;
 } SystRecord;
 
 typedef struct NebuRecord {
@@ -923,9 +923,9 @@ typedef struct RankRecord {
     short govt;
     short priceMod;
     char padA[2];
-    long salary;
-    long salaryCap;
-    long contributes[2];
+    int32_t salary;
+    int32_t salaryCap;
+    int32_t contributes[2];
     unsigned short flags;
     char name[128];
     char convName[64];
@@ -983,7 +983,7 @@ EXTERN_CPP_END
 /* chär resource, 0x16a bytes, read in place through charFileHand. */
 #pragma options align=mac68k
 typedef struct CharRecord {
-    long cash;
+    int32_t cash;
     short shipType;
     short startSyst[4];
     short govt[4];

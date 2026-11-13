@@ -9,6 +9,7 @@
 		#include <Carbon.h>
 	#endif
 #endif
+#include "int32.h"
 
 #if PRAGMA_ONCE
 #pragma once
@@ -262,7 +263,7 @@ FSGetFileDirName(
 OSErr
 FSGetNodeID(
 	const FSRef *ref,
-	long *nodeID,
+	int32_t *nodeID,
 	Boolean *isDirectory);
 
 OSErr

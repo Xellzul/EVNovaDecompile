@@ -15,7 +15,7 @@ typedef struct ITPopup {
     unsigned char language;                      /* the LANGUAGE popup: never shown */
     unsigned char pad05[3];
     ITRect bounds;
-    long selected;                               /* 1-based */
+    int32_t selected;                               /* 1-based */
     unsigned char active;
     unsigned char visible;
     unsigned char enabled;
@@ -41,18 +41,18 @@ typedef struct ITPopup {
    exe 668 / obj 668, byte-identical yes. OPEN: none (`top` is assigned inside the
    CreateWindowEx arguments, evaluated right to left: notes/itpopup.md) */
 // FUNCTION: EVNOVA 0x0052174c
-long IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
+int32_t IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULong msg, ULong a,
                   void *b)
 {
     ITPopup *popup;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char dead;
     char *title;
     void *windowDC;
     void *hit;
     unsigned char skip;
-    long top;
+    int32_t top;
     ITElement *first;
     ITElement *item;
     unsigned char update;
@@ -60,7 +60,7 @@ long IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULon
     ITRect r;
     char text[256];
     POINT origin;
-    long index;
+    int32_t index;
 
     popup = *data;
     dead = 0;
@@ -115,12 +115,12 @@ long IT_PopupHandler(void *hwnd, void *dc, ITElement *element, void **data, ULon
             title = _IT_SimpleFindAttribute(item, "TITLE");
             skip = (!title || !*title) || !StringCompare(title, "-");
             if (!skip)
-                SendMessageA(popup->combo, CB_ADDSTRING, 0, (long)title);
+                SendMessageA(popup->combo, CB_ADDSTRING, 0, (int32_t)title);
             if (!skip && _IT_SimpleFindAttribute(item, "DEFAULT") != 0)
                 popup->selected = SendMessageA(popup->combo, CB_GETCOUNT, 0, 0) - 1;
         }
         if (SendMessageA(popup->combo, CB_GETCOUNT, 0, 0) == 0)
-            SendMessageA(popup->combo, CB_ADDSTRING, 0, (long)"none");
+            SendMessageA(popup->combo, CB_ADDSTRING, 0, (int32_t)"none");
         SendMessageA(popup->combo, CB_SETCURSEL, 0, 0);
         SetWindowPos(popup->combo, 0, popup->bounds.left, popup->bounds.top,
                      popup->bounds.right - popup->bounds.left,
@@ -282,7 +282,7 @@ compare:
                 length = kTextMax - 1;
             MemoryCopy(value, *handle, length);
             value[length] = 0;
-            if (SendMessageA(popup->combo, CB_SELECTSTRING, -1, (long)value) == CB_ERR) {
+            if (SendMessageA(popup->combo, CB_SELECTSTRING, -1, (int32_t)value) == CB_ERR) {
                 err = CB_ERR;
                 err = kNotFound;
                 goto done;
@@ -290,9 +290,9 @@ compare:
         }
         break;
     case kMsgGetValue:
-        *(long *)b = popup->selected;
+        *(int32_t *)b = popup->selected;
         if (popup->combo != 0)
-            *(long *)b = SendMessageA(popup->combo, CB_GETCURSEL, 0, 0) + 1;
+            *(int32_t *)b = SendMessageA(popup->combo, CB_GETCURSEL, 0, 0) + 1;
         break;
     case kMsgSetValue:
         popup->selected = a;

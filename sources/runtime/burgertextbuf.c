@@ -43,7 +43,7 @@ void StreamHandleEndSave(TextBuilder *b)
 
 /* StreamHandlePutByte. STATE: MATCH 100%, exe 42 / obj 42 instrs, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00527250
-void StreamHandlePutByte(TextBuilder *b, long ch)
+void StreamHandlePutByte(TextBuilder *b, int32_t ch)
 {
     ULong pos;
     ULong end;

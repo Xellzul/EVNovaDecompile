@@ -1,6 +1,7 @@
 /* gametypes.h -- shared record and runtime-object layouts; types only. Notes: Research/notes/gametypes.md */
 #ifndef GAMETYPES_H
 #define GAMETYPES_H
+#include "int32.h"
 
 /* the C++-linkage declarations of the win build's C++ TUs; the mac build is C only */
 #if defined(__MWERKS__) && !defined(MACBUILD)
@@ -95,36 +96,36 @@ typedef struct DialogRecord *DialogPtr;
 typedef struct PictCacheSlot {
     short                  picID;
     char pad02[0x2];
-    unsigned long          stamp;
+    uint32_t          stamp;
 } PictCacheSlot;
 
 typedef struct ResRecord {
     struct RezFile         *rez;
-    long                   index;
-    unsigned long          type;
+    int32_t                   index;
+    uint32_t          type;
     short                  id;
     char                   name[258];
 } ResRecord;
 
 /* one resource type in a RezFile's type table, stride 0x0c. */
 typedef struct RezTypeEntry {
-    unsigned long          type;
+    uint32_t          type;
     ResRecord              *first;
-    unsigned long          count;
+    uint32_t          count;
 } RezTypeEntry;
 
 /* BurgerLib's RezHeader_t (0x24 bytes), then the port's type table */
 typedef struct RezFile {
     void                   (*decompress[3])(unsigned char *dst, unsigned char *src,
-                                            unsigned long length, unsigned long packLength);
-    unsigned long          groupCount;
-    unsigned long          nameCount;
+                                            uint32_t length, uint32_t packLength);
+    uint32_t          groupCount;
+    uint32_t          nameCount;
     void                   *file;
     struct RezGroup        **groups;
     struct RezName         **names;
-    unsigned long          flags;
+    uint32_t          flags;
     RezTypeEntry           *types;
-    unsigned long          typeCount;
+    uint32_t          typeCount;
 } RezFile;
 
 /* one parallax star slot (starData[], stride 0x14) */
@@ -175,8 +176,8 @@ EXTERN_CPP_END
 
 #ifndef MACBUILD
 typedef struct UnsignedWide {
-    unsigned long          lo;
-    unsigned long          hi;
+    uint32_t          lo;
+    uint32_t          hi;
 } UnsignedWide;
 
 typedef struct DateTimeRec {
@@ -260,7 +261,7 @@ typedef struct GovtRecord {
     char                   pad5E[2];
     float                  maxOdds;
     float                  skillMult;
-    long                   requires[2];
+    int32_t                   requires[2];
     RGBColor               rgb;
     RGBColor               rgb2;
     RGBColor               rgbBytes;
@@ -287,12 +288,12 @@ typedef struct SpobRecord {
     short                  daysDominated;
     short                  weapon;
     short                  burstShots;
-    unsigned long          flags;
+    uint32_t          flags;
     unsigned short         flags2;
     char                   pad36[2];
-    long                   landingFee;
-    long                   deadCounter;
-    long                   strength;
+    int32_t                   landingFee;
+    int32_t                   deadCounter;
+    int32_t                   strength;
     Boolean                   loaded;
     Boolean                prepared;
     Boolean                dominated;
@@ -357,7 +358,7 @@ typedef struct BoxObj {
 /* the live preferences; PrefsRecord is their file image */
 typedef struct Settings {
 #if V111
-    long reserved;
+    int32_t reserved;
 #endif
     Boolean introMusic;
     Boolean voicesOn;
@@ -438,8 +439,8 @@ typedef struct MissionAvailRec {
     unsigned short         flags;
     unsigned short         flags2;
     char                   availBits[256];
-    unsigned long          requires[2];
-    long                   payment;
+    uint32_t          requires[2];
+    int32_t                   payment;
     short                  dispWeight;
     char pad12A[2];
 } MissionAvailRec;
@@ -451,7 +452,7 @@ typedef struct BriefMissionRec {
     short                  cargoUnits;
     short                  returnStellar;
     short                  returnSystem;
-    long                   payment;
+    int32_t                   payment;
     DateTimeRec            dueDate;
     short                  unk1E;
 } BriefMissionRec;
@@ -478,7 +479,7 @@ typedef struct MissionRecord {
     short                  compGovt;
     short                  compReward;
     short                  datePostIncrement;
-    long                   payment;
+    int32_t                   payment;
     short                  specialShipsKilled;
     short                  specialShipsBoarded;
     short                  specialShipsDisabled;
@@ -506,7 +507,7 @@ typedef struct MissionRecord {
     short                  shipTypeIndex;
     unsigned short         flags;
     unsigned short         flags2;
-    long                   unk59[2];
+    int32_t                   unk59[2];
     short                  auxShipCount;
     short                  auxShipDude;
     short                  auxShipSyst;
@@ -590,11 +591,11 @@ typedef struct WeapRecord {
     short                  subTheta;
     short                  subLimit;
     char pad82[0x2];
-    unsigned long          beamColor;
-    unsigned long          coronaColor;
-    unsigned long          partColor[8];
-    unsigned long          hitPartColor;
-    unsigned long          ionizeColor;
+    uint32_t          beamColor;
+    uint32_t          coronaColor;
+    uint32_t          partColor[8];
+    uint32_t          hitPartColor;
+    uint32_t          ionizeColor;
     short                  burstCount;
     short                  burstReload;
     short                  decayShots;
@@ -613,12 +614,12 @@ typedef struct RoidRecord {
     short                  explodType;
     char pad12[0x2];
     float                  frameRate;
-    unsigned long          color;
+    uint32_t          color;
 } RoidRecord;
 
 typedef struct PrefsFileRec {
     struct PrefsNode       *file;
-    long                   dirty;
+    int32_t                   dirty;
 } PrefsFileRec;
 
 /* the four shot sprite layers, in address order */

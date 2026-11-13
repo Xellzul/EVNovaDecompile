@@ -16,7 +16,7 @@ extern "C" {
 
 
 /* --- one declaration per name --- */
-extern Boolean PlaySoundDistance(long unused, void *sound, short flags,
+extern Boolean PlaySoundDistance(int32_t unused, void *sound, short flags,
                               FloatPoint *pos, FloatPoint *listener);
                                                       /* 0x004692e0 (engineutils.c) */
 extern void AdjustSoundVolume(void);                  /* 0x0046ab60 (mac _AdjustSoundVolume) */
@@ -25,7 +25,7 @@ extern void LoadSounds(void);                            /* 0x004b0740 */
 extern void PlaySound(void *snd, short id, short leftVol, short rightVol);      /* 0x0046aad0 */
 #pragma cplusplus on
 EXTERN_CPP_BEGIN
-extern unsigned long lastMoviesTaskTime;
+extern uint32_t lastMoviesTaskTime;
 extern short pendingVoiceGovt;          /* 0x00735400 (globaldefs.c) */
 extern short voiceResourceCount[kVoiceSets][kVoiceMessages]; /* 0x005979da gameloop.c */
 extern short pendingVoiceMsg;           /* 0x007353fe (globaldefs.c) */

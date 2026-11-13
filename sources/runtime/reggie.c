@@ -33,7 +33,7 @@ GlobalEntry *gVersionList;                     /* 0x008701ac list head */
 #endif
 
 void _ReggieServerOffline(SessionContext *ctx, const char *reason);
-long ReggieLookupTimer(SessionContext *ctx, SessionEntry *entry);
+int32_t ReggieLookupTimer(SessionContext *ctx, SessionEntry *entry);
 
 #define kProductEntry   0x108
 #define kReplyFlags     8                        /* any of ! : < = > ~ separates */
@@ -57,8 +57,8 @@ unsigned char (*gReggiePacketProc)(NetSocket *s, const char *data, ULong length,
 unsigned char (*gReggiePrejoinProc)(NetSocket *s, const NetAddress *local,
                                   const NetAddress *from);   /* 0x00870dec */
 unsigned char (*gReggieSendFailedProc)(NetSocket *s, const NetAddress *from); /* 0x00870928 */
-long (*gNT_MatchedProc)(NetSocket *s, const NetAddress *peer);  /* 0x0086ffac MATCH hook */
-long (*gNT_InvitedProc)(NetSocket *s, const NetAddress *peer); /* 0x0086fffc INVITE hook */
+int32_t (*gNT_MatchedProc)(NetSocket *s, const NetAddress *peer);  /* 0x0086ffac MATCH hook */
+int32_t (*gNT_InvitedProc)(NetSocket *s, const NetAddress *peer); /* 0x0086fffc INVITE hook */
 #endif
 
 #define kNatNone        0
@@ -98,28 +98,28 @@ NatRoute *gMappingList;                          /* 0x00870174 the NAT routes se
 #define kLineBytes          0x1000
 
 AT_STATIC NatRoute *_ReggieFindMapping(unsigned short port, ULong ip, unsigned char tcp);
-AT_STATIC long ReggieOpenTracker(void);
-long _ReggieSendHash(SessionContext *ctx, struct HashTable *t);
-AT_STATIC long _ReggieSendString(SessionContext *ctx, const char *fmt, ...);
-AT_STATIC long _ReggieSendIndirect(SessionContext *ctx, void **h);
-AT_STATIC SessionEntry *_ReggieMatchChannel(SessionContext *ctx, long kind, unsigned char tcp, const NetAddress *local, const NetAddress *remote);
-long _ReggieMatchBegin(void *ref, ULong kind, unsigned char tcp, const NetAddress *local, const NetAddress *remote);
-AT_STATIC long _ReggieProbeEnd(SessionContext *ctx, SessionEntry *entry);
+AT_STATIC int32_t ReggieOpenTracker(void);
+int32_t _ReggieSendHash(SessionContext *ctx, struct HashTable *t);
+AT_STATIC int32_t _ReggieSendString(SessionContext *ctx, const char *fmt, ...);
+AT_STATIC int32_t _ReggieSendIndirect(SessionContext *ctx, void **h);
+AT_STATIC SessionEntry *_ReggieMatchChannel(SessionContext *ctx, int32_t kind, unsigned char tcp, const NetAddress *local, const NetAddress *remote);
+int32_t _ReggieMatchBegin(void *ref, ULong kind, unsigned char tcp, const NetAddress *local, const NetAddress *remote);
+AT_STATIC int32_t _ReggieProbeEnd(SessionContext *ctx, SessionEntry *entry);
 AT_STATIC void _ReggieProbeUpdate(SessionContext *ctx, SessionEntry *entry, const NetAddress *from, const char *seen);
 AT_STATIC ULong ReggieMeetMethod(ULong nat, ULong peerNat);
 AT_STATIC ULong ReggieProbeCheck(void *ref, unsigned char tcp, const NetAddress *local, NetAddress *out);
 AT_STATIC SessionEntry *_ReggieMessageChannel(SessionContext *ctx);
-AT_STATIC long ReggieSendPermissions(SessionContext *ctx, SessionEntry *entry);
-AT_STATIC long _ReggieSearchEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
+AT_STATIC int32_t ReggieSendPermissions(SessionContext *ctx, SessionEntry *entry);
+AT_STATIC int32_t _ReggieSearchEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
 AT_STATIC ULong ReggieProbePrejoin(SessionContext *ctx, const NetAddress *address);
-AT_STATIC long _ReggieInsertEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
-AT_STATIC long ReggieInsertBegin(void *ref, ULong slot, long mode, struct HashTable *record);
-AT_STATIC long _ReggieChannelClose(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
-AT_STATIC long ReggieRawPacket(void *ref, const char *data, ULong length, const NetAddress *from);
-AT_STATIC long _ReggiePacketExtract(void **h, struct HashTable **out);
-AT_STATIC long _ReggiePacketDecode(char *data, ULong length, struct ZState *z, unsigned char binary, void ***out);
-AT_STATIC long ReggiePacket(void *ref, MutexNode *node);
-AT_STATIC long _ReggieOpen(void);
+AT_STATIC int32_t _ReggieInsertEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
+AT_STATIC int32_t ReggieInsertBegin(void *ref, ULong slot, int32_t mode, struct HashTable *record);
+AT_STATIC int32_t _ReggieChannelClose(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
+AT_STATIC int32_t ReggieRawPacket(void *ref, const char *data, ULong length, const NetAddress *from);
+AT_STATIC int32_t _ReggiePacketExtract(void **h, struct HashTable **out);
+AT_STATIC int32_t _ReggiePacketDecode(char *data, ULong length, struct ZState *z, unsigned char binary, void ***out);
+AT_STATIC int32_t ReggiePacket(void *ref, MutexNode *node);
+AT_STATIC int32_t _ReggieOpen(void);
 
 #define kStateIdle          0
 #define kStateClosed        (-1)
@@ -154,40 +154,40 @@ AT_STATIC long _ReggieOpen(void);
 #define kLookupsFormat      "REGGIE LOOKUP CXID=%s HOSTID=%lu RECORDS='%s'"
 #define kCancelFormat       "REGGIE CANCEL CXID=%s HOSTID=%lu"
 
-AT_STATIC long ReggieOpenTracker(void);
-AT_STATIC long _ReggieOpen(void);
-long _ReggieSendHash(SessionContext *ctx, struct HashTable *t);
-AT_STATIC long _ReggieSendString(SessionContext *ctx, const char *fmt, ...);
-AT_STATIC long _ReggieSendIndirect(SessionContext *ctx, void **h);
+AT_STATIC int32_t ReggieOpenTracker(void);
+AT_STATIC int32_t _ReggieOpen(void);
+int32_t _ReggieSendHash(SessionContext *ctx, struct HashTable *t);
+AT_STATIC int32_t _ReggieSendString(SessionContext *ctx, const char *fmt, ...);
+AT_STATIC int32_t _ReggieSendIndirect(SessionContext *ctx, void **h);
 AT_STATIC void _ReggieProbeUpdate(SessionContext *ctx, SessionEntry *entry, const NetAddress *from,
                   const char *seen);
-AT_STATIC SessionEntry *_ReggieMatchChannel(SessionContext *ctx, long kind, unsigned char tcp,
+AT_STATIC SessionEntry *_ReggieMatchChannel(SessionContext *ctx, int32_t kind, unsigned char tcp,
                            const NetAddress *local, const NetAddress *remote);
-long _ReggieMatchBegin(void *ref, ULong kind, unsigned char tcp, const NetAddress *local,
+int32_t _ReggieMatchBegin(void *ref, ULong kind, unsigned char tcp, const NetAddress *local,
                   const NetAddress *remote);
 AT_STATIC ULong ReggieProbeCheck(void *ref, unsigned char tcp, const NetAddress *local,
                    NetAddress *out);
 AT_STATIC SessionEntry *_ReggieMessageChannel(SessionContext *ctx);
-AT_STATIC long ReggieSendPermissions(SessionContext *ctx, SessionEntry *entry);
-AT_STATIC long _ReggieSearchEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
-AT_STATIC long _ReggieInsertEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
-AT_STATIC long ReggieInsertBegin(void *ref, ULong slot, long mode, struct HashTable *record);
-AT_STATIC long _ReggieChannelClose(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
-AT_STATIC long ReggieRawPacket(void *ref, const char *data, ULong length,
+AT_STATIC int32_t ReggieSendPermissions(SessionContext *ctx, SessionEntry *entry);
+AT_STATIC int32_t _ReggieSearchEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
+AT_STATIC int32_t _ReggieInsertEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
+AT_STATIC int32_t ReggieInsertBegin(void *ref, ULong slot, int32_t mode, struct HashTable *record);
+AT_STATIC int32_t _ReggieChannelClose(SessionContext *ctx, SessionEntry *entry, unsigned char cancel);
+AT_STATIC int32_t ReggieRawPacket(void *ref, const char *data, ULong length,
                   const NetAddress *from);
-AT_STATIC long ReggiePacket(void *ref, MutexNode *node);
+AT_STATIC int32_t ReggiePacket(void *ref, MutexNode *node);
 
 /* Keep the first error from a call and leave for the cleanup. */
 #define FAIL(x) do { err = (x); goto done; } while (0)
-#define TRY(x)  do { long e = (x); if (e != 0) FAIL(e); } while (0)
+#define TRY(x)  do { int32_t e = (x); if (e != 0) FAIL(e); } while (0)
 #define TRYE(x) do { e = (x); if (e != 0) { err = e; goto done; } } while (0)
-#define TRYV(x) do { long e = (x); if (e) FAIL(e); } while (0)
+#define TRYV(x) do { int32_t e = (x); if (e) FAIL(e); } while (0)
 #define TRYALLOC(x) do { if ((x) == 0) FAIL(kOutOfMemory); } while (0)
 
 /* The owner's callback, with the entry's slot (0 without one). */
-static inline void Notify(SessionContext *ctx, SessionEntry *entry, long event)
+static inline void Notify(SessionContext *ctx, SessionEntry *entry, int32_t event)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (ctx->proc != 0) {
@@ -198,11 +198,11 @@ static inline void Notify(SessionContext *ctx, SessionEntry *entry, long event)
 }
 
 /* A reply field read as a number: 0 when it is missing or empty. */
-static inline long TableNumber(struct HashTable *t, const char *key)
+static inline int32_t TableNumber(struct HashTable *t, const char *key)
 {
     const char *s;
 #ifdef MAC1010 /* 1.0.10 spelling */
-    long value;
+    int32_t value;
 #else
     ULong value;
 #endif
@@ -218,7 +218,7 @@ static inline long TableNumber(struct HashTable *t, const char *key)
 /* The tracker socket and its two packet lists, torn down. */
 static inline void CloseTracker(void)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (gReggiePrivateRef != 0) {
@@ -248,7 +248,7 @@ static inline void StripOtherKeys(struct HashTable *t)
     char *key;
     char *value;
     ULong i;
-    long err;
+    int32_t err;
 
     err = 0;
     for (i = 0; HashIndex(t, i, &key, &value) != 0; i++) {
@@ -264,8 +264,8 @@ static inline struct HashTable *PopRequest(void **h)
     struct HashTable **tables;
     struct HashTable *next;
     ULong n;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     next = 0;
@@ -282,10 +282,10 @@ static inline struct HashTable *PopRequest(void **h)
     return next;
 }
 
-static inline long AppendTable(void **list, struct HashTable *table)
+static inline int32_t AppendTable(void **list, struct HashTable *table)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     e = IndirectAppendData(list, &table, sizeof(table));
@@ -299,7 +299,7 @@ static inline void StripDollarKeys(struct HashTable *t)
     char *key;
     char *value;
     ULong i;
-    long err;
+    int32_t err;
 
     err = 0;
     for (i = 0; HashIndex(t, i, &key, &value) != 0; i++) {
@@ -319,7 +319,7 @@ static inline ULong PeerMethod(SessionContext *ctx, const NetAddress **local,
     const NetAddress **l;
     const NetAddress **f;
     ULong nat, peerNat;
-    long err;
+    int32_t err;
     ULong a, b;
 
     peerNat = kNatUnknown;
@@ -342,7 +342,7 @@ static inline SessionEntry *FindDirect(SessionContext *ctx, unsigned short port,
                                        unsigned char tcp)
 {
     SessionEntry *entry;
-    long err;
+    int32_t err;
 
     err = 0;
     entry = 0;
@@ -353,10 +353,10 @@ static inline SessionEntry *FindDirect(SessionContext *ctx, unsigned short port,
     return 0;
 }
 
-static inline long SendCancel(SessionContext *ctx, SessionEntry *entry)
+static inline int32_t SendCancel(SessionContext *ctx, SessionEntry *entry)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     e = _ReggieSendString(ctx, kCancelFormat,
@@ -373,9 +373,9 @@ static inline long SendCancel(SessionContext *ctx, SessionEntry *entry)
     return err;
 }
 
-static inline long DropNamed(SessionEntry **entry)
+static inline int32_t DropNamed(SessionEntry **entry)
 {
-    long err = 0;
+    int32_t err = 0;
     struct HashTable *product;
 
     if ((*entry)->request != 0) {
@@ -391,18 +391,18 @@ static inline long DropNamed(SessionEntry **entry)
     return err;
 }
 
-static inline long DropPeer(SessionContext **ctx, SessionEntry **entry)
+static inline int32_t DropPeer(SessionContext **ctx, SessionEntry **entry)
 {
-    long err = 0;
+    int32_t err = 0;
     SessionContext **c = ctx;
     SessionEntry **en = entry;
 
     return err;
 }
 
-static inline long PollPeer(SessionContext **ctx, SessionEntry **entry)
+static inline int32_t PollPeer(SessionContext **ctx, SessionEntry **entry)
 {
-    long err;
+    int32_t err;
     SessionEntry **en;
     SessionContext **c;
 
@@ -412,19 +412,19 @@ static inline long PollPeer(SessionContext **ctx, SessionEntry **entry)
     return err;
 }
 
-static inline long PollHandle(SessionContext *ctx, SessionEntry *entry)
+static inline int32_t PollHandle(SessionContext *ctx, SessionEntry *entry)
 {
-    long err = 0;
+    int32_t err = 0;
     SessionContext **c = &ctx;
     SessionEntry **en = &entry;
 
     return err;
 }
 
-static inline long PollIdle(SessionContext **ctx, SessionEntry **entry)
+static inline int32_t PollIdle(SessionContext **ctx, SessionEntry **entry)
 {
     SessionEntry *en;
-    long err;
+    int32_t err;
     SessionContext *c;
 
     en = *entry;
@@ -433,9 +433,9 @@ static inline long PollIdle(SessionContext **ctx, SessionEntry **entry)
     return err;
 }
 
-static inline long CheckInstance(SessionContext *ctx, struct HashTable *table)
+static inline int32_t CheckInstance(SessionContext *ctx, struct HashTable *table)
 {
-    long err = 0;
+    int32_t err = 0;
     const char *s;
 
     s = HashLookup(table, "$INSTANCE", 0);
@@ -454,7 +454,7 @@ ULong _ReggieNetworkFromString(void *unused, const char *text)
 {
     char word[kWordBytes];
     ULong type;
-    long err;
+    int32_t err;
 
     err = 0;
     type = kNatUnknown;
@@ -502,8 +502,8 @@ unsigned char ReggieDescribeConnection(SessionContext *ctx, const char *host, ch
     NatRoute *route;
     ULong i;
     ULong count;
-    long err;
-    long ok;
+    int32_t err;
+    int32_t ok;
 
     err = 0;
     ok = 1;
@@ -591,7 +591,7 @@ AT_STATIC NatRoute *_ReggieFindMapping(unsigned short port, ULong ip, unsigned c
     ULong addr;
     ULong i;
     ULong count;
-    long err;
+    int32_t err;
 
     err = 0;
     route = 0;
@@ -627,7 +627,7 @@ NatRoute *_ReggieAddMapping(unsigned short localPort, unsigned short port, ULong
                        ULong natType, unsigned char tcp)
 {
     NatRoute *route;
-    long err;
+    int32_t err;
 
     err = 0;
     route = 0;
@@ -665,13 +665,13 @@ done:
    back, rounding a plain one to the minute; each entry is re-added at the end). STATE:
    MATCH 100%, exe 110 / obj 110, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f3ccc
-long _ReggieHashTimestamp(struct HashTable *t, unsigned char forward, long seconds)
+int32_t _ReggieHashTimestamp(struct HashTable *t, unsigned char forward, int32_t seconds)
 {
     char *key;
     char *value;
     char number[kTextBytes];
     ULong v;
-    long err;
+    int32_t err;
     ULong count;
     char tag;
 
@@ -732,7 +732,7 @@ void _ReggieFixProductName(char *out, const char *src)
    context says so, else a text line). STATE: MATCH 100%, exe 52 / obj 52, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f3e67
-ReggieLocal ULong _ReggieBufferCallback(long unk0, void *ref, NetChunk *chunk, unsigned char second)
+ReggieLocal ULong _ReggieBufferCallback(int32_t unk0, void *ref, NetChunk *chunk, unsigned char second)
 {
     SessionContext *ctx;
     ULong length;
@@ -817,7 +817,7 @@ ReggieLocal void _ReggieNetworkCallback(NetSocket *s, void *ref, unsigned short 
 void ReggieRefused(SessionContext *ctx, const char *reason)
 {
     SessionEntry *e;
-    long err;
+    int32_t err;
 
     err = 0;
     e = 0;
@@ -848,7 +848,7 @@ void ReggieRefused(SessionContext *ctx, const char *reason)
 void _ReggieServerOffline(SessionContext *ctx, const char *reason)
 {
     SessionEntry *e;
-    long err;
+    int32_t err;
 
     err = 0;
     e = 0;
@@ -890,8 +890,8 @@ void ReggieOnHello(SessionContext *ctx, const char *instance, const char *motd,
                   ULong serverTime)
 {
     SessionEntry *messages;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     const char *text;
 
     err = 0;
@@ -964,7 +964,7 @@ static unsigned char _ReggieVersionRemove(const char *product)
 // FUNCTION: EVNOVA 0x004f420b
 GlobalEntry *_ReggieVersionInsert(const char *name, struct HashTable *reply)
 {
-    long err;
+    int32_t err;
     GlobalEntry *entry;
 
     err = 0;
@@ -1027,8 +1027,8 @@ void _ReggiePrivateTickle(void)
     GlobalEntry *entry;
 #endif
     GlobalEntry *spare;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     GlobalEntry *found;
 
     err = 0;
@@ -1147,22 +1147,22 @@ done:
    listed afresh and one VERSION datagram goes out). STATE: MATCH 100%, exe 118 / obj 118,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f4513
-long ReggieBeginVersionDirect(const char *name)
+int32_t ReggieBeginVersionDirect(const char *name)
 {
 #ifdef MAC1010 /* 1.0.10 spelling */
     GlobalEntry **link;
     GlobalEntry *entry;
     NetPacket *packet;
     unsigned char found;
-    long result;
-    long err;
+    int32_t result;
+    int32_t err;
 #else
-    long err;
+    int32_t err;
     NetPacket *packet;
     GlobalEntry **link;
     GlobalEntry *entry;
     unsigned char found;
-    long result;
+    int32_t result;
 #endif
 
     err = 0;
@@ -1219,9 +1219,9 @@ done:
    packet lists and a UDP socket). STATE: MATCH 100%, exe 92 / obj 92, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f4650
-AT_STATIC long ReggieOpenTracker(void)
+AT_STATIC int32_t ReggieOpenTracker(void)
 {
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     if (gReggiePrivateRef != 0)
@@ -1255,7 +1255,7 @@ done:
 void _ReggieLookupDispose(SessionContext *ctx, SessionEntry *entry)
 {
     ULong i;
-    long err;
+    int32_t err;
 
     err = 0;
     if (entry->records != 0) {
@@ -1285,7 +1285,7 @@ void ReggieStoreLookupRecord(SessionContext *ctx, SessionEntry *entry, struct Ha
     char *key;
     char *value;
     ULong i;
-    long err;
+    int32_t err;
 
     err = 0;
     if (entry->records[index].table != 0)
@@ -1314,7 +1314,7 @@ void ReggieStoreLookupRecord(SessionContext *ctx, SessionEntry *entry, struct Ha
 // FUNCTION: EVNOVA 0x004f4925
 void _ReggieLookupRequest(SessionContext *ctx, SessionEntry *entry, ULong max, char *out)
 {
-    long err;
+    int32_t err;
     ULong now;
     ULong timeout;
     ULong i;
@@ -1395,13 +1395,13 @@ void _ReggieLookupRequest(SessionContext *ctx, SessionEntry *entry, ULong max, c
    for the ones waiting longest, after 3 idle periods -- a quarter once three have come in).
    STATE: MATCH 100%, exe 101 / obj 101, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f4b1c
-long ReggieLookupTimer(SessionContext *ctx, SessionEntry *entry)
+int32_t ReggieLookupTimer(SessionContext *ctx, SessionEntry *entry)
 {
     char ranges[kTextBytes];
     double factor;
     ULong timeout;
     ULong now;
-    long err;
+    int32_t err;
 
     err = 0;
     if (ctx->state != kStateOnline) {
@@ -1434,10 +1434,10 @@ done:
 /* ReggieMakeLookupRecords (make a lookup entry's `count' records, each a table holding key=value). STATE:
    MATCH 100%, exe 79 / obj 79, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f4c79
-long ReggieMakeLookupRecords(SessionContext *ctx, SessionEntry *entry, const char *key,
+int32_t ReggieMakeLookupRecords(SessionContext *ctx, SessionEntry *entry, const char *key,
                   const char *value, ULong count)
 {
-    long err;
+    int32_t err;
     ULong i;
 
     err = 0;
@@ -1473,9 +1473,9 @@ done:
 /* _ReggieSendHash (send a table: a copy with its $TIME keys moved to the server's clock,
    serialised). STATE: MATCH 100%, exe 56 / obj 56, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f4d6b
-long _ReggieSendHash(SessionContext *ctx, struct HashTable *t)
+int32_t _ReggieSendHash(SessionContext *ctx, struct HashTable *t)
 {
-    long err, e;
+    int32_t err, e;
     void **h;
     struct HashTable *copy;
 
@@ -1507,13 +1507,13 @@ done:
 /* _ReggieSendString (send a formatted request line). STATE: MATCH 100%, exe 56 / obj 56, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f4de4
-AT_STATIC long _ReggieSendString(SessionContext *ctx, const char *fmt, ...)
+AT_STATIC int32_t _ReggieSendString(SessionContext *ctx, const char *fmt, ...)
 {
     char text[kLineBytes];
     va_list args;
-    long err;
+    int32_t err;
     void **h;
-    long result;
+    int32_t result;
 
     err = 0;
     h = 0;
@@ -1538,14 +1538,14 @@ AT_STATIC long _ReggieSendString(SessionContext *ctx, const char *fmt, ...)
    length; a failure drops the connection). STATE: MATCH 100%, exe 103 / obj 103,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f4e7c
-AT_STATIC long _ReggieSendIndirect(SessionContext *ctx, void **h)
+AT_STATIC int32_t _ReggieSendIndirect(SessionContext *ctx, void **h)
 {
     unsigned short length;
 #ifndef MAC1010
     char text[kLineBytes];
     ULong size;
 #endif
-    long err, e;
+    int32_t err, e;
 
     err = 0;
 #ifndef MAC1010
@@ -1593,7 +1593,7 @@ ReggieLocal void _ReggieIdleCallback(void)
 {
     SessionContext *ctx;
     SessionContext *next;
-    long err;
+    int32_t err;
 
     err = 0;
     for (ctx = gReggieList; ctx != 0; ctx = next) {
@@ -1609,12 +1609,12 @@ ReggieLocal void _ReggieIdleCallback(void)
    and the owner hears event 8). STATE: MATCH 100%, exe 181 / obj 181, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f4fbe
-long ReggieResultVersion(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
+int32_t ReggieResultVersion(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
 {
     const char *cxid;
     const char *s;
     const char *version;
-    long err;
+    int32_t err;
 
     err = 0;
     s = 0;
@@ -1656,12 +1656,12 @@ done:
 /* ReggieResultSearch (a SEARCH result: the lookup's record count; make the records and ask for the
    first ones). STATE: MATCH 100%, exe 222 / obj 222, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f5219
-long ReggieResultSearch(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
+int32_t ReggieResultSearch(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
 {
     char kindName[kSessionNameLen];
     char ranges[kTextBytes];
     ULong count;
-    long err;
+    int32_t err;
     const char *s;
 
     err = 0;
@@ -1716,11 +1716,11 @@ done:
 /* _ReggieRecv_RESULT_PROBE (a PROBE result: classify our NAT from what the server saw, or close the direct
    entry when it failed). STATE: MATCH 100%, exe 55 / obj 55, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f54f6
-long _ReggieRecv_RESULT_PROBE(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply,
+int32_t _ReggieRecv_RESULT_PROBE(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply,
                   const NetAddress *from)
 {
     const char *s;
-    long err;
+    int32_t err;
 
     err = 0;
     s = HashLookup(reply, "RESULT", 0);
@@ -1742,7 +1742,7 @@ long _ReggieRecv_RESULT_PROBE(SessionContext *ctx, SessionEntry *entry, struct H
 }
 
 /* Stand-in: the linker strips this; the exe keeps its literals (body not recoverable). */
-long InstanceResult(SessionContext *ctx, struct HashTable *reply)
+int32_t InstanceResult(SessionContext *ctx, struct HashTable *reply)
 {
     return CheckInstance(ctx, reply);
 }
@@ -1750,12 +1750,12 @@ long InstanceResult(SessionContext *ctx, struct HashTable *reply)
 /* ReggieResultMessage (a MESSAGE result: send the next queued message). STATE: MATCH 100%, exe
    122 / obj 122, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f5583
-long ReggieResultMessage(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
+int32_t ReggieResultMessage(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
 {
     const char *s;
-    long result;
-    long err;
-    long e;
+    int32_t result;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     result = 0;
@@ -1786,11 +1786,11 @@ done:
 /* ReggieResultMatch (a MATCH result: the request is done). STATE: MATCH 100%, exe 57 / obj 57,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f56ef
-long ReggieResultMatch(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
+int32_t ReggieResultMatch(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
 {
     const char *s;
     const char *result;
-    long err;
+    int32_t err;
 
     result = 0;
     err = 0;
@@ -1813,7 +1813,7 @@ long ReggieResultMatch(SessionContext *ctx, SessionEntry *entry, struct HashTabl
 /* _ReggieRecv_RESULT_LOOKUP (a LOOKUP result: one record, stripped to its $ keys and moved to our
    clock). STATE: MATCH 100%, exe 161 / obj 161, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f578e
-long _ReggieRecv_RESULT_LOOKUP(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
+int32_t _ReggieRecv_RESULT_LOOKUP(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
 {
 #ifdef MAC1010 /* 1.0.10 spelling */
     char kindName[kSessionNameLen];
@@ -1822,9 +1822,9 @@ long _ReggieRecv_RESULT_LOOKUP(SessionContext *ctx, SessionEntry *entry, struct 
     char *value;
     char *key;
     ULong index;
-    long err;
+    int32_t err;
     struct HashTable *copy;
-    long result;
+    int32_t result;
 #else
     char kindName[kSessionNameLen];
     struct HashTable *copy;
@@ -1833,8 +1833,8 @@ long _ReggieRecv_RESULT_LOOKUP(SessionContext *ctx, SessionEntry *entry, struct 
     char *key;
     ULong index;
     ULong i;
-    long err;
-    long result;
+    int32_t err;
+    int32_t result;
 #endif
 
     err = 0;
@@ -1882,11 +1882,11 @@ done:
 /* ReggieResultInvite (an INVITE result: the request is done). STATE: MATCH 100%, exe 57 / obj 57,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f59b2
-long ReggieResultInvite(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
+int32_t ReggieResultInvite(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
 {
     const char *s;
     const char *result;
-    long err;
+    int32_t err;
 
     result = 0;
     err = 0;
@@ -1909,10 +1909,10 @@ long ReggieResultInvite(SessionContext *ctx, SessionEntry *entry, struct HashTab
 /* ReggieResultInsert (an INSERT result: tell the owner, or drop the insert on an error). STATE:
    MATCH 100%, exe 81 / obj 81, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f5a51
-long ReggieResultInsert(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
+int32_t ReggieResultInsert(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
 {
     const char *s;
-    long err;
+    int32_t err;
 
     err = 0;
     if (entry != 0 && entry->kind == kEntryKindInsert && entry->requestedAt != 0) {
@@ -1939,14 +1939,14 @@ long ReggieResultInsert(SessionContext *ctx, SessionEntry *entry, struct HashTab
    known, send the probe server two probes). STATE: MATCH 100%, exe 149 / obj 149,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f5b48
-long _ReggieRecv_RESULT_HELLO(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
+int32_t _ReggieRecv_RESULT_HELLO(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
 {
-    long err = 0;
+    int32_t err = 0;
     void *packet = 0;
     const char *s;
-    long hostId;
-    long e;
-    long result;
+    int32_t hostId;
+    int32_t e;
+    int32_t result;
 #ifdef MAC1010 /* 1.0.10 spelling */
     const char *text;
 #endif
@@ -1990,9 +1990,9 @@ done:
 /* ReggieResultCancel (a CANCEL result: the entry is dropped either way). STATE: MATCH 100%, exe 59 /
    obj 59, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f5cec
-long ReggieResultCancel(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
+int32_t ReggieResultCancel(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
 {
-    long err;
+    int32_t err;
     const char *s;
     const char *result;
 
@@ -2016,14 +2016,14 @@ long ReggieResultCancel(SessionContext *ctx, SessionEntry *entry, struct HashTab
 /* _ReggieRecv_RESULT_BLOCK (an ALLOW or BLOCK result: send the next queued permission). STATE: MATCH
    100%, exe 151 / obj 151, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f5d7d
-long _ReggieRecv_RESULT_BLOCK(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
+int32_t _ReggieRecv_RESULT_BLOCK(SessionContext *ctx, SessionEntry *entry, struct HashTable *reply)
 {
     char *key;
     char *s;
     unsigned char block;
-    long result;
-    long err;
-    long e;
+    int32_t result;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     block = 0;
@@ -2057,9 +2057,9 @@ done:
 /* ReggieRequestPing (the server's PING: answer with an empty RESULT). STATE: MATCH 100%, exe 52 /
    obj 52, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f5f33
-long ReggieRequestPing(SessionContext *ctx, SessionEntry *entry, struct HashTable *request)
+int32_t ReggieRequestPing(SessionContext *ctx, SessionEntry *entry, struct HashTable *request)
 {
-    long err;
+    int32_t err;
     struct HashTable *reply;
 
     err = 0;
@@ -2084,11 +2084,11 @@ done:
 /* _ReggieRecv_NOTIFY (the server's NOTIFY for a lookup: mark it, tell the owner, answer). STATE:
    MATCH 100%, exe 95 / obj 95, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f5fb8
-long _ReggieRecv_NOTIFY(SessionContext *ctx, SessionEntry *entry, struct HashTable *request)
+int32_t _ReggieRecv_NOTIFY(SessionContext *ctx, SessionEntry *entry, struct HashTable *request)
 {
     struct HashTable *reply;
     const char *s;
-    long err;
+    int32_t err;
 
     err = 0;
     reply = 0;
@@ -2121,13 +2121,13 @@ done:
    then answer with the request stripped of its $ keys). STATE: MATCH 100%, exe 170 / obj
    170, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f60c6
-long _ReggieRecv_MESSAGE(SessionContext *ctx, SessionEntry *entry, struct HashTable *request)
+int32_t _ReggieRecv_MESSAGE(SessionContext *ctx, SessionEntry *entry, struct HashTable *request)
 {
-    long err;
+    int32_t err;
     struct HashTable *reply;
     struct HashTable *copy;
     const char *cxid;
-    long result;
+    int32_t result;
 
     err = 0;
     reply = 0;
@@ -2183,16 +2183,16 @@ done:
    answer, tell the owner and the MATCH hook). STATE: MATCH 100%, exe 129 / obj 129,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f62b4
-long _ReggieRecv_MATCH(SessionContext *ctx, SessionEntry *entry, struct HashTable *request)
+int32_t _ReggieRecv_MATCH(SessionContext *ctx, SessionEntry *entry, struct HashTable *request)
 {
-    long err;
+    int32_t err;
     NetAddress target;
     NetAddress sender;
     struct HashTable *reply;
     const char *result;
     const char *s;
     const char *t;
-    long e;
+    int32_t e;
     unsigned char ok;
 
     err = 0;
@@ -2242,13 +2242,13 @@ done:
 /* _ReggieRecv_INVITE (the server's INVITE: as MATCH, with $METHOD=TCP asking for a stream). STATE:
    MATCH 100%, exe 143 / obj 143, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f643e
-long _ReggieRecv_INVITE(SessionContext *ctx, SessionEntry *entry, struct HashTable *request)
+int32_t _ReggieRecv_INVITE(SessionContext *ctx, SessionEntry *entry, struct HashTable *request)
 {
     const char *result;
     NetAddress target;
     NetAddress sender;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     struct HashTable *reply;
     const char *s;
     unsigned char tcp;
@@ -2303,11 +2303,11 @@ done:
 /* _ReggieMatchChannel (record an incoming MATCH or INVITE: our address and the peer's). STATE: MATCH
    100%, exe 67 / obj 67, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f6601
-AT_STATIC SessionEntry *_ReggieMatchChannel(SessionContext *ctx, long kind, unsigned char tcp,
+AT_STATIC SessionEntry *_ReggieMatchChannel(SessionContext *ctx, int32_t kind, unsigned char tcp,
                            const NetAddress *local, const NetAddress *remote)
 {
     ULong slot;
-    long err;
+    int32_t err;
     SessionEntry *entry;
 
     err = 0;
@@ -2337,7 +2337,7 @@ done:
    $METHOD only for MATCH). STATE: MATCH 100%, exe 197 / obj 197, byte-identical yes. OPEN:
    none */
 // FUNCTION: EVNOVA 0x004f66b7
-long _ReggieMatchBegin(void *ref, ULong kind, unsigned char tcp, const NetAddress *local,
+int32_t _ReggieMatchBegin(void *ref, ULong kind, unsigned char tcp, const NetAddress *local,
                   const NetAddress *remote)
 {
     ULong slot;
@@ -2345,8 +2345,8 @@ long _ReggieMatchBegin(void *ref, ULong kind, unsigned char tcp, const NetAddres
     char hostText[kTextBytes];
     SessionContext *ctx;
     SessionEntry *entry;
-    long err, e;
-    long result;
+    int32_t err, e;
+    int32_t result;
 
     ctx = ref;
     err = 0;
@@ -2410,10 +2410,10 @@ done:
 /* _ReggieProbeEnd (close a direct entry's socket, UDP or TCP, and empty its two lists). STATE:
    MATCH 100%, exe 48 / obj 48, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f6940
-AT_STATIC long _ReggieProbeEnd(SessionContext *ctx, SessionEntry *entry)
+AT_STATIC int32_t _ReggieProbeEnd(SessionContext *ctx, SessionEntry *entry)
 {
     NetSocket *s;
-    long err;
+    int32_t err;
 
     err = 0;
     s = entry->u.direct.socket;
@@ -2438,9 +2438,9 @@ AT_STATIC long _ReggieProbeEnd(SessionContext *ctx, SessionEntry *entry)
 /* _ReggieReinsert (our address changed: insert every HOST record again). STATE: MATCH 100%, exe
    51 / obj 51, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f69d1
-long _ReggieReinsert(SessionContext *ctx)
+int32_t _ReggieReinsert(SessionContext *ctx)
 {
-    long err;
+    int32_t err;
     struct HashTable *copy;
     SessionEntry *entry;
 
@@ -2472,7 +2472,7 @@ done:
 AT_STATIC void _ReggieProbeUpdate(SessionContext *ctx, SessionEntry *entry, const NetAddress *from,
                   const char *seen)
 {
-    long err = 0;
+    int32_t err = 0;
     ULong count;
     unsigned short serverPort = 0, fromPort = 0;
     ULong serverIp = 0, fromIp = 0;
@@ -2485,8 +2485,8 @@ AT_STATIC void _ReggieProbeUpdate(SessionContext *ctx, SessionEntry *entry, cons
     ULong nat;
     ULong old;
     ULong i;
-    long e;
-    long ok;
+    int32_t e;
+    int32_t ok;
 
     nat = kNatUnknown;
     ok = 1;
@@ -2580,9 +2580,9 @@ done:
    the route is recorded and the socket closed). STATE: MATCH 100%, exe 205 / obj 205,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f6dc1
-long ReggiePollDirect(SessionContext *ctx, SessionEntry *entry)
+int32_t ReggiePollDirect(SessionContext *ctx, SessionEntry *entry)
 {
-    long err;
+    int32_t err;
     unsigned char timedOut;
     NetPacket *packet;
     void **message;
@@ -2590,7 +2590,7 @@ long ReggiePollDirect(SessionContext *ctx, SessionEntry *entry)
     unsigned short localPort;
     unsigned short port;
     ULong ip;
-    long result;
+    int32_t result;
 
     err = 0;
     timedOut = 0;
@@ -2673,8 +2673,8 @@ ReggieLocal unsigned char _ReggieProbePrejoin(NetSocket *s, const NetAddress *lo
     ULong method;
     void **h;
     unsigned char handled;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     const char *text;
     const NetAddress *peer;
     const NetAddress *peer2;
@@ -2731,7 +2731,7 @@ ReggieLocal unsigned char _ReggieProbePrejoin(NetSocket *s, const NetAddress *lo
 AT_STATIC ULong ReggieMeetMethod(ULong nat, ULong peerNat)
 {
     ULong method;
-    long err;
+    int32_t err;
 
     method = kPunchNone;
     err = 0;
@@ -2825,8 +2825,8 @@ AT_STATIC ULong ReggieProbeCheck(void *ref, unsigned char tcp, const NetAddress 
     unsigned short ownPort;
     unsigned short port;
     ULong nat;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     ctx = ref;
     err = 0;
@@ -2885,7 +2885,7 @@ void *ReggieVersionCheck(void *ref, const char *name)
     SessionEntry *entry;
     GlobalEntry *node;
     void *found;
-    long err;
+    int32_t err;
 
     ctx = ref;
     err = 0;
@@ -2921,11 +2921,11 @@ void ReggieProbeBegin(struct HashTable *t, const char *port, char *packet)
 /* ReggieVersionBegin. STATE: MATCH 100%, exe 191 / obj 191 instrs, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f7571
-long ReggieVersionBegin(SessionContext *ctx, const char *name)
+int32_t ReggieVersionBegin(SessionContext *ctx, const char *name)
 {
-    long err = 0;
-    long result;
-    long e;
+    int32_t err = 0;
+    int32_t result;
+    int32_t e;
     SessionEntry *entry;
     ULong slot;
 
@@ -2983,9 +2983,9 @@ done:
 /* ReggieFreeMessages (free a kind-3 entry's request, its two tables and its two handles of tables).
    STATE: MATCH 100%, exe 87 / obj 87, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f77e9
-long ReggieFreeMessages(SessionContext *ctx, SessionEntry *entry)
+int32_t ReggieFreeMessages(SessionContext *ctx, SessionEntry *entry)
 {
-    long err;
+    int32_t err;
     ULong i;
     ULong count;
     void **h;
@@ -3030,7 +3030,7 @@ long ReggieFreeMessages(SessionContext *ctx, SessionEntry *entry)
 // FUNCTION: EVNOVA 0x004f78c3
 AT_STATIC SessionEntry *_ReggieMessageChannel(SessionContext *ctx)
 {
-    long err = 0;
+    int32_t err = 0;
     SessionEntry *entry = 0;
     ULong slot;
 
@@ -3070,13 +3070,13 @@ done:
    meaning everyone; the first goes out, the rest queue behind it). STATE: MATCH 100%, exe 148
    / obj 148, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f79b3
-AT_STATIC long ReggieSendPermissions(SessionContext *ctx, SessionEntry *entry)
+AT_STATIC int32_t ReggieSendPermissions(SessionContext *ctx, SessionEntry *entry)
 {
     ULong i;
     char *target;
     char *value;
     char hostText[kTextBytes];
-    long err;
+    int32_t err;
     struct HashTable *t;
 
     err = 0;
@@ -3121,10 +3121,10 @@ done:
 /* _ReggieSearchEnd (end a lookup: at once, or by sending CANCEL first). STATE: MATCH 100%, exe 97
    / obj 97, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f7b7e
-AT_STATIC long _ReggieSearchEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel)
+AT_STATIC int32_t _ReggieSearchEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     if (cancel != 0) {
@@ -3162,7 +3162,7 @@ AT_STATIC ULong ReggieProbePrejoin(SessionContext *ctx, const NetAddress *addres
 {
     char text[kTextBytes];
     ULong result;
-    long err;
+    int32_t err;
     SessionEntry *e;
     struct HashTable *t;
     const char *seen;
@@ -3225,10 +3225,10 @@ done:
 /* _ReggieInsertEnd (end an insert: at once, or by sending CANCEL first). STATE: MATCH 100%, exe 82
    / obj 82, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f7dc3
-AT_STATIC long _ReggieInsertEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel)
+AT_STATIC int32_t _ReggieInsertEnd(SessionContext *ctx, SessionEntry *entry, unsigned char cancel)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     if (cancel != 0) {
@@ -3271,11 +3271,11 @@ void ReggieSearchBegin(struct HashTable *record, struct HashTable *request)
    public and private addresses and NAT type added when the record lacks them).
    STATE: MATCH 100%, exe 269 / obj 269, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f7eb7
-AT_STATIC long ReggieInsertBegin(void *ref, ULong slot, long mode, struct HashTable *record)
+AT_STATIC int32_t ReggieInsertBegin(void *ref, ULong slot, int32_t mode, struct HashTable *record)
 {
     SessionContext *ctx = ref;
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
     char publicText[kTextBytes];
     char localText[kTextBytes];
     char natText[kTextBytes];
@@ -3371,13 +3371,13 @@ done:
    then its request, and unlink and free it). STATE: MATCH 100%, exe 119 / obj 119,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f8245
-AT_STATIC long _ReggieChannelClose(SessionContext *ctx, SessionEntry *entry, unsigned char cancel)
+AT_STATIC int32_t _ReggieChannelClose(SessionContext *ctx, SessionEntry *entry, unsigned char cancel)
 {
-    long err = 0;
+    int32_t err = 0;
     SessionEntry **link = 0;
-    long result;
-    long dropped;
-    long released;
+    int32_t result;
+    int32_t dropped;
+    int32_t released;
 
     switch (entry->kind) {
     case kEntryKindInsert:
@@ -3426,29 +3426,29 @@ done:
    after 3 s plus one per try; after five tries the connection is dropped). STATE: MATCH
    100%, exe 185 / obj 185, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f83a8
-long _ReggieChannelTickle(SessionContext *ctx, SessionEntry *entry)
+int32_t _ReggieChannelTickle(SessionContext *ctx, SessionEntry *entry)
 {
-    long elapsed2;
-    long err = 0;
-    long limit2;
+    int32_t elapsed2;
+    int32_t err = 0;
+    int32_t limit2;
     unsigned char tries2;
-    long e;
-    long polled;
-    long inserted;
-    unsigned long at2;
-    long elapsed;
-    long limit;
+    int32_t e;
+    int32_t polled;
+    int32_t inserted;
+    uint32_t at2;
+    int32_t elapsed;
+    int32_t limit;
     unsigned char tries;
-    unsigned long at;
+    uint32_t at;
 
     switch (entry->kind) {
     case kEntryKindInsert:
         inserted = PollPeer(&ctx, &entry);
         break;
     case kEntryKindLookup: {
-        long result;
-        long lookupErr;
-        long status;
+        int32_t result;
+        int32_t lookupErr;
+        int32_t status;
         SessionContext *c;
         SessionEntry *en;
 
@@ -3534,9 +3534,9 @@ done:
 /* _ReggieChannelPacket (send an entry's request now when online, else mark it waiting). STATE: MATCH
    100%, exe 41 / obj 41, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f8610
-AT_STATIC long _ReggieChannelPacket(SessionContext *ctx, SessionEntry *entry)
+AT_STATIC int32_t _ReggieChannelPacket(SessionContext *ctx, SessionEntry *entry)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     HashLookup(entry->request, "CXID", 0);
@@ -3564,7 +3564,7 @@ static SlotText sBlankSlot;                      /* 0x008675a1 the empty text Re
 // FUNCTION: EVNOVA 0x004f8694
 SessionEntry *ReggieFindByCxid(SessionContext *ctx, const char *cxid)
 {
-    long err = 0;
+    int32_t err = 0;
     SessionEntry *entry = 0;
     ULong slot = 0;
     SlotText text = sBlankSlot;
@@ -3586,7 +3586,7 @@ SessionEntry *ReggieFindByCxid(SessionContext *ctx, const char *cxid)
 
 /* ReggieChannelOpen. STATE: MATCH 100%, exe 21 / obj 21, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f8733
-AT_STATIC long ReggieChannelOpen(void *ref, ULong *slot)
+AT_STATIC int32_t ReggieChannelOpen(void *ref, ULong *slot)
 {
     SessionContext *ctx;
     SessionEntry *entry;
@@ -3634,7 +3634,7 @@ unsigned char ReggieSendFailed(NetSocket *s, const NetAddress *from)
 {
     SessionContext *ctx;
     unsigned char seen;
-    long err;
+    int32_t err;
 
     err = 0;
     ctx = 0;
@@ -3655,7 +3655,7 @@ unsigned char ReggieSendFailed(NetSocket *s, const NetAddress *from)
 // FUNCTION: EVNOVA 0x004f87b9
 ReggieLocal unsigned char _ReggieSharedEndpoint(NetSocket *s)
 {
-    long err;
+    int32_t err;
     SessionContext *ctx;
 
     err = 0;
@@ -3683,7 +3683,7 @@ ReggieLocal unsigned char _ReggiePacketSniffer(NetSocket *s, const char *data, U
 {
     unsigned char taken;
     SessionContext *ctx;
-    long err, e;
+    int32_t err, e;
 
     err = 0;
     taken = false;
@@ -3706,11 +3706,11 @@ ReggieLocal unsigned char _ReggiePacketSniffer(NetSocket *s, const char *data, U
 /* ReggieRawPacket (a hooked datagram into one of the session's packets, dispatched at once).
    STATE: MATCH 100%, exe 57 / obj 57, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f8852
-AT_STATIC long ReggieRawPacket(void *ref, const char *data, ULong length,
+AT_STATIC int32_t ReggieRawPacket(void *ref, const char *data, ULong length,
                   const NetAddress *from)
 {
     SessionContext *ctx;
-    long err;
+    int32_t err;
     MutexNode *node;
     NetPacket *packet;
 
@@ -3743,10 +3743,10 @@ done:
 /* _ReggiePacketExtract (take lines off the front of a handle until one parses to a non-empty
    KEY=VALUE table). STATE: MATCH 100%, exe 127 / obj 127, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f88e6
-AT_STATIC long _ReggiePacketExtract(void **h, struct HashTable **out)
+AT_STATIC int32_t _ReggiePacketExtract(void **h, struct HashTable **out)
 {
     ULong size, rest;
-    long err, e;
+    int32_t err, e;
 #ifndef MAC1010
     char line[kLineBytes];
 #endif
@@ -3815,12 +3815,12 @@ AT_STATIC long _ReggiePacketExtract(void **h, struct HashTable **out)
    with its NULs turned to spaces). STATE: MATCH 100%, exe 87 / obj 87, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004f8a31
-AT_STATIC long _ReggiePacketDecode(char *data, ULong length, struct ZState *z, unsigned char binary,
+AT_STATIC int32_t _ReggiePacketDecode(char *data, ULong length, struct ZState *z, unsigned char binary,
                   void ***out)
 {
     ULong i;
-    long result;
-    long err;
+    int32_t result;
+    int32_t err;
 
     err = 0;
     *out = 0;
@@ -3862,10 +3862,10 @@ AT_STATIC long _ReggiePacketDecode(char *data, ULong length, struct ZState *z, u
    anything else is answered "Unexpected or invalid request"). STATE: MATCH 100%, exe 616 /
    obj 616, byte-identical (see the commit). OPEN: none */
 // FUNCTION: EVNOVA 0x004f8b05
-AT_STATIC long ReggiePacket(void *ref, MutexNode *node)
+AT_STATIC int32_t ReggiePacket(void *ref, MutexNode *node)
 {
     SessionContext *ctx = ref;
-    long err = 0;
+    int32_t err = 0;
     unsigned char handled = 0;
     char *key;
     char *value;
@@ -3877,8 +3877,8 @@ AT_STATIC long ReggiePacket(void *ref, MutexNode *node)
     NetAddress from;
     NetPacket *packet;
     NetChunk *chunk;
-    long result;
-    long e;
+    int32_t result;
+    int32_t e;
 
     if (ctx->state == kStateClosed) {
         err = kClosedError;
@@ -4122,15 +4122,15 @@ done:
    PING, timeouts -- then each entry's timers while online). STATE: MATCH 100%, exe 393 /
    obj 393, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f9309
-AT_STATIC long ReggieTickle(void *ref)
+AT_STATIC int32_t ReggieTickle(void *ref)
 {
     SessionContext *ctx;
     struct HashTable *hello;
     MutexNode *node;
     ULong now;
-    long elapsed;
-    long err;
-    long result;
+    int32_t elapsed;
+    int32_t err;
+    int32_t result;
     SessionEntry *e;
     unsigned char retry;
     unsigned char polling;
@@ -4172,24 +4172,24 @@ AT_STATIC long ReggieTickle(void *ref)
     case kStateIdle:
         elapsed = now - ctx->receivedAt;
         if (elapsed < 15) {
-            if ((long)(now - ctx->stateAt) > 10)
+            if ((int32_t)(now - ctx->stateAt) > 10)
                 retry = 1;
         } else if (elapsed < 60) {
-            if ((long)(now - ctx->stateAt) > 30)
+            if ((int32_t)(now - ctx->stateAt) > 30)
                 retry = 1;
         } else if (elapsed < 600) {
-            if ((long)(now - ctx->stateAt) > 60)
+            if ((int32_t)(now - ctx->stateAt) > 60)
                 retry = 1;
         } else if (elapsed < 1800) {
-            if ((long)(now - ctx->stateAt) > 180)
+            if ((int32_t)(now - ctx->stateAt) > 180)
                 retry = 1;
         } else if (elapsed < 3600) {
-            if ((long)(now - ctx->stateAt) > 360)
+            if ((int32_t)(now - ctx->stateAt) > 360)
                 retry = 1;
         } else if (elapsed < 86400) {
-            if ((long)(now - ctx->stateAt) > 900)
+            if ((int32_t)(now - ctx->stateAt) > 900)
                 retry = 1;
-        } else if ((long)(now - ctx->stateAt) > 3600) {
+        } else if ((int32_t)(now - ctx->stateAt) > 3600) {
             retry = 1;
         }
         if (retry != 0) {
@@ -4198,7 +4198,7 @@ AT_STATIC long ReggieTickle(void *ref)
                 ProgressiveDispose(&ctx->inflater);
                 ctx->stateAt = TimerGetElapsedSeconds();
                 StreamDispose(ctx->socket);
-                TRYALLOC(ctx->socket = (NetSocket *)StreamCreateBuffered(0, ctx, _ReggieNetworkCallback, (long)_ReggieBufferCallback,
+                TRYALLOC(ctx->socket = (NetSocket *)StreamCreateBuffered(0, ctx, _ReggieNetworkCallback, (int32_t)_ReggieBufferCallback,
                                                              ctx->freeList, ctx->freeList,
                                                              ctx->recvList, ctx->recvList));
                 result = StreamOpenClient(ctx->socket, 0, &ctx->server, 0);
@@ -4287,15 +4287,15 @@ AT_STATIC long ReggieTickle(void *ref)
         }
         break;
     case kStateOnline:
-        if (ctx->resets >= 2 && (long)(now - ctx->receivedAt) > 3) {
+        if (ctx->resets >= 2 && (int32_t)(now - ctx->receivedAt) > 3) {
             _ReggieServerOffline(ctx, "Lost connection to server");
             break;
         }
-        if ((long)(now - ctx->receivedAt) > 130) {
+        if ((int32_t)(now - ctx->receivedAt) > 130) {
             _ReggieServerOffline(ctx, "Lost connection to server");
             break;
         }
-        if ((long)(now - ctx->receivedAt) > 30 && (long)(now - ctx->sentAt) > 30) {
+        if ((int32_t)(now - ctx->receivedAt) > 30 && (int32_t)(now - ctx->sentAt) > 30) {
             TRYV(_ReggieSendString(ctx, "REGGIE PING HOSTID=%lu", ctx->hostSource));
             ctx->sentAt = TimerGetElapsedSeconds();
         }
@@ -4320,9 +4320,9 @@ done:
 /* _ReggieOpen (network start-up for REGGIE, once: the idle proc and the shared socket's four
    hooks). STATE: MATCH 100%, exe 27 / obj 27, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004f9899
-AT_STATIC long _ReggieOpen(void)
+AT_STATIC int32_t _ReggieOpen(void)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (gReggieOpen != 0)

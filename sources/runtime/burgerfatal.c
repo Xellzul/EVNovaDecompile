@@ -18,7 +18,7 @@ Word BombFlag;                                   /* 0x008701bc */
 
 typedef struct KeyName {
     const char *name;
-    long code;
+    int32_t code;
 } KeyName;
 
 /* 0x005776dc */

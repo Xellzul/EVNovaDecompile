@@ -29,12 +29,12 @@ OSStatus ATSU_DrawTextBox(ATSUTextLayout layout, const Rect *box, Handle lines)
     Fixed y;
     Fixed from;
     Fixed to;
-    long total;
+    int32_t total;
     ULong i;
     ULong count;
-    long offset;
-    long ascent;
-    long descent;
+    int32_t offset;
+    int32_t ascent;
+    int32_t descent;
     ATSULine line;
     ATSTrapezoid bounds;
     UniCharArrayOffset start;

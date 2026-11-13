@@ -10,7 +10,7 @@
     ULong keyLen;
     ULong sep;
     ULong valueStart;
-    long err, e;
+    int32_t err, e;
     ULong pos;
     ULong state;
     ULong c;

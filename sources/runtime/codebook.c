@@ -16,7 +16,7 @@
    OPEN: none. */
 // FUNCTION: EVNOVA 0x0054cc80
 int vorbis_staticbook_unpack(oggpack_buffer *opb,static_codebook *s){
-  long i,j;
+  int32_t i,j;
   FastMemSet(s,0,sizeof(*s));
   s->allocedp=1;
 
@@ -28,12 +28,12 @@ int vorbis_staticbook_unpack(oggpack_buffer *opb,static_codebook *s){
 
   switch((int)oggpack_read1(opb)){
   case 0:
-    s->lengthlist=(long *)_ogg_malloc(sizeof(*s->lengthlist)*s->entries);
+    s->lengthlist=(int32_t *)_ogg_malloc(sizeof(*s->lengthlist)*s->entries);
 
     if(oggpack_read1(opb)){
       for(i=0;i<s->entries;i++){
 	if(oggpack_read1(opb)){
-	  long num=oggpack_read(opb,5);
+	  int32_t num=oggpack_read(opb,5);
 	  if(num==-1)goto _eofout;
 	  s->lengthlist[i]=num+1;
 	}else
@@ -41,7 +41,7 @@ int vorbis_staticbook_unpack(oggpack_buffer *opb,static_codebook *s){
       }
     }else{
       for(i=0;i<s->entries;i++){
-	long num=oggpack_read(opb,5);
+	int32_t num=oggpack_read(opb,5);
 	if(num==-1)goto _eofout;
 	s->lengthlist[i]=num+1;
       }
@@ -50,11 +50,11 @@ int vorbis_staticbook_unpack(oggpack_buffer *opb,static_codebook *s){
     break;
   case 1:
     {
-      long length=oggpack_read(opb,5)+1;
-      s->lengthlist=(long *)_ogg_malloc(sizeof(*s->lengthlist)*s->entries);
+      int32_t length=oggpack_read(opb,5)+1;
+      s->lengthlist=(int32_t *)_ogg_malloc(sizeof(*s->lengthlist)*s->entries);
 
       for(i=0;i<s->entries;){
-	long num=oggpack_read(opb,_ilog(s->entries-i));
+	int32_t num=oggpack_read(opb,_ilog(s->entries-i));
 	if(num==-1)goto _eofout;
 	for(j=0;j<num && i<s->entries;j++,i++)
 	  s->lengthlist[i]=length;
@@ -86,7 +86,7 @@ int vorbis_staticbook_unpack(oggpack_buffer *opb,static_codebook *s){
 	break;
       }
 
-      s->quantlist=(long *)_ogg_malloc(sizeof(*s->quantlist)*quantvals);
+      s->quantlist=(int32_t *)_ogg_malloc(sizeof(*s->quantlist)*quantvals);
       for(i=0;i<quantvals;i++)
 	s->quantlist[i]=oggpack_read(opb,s->q_quant);
 
@@ -116,8 +116,8 @@ int vorbis_book_encode(codebook *book, int a, oggpack_buffer *b){
 /* vorbis_book_decode. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x0054d050
-long vorbis_book_decode(codebook *book, oggpack_buffer *b){
-  long ptr=0;
+int32_t vorbis_book_decode(codebook *book, oggpack_buffer *b){
+  int32_t ptr=0;
   decode_aux *t=book->decode_tree;
   int lok = oggpack_look(b, t->tabn);
 
@@ -146,11 +146,11 @@ long vorbis_book_decode(codebook *book, oggpack_buffer *b){
 /* vorbis_book_decodevs_add. STATE: BurgerLib's libvorbis 1.0rc3, entry[] and t[] from one
    block sized by a byte count (MATCH, byte-identical). OPEN: none. */
 // FUNCTION: EVNOVA 0x0054d110
-long vorbis_book_decodevs_add(codebook *book,float *a,oggpack_buffer *b,int n){
+int32_t vorbis_book_decodevs_add(codebook *book,float *a,oggpack_buffer *b,int n){
   int step=n/book->dim;
   if(step){
-    long bytes=step*sizeof(long);
-    long *entry = (long *)_ogg_malloc(bytes*2);
+    int32_t bytes=step*sizeof(int32_t);
+    int32_t *entry = (int32_t *)_ogg_malloc(bytes*2);
     if(entry){
       int i,j,o;
       float **t = (float **)((char *)entry+bytes);
@@ -175,7 +175,7 @@ long vorbis_book_decodevs_add(codebook *book,float *a,oggpack_buffer *b,int n){
 /* vorbis_book_decodev_add. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x0054d3a0
-long vorbis_book_decodev_add(codebook *book,float *a,oggpack_buffer *b,int n){
+int32_t vorbis_book_decodev_add(codebook *book,float *a,oggpack_buffer *b,int n){
   int i,j,entry;
   float *t;
 
@@ -221,7 +221,7 @@ long vorbis_book_decodev_add(codebook *book,float *a,oggpack_buffer *b,int n){
 /* vorbis_book_decodev_set. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x0054d520
-long vorbis_book_decodev_set(codebook *book,float *a,oggpack_buffer *b,int n){
+int32_t vorbis_book_decodev_set(codebook *book,float *a,oggpack_buffer *b,int n){
   int i,j,entry;
   float *t;
 
@@ -238,9 +238,9 @@ long vorbis_book_decodev_set(codebook *book,float *a,oggpack_buffer *b,int n){
 /* vorbis_book_decodevv_add. STATE: genuine libvorbis 1.0rc3 (runtime band, a floor).
    OPEN: none. */
 // FUNCTION: EVNOVA 0x0054d5b0
-long vorbis_book_decodevv_add(codebook *book,float **a,long offset,int ch,
+int32_t vorbis_book_decodevv_add(codebook *book,float **a,int32_t offset,int ch,
 			      oggpack_buffer *b,int n){
-  long i,j,entry;
+  int32_t i,j,entry;
   int chptr=0;
 
   for(i=offset/ch;i<(offset+n)/ch;){

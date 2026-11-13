@@ -866,7 +866,7 @@ short SWCloneSprite(SpritePtr cloneSpriteP, SpritePtr *newSpriteP, void *spriteS
 {
     SpritePtr tempSpriteP;
     short index;
-    long frameArraySize;
+    int32_t frameArraySize;
     short err = 0;
 
     if (cloneSpriteP == 0)
@@ -920,7 +920,7 @@ short SWCloneSprite(SpritePtr cloneSpriteP, SpritePtr *newSpriteP, void *spriteS
 {
     SpritePtr tempSpriteP;
     short index;
-    long frameArraySize;
+    int32_t frameArraySize;
     short err = 0;
 
     if (cloneSpriteP == 0)
@@ -1170,7 +1170,7 @@ void SWCloseSprite(SpritePtr deadSpriteP)
    kRLEResourceHeaderSize 0x10. `dataLength' is SIGNED -- the difference is tested `jle'. */
 
 
-typedef unsigned long TokenDataType;
+typedef uint32_t TokenDataType;
 
 #define kTokenShift             24
 #define kCountMask              0x00ffffff
@@ -1181,12 +1181,12 @@ typedef unsigned long TokenDataType;
 #ifdef MACBUILD
 void SWLockSprite(SpritePtr srcSpriteP)
 {
-    register long curFrame;
+    register int32_t curFrame;
     FramePtr srcFrameP;
     Handle spriteData;
-    long dataLength;
+    int32_t dataLength;
     TokenDataType *tokens;
-    long offset;
+    int32_t offset;
 
     if (srcSpriteP == 0)
         SW_ASSERT_FAIL("Sprite.c", 1623, 1585);
@@ -1205,11 +1205,11 @@ void SWLockSprite(SpritePtr srcSpriteP)
         offset = 0;
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
         tokens = (TokenDataType *)(*spriteData + kRLEResourceHeaderSize
-                                   - ((long)(*spriteData + kRLEResourceHeaderSize) & 3));
+                                   - ((int32_t)(*spriteData + kRLEResourceHeaderSize) & 3));
 #else
         tokens = (TokenDataType *)(*spriteData + kRLEResourceHeaderSize);
 #ifndef MAC1010
-        (long)tokens &= ~3;
+        (int32_t)tokens &= ~3;
 #endif
 #endif
 
@@ -1240,12 +1240,12 @@ void SWLockSprite(SpritePtr srcSpriteP)
 #else
 void SWLockSprite(SpritePtr srcSpriteP)
 {
-    register long curFrame;
+    register int32_t curFrame;
     FramePtr srcFrameP;
     Handle spriteData;
-    long dataLength;
+    int32_t dataLength;
     TokenDataType *tokens;
-    long offset;
+    int32_t offset;
 
     if (srcSpriteP == 0)
         SWAssertFail("Sprite.c", 1623);
@@ -1297,7 +1297,7 @@ void SWLockSprite(SpritePtr srcSpriteP)
 #ifdef MACBUILD
 void SWUnlockSprite(SpritePtr srcSpriteP)
 {
-    register long curFrame;
+    register int32_t curFrame;
     Handle spriteData;
     FramePtr srcFrameP;
 
@@ -1322,7 +1322,7 @@ void SWUnlockSprite(SpritePtr srcSpriteP)
 #else
 void SWUnlockSprite(SpritePtr srcSpriteP)
 {
-    register long curFrame;
+    register int32_t curFrame;
     Handle spriteData;
     FramePtr srcFrameP;
 
@@ -1353,7 +1353,7 @@ void SWUnlockSprite(SpritePtr srcSpriteP)
 // MAC: _SWFlipSprite i386 0x000aadc0 ppc 0x000b5b84
 void SWFlipSprite(SpritePtr srcSpriteP, FlipType direction)
 {
-    long curFrame;
+    int32_t curFrame;
     FramePtr srcFrameP;
 
     for (curFrame = 0; curFrame < srcSpriteP->numFrames; curFrame++) {
@@ -1418,9 +1418,9 @@ short SWAddFrame(SpritePtr srcSpriteP, FramePtr newFrameP)
 #ifdef MACBUILD
 /* SWInsertFrame (mac _SWInsertFrame, mac-only). STATE: see the mac gate. */
 // MAC: _SWInsertFrame i386 0x000aaea5 ppc 0x000b5c88
-OSErr SWInsertFrame(SpritePtr srcSpriteP, FramePtr newFrameP, long frameIndex)
+OSErr SWInsertFrame(SpritePtr srcSpriteP, FramePtr newFrameP, int32_t frameIndex)
 {
-    register long index;
+    register int32_t index;
     register FramePtr *frameArray;
     OSErr err = noErr;
 
@@ -1449,7 +1449,7 @@ OSErr SWInsertFrame(SpritePtr srcSpriteP, FramePtr newFrameP, long frameIndex)
 // MAC: _SWRemoveFrame i386 0x000aaf72 ppc 0x000b5d6c
 void SWRemoveFrame(SpritePtr srcSpriteP, FramePtr oldFrameP)
 {
-    register long curFrame;
+    register int32_t curFrame;
     register FramePtr *frameArray;
 
     SW_ASSERT(srcSpriteP != NULL && oldFrameP != NULL, 1815);
@@ -1849,7 +1849,7 @@ void SWSetSpriteFrameRange(SpritePtr srcSpriteP, short firstFrameIndex, short la
 #ifdef MACBUILD
 /* SWSetSpriteFrameTime (mac _SWSetSpriteFrameTime, mac-only). STATE: see the mac gate. */
 // MAC: _SWSetSpriteFrameTime i386 0x000ab5c3 ppc 0x000b64cc
-void SWSetSpriteFrameTime(SpritePtr srcSpriteP, long timeInterval)
+void SWSetSpriteFrameTime(SpritePtr srcSpriteP, int32_t timeInterval)
 {
     SW_ASSERT(srcSpriteP != NULL, 2223);
     srcSpriteP->frameTimeInterval = timeInterval;
@@ -1915,7 +1915,7 @@ void SWSetSpriteMoveDelta(SpritePtr srcSpriteP, short horizDelta, short vertDelt
 
 /* SWSetSpriteMoveTime (mac _SWSetSpriteMoveTime, mac-only). STATE: see the mac gate. */
 // MAC: _SWSetSpriteMoveTime i386 0x000ab78d ppc 0x000b66d0
-void SWSetSpriteMoveTime(SpritePtr srcSpriteP, long timeInterval)
+void SWSetSpriteMoveTime(SpritePtr srcSpriteP, int32_t timeInterval)
 {
     SW_ASSERT(srcSpriteP != NULL, 2306);
     srcSpriteP->moveTimeInterval = timeInterval;

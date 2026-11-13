@@ -11,8 +11,8 @@
 
 struct FolderSpec;
 
-__declspec(dllimport) unsigned long __stdcall SearchPathA(const char *path, const char *file,
-                                                          const char *ext, unsigned long size,
+__declspec(dllimport) uint32_t __stdcall SearchPathA(const char *path, const char *file,
+                                                          const char *ext, uint32_t size,
                                                           char *buffer, char **filePart);
 
 #define kReminderChunk      950
@@ -30,17 +30,17 @@ __declspec(dllimport) unsigned long __stdcall SearchPathA(const char *path, cons
 #define kBeeps              5
 #define kBeepGap            2000
 
-long RT3_SetReminderVariables(void *window);
-long RT3_ReminderCallback(WindowNode *window, long refcon, long event, void *where, long item,
+int32_t RT3_SetReminderVariables(void *window);
+int32_t RT3_ReminderCallback(WindowNode *window, int32_t refcon, int32_t event, void *where, int32_t item,
                   const char *name);
 
 static unsigned char delayPending;               /* 0x00867174 the NOTYET delay not started */
 static ULong delayStart;                         /* 0x00867170 when it started */
 
-static inline long ReminderLaunch(const char *command)
+static inline int32_t ReminderLaunch(const char *command)
 {
     ULong shell;
-    long err;
+    int32_t err;
     char path[0x208];
     char *filePart;
 
@@ -55,10 +55,10 @@ static inline long ReminderLaunch(const char *command)
     return err;
 }
 
-static inline long ReminderRegister(void)
+static inline int32_t ReminderRegister(void)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
     char command[256];
 
     StringCopySafe(command, "Register ", sizeof(command));
@@ -70,9 +70,9 @@ static inline long ReminderRegister(void)
     return err;
 }
 
-static inline long ReminderLevel(void)
+static inline int32_t ReminderLevel(void)
 {
-    long level = 1;
+    int32_t level = 1;
     ULong days;
     ULong hours;
 
@@ -85,12 +85,12 @@ static inline long ReminderLevel(void)
     return level;
 }
 
-static inline long ReminderRun(struct FolderSpec **folder, unsigned char *registered)
+static inline int32_t ReminderRun(struct FolderSpec **folder, unsigned char *registered)
 {
-    long err = 0;
-    long e = 0;
-    long result;
-    long launch;
+    int32_t err = 0;
+    int32_t e = 0;
+    int32_t result;
+    int32_t launch;
     char button[256];
 
     delayPending = 1;
@@ -109,7 +109,7 @@ static inline long ReminderRun(struct FolderSpec **folder, unsigned char *regist
 }
 
 /* Stand-in: the linker strips this; the exe keeps its literals (body not recoverable). */
-long RT3_LaunchRegister(void)
+int32_t RT3_LaunchRegister(void)
 {
     return ReminderRegister();
 }
@@ -121,12 +121,12 @@ long RT3_LaunchRegister(void)
    launched; any failure beeps five times). STATE: MATCH 100%, exe 220 / obj 220,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004ee7a0
-long RT3_RunReminder(unsigned char force, unsigned char *registered)
+int32_t RT3_RunReminder(unsigned char force, unsigned char *registered)
 {
-    long err = 0;
+    int32_t err = 0;
     void **chunk = 0;
     struct FolderSpec **folder = 0;
-    long e;
+    int32_t e;
     ULong i;
 
     if (registered != 0)
@@ -176,13 +176,13 @@ done:
    when the page lacks a button). STATE: MATCH 100%, exe 118 / obj 118, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004eea80
-long RT3_ReminderCallback(WindowNode *window, long refcon, long event, void *where, long item,
+int32_t RT3_ReminderCallback(WindowNode *window, int32_t refcon, int32_t event, void *where, int32_t item,
                   const char *name)
 {
-    long err = 0;
+    int32_t err = 0;
     ULong delay = refcon;
-    long index = -1;
-    long e;
+    int32_t index = -1;
+    int32_t e;
 
     switch (event) {
     case kEventOpen:
@@ -245,10 +245,10 @@ done:
    used and the launches, each with its singular or plural word). STATE: MATCH 100%, exe 81 /
    obj 81, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eebe0
-long RT3_SetReminderVariables(void *window)
+int32_t RT3_SetReminderVariables(void *window)
 {
-    long err = 0;
-    long e;
+    int32_t err = 0;
+    int32_t e;
     ULong n;
     char text[256];
 

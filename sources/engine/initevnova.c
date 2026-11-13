@@ -43,15 +43,15 @@ extern void SelectNovaSupport(void);
 extern void CheckSystem(void);
 extern OSStatus EVInstallEndianFlippers(void);
 #if V111
-extern CFStringRef CFStringCreateFromString(const char *str, long len);
+extern CFStringRef CFStringCreateFromString(const char *str, int32_t len);
 extern CFStringRef relative2absolute(CFStringRef path);
 #endif
 extern FSRef *novaSupportFolder;
-extern long startupMemoryFree;
+extern int32_t startupMemoryFree;
 extern void SpawnIntroMusicThread(void);
 #endif
 extern void InitAEVTHandlers(void);
-extern long PreflightMemoryUsageTotal(void);
+extern int32_t PreflightMemoryUsageTotal(void);
 extern void HideControlStrip(void);
 extern void CarbonHackCleanup(void);
 extern void DisposeGammaTools(void);
@@ -128,9 +128,9 @@ char RegScramE2(void)
 short oldVolume;
 short pluginCount;
 Rect backUpdateRect;
-unsigned long lastSmokeUpdateTime;
-unsigned long lastKeypressTime;
-unsigned long lastEventLoopTime;
+uint32_t lastSmokeUpdateTime;
+uint32_t lastKeypressTime;
+uint32_t lastEventLoopTime;
 #ifndef MACBUILD
 ShipObj *shipData;
 ShipRec *shipClass;
@@ -249,20 +249,20 @@ void *targetInfoPic[kMaxShipTypes];
 GWorldContainer statusOffPort;
 GWorldContainer loadPort;
 unsigned char DAT_0059795c[16];
-unsigned long tix;
-unsigned long floatingMapStartTime;
+uint32_t tix;
+uint32_t floatingMapStartTime;
 #endif
 #ifdef V111
 unsigned char useLegacyRenderingPipeline;
 #endif
 #ifndef MACBUILD
-unsigned long lastMouseMoveTime;
-unsigned long lastEscortMenuTime;
-unsigned long lastFrameTime;
+uint32_t lastMouseMoveTime;
+uint32_t lastEscortMenuTime;
+uint32_t lastFrameTime;
 unsigned char DAT_00597980[4];
-long lastFPSUpdateTime;
-unsigned long lastLoMemWarningTime;
-unsigned long lastCursorAnimTime;
+int32_t lastFPSUpdateTime;
+uint32_t lastLoMemWarningTime;
+uint32_t lastCursorAnimTime;
 unsigned char DAT_00597990[2];
 short frameCounter;
 unsigned char DAT_00597994[8];
@@ -361,7 +361,7 @@ short pendingVoiceMsg;
 short pendingVoiceGovt;
 short pendingVoiceParity;
 short hyperRoute[kMaxHyperRoute];
-long playerKills;
+int32_t playerKills;
 double gSpeedMult;
 double DAT_00735450;
 DateTimeRec gameTime;
@@ -400,7 +400,7 @@ short playerEscortOrders[4];
 short lastIntfResourceID;
 short hypergateMapModeStellar;
 char absquatulateStr[256];
-long DAT_007355d0;
+int32_t DAT_007355d0;
 UnsignedWide lastFrameMicroseconds;
 Rect statusOffRect[8];
 RGBColor statusColor[8];
@@ -462,7 +462,7 @@ EXTERN_C_BEGIN
 // MAC: _EVPlatformInit i386 0x0003a064 ppc 0x00040454
 int EVPlatformInit(void)
 {
-    long err;
+    int32_t err;
 
     crashlog_print("opening platform tool");
     err = PlatformOpen();
@@ -792,7 +792,7 @@ void InitEVNova(void)
     startupMemoryFree = MaxMem(&grow);
 #if !TARGET_API_MAC_CARBON
     {
-        unsigned long memNeeded;
+        uint32_t memNeeded;
 
         memNeeded = PreflightMemoryUsageTotal() + 10000000;
         crashlog_print("free memory before loading ship sprites: ");
@@ -869,7 +869,7 @@ void InitEVNova(void)
         unsigned char name[17] = "EV NovaEV NovaEV";
         unsigned char key[17] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
         unsigned char t1;
-        long g;
+        int32_t g;
         long long mem;
         unsigned char x;
         char *p;
@@ -1336,7 +1336,7 @@ void InitEVNova(void)
         unsigned char blob[3] = { 0x49, 0x71, 0xad };
         unsigned char name[17] = "EV NovaEV NovaEV";
         unsigned char key[17] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-        unsigned long g;
+        uint32_t g;
         char *p;
         long long mem;
         unsigned char x;
@@ -1523,7 +1523,7 @@ void InitEVNova(void)
 {
     unsigned char alertText[256];
     Boolean blk[kBlacklistCount];
-    long qtVersion;
+    int32_t qtVersion;
     ComponentDescription cd;
     long long key;
     int err;
@@ -1849,7 +1849,7 @@ void InitEVNova(void)
         char b;
         int t1;
         int t2;
-        long g;
+        int32_t g;
         unsigned short rem;
         Boolean ok;
         int bail;
@@ -2170,7 +2170,7 @@ void PlayGame(void)
                 fpsCounter += 1;
                 if (showFPS != 0) {
                     if (ReadTick() > lastFPSUpdateTime + 120) {
-                        if ((unsigned long)lastFPSUpdateTime == 0) {
+                        if ((uint32_t)lastFPSUpdateTime == 0) {
                             GetIndString(str, kGameStrList, 282);
                             DisplayComm((PStrChar *)str, 100, 0, kCommTextSize, &rgbWhite, 0, 0);
                         } else {
@@ -2253,7 +2253,7 @@ void PlayGame(void)
                         unsigned char t3;
                         unsigned char t4;
                         unsigned char t1;
-                        long g;
+                        int32_t g;
                         char *p;
                         long long mem;
                         unsigned char c;
@@ -2689,7 +2689,7 @@ void PlayGame(void)
                         unsigned char blob[3] = { 0x49, 0x71, 0xad };
                         unsigned char name[17] = "EV NovaEV NovaEV";
                         unsigned char key[17] = "";
-                        long g;
+                        int32_t g;
                         unsigned char *p;
                         long long mem;
                         unsigned char x;
@@ -3190,7 +3190,7 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
     Boolean hostile;
 #endif
     Boolean enemy;
-    long aligned;
+    int32_t aligned;
     short angle;
     float capacity;
     short myGovt;
@@ -3342,7 +3342,7 @@ void DamageShip(ShipObj *ship, FloatPoint *from, short impact, short armorDmg,
             DisplayComm((PStrChar *)msg, kCommFrames, 0, kCommTextSize,
                         &rgbWhite, 0, 0);
             playerRepairInhibit = 300.0f;
-            ship->armor = (long)ship->armor;
+            ship->armor = (int32_t)ship->armor;
             for (i = 0; i < kMaxActiveMissions; i++) {
                 if (currentMissionObjectives[i].active != 0 && currentMissionObjectives[i].failed == 0
                         && (currentMissions[i].flags2 & kMissionFailIfDisabled) != 0) {
@@ -5514,7 +5514,7 @@ void SpawnExplod(FloatPoint pos, short unused, short type, short delay)
 #ifdef MACBUILD
 void SpawnSmoke(FloatPoint pos, short type, short sprite)
 #else
-void SpawnSmoke(float a, register float b, long type, short sprite)
+void SpawnSmoke(float a, register float b, int32_t type, short sprite)
 #endif
 {
     short i;
@@ -5578,8 +5578,8 @@ void SpawnAsteroid(unsigned char type)
     float radius;
     short h;
     unsigned long long mem;
-    unsigned long diff;
-    long parity;
+    uint32_t diff;
+    int32_t parity;
     short i;
     short active;
     unsigned char odd;
@@ -5880,9 +5880,9 @@ void DoEscortLand(void)
     short i;
     short numSold;
     short numUpgraded;
-    long saleValue;
-    long upgradeCost;
-    long total;
+    int32_t saleValue;
+    int32_t upgradeCost;
+    int32_t total;
     short days;
     short type;
     short j;
@@ -5893,10 +5893,10 @@ void DoEscortLand(void)
     short numUpgraded;
     short type;
     short days;
-    long total;
+    int32_t total;
     short k;
-    long saleValue;
-    long upgradeCost;
+    int32_t saleValue;
+    int32_t upgradeCost;
 #endif
 
     numUpgraded = 0;
@@ -6023,7 +6023,7 @@ void DoEscortPayment(short days)
     short day;
     short checked;
     short numDismissed;
-    long cost;
+    int32_t cost;
     Boolean skip;
 
     checked = 0;
@@ -6276,7 +6276,7 @@ short SpawnPerson(short sys, unsigned char noDisabled, short person)
 #define slotR slot
 #define slotI slot
 #else
-#define slotR ((long)slot)
+#define slotR ((int32_t)slot)
 #define slotI ((int)slotL)
 #endif
 
@@ -6289,9 +6289,9 @@ void DoShipCapture(ShipObj *me, Boolean asEscort)
 {
     unsigned char buf[256];
 #if !defined(MACBUILD) && !V111
-    long slotL;
+    int32_t slotL;
 #endif
-    long capType;
+    int32_t capType;
     short m;
     short w;
     short i;
@@ -6741,7 +6741,7 @@ void HyperSpawnFleet(short sys, short fleet, short escortOf,
     short i;
     float speed;
     float dist;
-    long idx;
+    int32_t idx;
     int f;
     short j;
     short k;
@@ -7117,7 +7117,7 @@ Boolean ShotCanHitShip(ShotObj *shot, ShipObj *ship)
 // FUNCTION: EVNOVA 0x004274d0
 // MAC: _SpawnParticles i386 0x00044b70 ppc 0x0004cad4
 void SpawnParticles(short x, short y, float speed, short spreadPct,
-                  short minLife, short maxLife, long color, short shade,
+                  short minLife, short maxLife, int32_t color, short shade,
                   short count, short jitter)
 {
     FloatPoint vel;
@@ -7142,7 +7142,7 @@ void SpawnParticles(short x, short y, float speed, short spreadPct,
         if (jitter > 0)
             Accel(Rand(kFullCircle), (Rand(jitter * 100) * 0.01), &pos);
 
-        NewParticle(color, (long)pos.x << 8, (long)pos.y << 8,
+        NewParticle(color, (int32_t)pos.x << 8, (int32_t)pos.y << 8,
                     (vel.x * kFixedOne), (vel.y * kFixedOne),
                     shade, life);
     }

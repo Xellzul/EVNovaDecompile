@@ -23,7 +23,7 @@ static const unsigned char DAT_00581bf4[4] = { 0 };   /* 0x00581bf4, unreference
 
 ITPageTable *_IT_PageListCreate(ITElement *root)
 {
-    long err;
+    int32_t err;
     ITPage **link;
     ITElement *e;
     ITPageTable *table;
@@ -104,7 +104,7 @@ void _IT_PageListDispose(void *tableRef)
 ITPage *_IT_GetPageByName(ITPageTable *table, const char *name)
 {
     ITPage *e;
-    long err;
+    int32_t err;
 
     err = 0;
     e = 0;
@@ -119,7 +119,7 @@ ITPage *_IT_GetPageByName(ITPageTable *table, const char *name)
 ITPage *_IT_GetPageByIndex(ITPageTable *table, ULong index)
 {
     ITPage *e;
-    long err;
+    int32_t err;
 
     err = 0;
     e = 0;

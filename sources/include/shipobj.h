@@ -55,12 +55,12 @@ typedef struct ShipObj {
     short parentShip;
     short unk9C;
     short unk9E;
-    long credits;
-    unsigned long jumpTick;
-    unsigned long fireTick;
-    unsigned long hailTick;
-    unsigned long ionColor;
-    unsigned long tractorTick;
+    int32_t credits;
+    uint32_t jumpTick;
+    uint32_t fireTick;
+    uint32_t hailTick;
+    uint32_t ionColor;
+    uint32_t tractorTick;
     Boolean active;
     Boolean boarded;
     Boolean fireQueued;
@@ -114,7 +114,7 @@ typedef struct ShipObj {
     short formLeader;
     unsigned char *licenseName;
     long long licenseCode;
-    unsigned long licenseCopies;
+    uint32_t licenseCopies;
 } ShipObj;
 
 typedef struct ShotObj {

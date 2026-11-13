@@ -58,7 +58,7 @@ void RT3_FixLicenseName(char *out, const char *src)
         *out = 0;
 }
 
-ULongLong RT3_CalcMainHash(const char *product, const char *name, long copies)
+ULongLong RT3_CalcMainHash(const char *product, const char *name, int32_t copies)
 {
     ULongLong h;
     ULong i;
@@ -102,7 +102,7 @@ void RT3_LicenseTextToCode(const char *text, ULongLong *code)
 }
 
 /* DRHash64's twin: four nibbles, bits 13, 27, 41 and 55 the low ends, in another order. */
-long RT3_ExtractLicenseBlock1(ULongLong v)
+int32_t RT3_ExtractLicenseBlock1(ULongLong v)
 {
     ULong r;
 

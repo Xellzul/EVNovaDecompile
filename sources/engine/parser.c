@@ -746,15 +746,15 @@ void ParseTextDescription(void)
     char out[kParseBufSize];
     char c;
     char kind;
-    long i;
-    long outLen;
-    long num;
-    long state;
+    int32_t i;
+    int32_t outLen;
+    int32_t num;
+    int32_t state;
     Boolean negate;
     Boolean escape;
-    long j;
-    long k;
-    long rank;
+    int32_t j;
+    int32_t k;
+    int32_t rank;
     Boolean keep;
 
     state = 0;

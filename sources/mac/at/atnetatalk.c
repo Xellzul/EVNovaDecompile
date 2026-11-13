@@ -57,7 +57,7 @@ typedef struct DDPSocket {
     MutexList *recvList;
     MutexList *recvList2;
     NetAddress local;
-    long unk13c;
+    int32_t unk13c;
     struct DDPSocket *self;
     MPPParamBlock pb;
     char pad192;
@@ -74,7 +74,7 @@ typedef struct DDPSocket {
     unsigned char rec[12];
     char *recvData;
     DeferredTask task;
-    long sendBytes;
+    int32_t sendBytes;
     unsigned char nte[0x6c];
     char name[0x100];
 } DDPSocket;
@@ -120,10 +120,10 @@ static inline char *MslCopy(char *dst, const char *src)
     return dst;
 }
 
-static inline long MslLength(const char *s)
+static inline int32_t MslLength(const char *s)
 {
     const unsigned char *p;
-    long n;
+    int32_t n;
 
     p = (const unsigned char *)s - 1;
     n = -1;
@@ -156,7 +156,7 @@ NetSocket *DatagramCreateDDP(NetStackID stack, void *ref, NetProc proc, MutexLis
     s->self = s;
     s->task.qType = dtQType;
     s->task.dtAddr = sDatagramDeferred;
-    s->task.dtParam = (long)s;
+    s->task.dtParam = (int32_t)s;
     if (CriticalCreate(s->lock) != 0)
         goto done;
     _EndpointRegister((NetSocket *)s, 2);
@@ -169,7 +169,7 @@ done:
 void DatagramTickleDDP(NetSocket *ref)
 {
     DDPSocket *s;
-    long state;
+    int32_t state;
 
     s = (DDPSocket *)ref;
     IsMPPOpen();
@@ -187,15 +187,15 @@ void DatagramDisposeDDP(DDPSocket *s)
     MemoryDeallocate(s);
 }
 
-long DatagramControlDDP(DDPSocket *s, void *out, ULong option, ULong value)
+int32_t DatagramControlDDP(DDPSocket *s, void *out, ULong option, ULong value)
 {
-    long err;
+    int32_t err;
     Str255 entity;
     unsigned char *object;
     unsigned char *type;
     const char *text;
     Handle h;
-    long n;
+    int32_t n;
     unsigned char *base;
 
     err = 0;
@@ -262,12 +262,12 @@ long DatagramControlDDP(DDPSocket *s, void *out, ULong option, ULong value)
     return err;
 }
 
-long DatagramOpenDDP(void *ref, NetAddress *address)
+int32_t DatagramOpenDDP(void *ref, NetAddress *address)
 {
     DDPSocket *s;
     short net;
     short node;
-    long err, e;
+    int32_t err, e;
     Str255 unique;
     ULong tries;
     ULong n;
@@ -348,7 +348,7 @@ done:
     return err;
 }
 
-long DatagramSendDDP(void *ref, NetPacket *packet)
+int32_t DatagramSendDDP(void *ref, NetPacket *packet)
 {
     DDPSocket *s;
 
@@ -360,13 +360,13 @@ long DatagramSendDDP(void *ref, NetPacket *packet)
     return 0;
 }
 
-void DatagramCloseDDP(DDPSocket *s, long graceful)
+void DatagramCloseDDP(DDPSocket *s, int32_t graceful)
 {
     MPPParamBlock pb;
 
     IsMPPOpen();
     SystemCheckCallback();
-    if ((unsigned char)graceful != 0 && (long)s->state != 0 && s->socket != 0) {
+    if ((unsigned char)graceful != 0 && (int32_t)s->state != 0 && s->socket != 0) {
         s->state = kStateClosing;
         while (s->sending != 0 || !QueueIsEmpty(&s->sendQueue))
             DatagramTickle((NetSocket *)s);
@@ -394,7 +394,7 @@ void DatagramCloseDDP(DDPSocket *s, long graceful)
     NetworkMakeCallback(s->proc, s->ref, (NetSocket *)s, kEventClosed);
 }
 
-long DatagramGetAddressDDP(DDPSocket *s, NetAddress *out)
+int32_t DatagramGetAddressDDP(DDPSocket *s, NetAddress *out)
 {
     IsMPPOpen();
     AddressDuplicate(out, &s->local);
@@ -496,17 +496,17 @@ void StreamDisposeADSP(NetSocket *sock)
 {
 }
 
-long StreamAcceptServerADSP(void *ref, void *other)
+int32_t StreamAcceptServerADSP(void *ref, void *other)
 {
     return 0;
 }
 
-long StreamOpenClientADSP(void *ref, NetAddress *local, const NetAddress *remote, ULong timeout)
+int32_t StreamOpenClientADSP(void *ref, NetAddress *local, const NetAddress *remote, ULong timeout)
 {
     return 0;
 }
 
-long StreamSendADSP(void *ref, NetChunk *chunk)
+int32_t StreamSendADSP(void *ref, NetChunk *chunk)
 {
     return 0;
 }
@@ -515,14 +515,14 @@ void StreamCloseADSP(NetSocket *sock, unsigned char graceful)
 {
 }
 
-long StreamGetAddressADSP(void *ref, NetAddress *local, NetAddress *remote)
+int32_t StreamGetAddressADSP(void *ref, NetAddress *local, NetAddress *remote)
 {
     return 0;
 }
 
 Ptr ListenerCreate(void *upp, void *socket)
 {
-    long response;
+    int32_t response;
     Ptr p;
 
     response = 0;
@@ -543,7 +543,7 @@ Ptr ListenerCreate(void *upp, void *socket)
 
 void ListenerDispose(Ptr p)
 {
-    long held;
+    int32_t held;
 
     held = 0;
     if (p != 0) {

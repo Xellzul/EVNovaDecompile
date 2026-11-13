@@ -38,11 +38,11 @@ extern void CarbonHackCleanup(void);
 extern FSRef *novaSupportFolder;
 extern short startupDepth;
 extern short oldDepth;
-extern long gSystemVersion;
+extern int32_t gSystemVersion;
 extern double userSpeedSetting;
 extern void InitCluts(void);
 extern void BlitPixieDitherInit(void);
-extern long QDGetNativeWindowFromPort(CGrafPtr port);
+extern int32_t QDGetNativeWindowFromPort(CGrafPtr port);
 extern int _CGSDefaultConnection(void);
 extern int CGSSetWindowDepthLimit(int cid, int window, int depth);
 extern int CGSSetWindowDepth(int cid, int window, int depth);
@@ -97,8 +97,8 @@ void SetupToolbox(void)
 // MAC: _DestroySpriteWorld i386 0x000240a7 ppc 0x00028450
 void DestroySpriteWorld(void)
 {
-    long i;
-    long j;
+    int32_t i;
+    int32_t j;
 
     SetPort(GetCWindowGrafPort(gWind));
     DisposeButtons();
@@ -364,7 +364,7 @@ void SetupSpriteWorld(void)
 #endif
     SetPortWindowPort((WindowRef)gWind);
     err = SWCreateSpriteWorldFromWindow(&gSpriteWorld, gWind, &windRect, &windRect, 0);
-    if ((long)err != 0) {
+    if ((int32_t)err != 0) {
         FadeScreenIn();
         GetIndString(str, kAlertStrList, 36);
         EVNoteAlert(str);
@@ -496,17 +496,17 @@ void SetupSpriteWorld(void)
         EV_ASSERT_FAIL("Setup.c", 0x133, 583);
 #else
 #ifdef CEFIX /* F25.01 */
-    if ((long)InitParticles(100000, 0) != 0)
+    if ((int32_t)InitParticles(100000, 0) != 0)
         SWAssertFail("Setup.c", SW_LINE(0x133));
 #else
-    if ((long)InitParticles(1024, 0) != 0)
+    if ((int32_t)InitParticles(1024, 0) != 0)
         SWAssertFail("Setup.c", SW_LINE(0x133));
 #endif
 #endif
     SWSetPortToBackground(gSpriteWorld);
     if (gSpriteWorld->pixelDepth == 8) {
         err = Construct8BitAlphaTable();
-        if ((long)err != 0) {
+        if ((int32_t)err != 0) {
             crashlog_print("error loading color table, ID ");
             crashlog_print_num(128);
             crashlog_print("\n");
@@ -524,7 +524,7 @@ void SetupWind(void)
 #ifdef MACBUILD
     Rect bounds;
 #ifndef MAC1010
-    long window;
+    int32_t window;
 #elif TARGET_API_MAC_CARBON
     short width, height;
 #endif
@@ -1189,11 +1189,11 @@ void LoadSprites(void)
     short xTiles, yTiles;
     short err;
     short i;
-    long resID;
+    int32_t resID;
 #else
     short xTiles, yTiles;
     short i;
-    long resID;
+    int32_t resID;
     SpritePtr *q;
     short err;
 #endif
@@ -1202,7 +1202,7 @@ void LoadSprites(void)
         if (GetSpriteInfo(i + 3000, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
             if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
                 err = SWCreateSpriteFromRLEResource(&masterShotSprite[i], NULL, spriteID, xTiles * yTiles, 0);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error loading sprite from RLE resource, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 3000);
                     crashlog_print("\n");
@@ -1211,7 +1211,7 @@ void LoadSprites(void)
             } else {
                 err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &masterShotSprite[i], NULL, spriteID, maskID, xSize,
                                    ySize, 0, 0, 0, 1);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error loading sprite from PICT resource, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 3000);
                     crashlog_print("\n");
@@ -1219,7 +1219,7 @@ void LoadSprites(void)
                 }
                 SWLockSprite(masterShotSprite[i]);
                 err = ConvertSpriteToRLE(masterShotSprite[i]);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 3000);
                     crashlog_print("\n");
@@ -1235,7 +1235,7 @@ void LoadSprites(void)
         if (GetSpriteInfo(i + 400, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
             if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
                 err = SWCreateSpriteFromRLEResource(&masterExplodSprite[i], NULL, spriteID, xTiles * yTiles, 0);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error loading sprite from RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 400);
                     crashlog_print("\n");
@@ -1244,7 +1244,7 @@ void LoadSprites(void)
             } else {
                 err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &masterExplodSprite[i], NULL, spriteID, maskID, xSize,
                                    ySize, 0, 0, 0, 1);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error loading sprite from PICT, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 400);
                     crashlog_print("\n");
@@ -1252,7 +1252,7 @@ void LoadSprites(void)
                 }
                 SWLockSprite(masterExplodSprite[i]);
                 err = ConvertSpriteToRLE(masterExplodSprite[i]);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 400);
                     crashlog_print("\n");
@@ -1269,7 +1269,7 @@ void LoadSprites(void)
             masterBoxSprite[i] = 0;
             if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
                 err = SWCreateSpriteFromRLEResource(&masterBoxSprite[i], NULL, spriteID, xTiles * yTiles, 0);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error loading sprite from RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 500);
                     crashlog_print("\n");
@@ -1278,7 +1278,7 @@ void LoadSprites(void)
             } else {
                 err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &masterBoxSprite[i], NULL, spriteID, maskID, xSize,
                                    ySize, 0, 0, 0, 1);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error loading sprite from PICT, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 500);
                     crashlog_print("\n");
@@ -1286,7 +1286,7 @@ void LoadSprites(void)
                 }
                 SWLockSprite(masterBoxSprite[i]);
                 err = ConvertSpriteToRLE(masterBoxSprite[i]);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 500);
                     crashlog_print("\n");
@@ -1308,7 +1308,7 @@ void LoadSprites(void)
         if (GetSpriteInfo(i + 800, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
             if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
                 err = SWCreateSpriteFromRLEResource(&masterAsteroidSprite[i], NULL, spriteID, xTiles * yTiles, 0);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error loading sprite from RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 800);
                     crashlog_print("\n");
@@ -1317,7 +1317,7 @@ void LoadSprites(void)
             } else {
                 err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &masterAsteroidSprite[i], NULL, spriteID, maskID, xSize,
                                    ySize, 0, 0, 0, 1);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error loading sprite from PICT, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 800);
                     crashlog_print("\n");
@@ -1325,7 +1325,7 @@ void LoadSprites(void)
                 }
                 SWLockSprite(masterAsteroidSprite[i]);
                 err = ConvertSpriteToRLE(masterAsteroidSprite[i]);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 800);
                     crashlog_print("\n");
@@ -1350,7 +1350,7 @@ void LoadSprites(void)
         if (GetSpriteInfo(i + 600, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
             if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
                 err = SWCreateSpriteFromRLEResource(&menuButtonSprite[i], NULL, spriteID, xTiles * yTiles, 0);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error loading sprite from RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 600);
                     crashlog_print("\n");
@@ -1359,14 +1359,14 @@ void LoadSprites(void)
             } else {
                 err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &menuButtonSprite[i], NULL, spriteID, maskID, xSize,
                                    ySize, 0, 0, 0, 1);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error loading sprite from PICT, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 600);
                     crashlog_print("\n");
                     ReportSpriteLoadError(3, i + 600, err);
                 }
                 err = ConvertSpriteToRLE(menuButtonSprite[i]);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                     crashlog_print_num(i + 600);
                     crashlog_print("\n");
@@ -1384,7 +1384,7 @@ void LoadSprites(void)
     if (GetSpriteInfo(700, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
         if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
             err = SWCreateSpriteFromRLEResource(&masterStarSprite, NULL, spriteID, xTiles * yTiles, 0);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 crashlog_print("error loading sprite from RLE, " kSpinTypeName " ID ");
                 crashlog_print_num(700);
                 crashlog_print("\n");
@@ -1393,14 +1393,14 @@ void LoadSprites(void)
         } else {
             err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &masterStarSprite, NULL, spriteID,
                                maskID, xSize, ySize, 0, 0, 0, 1);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 crashlog_print("error loading sprite from PICT, " kSpinTypeName " ID ");
                 crashlog_print_num(700);
                 crashlog_print("\n");
                 ReportSpriteLoadError(3, 700, err);
             }
             err = ConvertSpriteToRLE(masterStarSprite);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                 crashlog_print_num(700);
                 crashlog_print("\n");
@@ -1424,7 +1424,7 @@ void LoadSprites(void)
     if (GetSpriteInfo(607, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
         if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
             err = SWCreateSpriteFromRLEResource(&menuRolloverSprite, NULL, spriteID, xTiles * yTiles, 0);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 menuRolloverSprite = NULL;
                 crashlog_print("error loading sprite from RLE, " kSpinTypeName " ID ");
                 crashlog_print_num(607);
@@ -1433,14 +1433,14 @@ void LoadSprites(void)
         } else {
             err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &menuRolloverSprite, NULL, spriteID,
                                maskID, xSize, ySize, 0, 0, 0, 1);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 menuRolloverSprite = NULL;
                 crashlog_print("error loading sprite from PICT, " kSpinTypeName " ID ");
                 crashlog_print_num(607);
                 crashlog_print("\n");
             }
             err = ConvertSpriteToRLE(menuRolloverSprite);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                 crashlog_print_num(607);
                 crashlog_print("\n");
@@ -1464,7 +1464,7 @@ void LoadSprites(void)
     if (GetSpriteInfo(650, &spriteID, &maskID, &xSize, &ySize, &xTiles, &yTiles)) {
         if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spriteID)) {
             err = SWCreateSpriteFromRLEResource(&cursorSprite, NULL, spriteID, xTiles * yTiles, 0);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 cursorSprite = NULL;
                 crashlog_print("error loading sprite from RLE, " kSpinTypeName " ID ");
                 crashlog_print_num(650);
@@ -1473,13 +1473,13 @@ void LoadSprites(void)
         } else {
             err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &cursorSprite, NULL, spriteID,
                                maskID, xSize, ySize, 0, 0, 0, 1);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 crashlog_print("error loading sprite from PICT, " kSpinTypeName " ID ");
                 crashlog_print_num(650);
                 crashlog_print("\n");
             }
             err = ConvertSpriteToRLE(cursorSprite);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                 crashlog_print_num(650);
                 crashlog_print("\n");
@@ -1501,7 +1501,7 @@ void LoadSprites(void)
     }
 
     err = SWCreateSpriteFromCicnResource(gSpriteWorld, &masterNavTargetSprite, NULL, 10000, 8, 1);
-    if ((long)err != 0) {
+    if ((int32_t)err != 0) {
         crashlog_print("error loading sprite from cicn, ID ");
         crashlog_print_num(10000);
         crashlog_print("\n");
@@ -1509,7 +1509,7 @@ void LoadSprites(void)
     }
     SWLockSprite(masterNavTargetSprite);
     err = SWCreateRLEData(masterNavTargetSprite, 0);
-    if ((long)err != 0) {
+    if ((int32_t)err != 0) {
         crashlog_print("error converting cicn sprite to RLE, ID ");
         crashlog_print_num(10000);
         crashlog_print("\n");
@@ -1517,7 +1517,7 @@ void LoadSprites(void)
     }
 
     err = SWCreateSpriteFromCicnResource(gSpriteWorld, &masterWeapTargetSprite, NULL, 10008, 16, 1);
-    if ((long)err != 0) {
+    if ((int32_t)err != 0) {
         crashlog_print("error loading sprite from cicn, ID ");
         crashlog_print_num(10008);
         crashlog_print("\n");
@@ -1525,7 +1525,7 @@ void LoadSprites(void)
     }
     SWLockSprite(masterWeapTargetSprite);
     err = SWCreateRLEData(masterWeapTargetSprite, 0);
-    if ((long)err != 0) {
+    if ((int32_t)err != 0) {
         crashlog_print("error converting cicn sprite to RLE, ID ");
         crashlog_print_num(10008);
         crashlog_print("\n");
@@ -1559,10 +1559,10 @@ void LoadSprites(void)
         masterSmokeSprite[i] = 0;
         err = SWCreateSpriteFromCicnResource(gSpriteWorld, q, NULL, resID, 8, 1);
 #endif
-        if ((long)err == 0 && masterSmokeSprite[i] != NULL) {
+        if ((int32_t)err == 0 && masterSmokeSprite[i] != NULL) {
             SWLockSprite(masterSmokeSprite[i]);
             err = SWCreateRLEData(masterSmokeSprite[i], 0);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 crashlog_print("error converting sprite to RLE, " kSpinTypeName " ID ");
                 crashlog_print_num(resID);
                 crashlog_print("\n");
@@ -1574,7 +1574,7 @@ void LoadSprites(void)
     IterateInGameEventLoop(1);
 
     err = SWCreateSpriteFromCicnResource(gSpriteWorld, &alertSprite, NULL, 18000, 2, 1);
-    if ((long)err != 0) {
+    if ((int32_t)err != 0) {
         crashlog_print("error loading sprite from cicn, ID ");
         crashlog_print_num(18000);
         crashlog_print("\n");
@@ -1582,7 +1582,7 @@ void LoadSprites(void)
     }
     SWLockSprite(alertSprite);
     err = SWCreateRLEData(alertSprite, 0);
-    if ((long)err != 0) {
+    if ((int32_t)err != 0) {
         crashlog_print("error converting cicn sprite to RLE, ID ");
         crashlog_print_num(18000);
         crashlog_print("\n");
@@ -1591,7 +1591,7 @@ void LoadSprites(void)
     SWSetSpriteDrawProc(alertSprite, BlitPixieRLETranslucentDrawProc);
 
     err = SWCreateSpriteFromCicnResource(gSpriteWorld, &doubleTimeSprite, NULL, 20000, 1, 1);
-    if ((long)err != 0) {
+    if ((int32_t)err != 0) {
         crashlog_print("error loading sprite from cicn, ID ");
         crashlog_print_num(20000);
         crashlog_print("\n");
@@ -1599,7 +1599,7 @@ void LoadSprites(void)
     }
     SWLockSprite(doubleTimeSprite);
     err = SWCreateRLEData(doubleTimeSprite, 0);
-    if ((long)err != 0) {
+    if ((int32_t)err != 0) {
         crashlog_print("error converting cicn sprite to RLE, ID ");
         crashlog_print_num(20000);
         crashlog_print("\n");
@@ -1748,7 +1748,7 @@ void InitSprites(void)
     for (i = kMaxShips - 1; i >= 0; i--) {
         ServiceIntroMusic(0);
         err = SWCloneSprite(masterShipSprite[0], &shipData[i].sprite, NULL);
-        if ((long)err != 0) {
+        if ((int32_t)err != 0) {
             crashlog_print("error cloning ship base sprite, #");
             crashlog_print_num(i);
             crashlog_print("\n");
@@ -1766,7 +1766,7 @@ void InitSprites(void)
         if (firstShipAltIndex != -1) {
             err = SWCloneSprite(masterShipAltSprite[firstShipAltIndex],
                                 &shipData[i].altSprite, NULL);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 crashlog_print("error cloning ship alt sprite, #");
                 crashlog_print_num(i);
                 crashlog_print("\n");
@@ -1786,7 +1786,7 @@ void InitSprites(void)
         if (firstShipGlowIndex != -1) {
             err = SWCloneSprite(masterShipGlowSprite[firstShipGlowIndex],
                                 &shipData[i].glowSprite, NULL);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 crashlog_print("error cloning ship glow sprite, #");
                 crashlog_print_num(i);
                 crashlog_print("\n");
@@ -1808,7 +1808,7 @@ void InitSprites(void)
         if (firstShipLightIndex != -1) {
             err = SWCloneSprite(masterShipLightSprite[firstShipLightIndex],
                                 &shipData[i].lightSprite, NULL);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 crashlog_print("error cloning ship light sprite, #");
                 crashlog_print_num(i);
                 crashlog_print("\n");
@@ -1830,7 +1830,7 @@ void InitSprites(void)
         if (firstShipWeapIndex != -1) {
             err = SWCloneSprite(masterShipWeaponSprite[firstShipWeapIndex],
                                 &shipData[i].weapSprite, NULL);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 crashlog_print("error cloning ship weapon sprite, #");
                 crashlog_print_num(i);
                 crashlog_print("\n");
@@ -1852,7 +1852,7 @@ void InitSprites(void)
         if (firstShipShieldIndex != -1) {
             err = SWCloneSprite(masterShipShieldSprite[firstShipShieldIndex],
                                 &shipData[i].shieldSprite, NULL);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 crashlog_print("error cloning ship shield sprite, #");
                 crashlog_print_num(i);
                 crashlog_print("\n");
@@ -1880,7 +1880,7 @@ void InitSprites(void)
 
     for (i = 0; i < kNavSlots; i++) {
         err = SWCreateEmptySprite(&stellarSprite[i], NULL);
-        if ((long)err != 0)
+        if ((int32_t)err != 0)
             ReportSpriteLoadError(1, 0, err);
         SWCloneFramesFromMaster(stellarSprite[i], masterStellarSprite[0]);
         SWAddSprite(stellarLayer, stellarSprite[i]);
@@ -1894,7 +1894,7 @@ void InitSprites(void)
 
     for (i = 0; i < kMaxExplods; i++) {
         err = SWCloneSprite(masterExplodSprite[0], &explodData[i].sprite, NULL);
-        if ((long)err != 0) {
+        if ((int32_t)err != 0) {
             crashlog_print("error cloning explosion sprite, #");
             crashlog_print_num(i);
             crashlog_print("\n");
@@ -1916,7 +1916,7 @@ void InitSprites(void)
 
     for (i = 0; i < kMaxShots; i++) {
         err = SWCloneSprite(masterShotSprite[0], &shotData[i].sprite, NULL);
-        if ((long)err != 0) {
+        if ((int32_t)err != 0) {
             crashlog_print("error cloning shot sprite, #");
             crashlog_print_num(i);
             crashlog_print("\n");
@@ -1934,7 +1934,7 @@ void InitSprites(void)
 
     for (i = 0; i < kMaxBoxes; i++) {
         err = SWCloneSprite(masterBoxSprite[0], &boxData[i].sprite, NULL);
-        if ((long)err != 0) {
+        if ((int32_t)err != 0) {
             crashlog_print("error cloning box sprite, #");
             crashlog_print_num(i);
             crashlog_print("\n");
@@ -1950,7 +1950,7 @@ void InitSprites(void)
     for (i = 0; i < kMaxPods; i++) {
         err = SWCloneSprite(masterShipSprite[kMaxShipTypes - 1],
                             &podData[i].sprite, NULL);
-        if ((long)err != 0) {
+        if ((int32_t)err != 0) {
             crashlog_print("error cloning pod sprite, #");
             crashlog_print_num(i);
             crashlog_print("\n");
@@ -1965,7 +1965,7 @@ void InitSprites(void)
 
     for (i = 0; i < kMaxStars; i++) {
         err = SWCloneSprite(masterStarSprite, &starData[i].sprite, NULL);
-        if ((long)err != 0) {
+        if ((int32_t)err != 0) {
             crashlog_print("error cloning star sprite, #");
             crashlog_print_num(i);
             crashlog_print("\n");
@@ -1984,7 +1984,7 @@ void InitSprites(void)
     if (masterSmokeSprite[0] != NULL) {
         for (i = 0; i < kMaxDebris; i++) {
             err = SWCloneSprite(masterSmokeSprite[0], &smokeData[i].sprite, NULL);
-            if ((long)err != 0) {
+            if ((int32_t)err != 0) {
                 crashlog_print("error cloning smoke sprite, #");
                 crashlog_print_num(i);
                 crashlog_print("\n");
@@ -2006,7 +2006,7 @@ void InitSprites(void)
 
     for (i = 0; i < kMaxAsteroids; i++) {
         err = SWCloneSprite(masterAsteroidSprite[0], &asteroidData[i].sprite, NULL);
-        if ((long)err != 0) {
+        if ((int32_t)err != 0) {
             crashlog_print("error cloning asteroid sprite, #");
             crashlog_print_num(i);
             crashlog_print("\n");
@@ -2023,7 +2023,7 @@ void InitSprites(void)
 
     for (i = 0; i < kMaxNavTargets; i++) {
         err = SWCloneSprite(masterNavTargetSprite, &navTargetSprite[i], NULL);
-        if ((long)err != 0) {
+        if ((int32_t)err != 0) {
             crashlog_print("error cloning nav target sprite, #");
             crashlog_print_num(i);
             crashlog_print("\n");
@@ -2042,7 +2042,7 @@ void InitSprites(void)
 
     for (i = 0; i < kMaxNavTargets; i++) {
         err = SWCloneSprite(masterWeapTargetSprite, &weapTargetSprite[i], NULL);
-        if ((long)err != 0) {
+        if ((int32_t)err != 0) {
             crashlog_print("error cloning weap target sprite, #");
             crashlog_print_num(i);
             crashlog_print("\n");
@@ -2140,8 +2140,8 @@ void LoadSounds(void)
     short set;
 #ifdef MACBUILD
     SoundComponentData info;
-    unsigned long frames;
-    unsigned long offset;
+    uint32_t frames;
+    uint32_t offset;
 #else
     AudioDesc info;
 #endif
@@ -2235,7 +2235,7 @@ void LoadMasterStellarSprite(short type)
 #if V111 /* V111 spelling */
     short resID;
 #else
-    long resID;
+    int32_t resID;
 #endif
     short err;
     SpriteRec *entry;
@@ -2302,7 +2302,7 @@ void InitObjects(void)
     short i, j, k;
     RGBColor c;
     Str255 buf;
-    long value;
+    int32_t value;
     int n;
 
     for (i = 0; i < kMaxShips; i++) {
@@ -2931,7 +2931,7 @@ void ResetPlayerRecord(Boolean newPilot)
 void CheckSystem(void)
 {
     Str255 msg;
-    long response;
+    int32_t response;
     OSErr err;
 
     err = Gestalt(gestaltSystemVersion, &gSystemVersion);
@@ -3247,19 +3247,19 @@ void SetDefaultKeys(void)
 #if TARGET_API_MAC_CARBON
 /* a display mode as the Carbon gamma library hands it back; the fields read are named */
 typedef struct ScreenSetting {
-    long unk0;
+    int32_t unk0;
     Fixed refreshRate;
-    long height;
-    long width;
+    int32_t height;
+    int32_t width;
     char unk10[7];
     Boolean unk17;
     char unk18[0x20];
 } ScreenSetting;
-extern ScreenRef NewScreenRef(GDHandle device, long *err);
-extern long GetCurrentSetting(ScreenRef screen, ScreenSetting *setting);
-extern long GetColorDepthsAtThisResolution(ScreenRef screen);
-extern long GetGamma(ScreenRef screen, ScreenGamma *gamma);
-extern long SetColorDepth(ScreenRef screen, short depth);
+extern ScreenRef NewScreenRef(GDHandle device, int32_t *err);
+extern int32_t GetCurrentSetting(ScreenRef screen, ScreenSetting *setting);
+extern int32_t GetColorDepthsAtThisResolution(ScreenRef screen);
+extern int32_t GetGamma(ScreenRef screen, ScreenGamma *gamma);
+extern int32_t SetColorDepth(ScreenRef screen, short depth);
 extern pascal void GetAvailableWindowPositioningBounds(GDHandle device, Rect *bounds);
 extern ScreenGamma gFadeGamma;
 #endif
@@ -3274,7 +3274,7 @@ void SetupMonitor(void)
 {
 #ifdef MAC1010
 #if TARGET_API_MAC_CARBON
-    long err;
+    int32_t err;
     ScreenSetting setting;
     short depths;
 
@@ -3305,7 +3305,7 @@ void SetupMonitor(void)
     crashlog_print(" / ");
     crashlog_print_num(startupDepth);
     crashlog_print(" bits / ");
-    crashlog_print_num((unsigned long)setting.refreshRate >> 16);
+    crashlog_print_num((uint32_t)setting.refreshRate >> 16);
     crashlog_print(" Hz\n");
     if (startupDepth != 8 && startupDepth != 16) {
         depths = GetColorDepthsAtThisResolution(gScreenRef);
@@ -3478,10 +3478,10 @@ void SetupMonitor(void)
 #if V111
     CGDisplayConfigRef config;
     CFNumberRef refreshNumber;
-    long refreshRate;
+    int32_t refreshRate;
     boolean_t exactMatch;
     CFNumberRef depthNumber;
-    long depth;
+    int32_t depth;
     CGRect bounds;
     CFDictionaryRef mode;
 
@@ -3552,9 +3552,9 @@ done:
     GetPixBounds((*mainScreenDevice)->gdPMap, &mainDeviceInitBounds);
     InitCluts();
 #else
-    long flags;
-    long width;
-    long height;
+    int32_t flags;
+    int32_t width;
+    int32_t height;
 
     flags = (settings.windowed != 0 ? 0 : 1) | kModeFlagBase;
     width = GetSystemMetrics(SM_CXSCREEN);
@@ -3634,11 +3634,11 @@ void ResetGameData(void)
 // MAC: _MeasureProcessorSpeed i386 0x0001dfea ppc 0x00022904
 void MeasureProcessorSpeed(void)
 {
-    long counts[10];
-    long total;
-    unsigned long start;
-    long average;
-    long i;
+    int32_t counts[10];
+    int32_t total;
+    uint32_t start;
+    int32_t average;
+    int32_t i;
 
     total = 0;
     for (i = 0; i < 10; i++) {
@@ -3798,7 +3798,7 @@ short SWAddFramesFromSinglePictXY(SpriteWorldPtr destSpriteWorldP, SpritePtr src
 short ConvertSpriteToRLE(SpriteRec *set)
 {
     Rect r;
-    long result;
+    int32_t result;
     short err;
     short i;
 
@@ -3949,7 +3949,7 @@ Rect mainDeviceInitBounds;
 #else
 Rect screenMinusDockRect;
 #endif
-long fullScreenRestore;
+int32_t fullScreenRestore;
 
 
 /* LoadExtendedShipSprites (mac _LoadExtendedShipSprites). STATE: MATCH 100.0% (1048 exact,
@@ -4004,7 +4004,7 @@ short LoadExtendedShipSprites(short shipType)
             if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spinID)) {
                 err = SWCreateSpriteFromRLEResource(&masterShipSprite[shipType], NULL,
                                                     spinID, count, 0);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error loading ship base sprite from RLE, " kShanTypeName " ID ");
                     crashlog_print_num(shipType + kFirstResourceID);
                     crashlog_print("\n");
@@ -4015,7 +4015,7 @@ short LoadExtendedShipSprites(short shipType)
                 err = SWCreateSpriteFromSinglePictXY(gSpriteWorld, &masterShipSprite[shipType],
                                                      NULL, spinID, maskID, xSize, ySize, 0, 0,
                                                      shipClass[shipType].framesPer * setCount, 1);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error loading ship base sprite from PICT, " kShanTypeName " ID ");
                     crashlog_print_num(shipType + kFirstResourceID);
                     crashlog_print("\n");
@@ -4023,7 +4023,7 @@ short LoadExtendedShipSprites(short shipType)
                 }
                 SWLockSprite(masterShipSprite[shipType]);
                 err = ConvertSpriteToRLE(masterShipSprite[shipType]);
-                if ((long)err != 0) {
+                if ((int32_t)err != 0) {
                     crashlog_print("error converting ship base sprite to RLE, " kShanTypeName " ID ");
                     crashlog_print_num(shipType + kFirstResourceID);
                     crashlog_print("\n");
@@ -4064,7 +4064,7 @@ short LoadExtendedShipSprites(short shipType)
                                                         spinID,
                                                         shipClass[shipType].altSets *
                                                             shipClass[shipType].framesPer, 0);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error loading ship alt sprite from RLE, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4077,7 +4077,7 @@ short LoadExtendedShipSprites(short shipType)
                                                          spinID, maskID, xSize, ySize, 0, 0,
                                                          shipClass[shipType].framesPer *
                                                              shipClass[shipType].altSets, 1);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error loading ship alt sprite from PICT, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4087,7 +4087,7 @@ short LoadExtendedShipSprites(short shipType)
                         shipClass[shipType].framesPer * shipClass[shipType].altSets;
                     SWLockSprite(masterShipAltSprite[shipType]);
                     err = ConvertSpriteToRLE(masterShipAltSprite[shipType]);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error converting ship alt sprite to RLE, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4113,7 +4113,7 @@ short LoadExtendedShipSprites(short shipType)
                 if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spinID)) {
                     err = SWCreateSpriteFromRLEResource(&masterShipGlowSprite[shipType], NULL,
                                                         spinID, count, 0);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error loading ship glow sprite from RLE, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4125,7 +4125,7 @@ short LoadExtendedShipSprites(short shipType)
                                                          &masterShipGlowSprite[shipType], NULL,
                                                          spinID, maskID, xSize, ySize, 0, 0,
                                                          shipClass[shipType].framesPer * setCount, 1);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error loading ship glow sprite from PICT, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4135,7 +4135,7 @@ short LoadExtendedShipSprites(short shipType)
                         shipClass[shipType].framesPer * setCount;
                     SWLockSprite(masterShipGlowSprite[shipType]);
                     err = ConvertSpriteToRLE(masterShipGlowSprite[shipType]);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error converting ship glow sprite to RLE, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4161,7 +4161,7 @@ short LoadExtendedShipSprites(short shipType)
                 if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, lightID)) {
                     err = SWCreateSpriteFromRLEResource(&masterShipLightSprite[shipType], NULL,
                                                         lightID, count, 0);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error loading ship light sprite from RLE, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4173,7 +4173,7 @@ short LoadExtendedShipSprites(short shipType)
                                                          &masterShipLightSprite[shipType], NULL,
                                                          lightID, maskID, xSize, ySize, 0, 0,
                                                          shipClass[shipType].framesPer * setCount, 1);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error loading ship light sprite from PICT, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4183,7 +4183,7 @@ short LoadExtendedShipSprites(short shipType)
                         shipClass[shipType].framesPer * setCount;
                     SWLockSprite(masterShipLightSprite[shipType]);
                     err = ConvertSpriteToRLE(masterShipLightSprite[shipType]);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error converting ship light sprite to RLE, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4219,7 +4219,7 @@ short LoadExtendedShipSprites(short shipType)
                 if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spinID)) {
                     err = SWCreateSpriteFromRLEResource(&masterShipWeaponSprite[shipType], NULL,
                                                         spinID, count, 0);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error loading ship weapon sprite from RLE, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4231,7 +4231,7 @@ short LoadExtendedShipSprites(short shipType)
                                                          &masterShipWeaponSprite[shipType], NULL,
                                                          spinID, maskID, xSize, ySize, 0, 0,
                                                          shipClass[shipType].framesPer * setCount, 1);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error loading ship weapon sprite from PICT, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4241,7 +4241,7 @@ short LoadExtendedShipSprites(short shipType)
                         shipClass[shipType].framesPer * setCount;
                     SWLockSprite(masterShipWeaponSprite[shipType]);
                     err = ConvertSpriteToRLE(masterShipWeaponSprite[shipType]);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error converting ship weapon sprite to RLE, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4268,7 +4268,7 @@ short LoadExtendedShipSprites(short shipType)
                 if (ResourceExists((gSpriteWorld->pixelDepth == 16) ? kRLEDResType : kRLE8ResType, spinID)) {
                     err = SWCreateSpriteFromRLEResource(&masterShipShieldSprite[shipType], NULL,
                                                         spinID, count, 0);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error loading ship shield sprite from RLE, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4279,7 +4279,7 @@ short LoadExtendedShipSprites(short shipType)
                     err = SWCreateSpriteFromSinglePictXY(gSpriteWorld,
                                                          &masterShipShieldSprite[shipType], NULL,
                                                          spinID, maskID, xSize, ySize, 0, 0, 0, 1);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error loading ship shield sprite from PICT, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4287,7 +4287,7 @@ short LoadExtendedShipSprites(short shipType)
                     }
                     SWLockSprite(masterShipShieldSprite[shipType]);
                     err = ConvertSpriteToRLE(masterShipShieldSprite[shipType]);
-                    if ((long)err != 0) {
+                    if ((int32_t)err != 0) {
                         crashlog_print("error converting ship shield sprite to RLE, " kShanTypeName " ID ");
                         crashlog_print_num(shipType + kFirstResourceID);
                         crashlog_print("\n");
@@ -4382,7 +4382,7 @@ void ReportSpriteLoadError(short label, short value, short special)
     extern void NumToString(int value, unsigned char *str);  /* 0x004bbce0 */
 #endif
 
-    if ((long)special == 0)
+    if ((int32_t)special == 0)
         return;
     GetIndString(labelText, kAlertStrList, label);
     NumToString(value, valueText);
@@ -4390,9 +4390,9 @@ void ReportSpriteLoadError(short label, short value, short special)
         GetIndString(specialText, kSpecialValueStrList, 1);
     else if (special == -0x27)
         GetIndString(specialText, kSpecialValueStrList, 2);
-    else if ((long)special == 0x6b)
+    else if ((int32_t)special == 0x6b)
         GetIndString(specialText, kSpecialValueStrList, 3);
-    else if ((long)special == -0x6c)
+    else if ((int32_t)special == -0x6c)
         GetIndString(specialText, kSpecialValueStrList, 4);
     else
         NumToString(special, specialText);
@@ -4462,8 +4462,8 @@ void ScreenEndScene(void)
 // FUNCTION: EVNOVA 0x004b68a0
 void GetGlobalMouse(Point *pt)
 {
-    long h;
-    long v;
+    int32_t h;
+    int32_t v;
 
     MouseReadPosition(&h, &v);
     pt->h = h;
@@ -4527,7 +4527,7 @@ void TextFace(short face)
 
 /* Color2Index. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004b6960
-unsigned long Color2Index(RGBColor *color)
+uint32_t Color2Index(RGBColor *color)
 {
     return ((color->red & 0xf800) >> 1) | ((color->green & 0xf800) >> 6) |
            ((color->blue & 0xf800) >> 11);
@@ -4564,17 +4564,17 @@ void BackColor(const RGBColor *color)
 
 #ifdef MACBUILD
 #ifdef MAC1010
-void PreflightMemoryUsage(long *base, long *engineGlow, long *runningLights, long *weaponGlow);
-long PreflightMemoryUsageTotal(void)
+void PreflightMemoryUsage(int32_t *base, int32_t *engineGlow, int32_t *runningLights, int32_t *weaponGlow);
+int32_t PreflightMemoryUsageTotal(void)
 #include "../engine/preflighttotal.inc"
 #endif
 
 /* PreflightMemoryUsage (mac _PreflightMemoryUsage, mac-only). STATE: mac MATCH i386 and ppc.
    OPEN: none */
 // MAC: _PreflightMemoryUsage i386 0x00022214 ppc 0x00026624
-void PreflightMemoryUsage(long *base, long *engineGlow, long *runningLights, long *weaponGlow)
+void PreflightMemoryUsage(int32_t *base, int32_t *engineGlow, int32_t *runningLights, int32_t *weaponGlow)
 {
-    long sizes[6];
+    int32_t sizes[6];
     short i;
     short j;
     short k;
@@ -4582,7 +4582,7 @@ void PreflightMemoryUsage(long *base, long *engineGlow, long *runningLights, lon
     Handle h;
     short baseSets;
     short altSets;
-    long total;
+    int32_t total;
 
     for (i = 0; i < kMaxShipTypes; i++)
         for (k = 0; k < 6; k++)
@@ -4657,7 +4657,7 @@ void DisposeClonedSprite(SpritePtr *p)
 /* PreflightMemoryUsageTotal (mac _PreflightMemoryUsageTotal, mac-only). STATE: mac MATCH i386
    and ppc. OPEN: none */
 // MAC: _PreflightMemoryUsageTotal i386 0x00022438 ppc 0x000268b0
-long PreflightMemoryUsageTotal(void)
+int32_t PreflightMemoryUsageTotal(void)
 #ifdef MAC1010
 ;
 #else

@@ -101,21 +101,21 @@ typedef struct PictFrame {
 
 /* QuickDraw's PixMap as the bits opcodes carry it (Fixed resolutions, signed) */
 typedef struct PictPixMap {
-    long baseAddr;
+    int32_t baseAddr;
     unsigned short rowBytes;
     PictFrame bounds;
     short pmVersion;
     short packType;
-    long packSize;
-    long hRes;
-    long vRes;
+    int32_t packSize;
+    int32_t hRes;
+    int32_t vRes;
     short pixelType;
     short pixelSize;
     short cmpCount;
     short cmpSize;
-    long planeBytes;
-    long pmTable;
-    long pmReserved;
+    int32_t planeBytes;
+    int32_t pmTable;
+    int32_t pmReserved;
 } PictPixMap;
 
 /* the picture being drawn: its frame, version, target images and the loader's answers */
@@ -136,7 +136,7 @@ typedef struct PictState {
 /* an opcode's entry in the table: its data length (negative: a special rule), its handler or
    none, and its name */
 struct PictOpcode;
-typedef long (*PictHandler)(ITStream *stream, PictState *s, const struct PictOpcode *op,
+typedef int32_t (*PictHandler)(ITStream *stream, PictState *s, const struct PictOpcode *op,
                             ULong opcode);
 typedef struct PictOpcode {
     ULong length;
@@ -158,10 +158,10 @@ typedef struct PictOpcode {
 /* _DeferredImageCreate (create the picture's image in a format and palette, lock it, and when asked
    paint it white). STATE: MATCH 100%, exe 61 / obj 61, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00515931
-long _DeferredImageCreate(PictState *s, ULong format, const ITPalette *palette, unsigned char white)
+int32_t _DeferredImageCreate(PictState *s, ULong format, const ITPalette *palette, unsigned char white)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong width;
     ULong x;
     ULong y;
@@ -203,7 +203,7 @@ long _DeferredImageCreate(PictState *s, ULong format, const ITPalette *palette, 
 // FUNCTION: EVNOVA 0x005159d6
 void _DeferredImageDispose(PictState *s)
 {
-    long err;
+    int32_t err;
 
     err = 0;
 #ifdef MAC1010
@@ -226,10 +226,10 @@ void _DeferredImageDispose(PictState *s)
 /* _PICT_ReadOpCode (the next opcode: one byte in a version 1 picture, else a big-endian word at an
    even offset). STATE: MATCH 100%, exe 55 / obj 55, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00515a39
-long _PICT_ReadOpCode(ITStream *stream, unsigned short version, unsigned short *opcode)
+int32_t _PICT_ReadOpCode(ITStream *stream, unsigned short version, unsigned short *opcode)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned char b;
     unsigned short w;
 
@@ -263,10 +263,10 @@ done:
 /* _PICT_ReadRect (a big-endian rectangle, four words). STATE: MATCH 100%, exe 49 / obj 49,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00515ac9
-long _PICT_ReadRect(ITStream *stream, short *rect)
+int32_t _PICT_ReadRect(ITStream *stream, short *rect)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     e = DT_BufferRead(stream, rect, 8);
@@ -301,10 +301,10 @@ long _PICT_ReadRect(ITStream *stream, short *rect)
 #define kPictPixMapFlag     0x8000          /* rowBytes: a PixMap, not a BitMap */
 #define kPict72Dpi          0x00480000      /* Fixed */
 
-long _PICT_ReadPixMapTable(ITStream *stream, PictPixMap *map, PictColorTable *table)
+int32_t _PICT_ReadPixMapTable(ITStream *stream, PictPixMap *map, PictColorTable *table)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong last;
     ULong i;
 
@@ -439,10 +439,10 @@ done:
 /* _PICT_ReadPixMap (a PixMap record after its baseAddr, big-endian). STATE: MATCH 100%, exe 279 / obj
    279, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00515b5f
-long _PICT_ReadPixMap(ITStream *stream, PictPixMap *map)
+int32_t _PICT_ReadPixMap(ITStream *stream, PictPixMap *map)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
 
     err = 0;
     ReadWord(map->rowBytes);
@@ -475,10 +475,10 @@ done:
 /* _PICT_ReadColorTable (a big-endian ColorTable; kStreamOverrun past 256 entries). STATE: MATCH 100%,
    exe 122 / obj 122, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00515eb8
-long _PICT_ReadColorTable(ITStream *stream, PictColorTable *table)
+int32_t _PICT_ReadColorTable(ITStream *stream, PictColorTable *table)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong i;
     ULong last;
 
@@ -523,10 +523,10 @@ done:
 /* _PICT_ReadRegion (a QuickDraw region: its big-endian header, then the whole record into a new
    handle). STATE: MATCH 100%, exe 111 / obj 111, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00516046
-long _PICT_ReadRegion(ITStream *stream, void ***regionOut)
+int32_t _PICT_ReadRegion(ITStream *stream, void ***regionOut)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     void **h;
     short header[6];
 
@@ -569,10 +569,10 @@ done:
 /* _PICT_SkipPixPat (the pixel-pattern opcodes: a one-colour PixPat is skipped, a full one is not
    supported). STATE: MATCH 100%, exe 43 / obj 43, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00516187
-PictLocal long _PICT_SkipPixPat(ITStream *stream, PictState *s, const PictOpcode *op, ULong opcode)
+PictLocal int32_t _PICT_SkipPixPat(ITStream *stream, PictState *s, const PictOpcode *op, ULong opcode)
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned short patType;
     unsigned char skip[kPatRGBSkip + 2];
 
@@ -598,7 +598,7 @@ done:
 }
 
 #ifdef MAC1010
-static long _PICT_HandleBits(ITStream *stream, PictState *s, const PictOpcode *op, ULong opcode);
+static int32_t _PICT_HandleBits(ITStream *stream, PictState *s, const PictOpcode *op, ULong opcode);
 #include "../runtime/pictoptable.inc"          /* 1.0.10 spelling: the table is made ahead of the bits handler's jump table */
 #endif
 
@@ -606,14 +606,14 @@ static long _PICT_HandleBits(ITStream *stream, PictState *s, const PictOpcode *o
    DirectBitsRgn: rows into the picture's image when they cover its frame, else skipped). STATE:
    MATCH 100.0%, exe 754 / obj 754, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x00516201
-PictLocal long _PICT_HandleBits(ITStream *stream, PictState *s, const PictOpcode *op, ULong opcode)
+PictLocal int32_t _PICT_HandleBits(ITStream *stream, PictState *s, const PictOpcode *op, ULong opcode)
 #ifdef MAC1010
 #include "../runtime/picthandlebits1010.inc"
 #else
 {
     void **packed;
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     ULong y;
     ULong x;
     ULong rowBytes;
@@ -963,16 +963,16 @@ unsigned char PICT_CheckFileType(const unsigned char *data, ULong size)
    its handler up to OpEndPic). STATE: MATCH 100.0%, exe 561 / obj 561, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x00516dac
-long PICT_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut, ITTransparent *trans,
+int32_t PICT_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut, ITTransparent *trans,
                   ITBackground *bg)
 #ifdef MAC1010
 #include "../runtime/pictdecode1010.inc"
 #else
 {
-    long err;
-    long e;
+    int32_t err;
+    int32_t e;
     unsigned short version;
-    long length;
+    int32_t length;
     unsigned char unused;
     unsigned char skip[kPictSkipChunk];
     unsigned short picSize;

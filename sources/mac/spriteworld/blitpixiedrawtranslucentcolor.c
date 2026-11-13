@@ -8,13 +8,13 @@
 
 /* BlitPixieDrawTranslucentColor (mac _BlitPixieDrawTranslucentColor, mac-only). STATE: see the mac gate. */
 // MAC: _BlitPixieDrawTranslucentColor i386 0x000c04a1 ppc 0x000cc1c0
-void BlitPixieDrawTranslucentColor(unsigned char *dst, unsigned long color, long bytes, unsigned long alpha)
+void BlitPixieDrawTranslucentColor(unsigned char *dst, uint32_t color, int32_t bytes, uint32_t alpha)
 {
-    long i;
-    unsigned long pixel, d;
+    int32_t i;
+    uint32_t pixel, d;
 
     {
-        unsigned long *lp = (unsigned long *)dst;
+        uint32_t *lp = (uint32_t *)dst;
 
         for (i = 0; i < (bytes >> 2); i++) {
             d = *lp;

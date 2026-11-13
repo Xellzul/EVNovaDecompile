@@ -70,11 +70,11 @@ extern int _CGSDefaultConnection(void);
 extern int CGSGetWindowCount(int cid, int owner, int *count);
 extern int CGSGetWindowList(int cid, int owner, int size, int *list, int *count);
 extern int CGSSetWindowLevel(int cid, int window, int level);
-extern Boolean ColorSearchProc(RGBColor *rgb, long *position);
+extern Boolean ColorSearchProc(RGBColor *rgb, int32_t *position);
 extern OSErr MyOpenDocument(const FSSpec *defaultSpec, FSSpec *outSpec);
 extern short pilotResNum;
 #define kPilotResID 128
-extern OSStatus FlipNpil(short resID, void *data, long size, Boolean toDisk);
+extern OSStatus FlipNpil(short resID, void *data, int32_t size, Boolean toDisk);
 /* AmbrosiaTools */
 extern OSErr FSRefMakeFSSpec(const FSRef *ref, FSSpec *spec);
 extern short gARef;
@@ -107,7 +107,7 @@ void SelectNovaSupport(void)
     OSErr err;
     DescType actualType;
     AEKeyword keyword;
-    long count;
+    int32_t count;
 
     if (FSFindFolder(kUserDomain, kApplicationSupportFolderType, kCreateFolder, &asupRef) != noErr)
         return;
@@ -165,8 +165,8 @@ void InitDataFiles(void)
     HFSUniStr255 uniName;
     CFURLRef url;
     CFURLRef filesURL;
-    long err;
-    long count;
+    int32_t err;
+    int32_t count;
 
     url = CFBundleCopyResourceURL(CFBundleGetMainBundle(), CFSTR("Nova-DF"), CFSTR("rsrc"), NULL);
     if (url != NULL) {
@@ -259,7 +259,7 @@ void OpenDataFiles(void)
     Str255 name;
     short count;
     short vRefNum;
-    long dirID;
+    int32_t dirID;
     FSSpec spec;
     Str255 path;
     Handle h;
@@ -488,13 +488,13 @@ void LoadObjectData(void)
     short prev;
     short found;
     short resID;
-    unsigned long resType;
+    uint32_t resType;
     short count;
     short k;
     short gunTally, turretTally;
     short maxGuns, maxTurrets;
     float base;
-    long tradeEst;
+    int32_t tradeEst;
 #ifdef MACBUILD
     ColorSearchUPP colorSearch;
 #endif
@@ -1345,7 +1345,7 @@ void LoadObjectData(void)
         short shipCount;
         Handle h;
         char *res;
-        long mass;
+        int32_t mass;
         short j;
         short weapID;
 
@@ -1807,7 +1807,7 @@ void LoadObjectData(void)
 
     /* ---------------- gövt: governments ---------------- */
     {
-        long k;
+        int32_t k;
 
         found = 0;
         count = CountResources(kGovtType);
@@ -1925,7 +1925,7 @@ void LoadObjectData(void)
 
     /* ---------------- përs: persons ---------------- */
     {
-        long shieldSum;
+        int32_t shieldSum;
 
         found = 0;
         n = count = CountResources(kPersType);
@@ -4091,11 +4091,11 @@ Boolean OpenPilotFile(char *missingResource)
 #else
 {
     OPENFILENAMEA ofn;
-    long mode[4];
+    int32_t mode[4];
     char initDir[0x800];
     char path[0x800];
     unsigned char text[256];
-    long result;
+    int32_t result;
     void *data;
     int gotFile;
 
@@ -4233,7 +4233,7 @@ void OpenLastPilotFile(void)
 {
     char name[256];
     char path[0x800];
-    unsigned long len;
+    uint32_t len;
     char *data;
     short i;
     short j;
@@ -4323,9 +4323,9 @@ short LoadPilotData(char *path)
     short k;
     short n;
     short err;
-    unsigned long len;
+    uint32_t len;
     Boolean junk;
-    long parID;
+    int32_t parID;
 
     playerFileHand = NULL;
     altPlayerFileHand = NULL;
@@ -4928,7 +4928,7 @@ ok:
 Boolean DoesPilotExist(ConstStr255Param name)
 {
     short vRefNum;
-    long dirID;
+    int32_t dirID;
     FSSpec spec;
     Str255 pname;
     OSErr err;
@@ -5046,7 +5046,7 @@ Boolean EVBugResourceFieldTest(short field)
 /* The memset is inlined by mwcc (rep stosb): it needs -opt level=4,intrinsics with <string.h>
    included. */
 #ifdef MAC1010
-OSErr GetSubfolderOfFile(short refNum, ConstStr255Param name, long *dirID, short *vRefNum)
+OSErr GetSubfolderOfFile(short refNum, ConstStr255Param name, int32_t *dirID, short *vRefNum)
 {
     FCBPBRec fcb;
     FSSpec spec;
@@ -5096,10 +5096,10 @@ OSErr GetSubfolderOfFile(short refNum, ConstStr255Param name, long *dirID, short
 /* AdjustHandleSize (mac _AdjustHandleSize). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004cd100
 // MAC: _AdjustHandleSize i386 0x00076bca ppc 0x0007f9fc
-void AdjustHandleSize(Handle h, long newSize)
+void AdjustHandleSize(Handle h, int32_t newSize)
 #ifdef MACBUILD
 {
-    long oldSize;
+    int32_t oldSize;
     Handle temp;
 
     if (h == NULL)
@@ -5125,7 +5125,7 @@ void AdjustHandleSize(Handle h, long newSize)
 }
 #else
 {
-    long size;
+    int32_t size;
 
     if (h == NULL)
         return;
@@ -5273,10 +5273,10 @@ OSErr MyOpenDocument(const FSSpec *defaultSpec, FSSpec *outSpec)
     NavDialogCreationOptions options;
     AEDesc defaultLocation;
     NavTypeListHandle typeList;
-    long count;
+    int32_t count;
     NavReplyRecord reply;
     DescType actualType;
-    long index;
+    int32_t index;
     Size actualSize;
     NavDialogRef dialog;
     AEKeyword keyword;
@@ -5367,7 +5367,7 @@ void GetDefaultCharResourceName(unsigned char *name)
     short i;
     short count;
     short id;
-    unsigned long type;
+    uint32_t type;
 
     count = CountResources(kCharType);
 #ifdef MACBUILD
@@ -5551,9 +5551,9 @@ OSErr MyOpenDocument(const FSSpec *defaultSpec, FSSpec *outSpec)
     NavDialogOptions options;
     AEDesc defaultLocation;
     OSErr err;
-    long index;
+    int32_t index;
     NavReplyRecord reply;
-    long count;
+    int32_t count;
     AEKeyword keyword;
     DescType actualType;
     Size actualSize;
@@ -5607,14 +5607,14 @@ OSErr MyOpenDocument(const FSSpec *defaultSpec, FSSpec *outSpec)
 void VerifyResourceChecksums(void)
 {
     unsigned char alert[256];
-    unsigned long resType[kCheckedTypes];
-    unsigned long type;
+    uint32_t resType[kCheckedTypes];
+    uint32_t type;
     short t;
     short i;
     Handle h;
     short n;
-    long sum;
-    unsigned long expected;
+    int32_t sum;
+    uint32_t expected;
 
     resType[0] = kBoomType;
     resType[1] = kCharType;
@@ -5666,9 +5666,9 @@ void VerifyResourceChecksums(void)
     if (h != NULL) {
         LockAHandle(h);
 #ifdef MACBUILD
-        expected = EndianU32_BtoN(**(unsigned long **)h);
+        expected = EndianU32_BtoN(**(uint32_t **)h);
 #else
-        expected = **(unsigned long **)h;
+        expected = **(uint32_t **)h;
 #endif
         UnlockAHandle(h);
         ReleaseResource(h);

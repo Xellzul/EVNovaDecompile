@@ -22,7 +22,7 @@ static char kBlanks[] = " \t\r\n";
 static char kYesNoPrompt[] = "[y/N] : ";
 static char kReplacePrompt[] = "A %s with that name already exists. Replace it? [y/N] : ";
 
-long _FT_ChunkFilePreflight(FTFile *file, FTMark *mark)
+int32_t _FT_ChunkFilePreflight(FTFile *file, FTMark *mark)
 {
     mark->file = file;
     mark->position = file->position;
@@ -32,9 +32,9 @@ long _FT_ChunkFilePreflight(FTFile *file, FTMark *mark)
     return 0;
 }
 
-long _FT_ChunkFilePostflight(FTFile *file, FTMark *mark)
+int32_t _FT_ChunkFilePostflight(FTFile *file, FTMark *mark)
 {
-    long err, result;
+    int32_t err, result;
     FTFile *marked;
 
     err = 0;
@@ -49,7 +49,7 @@ long _FT_ChunkFilePostflight(FTFile *file, FTMark *mark)
 
 FTFile *_FT_IsChunkOpen(FTFile *archive, const char *name)
 {
-    long err;
+    int32_t err;
     FTLink *link;
     FTFile *f;
     ULong index;
@@ -70,15 +70,15 @@ done:
     return link != 0 ? link->next : 0;
 }
 
-long _FT_ChunkOpenPath(FolderSpec **spec, unsigned char write, unsigned char toLast,
+int32_t _FT_ChunkOpenPath(FolderSpec **spec, unsigned char write, unsigned char toLast,
                   unsigned char mustBeArchive, FTFile **result, char *leaf)
 {
-    long err, e;
+    int32_t err, e;
     unsigned char *out;
     FTFile *parent;
     ULong offset, limit;
     unsigned char *name;
-    long saved;
+    int32_t saved;
     FTFile *root;
     FTFile *file;
     unsigned char locked;
@@ -187,10 +187,10 @@ done:
     return err;
 }
 
-long _FT_ChunkOpen(FTFile *archive, FTFile *file, const char *name, unsigned char write,
+int32_t _FT_ChunkOpen(FTFile *archive, FTFile *file, const char *name, unsigned char write,
                   unsigned char nested)
 {
-    long err, result;
+    int32_t err, result;
     ULong index, flags;
 
     err = 0;
@@ -240,9 +240,9 @@ done:
     return err;
 }
 
-long _FT_ChunkClose(FTFile *file)
+int32_t _FT_ChunkClose(FTFile *file)
 {
-    long err;
+    int32_t err;
 
     err = 0;
     if (file->buffer != 0) {
@@ -256,10 +256,10 @@ long _FT_ChunkClose(FTFile *file)
     return 0;
 }
 
-long _FT_ChunkLoad(FTFile *file)
+int32_t _FT_ChunkLoad(FTFile *file)
 {
     const char *sig;
-    long err, e;
+    int32_t err, e;
     FTMark mark;
     FTArchiveHeader h;
     ULong table;
@@ -369,9 +369,9 @@ done:
 }
 
 #if TARGET_API_MAC_CARBON
-long _FT_ChunkDirEntry(FTFile *archive, ULong index, FTFileInfo *info, FolderSpec **spec)
+int32_t _FT_ChunkDirEntry(FTFile *archive, ULong index, FTFileInfo *info, FolderSpec **spec)
 {
-    long err, e;
+    int32_t err, e;
     FTArchiveEntry *entry;
     FTArchiveHeader *header;
     ULong count;
@@ -447,10 +447,10 @@ unsigned char _FT_ChunkLookup(FTFile *archive, const char *name, ULong *index,
     return found;
 }
 
-long _FT_ChunkFormat(FTFile *file, ULong entries)
+int32_t _FT_ChunkFormat(FTFile *file, ULong entries)
 {
     ULong size;
-    long err, e;
+    int32_t err, e;
     char *table;
     FTArchiveHeader h;
     FTMark mark;
@@ -507,17 +507,17 @@ done:
     return err;
 }
 
-long _FT_ChunkResize(FTFile *archive, ULong offset, ULong length, ULong newLength,
+int32_t _FT_ChunkResize(FTFile *archive, ULong offset, ULong length, ULong newLength,
                   ULong *newOffset)
 {
     FTMark mark;
     char *buffer;
     ULong end;
     ULong done;
-    long err;
+    int32_t err;
     ULong chunk;
-    long result;
-    long e;
+    int32_t result;
+    int32_t e;
     ULong pos;
 
     err = 0;
@@ -615,9 +615,9 @@ done:
     return err;
 }
 
-long _FT_ChunkCreate(FTFile *archive, FTFileInfo *info)
+int32_t _FT_ChunkCreate(FTFile *archive, FTFileInfo *info)
 {
-    long err, e;
+    int32_t err, e;
     ULong entries;
     FTArchiveEntry *slot;
     FTArchiveEntry *entry;
@@ -812,9 +812,9 @@ done:
     return err;
 }
 
-long _FT_ChunkDelete(FTFile *archive, const char *name)
+int32_t _FT_ChunkDelete(FTFile *archive, const char *name)
 {
-    long err, e;
+    int32_t err, e;
     unsigned char member[256];
     FTArchiveHeader h;
     FTMark mark;
@@ -887,11 +887,11 @@ done:
     return err;
 }
 
-long _FT_ChunkGetFlags(FTFile *archive, const char *name, const char *member, FTFileInfo *info,
+int32_t _FT_ChunkGetFlags(FTFile *archive, const char *name, const char *member, FTFileInfo *info,
                   FolderSpec **spec)
 {
     ULong *flags;
-    long err, e;
+    int32_t err, e;
     unsigned char pname[256];
     char cname[256];
     FileTypeMap map;
@@ -967,9 +967,9 @@ done:
     return err;
 }
 
-long _FT_ChunkSetFlags(FTFile *archive, const char *name, FTFileInfo *info)
+int32_t _FT_ChunkSetFlags(FTFile *archive, const char *name, FTFileInfo *info)
 {
-    long err, e;
+    int32_t err, e;
     unsigned char *p;
     ULong n;
     ULong index;
@@ -1058,12 +1058,12 @@ done:
     return err;
 }
 
-long _FT_ChunkRead(FTFile *file, ULong count, void *buffer)
+int32_t _FT_ChunkRead(FTFile *file, ULong count, void *buffer)
 {
     FTMark mark;
-    long err;
+    int32_t err;
     FTFile *parent;
-    long result;
+    int32_t result;
 
     err = 0;
     parent = file->parent;
@@ -1099,12 +1099,12 @@ done:
     return err;
 }
 
-long _FT_ChunkWrite(FTFile *file, ULong count, const void *buffer)
+int32_t _FT_ChunkWrite(FTFile *file, ULong count, const void *buffer)
 {
     FTMark mark;
-    long err;
+    int32_t err;
     FTFile *parent;
-    long result;
+    int32_t result;
 
     err = 0;
     parent = file->parent;
@@ -1149,9 +1149,9 @@ done:
     return err;
 }
 
-long _FT_ChunkGetEOF(FTFile *file, ULong *size)
+int32_t _FT_ChunkGetEOF(FTFile *file, ULong *size)
 {
-    long err;
+    int32_t err;
     FTFile *parent;
 
     err = 0;
@@ -1160,16 +1160,16 @@ long _FT_ChunkGetEOF(FTFile *file, ULong *size)
     return err;
 }
 
-long _FT_ChunkSetEOF(FTFile *file, ULong size)
+int32_t _FT_ChunkSetEOF(FTFile *file, ULong size)
 {
     FTArchiveHeader header;
     FTMark mark;
-    long err;
+    int32_t err;
     FTFile *parent;
     FTArchiveEntry *entry;
     ULong offset;
     ULong length;
-    long result;
+    int32_t result;
 
     err = 0;
     parent = file->parent;
@@ -1220,9 +1220,9 @@ done:
     return err;
 }
 
-long _FT_ChunkGetMark(FTFile *file, ULong *position)
+int32_t _FT_ChunkGetMark(FTFile *file, ULong *position)
 {
-    long err;
+    int32_t err;
     FTFile *parent;
 
     err = 0;
@@ -1231,9 +1231,9 @@ long _FT_ChunkGetMark(FTFile *file, ULong *position)
     return err;
 }
 
-long _FT_ChunkSetMark(FTFile *file, ULong position)
+int32_t _FT_ChunkSetMark(FTFile *file, ULong position)
 {
-    long err;
+    int32_t err;
     FTFile *parent;
 
     err = 0;
@@ -1245,9 +1245,9 @@ long _FT_ChunkSetMark(FTFile *file, ULong position)
     return err;
 }
 
-long _FT_ChunkGetCount(FTFile *archive, const char *name, ULong *count)
+int32_t _FT_ChunkGetCount(FTFile *archive, const char *name, ULong *count)
 {
-    long err, e;
+    int32_t err, e;
     FTFile *dir;
     FTFile *p;
     ULong i;
