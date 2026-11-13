@@ -40,65 +40,34 @@
                                                                  /* 0x00438db0 */
 
 /* HandleShipDisplay (mac _HandleShipDisplay). STATE: win MATCH 100%, exe 3665 / obj 3665; mac MATCH on
-   both slices. OPEN: none. Win's `w` is one variable, the mac splits off `frame`. notes/gameloop.md */
+   both slices. OPEN: none. notes/gameloop.md */
 // FUNCTION: EVNOVA 0x00428340
 // MAC: _HandleShipDisplay i386 0x0002b514 ppc 0x0002fb54
 void HandleShipDisplay(ShipObj *ship)
 {
+#ifdef MACBUILD
 #ifdef MAC1010
     short impact;
-    short damage;
-    unsigned char msg[256];
-    short sizes[kSpriteSizeSlots];
-    float dy;
-    float rate;
-    float ion;
-    short h;
-    short best;
-    short i;
-    short jitter;
-    FloatPoint explod;
-    unsigned short red;
-    unsigned short green;
-    unsigned short blue;
-    short w;
-    short blastRadius;
-    short nFrames;
-    short frame;
-    Boolean hasGlow;
-    Boolean hasAlt;
-    Boolean hasLight;
-    Boolean hasWeap;
-    Boolean hasShield;
-    Boolean altTimed;
-    Boolean advanceAlt;
-    Boolean disabled;
-    Boolean hideAll;
-    float angleScale;
-    float dx;
-#define n w
-#define bank w
-#elif defined(MACBUILD)
-    unsigned char msg[256];
-    short sizes[kSpriteSizeSlots];
-    float dy;
-    float rate;
-    float ion;
-    short h;
-    short best;
-    short i;
-    short n;
-    short jitter;
+#else
     int32_t impact;
+#endif
+    unsigned char msg[256];
+    short sizes[kSpriteSizeSlots];
+    float dy;
+    float rate;
+    float ion;
+    short h;
+    short best;
+    short i;
+    short jitter;
     FloatPoint explod;
     unsigned short red;
     unsigned short green;
     unsigned short blue;
-    short bank;
+    short w;
     short blastRadius;
     short nFrames;
     short frame;
-    short w;
     Boolean hasGlow;
     Boolean hasAlt;
     Boolean hasLight;
@@ -124,9 +93,7 @@ void HandleShipDisplay(ShipObj *ship)
     short nFrames;
     short h;
     short best;
-    short bank;
     short i;
-    short n;
     short jitter;
     short impact;
     FloatPoint explod;
@@ -143,7 +110,7 @@ void HandleShipDisplay(ShipObj *ship)
     Boolean hasShield;
     Boolean advanceAlt;
     short w;
-#define frame w
+    short frame;
 #endif
 
     altTimed = advanceAlt = 0;
@@ -210,13 +177,13 @@ void HandleShipDisplay(ShipObj *ship)
         if (shipClass[ship->type].cost != -1) {
             SWSetSpriteVisible(ship->sprite, 1);
             SWCloneFramesFromMaster(ship->sprite, masterShipSprite[ship->type]);
-            bank = 0;
+            w = 0;
             if (ship->sprite->numFrames > nFrames) {
                 if ((shipClass[ship->type].shanFlags & kShanBanks) != 0) {
                     if (ship->bankDir < 0)
-                        bank = 1;
+                        w = 1;
                     else if (ship->bankDir > 0)
-                        bank = 2;
+                        w = 2;
                 } else if ((shipClass[ship->type].shanFlags & kShanFoldingParts) != 0) {
                     if (ship->foldDir > 0) {
                         ship->frameTimer += gSpeedMult;
@@ -246,10 +213,10 @@ void HandleShipDisplay(ShipObj *ship)
                             && ship->foldSet < shipClass[ship->type].baseSets - 1
                             && ReadTick() >= ship->fireTick + kEngineHoldTicks)
                         ship->foldDir = 1;
-                    bank = ship->foldSet;
+                    w = ship->foldSet;
                 } else if ((shipClass[ship->type].shanFlags & kShanKeyCarriedFrames) != 0) {
                     if (KeyCarriedShipTypeOnboard(ship) != 0)
-                        bank = 1;
+                        w = 1;
                 } else if ((shipClass[ship->type].shanFlags & kShanAnimatedBase) != 0) {
                     altTimed = 1;
                     if ((shipClass[ship->type].shanFlags & kShanStopAnimDisabled) == 0
@@ -268,7 +235,7 @@ void HandleShipDisplay(ShipObj *ship)
                         if (ship->animSet >= shipClass[ship->type].baseSets)
                             ship->animSet = 0;
                     }
-                    bank = ship->animSet;
+                    w = ship->animSet;
                 }
             }
             if ((shipClass[ship->type].shanFlags & kShanSkewCorrect) != 0) {
@@ -288,24 +255,24 @@ void HandleShipDisplay(ShipObj *ship)
             } else {
                 frame = (ship->heading * angleScale);
             }
-            SWSetCurrentFrameIndex(ship->sprite, (bank * nFrames + frame));
+            SWSetCurrentFrameIndex(ship->sprite, (w * nFrames + frame));
             if (hasGlow != 0) {
                 SWCloneFramesFromMaster(ship->glowSprite, masterShipGlowSprite[ship->type]);
-                SWSetCurrentFrameIndex(ship->glowSprite, (bank * nFrames + frame));
+                SWSetCurrentFrameIndex(ship->glowSprite, (w * nFrames + frame));
             }
             if (hasLight != 0) {
                 SWCloneFramesFromMaster(ship->lightSprite, masterShipLightSprite[ship->type]);
-                SWSetCurrentFrameIndex(ship->lightSprite, (bank * nFrames + frame));
+                SWSetCurrentFrameIndex(ship->lightSprite, (w * nFrames + frame));
             }
             if (hasWeap != 0) {
                 SWCloneFramesFromMaster(ship->weapSprite, masterShipWeaponSprite[ship->type]);
-                SWSetCurrentFrameIndex(ship->weapSprite, (bank * nFrames + frame));
+                SWSetCurrentFrameIndex(ship->weapSprite, (w * nFrames + frame));
             }
             if (hasShield != 0) {
                 SWCloneFramesFromMaster(ship->shieldSprite, masterShipShieldSprite[ship->type]);
                 if (ship->shieldSprite->numFrames > nFrames)
                     SWSetCurrentFrameIndex(ship->shieldSprite,
-                                           (bank * nFrames + frame));
+                                           (w * nFrames + frame));
                 else if (ship->shieldSprite->numFrames > 1)
                     SWSetCurrentFrameIndex(ship->shieldSprite, frame);
                 else
@@ -355,7 +322,6 @@ void HandleShipDisplay(ShipObj *ship)
             if (ship->ionization > 0.0F) {
                 ion = ShipIonizationFactor(ship);
                 if (ion >= 0.33) {
-#ifdef MACBUILD
                     w = (ion * 24.0F * 0.01);
                     if (w > 0x18)
                         w = 0x18;
@@ -364,16 +330,6 @@ void HandleShipDisplay(ShipObj *ship)
                     w += Rand(5) - 2;
                     if (w > ship->sprite->tintMode || ship->sprite->tintMode < 8) {
                         ship->sprite->tintMode = w;
-#else
-                    h = (ion * 24.0F * 0.01);
-                    if (h > 0x18)
-                        h = 0x18;
-                    if (h < 0x10)
-                        h = 0x10;
-                    h += Rand(5) - 2;
-                    if (h > ship->sprite->tintMode || ship->sprite->tintMode < 8) {
-                        ship->sprite->tintMode = h;
-#endif
                         ship->sprite->tintColor = ship->ionColor;
                     } else if (gSpriteWorld->pixelDepth == 8) {
                         ship->sprite->tintColor = ship->ionColor;
@@ -404,12 +360,12 @@ void HandleShipDisplay(ShipObj *ship)
                     }
                 } else if (AIShipIsEmergingFromHypergate(ship) != 0) {
                     if (ship->aiTimer <= 16.0F && gSpriteWorld->pixelDepth == 0x10) {
-                        n = (16.0F - ship->aiTimer);
-                        if (n < 0)
-                            n = 0;
-                        if (n > 0x10)
-                            n = 0x10;
-                        ship->sprite->translucency = kFullHilite - n * 2;
+                        w = (16.0F - ship->aiTimer);
+                        if (w < 0)
+                            w = 0;
+                        if (w > 0x10)
+                            w = 0x10;
+                        ship->sprite->translucency = kFullHilite - w * 2;
                         if (ship->sprite->translucency < 0)
                             ship->sprite->translucency = 0;
                         if (ship->sprite->translucency > kFullHilite)
@@ -426,30 +382,30 @@ void HandleShipDisplay(ShipObj *ship)
 
             if (hasGlow != 0) {
                 SWSetSpriteVisible(ship->glowSprite, 1);
-                n = ship->engineGlow - 4 + Rand(6);
-                if (n <= 1) {
+                w = ship->engineGlow - 4 + Rand(6);
+                if (w <= 1) {
                     SWSetSpriteVisible(ship->glowSprite, 0);
                 } else {
-                    if (n > kFullHilite)
-                        n = kFullHilite;
+                    if (w > kFullHilite)
+                        w = kFullHilite;
                     if (ship->index == 0) {
                         ship->glowSprite->tintMode = 0;
                         ship->glowSprite->tintColor = systemData[ship->curSystem].mapPixel;
                     } else {
                         ship->glowSprite->tintColor = ship->sprite->tintColor;
                         ship->glowSprite->tintMode = ship->sprite->tintMode;
-                        if (n > 32.0 - ship->glowSprite->tintMode * 1.5)
-                            n = (32.0 - ship->glowSprite->tintMode * 1.5);
-                        if (n < 0)
-                            n = 0;
+                        if (w > 32.0 - ship->glowSprite->tintMode * 1.5)
+                            w = (32.0 - ship->glowSprite->tintMode * 1.5);
+                        if (w < 0)
+                            w = 0;
                     }
                     if (gSpriteWorld->pixelDepth == 8) {
-                        ship->glowSprite->translucency = kFullHilite - n;
+                        ship->glowSprite->translucency = kFullHilite - w;
                     } else {
                         ship->glowSprite->translucency = kFullHilite;
-                        ship->glowSprite->tintRed = n;
-                        ship->glowSprite->tintGreen = n;
-                        ship->glowSprite->tintBlue = n;
+                        ship->glowSprite->tintRed = w;
+                        ship->glowSprite->tintGreen = w;
+                        ship->glowSprite->tintBlue = w;
                     }
                 }
             }
@@ -518,24 +474,24 @@ void HandleShipDisplay(ShipObj *ship)
                     ship->lightLevel = 0;
                 if (ship->lightLevel > 1.0F) {
                     SWSetSpriteVisible(ship->lightSprite, 1);
-                    n = ship->lightLevel;
+                    w = ship->lightLevel;
                     if (ship->index == 0) {
                         ship->lightSprite->tintMode = 0;
                     } else {
                         ship->lightSprite->tintColor = ship->sprite->tintColor;
                         ship->lightSprite->tintMode = (ship->sprite->tintMode * 0.333);
-                        if (n > 32.0 - ship->lightSprite->tintMode * 1.5)
-                            n = (32.0 - ship->lightSprite->tintMode * 1.5);
-                        if (n < 0)
-                            n = 0;
+                        if (w > 32.0 - ship->lightSprite->tintMode * 1.5)
+                            w = (32.0 - ship->lightSprite->tintMode * 1.5);
+                        if (w < 0)
+                            w = 0;
                     }
                     if (gSpriteWorld->pixelDepth == 8) {
-                        ship->lightSprite->translucency = kFullHilite - n;
+                        ship->lightSprite->translucency = kFullHilite - w;
                     } else {
                         ship->lightSprite->translucency = kFullHilite;
-                        ship->lightSprite->tintRed = n;
-                        ship->lightSprite->tintGreen = n;
-                        ship->lightSprite->tintBlue = n;
+                        ship->lightSprite->tintRed = w;
+                        ship->lightSprite->tintGreen = w;
+                        ship->lightSprite->tintBlue = w;
                     }
                 } else {
                     SWSetSpriteVisible(ship->lightSprite, 0);
@@ -547,24 +503,24 @@ void HandleShipDisplay(ShipObj *ship)
                     SWSetSpriteVisible(ship->weapSprite, 1);
                     if (ship->weapGlow > 32.0F)
                         ship->weapGlow = 32.0F;
-                    n = ship->weapGlow;
+                    w = ship->weapGlow;
                     if (ship->index == 0) {
                         ship->weapSprite->tintMode = 0;
                     } else {
                         ship->weapSprite->tintColor = ship->sprite->tintColor;
                         ship->weapSprite->tintMode = ship->sprite->tintMode;
-                        if (n > 32.0 - ship->weapSprite->tintMode * 1.5)
-                            n = (32.0 - ship->weapSprite->tintMode * 1.5);
-                        if (n < 0)
-                            n = 0;
+                        if (w > 32.0 - ship->weapSprite->tintMode * 1.5)
+                            w = (32.0 - ship->weapSprite->tintMode * 1.5);
+                        if (w < 0)
+                            w = 0;
                     }
                     if (gSpriteWorld->pixelDepth == 8) {
-                        ship->weapSprite->translucency = kFullHilite - n;
+                        ship->weapSprite->translucency = kFullHilite - w;
                     } else {
                         ship->weapSprite->translucency = kFullHilite;
-                        ship->weapSprite->tintRed = n;
-                        ship->weapSprite->tintGreen = n;
-                        ship->weapSprite->tintBlue = n;
+                        ship->weapSprite->tintRed = w;
+                        ship->weapSprite->tintGreen = w;
+                        ship->weapSprite->tintBlue = w;
                     }
                     ship->weapGlow -= shipClass[ship->type].weapDecay * gSpeedMult;
                     if (ship->weapGlow < -1.0F)
@@ -578,7 +534,7 @@ void HandleShipDisplay(ShipObj *ship)
                 if (ship->shieldGlow > 0.0F && ship->shield > 0.0F) {
                     SWSetSpriteVisible(ship->shieldSprite, 1);
                     ship->shieldSprite->translucency = kFullHilite;
-                    n = ship->shieldGlow;
+                    w = ship->shieldGlow;
                     h = (ship->shield * 32.0 / (float)shipClass[ship->type].shield);
                     if (h > kFullHilite)
                         h = kFullHilite;
@@ -586,13 +542,13 @@ void HandleShipDisplay(ShipObj *ship)
                         h = 4;
                     if (ship->shieldGlow > h)
                         ship->shieldGlow = h;
-                    if (n > h)
-                        n = h;
-                    else if (n < 1)
-                        n = 1;
-                    ship->shieldSprite->tintRed = n;
-                    ship->shieldSprite->tintGreen = n;
-                    ship->shieldSprite->tintBlue = n;
+                    if (w > h)
+                        w = h;
+                    else if (w < 1)
+                        w = 1;
+                    ship->shieldSprite->tintRed = w;
+                    ship->shieldSprite->tintGreen = w;
+                    ship->shieldSprite->tintBlue = w;
                     ship->shieldSprite->tintMode = ship->sprite->tintMode;
                     ship->shieldSprite->tintColor = ship->sprite->tintColor;
                 } else {
@@ -656,11 +612,11 @@ void HandleShipDisplay(ShipObj *ship)
                 sizes[5] = GetFrameBiggestSize(ship->shieldSprite->curFrameP);
 
             best = -1;
-            n = 0;
+            w = 0;
             for (i = 0; i < kSpriteSizeSlots; i++) {
-                if (sizes[i] > n) {
+                if (sizes[i] > w) {
                     best = i;
-                    n = sizes[i];
+                    w = sizes[i];
                 }
             }
             if (best == 1)
@@ -990,11 +946,6 @@ void HandleShipDisplay(ShipObj *ship)
         ship->decloaksWhenHit = -1;
     }
 }
-#undef frame
-#ifdef MAC1010
-#undef n
-#undef bank
-#endif
 
 #define kSpinWrap               36.0f
 #define kFadeStart              32.0f
@@ -2183,12 +2134,7 @@ void HandleBeams(unsigned char advance)
                             best = -1;
 
                         if (best != -1) {
-#ifdef MACBUILD
                             off = muzzle;
-#else
-                            off.x = muzzle.x;
-                            off.y = muzzle.y;
-#endif
                             len = FloatSqrt(XYFloatSquaredDist(&muzzle,
                                       &shipData[best].pos))
                                   - GetMasterShipSpriteXSize(shipData[best].type) * 0.2;
@@ -2319,12 +2265,7 @@ void HandleBeams(unsigned char advance)
                             }
 
                             if (bestRoid != -1) {
-#ifdef MACBUILD
                                 off = muzzle;
-#else
-                                off.x = muzzle.x;
-                                off.y = muzzle.y;
-#endif
                                 len = FloatSqrt(XYFloatSquaredDist(&muzzle,
                                           &asteroidData[bestRoid].pos))
                                       - GetSpriteYSize(
@@ -2406,12 +2347,7 @@ void HandleBeams(unsigned char advance)
                             }
                         }
 
-#ifdef MACBUILD
                         off = drawPt;
-#else
-                        off.x = drawPt.x;
-                        off.y = drawPt.y;
-#endif
                         Accel(angle, len, &off);
                         beamData[i].tail.h = off.x;
                         beamData[i].tail.v = off.y;
@@ -3937,12 +3873,7 @@ void HandleShot(ShotObj *shot)
             if (frame != -1) {
                 if ((weaponStats[shot->weapType].flags & kWeapPersistentSmoke) != 0)
                     frame += 2;
-#ifdef MACBUILD
                 SpawnSmoke(shot->pos, frame, weaponStats[shot->weapType].smokeSet);
-#else
-                SpawnSmoke(shot->pos.x, shot->pos.y, frame,
-                             weaponStats[shot->weapType].smokeSet);
-#endif
             }
         }
 

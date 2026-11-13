@@ -10,39 +10,26 @@
 
 EXTERN_C_BEGIN
 
-#if defined(MACBUILD) && !defined(MAC_GAMEUTILS_ONLY)
-#ifdef MAC1010 /* 1.0.10 spelling */
-static int gLowestUnusedElement;
-static int32_t gLastElementInUse;
-static int gNumberOfParticlesActive;
-static int gGravity;
-static uint32_t gNumArrayElements;
-static int32_t scrollOffsetHoriz;
-static int32_t scrollOffsetVert;
-static ParticlePtr gParticleArray = NULL;
-static Boolean gParticlesInitialized = false;
-#else
-/* tentative, in the image's __bss order (gcc emits these in declaration order; initialised to zero they follow the reference walk) */
-static ParticlePtr gParticleArray;
-static Boolean gParticlesInitialized;
-static int gLowestUnusedElement;
-static int32_t gLastElementInUse;
-static int gNumberOfParticlesActive;
-static int gGravity;
-static uint32_t gNumArrayElements;
-static int32_t scrollOffsetHoriz;
-static int32_t scrollOffsetVert;
-#endif
-#else
+#ifdef MAC_GAMEUTILS_ONLY
 static ParticlePtr gParticleArray = NULL;
 static int gLowestUnusedElement = 0;
 static int32_t gLastElementInUse = 0;
 static int gNumberOfParticlesActive = 0;
 static int gGravity = 0;
 static uint32_t gNumArrayElements = 0;
-static Boolean gParticlesInitialized = 0;
+static Boolean gParticlesInitialized = false;
 static int32_t scrollOffsetHoriz = 0;
 static int32_t scrollOffsetVert = 0;
+#else
+static ParticlePtr gParticleArray = NULL;
+static int gLowestUnusedElement;
+static int32_t gLastElementInUse;
+static int gNumberOfParticlesActive;
+static int gGravity;
+static uint32_t gNumArrayElements;
+static Boolean gParticlesInitialized = false;
+static int32_t scrollOffsetHoriz;
+static int32_t scrollOffsetVert;
 #endif
 #ifndef MACBUILD
 static unsigned char DAT_007d053c[260];

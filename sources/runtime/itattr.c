@@ -129,20 +129,9 @@ ITElement *_IT_ParseTreeFindLastNode(void *doc, ITElement *element)
     ITElement *e;
 
     err = 0;
-#ifdef MAC1010 /* 1.0.10 spelling */
     if (element->child != 0) {
         element = element->child;
         while ((e = element->next) != 0 || element->child != 0) {
-            if (e != 0)
-                element = e;
-            else
-                element = element->child;
-        }
-    }
-#else
-    e = element->child;
-    if (e != 0) {
-        while ((e = (element = e)->next) != 0 || element->child != 0) {
             if (element->tag > 0)
                 named = true;
             else
@@ -151,11 +140,9 @@ ITElement *_IT_ParseTreeFindLastNode(void *doc, ITElement *element)
                 named = true;
             else
                 named = false;
-            if (e == 0)
-                e = element->child;
+            element = e != 0 ? e : element->child;
         }
     }
-#endif
     return element;
 }
 
@@ -534,39 +521,24 @@ void _IT_ParseAttributeGetRect(void *rect, unsigned char wide, char *s)
 ITRect *_IT_ParseAttributeGetRect(void *rect, unsigned char wide, const char *s)
 #endif
 {
-#ifdef MAC1010 /* 1.0.10 spelling */
-    ITRect *r;
+    ITRect *r = rect;
+    int32_t err = 0;
+#ifdef MAC1010
+    char *p = s;
+#else
+    const char *p = s;
+#endif
     ITRect parsed = {0, 0, 0, 0};
     unsigned char negative;
     int32_t value;
-    char *p;
     int32_t *field;
     ULong i;
     char c;
-    int32_t err;
-#if TARGET_API_MAC_CARBON
+#if defined(MAC1010) && TARGET_API_MAC_CARBON
     const unsigned short *wp;
     ULong wc;
 #endif
-#else
-    static ITRect zero;
-    ITRect *r;
-    ITRect parsed;
-    int32_t *field;
-    ULong i;
-    int32_t value;
-    unsigned char negative;
-    char c;
-    int32_t err;
-    const char *p;
-#endif
 
-    r = rect;
-    err = 0;
-    p = s;
-#ifndef MAC1010
-    parsed = zero;
-#endif
 #if defined(MAC1010) && TARGET_API_MAC_CARBON
     wp = (const unsigned short *)s;
 #endif

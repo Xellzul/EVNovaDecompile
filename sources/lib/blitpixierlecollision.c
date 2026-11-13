@@ -101,7 +101,7 @@ Boolean BlitPixieRLECollision(
 						solid1 = 1;
 						x1 += count1;
 						srcTokens += count1;
-						(char *)srcTokens += ALIGN_PTR(srcTokens);
+						PtrAddBytes(srcTokens, ALIGN_PTR(srcTokens));
 						break;
 					case kSkipPixelsToken:
 						solid1 = 0;
@@ -129,7 +129,7 @@ Boolean BlitPixieRLECollision(
 						solid2 = 1;
 						x2 += count2;
 						dstTokens += count2;
-						(char *)dstTokens += ALIGN_PTR(dstTokens);
+						PtrAddBytes(dstTokens, ALIGN_PTR(dstTokens));
 						break;
 					case kSkipPixelsToken:
 						solid2 = 0;

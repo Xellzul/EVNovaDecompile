@@ -23,7 +23,7 @@ void BlitPixieRLE(unsigned char *rleTokens, unsigned char *dstPixel,
         case 2:
             BlitPixieMemCopy(dstPixel, rleTokens, count);
             rleTokens += count;
-            (char *)rleTokens += (-(int32_t)rleTokens) & 3;
+            PtrAddBytes(rleTokens, (-(int32_t)rleTokens) & 3);
             dstPixel += count;
             break;
 

@@ -16,6 +16,12 @@
 #define AT_EXTERN
 #endif
 
+/* MacTypes.h's booleans for the win port's C++ (-bool off), plain ints; C has burger.h's */
+#ifdef __cplusplus
+#define false 0
+#define true 1
+#endif
+
 #ifndef MACBUILD
 typedef char **Handle;
 #endif

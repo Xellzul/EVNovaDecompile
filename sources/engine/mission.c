@@ -3093,13 +3093,13 @@ void MungeBriefing(Boolean briefing, short which)
     int32_t pct;
 
     stringHandle = NULL;
-    stringHandle = AllocAHandle2(strlen(briefingTextPtr), 0);
+    stringHandle = (Handle)AllocAHandle2(strlen(briefingTextPtr), 0);
     if (stringHandle == NULL)
         return;
 #ifdef MACBUILD
-    BlockMoveData(briefingTextPtr, *(Handle)stringHandle, GetAHandleSize(stringHandle));
+    BlockMoveData(briefingTextPtr, *stringHandle, GetAHandleSize(stringHandle));
 #else
-    memmove(*(Handle)stringHandle, briefingTextPtr, GetAHandleSize((Handle)stringHandle));
+    memmove(*stringHandle, briefingTextPtr, GetAHandleSize(stringHandle));
 #endif
     for (i = 0; i < kBriefingSize; i++)
         briefingTextPtr[i] = '\0';
@@ -3437,29 +3437,29 @@ tokens:
     }
 
     if (leetMode != 0) {
-        MungeForSymbol("you", (char *)"j00");
-        MungeForSymbol("You", (char *)"j00");
-        MungeForSymbol("ck", (char *)"x0r");
-        MungeForSymbol("i", (char *)"1");
-        MungeForSymbol("I", (char *)"1");
-        MungeForSymbol("e", (char *)"3");
-        MungeForSymbol("E", (char *)"3");
-        MungeForSymbol("l", (char *)"7");
-        MungeForSymbol("L", (char *)"7");
+        MungeForSymbol("you", "j00");
+        MungeForSymbol("You", "j00");
+        MungeForSymbol("ck", "x0r");
+        MungeForSymbol("i", "1");
+        MungeForSymbol("I", "1");
+        MungeForSymbol("e", "3");
+        MungeForSymbol("E", "3");
+        MungeForSymbol("l", "7");
+        MungeForSymbol("L", "7");
     }
 
 #ifdef MACBUILD
     if ((uint32_t)GetAHandleSize(stringHandle) <= kBriefingSize) {
-        BlockMoveData(*(Handle)stringHandle, briefingTextPtr, GetAHandleSize(stringHandle));
+        BlockMoveData(*stringHandle, briefingTextPtr, GetAHandleSize(stringHandle));
     } else {
-        BlockMoveData(*(Handle)stringHandle, briefingTextPtr, kBriefingSize);
+        BlockMoveData(*stringHandle, briefingTextPtr, kBriefingSize);
     }
     HPurge(stringHandle);
 #else
-    if (GetAHandleSize((Handle)stringHandle) <= kBriefingSize) {
-        memmove(briefingTextPtr, *(Handle)stringHandle, GetAHandleSize((Handle)stringHandle));
+    if (GetAHandleSize(stringHandle) <= kBriefingSize) {
+        memmove(briefingTextPtr, *stringHandle, GetAHandleSize(stringHandle));
     } else {
-        memmove(briefingTextPtr, *(Handle)stringHandle, kBriefingSize);
+        memmove(briefingTextPtr, *stringHandle, kBriefingSize);
     }
 #endif
     DeallocAHandle(stringHandle);
@@ -3469,17 +3469,17 @@ tokens:
 /* MungeForSymbol. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00445d70
 // MAC: _MungeForSymbol i386 0x000984a3 ppc 0x000a4230
-void MungeForSymbol(char *needle, void *replacement)
+void MungeForSymbol(char *needle, char *replacement)
 {
     short needleLen;
     short replLen;
     short at;
 
     needleLen = strlen(needle);
-    replLen = strlen((char *)replacement);
+    replLen = strlen(replacement);
     at = 0;
     do {
-        at = ReplaceInHandle((Handle)stringHandle, at, needle, needleLen, (char *)replacement, replLen);
+        at = ReplaceInHandle(stringHandle, at, needle, needleLen, replacement, replLen);
     } while (at >= 0);
 }
 
@@ -4601,9 +4601,5 @@ Boolean EvalMissionBitTestString(char *expr)
     }
     parseBuffer[out] = 0;
     err = 0;
-#ifdef MAC1010 /* 1.0.10 spelling */
     return (EvalTestExp(&err) == 1) ? true : false;
-#else
-    return EvalTestExp(&err) == 1 ? 1 : 0;
-#endif
 }

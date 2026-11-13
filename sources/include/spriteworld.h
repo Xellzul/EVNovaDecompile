@@ -227,14 +227,9 @@ extern void BlitPixieTranslucentClearCopy8(unsigned char *dstPixels,
 #endif
 #if defined(MACBUILD) && !defined(MAC1010) && !defined(SW_DEFINES_FLOATINGRECT8)
 extern void BlitPixieFloatingRect8();   /* the fork calls it with no prototype in scope */
-#elif defined(MACBUILD)
-extern void BlitPixieFloatingRect8(unsigned char *srcPixels,
-        unsigned char *dstPixels, uint32_t srcRowBytes, uint32_t dstRowBytes,
-        unsigned short byteWidth, unsigned short numRows,
-        unsigned short backgroundValue);
 #else
 extern void BlitPixieFloatingRect8(unsigned char *srcPixels,
-        unsigned char *dstPixels, int32_t srcRowBytes, int32_t dstRowBytes,
+        unsigned char *dstPixels, uint32_t srcRowBytes, uint32_t dstRowBytes,
         unsigned short byteWidth, unsigned short numRows,
         unsigned short backgroundValue);                 /* 0x00471dc0 */
 #endif

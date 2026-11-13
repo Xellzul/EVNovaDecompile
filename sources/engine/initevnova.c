@@ -3678,18 +3678,21 @@ void DeleteAllComputerShips(Boolean force, Boolean keepPlayer)
 // FUNCTION: EVNOVA 0x0041af90
 // MAC: _SetupShipsInSystem i386 0x00042b61 ppc 0x0004a668
 void SetupShipsInSystem(short sys, unsigned char arriving)
-#ifdef MAC1010
 {
     float total;
     float step;
     short i;
     short j;
     short m;
+#ifdef MAC1010 /* 1.0.10 spelling */
     short k;
     short n;
+#endif
     short slot;
     short sysOf;
+#if !V111
     short count;
+#endif
     short govt;
     short navIndex;
     short shipSyst;
@@ -3739,7 +3742,9 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
         }
     }
 
+#ifdef MAC1010 /* 1.0.10 spelling */
     k = 0;
+#endif
     for (m = 0; m < kMaxActiveMissions; m++) {
         if (currentMissionObjectives[m].active != 0) {
             shipSyst = currentMissions[m].shipSyst;
@@ -3750,16 +3755,17 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
             if ((sysOf == sys || currentMissions[m].shipSyst == kMissionShipSystemHere)
                     && currentMissions[m].shipCount > 0
                     && currentMissions[m].shipDelay < 0) {
-                count = currentMissions[m].shipCount;
+                shipsLeft = currentMissions[m].shipCount;
                 if (currentMissions[m].shipSyst == kMissionShipSystemHere
                         && currentMissions[m].shipBehav == kMissionModeEscort) {
                     for (j = 1; j < kMaxShips; j++) {
                         if (shipData[j].active != 0 && m == shipData[j].specialMission)
-                            count--;
+                            shipsLeft--;
                     }
                 }
-                if (count > 0) {
-                    for (i = 0; i < count; i++) {
+                if (shipsLeft > 0) {
+                    for (i = 0; i < shipsLeft; i++) {
+#ifdef MAC1010 /* 1.0.10 spelling */
                         n = MissionDudeSpawn(currentMissions[m].shipDude, -1, sys, m);
                         if (n != -1) {
                             k++;
@@ -3804,6 +3810,51 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
                             shipData[n].lastStellar = -2;
                             if (currentMissions[m].shipStart == kMissionShipCloaked)
                                 DoShipCloak(&shipData[n]);
+#else
+                        slot = MissionDudeSpawn(currentMissions[m].shipDude, -1, sys, m);
+                        if (slot != -1) {
+                            if (currentMissions[m].shipGoal == kMissionGoalEscort) {
+                                shipData[slot].pos.x = Rand(0x200) - 0x100;
+                                shipData[slot].pos.y = Rand(0x200) - 0x100;
+                            }
+                            if (currentMissions[m].shipGoal == kMissionGoalRescue) {
+                                shipData[slot].heading = Rand(kFullCircle);
+                                shipData[slot].vel.x = shipData[slot].vel.y = 0.0f;
+                                shipData[slot].accelMag = 0.0f;
+                                shipData[slot].shield = 0.0f;
+                                if ((shipClass[shipData[slot].type].flags
+                                        & kShipArmorDisableTenth) != 0)
+                                    shipData[slot].armor =
+                                        shipClass[shipData[slot].type].armor * 0.1 - 1.0;
+                                else
+                                    shipData[slot].armor =
+                                        shipClass[shipData[slot].type].armor * 0.33 - 1.0;
+                                if (currentMissions[m].timeLimit <= 0
+                                        && currentMissions[m].timeLimit > -32000)
+                                    shipData[slot].boarded = 1;
+                            }
+                            if (currentMissions[m].shipStart <= kNavStelFirst
+                                    && currentMissions[m].shipStart >= kNavStelLast) {
+                                navIndex = -1 - currentMissions[m].shipStart;
+                                if (systemData[sys].navDefault[navIndex] != -1) {
+                                    shipData[slot].pos.x = stellarData[
+                                        systemData[sys].navDefault[navIndex]].pos.h;
+                                    shipData[slot].pos.y = stellarData[
+                                        systemData[sys].navDefault[navIndex]].pos.v;
+                                }
+                            }
+                            if (currentMissions[m].shipBehav == kMissionModeEscort) {
+                                shipData[slot].aiType = kShipTypeEscort;
+                                shipData[slot].parentShip = 0;
+                                shipData[slot].formLeader = 0;
+                                shipData[slot].swarmLeader = 0;
+                                if (arriving != 0)
+                                    shipData[slot].heading = shipData->heading;
+                            }
+                            shipData[slot].lastStellar = -2;
+                            if (currentMissions[m].shipStart == kMissionShipCloaked)
+                                DoShipCloak(&shipData[slot]);
+#endif
                         } else {
                             crashlog_print("warning: couldn't create ship for mission ID ");
                             crashlog_print_num(currentMissions[m].misnIndex + kFirstResourceID);
@@ -3864,192 +3915,6 @@ void SetupShipsInSystem(short sys, unsigned char arriving)
         }
     }
 }
-#else
-{
-    float total;
-    float step;
-    float speed;
-    short i;
-    short j;
-    short slot;
-    short sysOf;
-    unsigned short k;
-#if !V111
-    short count;
-#endif
-    short govt;
-    short navIndex;
-
-    DeleteAllComputerShips(0, 1);
-
-    for (i = 1; i < kMaxShips; i++) {
-        if (shipData[i].parentShip == 0 && shipData[i].active != 0) {
-            if (IsDisabled(&shipData[i]) != 0) {
-                shipData[i].active = 0;
-                if (shipData[i].parentShip == 0
-                        && shipData[i].aiType == kShipTypeEscort
-                        && shipData[i].specialMission == -1
-                        && shipClass[shipData[i].type].inherentAI <= kShipTypeBraveTrader)
-                    DestroyPartialFleetCargo(i);
-            } else {
-                if (shipData[i].specialMission == -1) {
-                    if (IsDisabled(&shipData[i])) {
-                        shipData[i].active = 0;
-                        shipData[i].parentShip = -1;
-                    } else {
-                        RespawnEscort(&shipData[i], arriving);
-                    }
-                }
-            }
-        }
-    }
-
-    AICalcFormationPositions(shipData, 1);
-
-    if (shipData->jumpTimer != 0.0f) {
-        total = 0.0f;
-        step = 45.0f;
-        do {
-            total += step;
-            step = step - 1.165;
-        } while (step > 0.0f);
-        for (i = 1; i < kMaxShips; i++) {
-            if (shipData[i].parentShip == 0 && shipData[i].active != 0) {
-                Accel(((short)shipData[i].heading + kHalfCircle) % kFullCircle,
-                      total, &shipData[i].pos);
-                shipData[i].jumpTimer = -999.0f;
-                shipData[i].jumpTick = 0;
-                Accel(shipData[i].heading, 50.0f,
-                      &shipData[i].vel);
-            }
-        }
-    }
-
-    for (i = 0; i < kMaxActiveMissions; i++) {
-        if (currentMissionObjectives[i].active != 0) {
-            sysOf = currentMissions[i].shipSyst;
-            if (sysOf >= 0 && sysOf < kMaxSystems)
-                sysOf = FindActiveCoLocatedSystem(sysOf);
-            else
-                sysOf = -1;
-            if ((sysOf == sys || currentMissions[i].shipSyst == kMissionShipSystemHere)
-                    && (shipsLeft = currentMissions[i].shipCount) > 0
-                    && currentMissions[i].shipDelay < 0) {
-                if (currentMissions[i].shipSyst == kMissionShipSystemHere
-                        && currentMissions[i].shipBehav == kMissionModeEscort) {
-                    for (j = 1; j < kMaxShips; j++) {
-                        if (shipData[j].active != 0 && i == shipData[j].specialMission)
-                            shipsLeft--;
-                    }
-                }
-                if (shipsLeft > 0) {
-                    for (k = 0; (short)k < shipsLeft; k++) {
-                        slot = MissionDudeSpawn(currentMissions[i].shipDude, -1, sys, i);
-                        if (slot != -1) {
-                            if (currentMissions[i].shipGoal == kMissionGoalEscort) {
-                                shipData[slot].pos.x = Rand(0x200) - 0x100;
-                                shipData[slot].pos.y = Rand(0x200) - 0x100;
-                            }
-                            if (currentMissions[i].shipGoal == kMissionGoalRescue) {
-                                shipData[slot].heading = Rand(kFullCircle);
-                                shipData[slot].vel.x = shipData[slot].vel.y = 0.0f;
-                                shipData[slot].accelMag = 0.0f;
-                                shipData[slot].shield = 0.0f;
-                                if ((shipClass[shipData[slot].type].flags
-                                        & kShipArmorDisableTenth) != 0)
-                                    shipData[slot].armor =
-                                        shipClass[shipData[slot].type].armor * 0.1 - 1.0;
-                                else
-                                    shipData[slot].armor =
-                                        shipClass[shipData[slot].type].armor * 0.33 - 1.0;
-                                if (currentMissions[i].timeLimit <= 0
-                                        && currentMissions[i].timeLimit > -32000)
-                                    shipData[slot].boarded = 1;
-                            }
-                            if (currentMissions[i].shipStart <= kNavStelFirst
-                                    && currentMissions[i].shipStart >= kNavStelLast) {
-                                navIndex = -1 - currentMissions[i].shipStart;
-                                if (systemData[sys].navDefault[navIndex] != -1) {
-                                    shipData[slot].pos.x = stellarData[
-                                        systemData[sys].navDefault[navIndex]].pos.h;
-                                    shipData[slot].pos.y = stellarData[
-                                        systemData[sys].navDefault[navIndex]].pos.v;
-                                }
-                            }
-                            if (currentMissions[i].shipBehav == kMissionModeEscort) {
-                                shipData[slot].aiType = kShipTypeEscort;
-                                shipData[slot].parentShip = 0;
-                                shipData[slot].formLeader = 0;
-                                shipData[slot].swarmLeader = 0;
-                                if (arriving != 0)
-                                    shipData[slot].heading = shipData->heading;
-                            }
-                            shipData[slot].lastStellar = -2;
-                            if (currentMissions[i].shipStart == kMissionShipCloaked)
-                                DoShipCloak(&shipData[slot]);
-                        } else {
-                            crashlog_print("warning: couldn't create ship for mission ID ");
-                            crashlog_print_num(currentMissions[i].misnIndex + kFirstResourceID);
-                            crashlog_print("\n");
-                        }
-                    }
-                    if ((currentMissions[i].flags & kMissionAutoAbort) != 0)
-                        AutoAbortMission(i);
-                }
-            }
-        }
-    }
-
-    if (arriving != 0)
-        AICalcFormationPositions(shipData, 1);
-
-    for (i = 0; i < systemData[sys].avgShips; i++) {
-        slot = -1;
-        if (Rand(kSpawnOdds) == 0) {
-            slot = SpawnPerson(shipData->curSystem, 0, -1);
-            if (slot != -1) {
-                govt = shipData[slot].govt;
-                if (govt != -1
-                        && (govtData[govt].flags & kGovtAlwaysDisabled) != 0) {
-                    shipData[slot].accelMag = 0.0f;
-                    shipData[slot].vel.x = 0.0f;
-                    shipData[slot].vel.y = 0.0f;
-                }
-            }
-        } else if (Rand(kSpawnOdds) == 0) {
-            SpawnFleet(shipData->curSystem, 0);
-        } else {
-            slot = RandomShipSpawn(sys, kRandomSpawnReserve);
-        }
-        if (slot != -1) {
-            speed = shipClass[shipData[slot].type].maxSpeed;
-            AdjustedAccel(shipData[slot].heading, speed,
-                          &shipData[slot].vel, speed);
-        }
-    }
-
-    for (i = 0; i < kSystemPersSlots; i++) {
-        if (systemData[sys].persons[i] != -1
-                && personData[systemData[sys].persons[i]].loaded != 0
-                && EvalMissionBitTestString(personData[systemData[sys].persons[i]].activeOn)
-                && Rand(100) + 1 <= systemData[sys].persProbs[i]) {
-            slot = SpawnPerson(shipData->curSystem, 0, systemData[sys].persons[i]);
-            if (slot != -1) {
-                speed = shipClass[shipData[slot].type].maxSpeed;
-                AdjustedAccel(shipData[slot].heading, speed,
-                              &shipData[slot].vel, speed);
-                govt = shipData[slot].govt;
-                if (govt != -1
-                        && (govtData[govt].flags & kGovtAlwaysDisabled) != 0) {
-                    shipData[slot].vel.x = 0.0f;
-                    shipData[slot].vel.y = 0.0f;
-                    shipData[slot].accelMag = 0.0f;
-                }
-            }
-        }
-    }
-}
-#endif
 
 #define kSpawnSpread     1500    /* Rand(1500) - 750 on each axis */
 #define kSpawnOrigin     750
@@ -5492,11 +5357,7 @@ void SpawnExplod(FloatPoint pos, short unused, short type, short delay)
 /* SpawnSmoke (mac _SpawnSmoke). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004215d0
 // MAC: _SpawnSmoke i386 0x0003f927 ppc 0x00046ba4
-#ifdef MACBUILD
 void SpawnSmoke(FloatPoint pos, short type, short sprite)
-#else
-void SpawnSmoke(float a, register float b, int32_t type, short sprite)
-#endif
 {
     short i;
 
@@ -5508,13 +5369,8 @@ void SpawnSmoke(float a, register float b, int32_t type, short sprite)
                 smokeData[i].type = type;
                 smokeData[i].timer = 0;
                 smokeData[i].angle = 0;
-#ifdef MACBUILD
                 smokeData[i].pos.x = pos.x;
                 smokeData[i].pos.y = pos.y;
-#else
-                smokeData[i].pos.x = a;
-                smokeData[i].pos.y = b;
-#endif
                 SWCloneFramesFromMaster(smokeData[i].sprite, masterSmokeSprite[sprite]);
                 SWLockSprite(smokeData[i].sprite);
                 break;

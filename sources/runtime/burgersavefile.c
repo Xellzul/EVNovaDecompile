@@ -20,7 +20,7 @@ void **AllocAHandleClear(ULong size)
 {
     void **h;
 
-    h = (void **)AllocAHandle2(size, 0);
+    h = AllocAHandle2(size, 0);
     if (h != 0)
         FastMemSet(*h, 0, size);
     return h;

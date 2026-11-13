@@ -4202,13 +4202,17 @@ unsigned char QuickKeyCheck(short scanCode)
 /* QuickKeyCheckPlusEscorts (mac _QuickKeyCheckPlusEscorts, mac-only). STATE: see the mac gate. */
 // MAC: _QuickKeyCheckPlusEscorts i386 0x0000a158 ppc 0x0000c774
 Boolean QuickKeyCheckPlusEscorts(short code)
-#ifdef MAC1010
 {
+#ifdef MAC1010
     short word;
     short bit;
+#else
+    Boolean result;
+#endif
 
     if (ignoreKeys)
         return 0;
+#ifdef MAC1010
     word = (code >> 4) & 0xf;
     bit = code & 0xf;
     if (keyMap[word] & (1 << bit)) {
@@ -4216,19 +4220,13 @@ Boolean QuickKeyCheckPlusEscorts(short code)
         return 1;
     }
     return 0;
-}
 #else
-{
-    Boolean result;
-
-    if (ignoreKeys)
-        return false;
     result = isPressed(keyMap, code);
     if (result)
         quickKeyCheckResult = true;
     return result;
-}
 #endif
+}
 #endif
 
 /*
@@ -6945,17 +6943,9 @@ int32_t AdjustedItemMass(OutfRecord *outf, ShipRec *ship)
 // MAC: _PickEmergeStellar i386 0x00007f9a ppc 0x00009db8
 short PickEmergeStellar(ShipObj *ship)
 {
-#ifdef MAC1010 /* 1.0.10 spelling */
     short spob;
 
     spob = SelectRandomStellarDest(ship, Rand(3) == 0 ? true : false, 0);
-#else
-    int pick;
-    short spob;
-
-    pick = Rand(3) == 0 ? 1 : 0;
-    spob = SelectRandomStellarDest(ship, pick, 0);
-#endif
     if (spob >= 0 && spob < kMaxStellars && SpobIsHyperOrWorm(&stellarData[spob]))
         return spob;
     return -1;

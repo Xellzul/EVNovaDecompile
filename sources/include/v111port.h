@@ -3,11 +3,6 @@
 #define V111PORT_H
 #include "int32.h"
 
-#ifndef true
-#define true 1
-#define false 0
-#endif
-
 typedef int32_t CGDisplayFadeReservationToken;
 typedef int32_t CGError;
 #define kCGErrorSuccess 0

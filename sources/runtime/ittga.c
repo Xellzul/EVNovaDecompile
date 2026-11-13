@@ -138,8 +138,10 @@ void _TGA_ReverseColors(ULong *p, ULong n)
 // FUNCTION: EVNOVA 0x005187bd
 #ifdef MAC1010
 #define FixLE16(v) (v) = (((v) >> 8) & 0xff) | (((v) & 0xff) << 8)
+#define LE16(v) ((((v) >> 8) & 0xff) | (((v) & 0xff) << 8))
 #else
 #define FixLE16(v)
+#define LE16(v) (v)
 #endif
 
 unsigned char TGA_CheckFileType(const void *buffer, ULong size)
@@ -801,12 +803,7 @@ int32_t TGA_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                         goto done;
                     }
                     for (k = 0; count--; k++) {
-#ifdef MAC1010      /* 1.0.10 spelling */
-#define LE16(v) ((((v) >> 8) & 0xff) | (((v) & 0xff) << 8))
                         word = (long long)LE16(((unsigned short *)row)[k]);
-#else
-                        word = ((unsigned short *)row)[k];
-#endif
                         b = hasAlpha && (word & kTGAAlpha16) != 0;
                         pixels[x].alpha = b ? 0 : 0xff;
                         r = (word & 0x7c00) >> 7;

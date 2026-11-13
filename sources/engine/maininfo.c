@@ -1219,11 +1219,7 @@ void EnterGameFromMainScreen(void)
             box = (*(*device)->gdPMap)->bounds;
             if (box.right - box.left != mainDeviceInitBounds.right - mainDeviceInitBounds.left
                 || box.bottom - box.top != mainDeviceInitBounds.bottom - mainDeviceInitBounds.top) {
-#ifdef MAC1010
                 strcpy((char *)msg, "");
-#else
-                msg[0] = 0;
-#endif
                 StrcatIndCString((char *)msg, kAlertStrList, kStrResolution);
                 strcat((char *)msg, " ");
                 NumToString(mainDeviceInitBounds.right - mainDeviceInitBounds.left, num);

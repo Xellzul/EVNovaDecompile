@@ -43,21 +43,17 @@ struct HashTable {
     HashEntry *bucket[1];                        /* +0x28 */
 };
 
-#define kUpperFoldDelta 0xe0     /* + 0xe0 on a byte is - 0x20: to upper case */
+#define kUpperFoldDelta (-0x20)  /* lower case to upper */
 #define kHashRotate   29
 
 /* Every function here is a HashProc (key, length) or a CompareProc (a, length, b, length)
    of the table below; each views its keys through a local of the key's own type. */
 
 #ifdef MAC1010 /* 1.0.10 spelling */
-typedef const unsigned char HashByte;
 typedef ULong HashChar;
-#define kFoldDelta (-0x20)
 #define HashLocal static            /* local symbols in the 1.1.1 framework */
 #else
-typedef const char HashByte;
 typedef unsigned char HashChar;
-#define kFoldDelta kUpperFoldDelta
 #define HashLocal
 #endif
 
@@ -65,7 +61,7 @@ typedef unsigned char HashChar;
 // FUNCTION: EVNOVA 0x004f9c86
 HashLocal ULong _Hash(const void *key, ULong len)
 {
-    HashByte *p;
+    const unsigned char *p;
     ULong h;
     HashChar c;
     int32_t err;
@@ -84,7 +80,7 @@ HashLocal ULong _Hash(const void *key, ULong len)
 // FUNCTION: EVNOVA 0x004f9cad
 HashLocal ULong _HashUpper(const void *key, ULong len)
 {
-    HashByte *p;
+    const unsigned char *p;
     ULong h;
     HashChar c;
     int32_t err;
@@ -94,7 +90,7 @@ HashLocal ULong _HashUpper(const void *key, ULong len)
     h = 0;
     while ((c = *p) != 0) {
         if (c >= kFoldLow && c <= kFoldHigh)
-            c += kFoldDelta;
+            c += kUpperFoldDelta;
         h = (h << 2) ^ (h >> kHashRotate) ^ (unsigned char)c;
         p++;
     }
@@ -112,28 +108,9 @@ HashLocal unsigned char _Match(const void *a, ULong lenA, const void *b, ULong l
 // FUNCTION: EVNOVA 0x004f9cf9
 HashLocal unsigned char _MatchUpper(const void *a, ULong lenA, const void *b, ULong lenB)
 {
-#ifdef MAC1010 /* 1.0.10 spelling */
     const unsigned char *s1;
     const unsigned char *s2;
-    ULong c;
-    int32_t err;
-
-    err = 0;
-    s1 = a;
-    s2 = b;
-    while ((c = *s2) != 0) {
-        if (c >= kFoldLow && c <= kFoldHigh)
-            c -= 0x20;
-        if (*s1 != (unsigned char)c)
-            return 0;
-        s1++;
-        s2++;
-    }
-    return 1;
-#else
-    const char *s1;
-    const char *s2;
-    unsigned char c;
+    HashChar c;
     int32_t err;
 
     err = 0;
@@ -142,13 +119,12 @@ HashLocal unsigned char _MatchUpper(const void *a, ULong lenA, const void *b, UL
     while ((c = *s2) != 0) {
         if (c >= kFoldLow && c <= kFoldHigh)
             c = c + kUpperFoldDelta;
-        if (*s1 != (char)c)
+        if (*s1 != (unsigned char)c)
             return 0;
         s1++;
         s2++;
     }
     return 1;
-#endif
 }
 
 /* _HashUnicode. STATE: MATCH 100%, exe 36 / obj 36, byte-identical yes. OPEN: none */

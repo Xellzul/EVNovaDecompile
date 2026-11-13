@@ -597,10 +597,8 @@ done:
     return err;
 }
 
-#ifdef MAC1010
-static int32_t _PICT_HandleBits(ITStream *stream, PictState *s, const PictOpcode *op, ULong opcode);
-#include "../runtime/pictoptable.inc"          /* 1.0.10 spelling: the table is made ahead of the bits handler's jump table */
-#endif
+PictLocal int32_t _PICT_HandleBits(ITStream *stream, PictState *s, const PictOpcode *op, ULong opcode);
+#include "../runtime/pictoptable.inc"
 
 /* _PICT_HandleBits (the bits opcodes BitsRect / BitsRgn, PackBitsRect / PackBitsRgn, DirectBitsRect /
    DirectBitsRgn: rows into the picture's image when they cover its frame, else skipped). STATE:
@@ -954,10 +952,6 @@ unsigned char PICT_CheckFileType(const unsigned char *data, ULong size)
         return 1;
     return 0;
 }
-
-#ifndef MAC1010
-#include "../runtime/pictoptable.inc"
-#endif
 
 /* PICT_Decode (the PICT loader: header, version, then every opcode's data skipped or handed to
    its handler up to OpEndPic). STATE: MATCH 100.0%, exe 561 / obj 561, byte-identical yes.

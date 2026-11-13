@@ -428,11 +428,11 @@ extern unsigned char gSoundToolOpen;
 extern struct FileTypeMap **gFT_FileTypes;       /* atftopen.c: the file-type map */
 extern Word8 ResourceJustLoaded;                 /* 0x00870e11, set by ResourceLoadHandle */
 extern Word32 MaxMemSize;                        /* 0x00576c50, read by InitMemory */
-/* handles, spelled void * */
+/* handles */
 #ifdef MACBUILD
 #define AllocAHandle2(size, flag) NewHandle(size)
 #else
-extern void * AllocAHandle2(Word32 MemSize, Word Flag);
+extern void **AllocAHandle2(Word32 MemSize, Word Flag);
 #endif
 #ifdef MACBUILD
 #define DeallocAHandle(h) DisposeHandle((Handle)(h))
@@ -648,8 +648,9 @@ extern void WaitTicks(Word tickCount);
 #define kPixMapFlagMask     0xc000
 #define kRowBytesMask       0x3fff
 
-/* MacTypes.h's booleans for C, byte-wide (an enum under -enum min; spelled as macros here
-   so that no TU's internal numbering moves) */
+/* MacTypes.h's booleans, which no -bool off TU has built in: byte-wide for C (an enum under
+   -enum min; spelled as macros here so that no TU's internal numbering moves); the win port's
+   C++ has its plain ints from burgertypes.h */
 #ifndef __cplusplus
 #define false ((unsigned char)0)
 #define true  ((unsigned char)1)

@@ -200,26 +200,14 @@ done:
 // FUNCTION: EVNOVA 0x0051f1cc
 int32_t IT_ViewSetItemRect(void *windowRef, int32_t index, const ITRect *r)
 {
-#ifndef MAC1010
-    static ITRect nowhere;
-#endif
-    WindowNode *window;
-#ifdef MAC1010 /* 1.0.10 spelling */
+    WindowNode *window = windowRef;
+    int32_t err = 0;
     ITRect clip = {0, 0, 0, 0};
-#else
-    ITRect clip;
-#endif
-    int32_t err;
     void *saved;
     int32_t e;
     ITControl *control;
     ITRect area;
 
-    window = windowRef;
-    err = 0;
-#ifndef MAC1010
-    clip = nowhere;
-#endif
     saved = 0;
     control = 0;
     if (index < 0) {

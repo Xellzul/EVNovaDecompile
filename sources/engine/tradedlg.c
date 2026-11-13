@@ -646,7 +646,7 @@ void TradeDialogUpdate(void)
 {
     extern char *strcpy(char *, const char *);   /* MSL, CALLED not inlined */
 
-#ifdef MAC1010
+#ifdef MACBUILD
     Rect box;
     Boolean seen[kMaxCargo];
     Handle item;
@@ -670,31 +670,6 @@ void TradeDialogUpdate(void)
     short fleetHolds;
     short holds;
     short totalCargo;
-    short over;
-#elif defined(MACBUILD)
-    Rect box;
-    char message[255];
-    Boolean seen[kMaxCargo];
-    Handle item;
-    short itemType;
-    short missionTons;
-    short junkTons;
-    short missionSlots;
-    Boolean junkSeen[kMaxJunks];
-    short junkSlots;
-    short k;
-    Rect insetBox;
-    unsigned char num[256];
-    char text[2048];
-    Boolean found;
-    short i;
-    short j;
-    short qty;
-    short p;
-    short fleetHolds;
-    short holds;
-    short totalCargo;
-    short available;
     short over;
 #else
     unsigned char message[256];
@@ -6040,11 +6015,7 @@ Boolean RetrieveMenuIcon(short picID, GWorldContainer *dest, Rect *destRect)
 /* SwitchedIn. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00497cf0
 // MAC: _SwitchedIn i386 0x000513a4 ppc 0x00059ca0
-#ifdef MACBUILD
 void SwitchedIn(EventRecord *ev)
-#else
-void SwitchedIn(short unused)
-#endif
 {
 #if TARGET_API_MAC_CARBON
     ProcessSerialNumber psn;
@@ -6071,11 +6042,7 @@ void SwitchedIn(short unused)
 /* SwitchedOut. STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x00497d50
 // MAC: _SwitchedOut i386 0x0004f381 ppc 0x00057ff8
-#ifdef MACBUILD
 void SwitchedOut(EventRecord *ev)
-#else
-void SwitchedOut(short unused)
-#endif
 {
     void *snd;
 
@@ -6128,7 +6095,7 @@ void RefreshWindowBuffer(void)
     PaintRect(&gSpriteWorld->workFrameP->frameRect);
     ForeColor(blackColor);
     SWSetPortToWindow(gSpriteWorld);
-#if V111
+#if V111 || defined(MAC1010)
     if (useLegacyRenderingPipeline) {
 #ifdef MACBUILD
         SetRetainedWindow(gWind, false);
@@ -6146,16 +6113,6 @@ void RefreshWindowBuffer(void)
     } else {
         QDFlushPortBuffer(GetWindowPort(gWind), NULL);
     }
-#elif defined(MAC1010)
-    SetRetainedWindow(gWind, false);
-    CopyBits(GetPortPixMapBits(gSpriteWorld->workFrameP->framePort),
-             GetPortPixMapBits(GetWindowPort(gWind)),
-             &gSpriteWorld->workFrameP->frameRect,
-             &gSpriteWorld->windowFrameP->frameRect,
-             0, NULL);
-    QDFlushPortBuffer(GetWindowPort(gWind), NULL);
-    SetRetainedWindow(gWind, true);
-    QDFlushPortBuffer(GetWindowPort(gWind), NULL);
 #else
     CopyBits(GetPortBitMapForCopyBits(
                  gSpriteWorld->workFrameP->framePort),
@@ -9891,23 +9848,14 @@ void ForceWindowOnscreen(void)
 // MAC: _DoQuantityDialog i386 0x00056d5b ppc 0x0005f1e4
 int32_t DoQuantityDialog(int32_t maxCount, short mode)
 {
-#ifdef MAC1010
+#if V111 || defined(MAC1010)
     int32_t value;
-    Handle item;
     short itemHit;
     Boolean done;
     Rect box;
-    short itemType;
-    Str255 text;
-#elif V111 /* V111 spelling */
-    int32_t value;
-    Str255 text;
-    short itemType;
     Handle item;
-    short itemHit;
-    Boolean done;
-    short i;
-    Rect box;
+    short itemType;
+    Str255 text;
 #else
     Handle item;
     short itemHit;
@@ -9920,7 +9868,7 @@ int32_t DoQuantityDialog(int32_t maxCount, short mode)
 #endif
     Str255 digits;
     Boolean allDigits;
-#ifdef MAC1010
+#if V111 || defined(MAC1010)
     short i;
 #endif
     short destIdx;

@@ -61,11 +61,9 @@ typedef struct PpatRecord {
 #define kFixed72            0x00480000
 
 #ifdef MAC1010
-#define SwapField(v)    (v)
 #define SwapLong(v)     (v)
 typedef ULong PpatField; /* 1.0.10 spelling */
 #else
-#define SwapField(v)    ((((v) >> 8) & 0xff) | (((v) & 0xff) << 8))
 #define SwapLong(v)     Swap32(v)
 typedef long long PpatField;
 #endif
@@ -82,7 +80,7 @@ unsigned char PPAT_CheckFileType(const unsigned char *data, ULong size)
 
     if (size >= kPpatMinSize) {
         MemoryCopy(&type, data, sizeof(type));
-        if ((PpatField)SwapField(type) != kPpatColorType)
+        if ((PpatField)Swap16(type) != kPpatColorType)
             return 0;
         MemoryCopy(&value, data + kPpatMapAt, sizeof(value));
         if ((PpatField)SwapLong(value) != kPpatMapOffset)
@@ -97,7 +95,7 @@ unsigned char PPAT_CheckFileType(const unsigned char *data, ULong size)
         if ((PpatField)SwapLong(value) != kFixed72)
             return 0;
         MemoryCopy(&type, data + kPpatPixelSizeAt, sizeof(type));
-        if ((depth = SwapField(type)) == 1 || depth == 2 || depth == 4 || depth == 8 ||
+        if ((depth = Swap16(type)) == 1 || depth == 2 || depth == 4 || depth == 8 ||
             depth == 16 || depth == 32) {
         } else
             return 0;
@@ -112,7 +110,7 @@ unsigned char PPAT_CheckFileType(const unsigned char *data, ULong size)
         err = e;                                            \
         goto done;                                          \
     }                                                       \
-    (f) = SwapField(f)
+    (f) = Swap16(f)
 
 #define ReadLong(f)                                         \
     e = DT_BufferRead(stream, &(f), 4);                      \

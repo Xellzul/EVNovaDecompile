@@ -743,7 +743,7 @@ Handle ResourceLoadHandle(RezFile *Input, int32_t RezNum)
         if (fp != 0) {
             size = fgetfilesize(fp);
             if (size != 0) {
-                BufferHand = (void **)AllocAHandle2(size, memFlags);
+                BufferHand = AllocAHandle2(size, memFlags);
                 if (BufferHand != 0 &&
                     fread(LockAHandle((Handle)BufferHand), 1, size, fp) != size) {
                     DeallocAHandle(BufferHand);
@@ -772,7 +772,7 @@ Handle ResourceLoadHandle(RezFile *Input, int32_t RezNum)
                 Entry->FileOffset += 4;
                 Entry->fileLength -= 4;
             }
-            BufferHand = (void **)AllocAHandle2(DataLength, memFlags);
+            BufferHand = AllocAHandle2(DataLength, memFlags);
             if (BufferHand == 0)
                 goto Fail;
             ChunkSize = PackedSize < kReadChunk ? PackedSize : kReadChunk;
@@ -790,7 +790,7 @@ Handle ResourceLoadHandle(RezFile *Input, int32_t RezNum)
             decompress(0, 0, 0, 0);
             DeallocAPointer(PackedPtr);
         } else {
-            BufferHand = (void **)AllocAHandle2(DataLength, memFlags);
+            BufferHand = AllocAHandle2(DataLength, memFlags);
             if (BufferHand == 0 || fread(LockAHandle((Handle)BufferHand), 1, DataLength, fp) != DataLength)
                 goto FreeFail;
         }

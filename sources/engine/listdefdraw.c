@@ -37,7 +37,7 @@ ScrollRec **missionList;
 ScrollRec **missionInfoList;
 char briefingTextPtr[0x2000];
 uint32_t missionOfferTime;
-void *stringHandle;
+Handle stringHandle;
 TEHandle offerTextHandle;
 short currentMissionIndexForSetParser;
 #ifndef MACBUILD

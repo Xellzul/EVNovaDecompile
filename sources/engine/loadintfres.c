@@ -18,18 +18,17 @@
     id = govtData[g].interfaceID; \
     if (id < kFirstResourceID) \
         id = kFirstResourceID
-#define CopyStatusRect(n, area) \
-    statusOffRect[n] = (*rec)->area
 #else
 #define kIntfRec (*rec)
 #define GovtInterfaceID(g) \
     pid = govtData[g].interfaceID; \
     if (pid >= kFirstResourceID) \
         id = pid
+#endif
+
 #define CopyStatusRect(n, area) \
     p = &(*rec)->area; \
     statusOffRect[n] = *p
-#endif
 
 /* LoadIntfResource (mac _LoadIntfResource). STATE: MATCH 100.0% (269 exact, 94
    reloc-equivalent), 363/363, byte-identical yes, relocregcheck 0 of 94. OPEN: none. */

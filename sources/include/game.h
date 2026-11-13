@@ -35,7 +35,7 @@ extern void CreateExplosion(FloatPoint pt, short type, short size, Boolean sound
 extern void SpawnExplod(FloatPoint pos, short unused, short type, short delay);
 #pragma cplusplus on
 EXTERN_CPP_BEGIN
-extern void *stringHandle;
+extern Handle stringHandle;
 EXTERN_CPP_END
 #pragma cplusplus reset
 extern short ConvertSpriteToRLE(SpriteRec *set);
@@ -282,13 +282,8 @@ extern short AngularDifference(short a, short b);
 extern Boolean AIPerformsComplexManeuvers(ShipObj *ship);
 extern void AIFireTurret(ShipObj *ship);
 extern void SetMissionDeadline(DateTimeRec *out, short days);
-#ifdef MACBUILD
 extern void SwitchedIn(EventRecord *ev);
 extern void SwitchedOut(EventRecord *ev);
-#else
-extern void SwitchedIn(short unused);
-extern void SwitchedOut(short unused);
-#endif
 extern void WarpUpCallback(int which, int a, int b);
 extern void SpeakIt(char *msg, short flag);
 extern Boolean CanBuyGoods(short item);

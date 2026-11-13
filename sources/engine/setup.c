@@ -1539,15 +1539,10 @@ void LoadSprites(void)
         staticPat[i] = GetPixPat(i + 128);
     IterateInGameEventLoop(1);
 
-#ifdef MAC1010
+#if defined(MACBUILD) || V111
     for (i = 0; i < 2; i++) {
         masterSmokeSprite[i] = 0;
         err = SWCreateSpriteFromCicnResource(gSpriteWorld, &masterSmokeSprite[i], NULL, resID = 1000 + i * 8, 8, 1);
-#elif V111 /* V111 spelling */
-    for (i = 0; i < 2; i++) {
-        resID = 1000 + i * 8;
-        masterSmokeSprite[i] = 0;
-        err = SWCreateSpriteFromCicnResource(gSpriteWorld, &masterSmokeSprite[i], NULL, resID, 8, 1);
 #else
     for (i = 0, resID = 1000, q = masterSmokeSprite; i < 2; i++, resID += 8, q++) {
         masterSmokeSprite[i] = 0;

@@ -63,7 +63,7 @@ Boolean BlitPixieRLECollisionWithPoint(unsigned char *rleData, Point *pt, Rect *
                 return 1;
 
             rleData += count;
-            (char *)rleData += (-(int32_t)rleData) & 3;
+            PtrAddBytes(rleData, (-(int32_t)rleData) & 3);
             break;
 
         case 3:

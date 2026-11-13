@@ -64,11 +64,7 @@ extern void GetShipPaintColor(struct ShipObj *ship, unsigned short *red,
                          unsigned short *green, unsigned short *blue);
 extern void MungeBriefing(Boolean briefing, short which);
 extern unsigned char LaunchFighter(struct ShipObj *parent, short fighterType);
-#ifdef MACBUILD
 extern void SpawnSmoke(FloatPoint pos, short type, short sprite);
-#else
-extern void SpawnSmoke(float x, float y, int32_t type, short sprite);
-#endif
 
 typedef struct ShipRec {
     short cargo;

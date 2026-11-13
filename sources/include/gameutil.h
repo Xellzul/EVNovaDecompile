@@ -132,7 +132,7 @@ extern Word ResourceGetIDFromHandle(RezFile *rez, Handle h, int32_t *idFound,
                                     char *nameBuf, Word nameBufSize);
 extern void ResourcePurgeCache(RezFile *rez);
 extern void ResourceRelease(RezFile *rez, int32_t index);
-extern void MungeForSymbol(char *needle, void *replacement);
+extern void MungeForSymbol(char *needle, char *replacement);
 struct DudeRecord;
 extern short SelectShipFieldFromDude(struct DudeRecord *dude,
                                      unsigned char allowAll);

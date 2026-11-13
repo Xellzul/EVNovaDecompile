@@ -726,19 +726,11 @@ ULong _IndirectGetEncoding(void **handle, char *nameOut, ULong *kindOut, ULong *
             for (n = start; ((c = line[n]) >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
                               || (c >= '0' && c <= '9') || (c == '-' && c <= '_'); n = n + 1)
                 ;
-#ifdef MAC1010 /* 1.0.10 spelling */
-            t = n - start;
-            n = sizeof(label);
-            if (t < sizeof(label))
-                n = t + 1;
-#else
-            if (n - start < sizeof(label)) {
-                n -= start;
-                n++;
-            } else
-                n = sizeof(label);
-#endif
-            StringCopySafe(label, src = (char *)*handle + start, n);
+            if (n - start < sizeof(label))
+                t = n - start + 1;
+            else
+                t = sizeof(label);
+            StringCopySafe(label, src = (char *)*handle + start, t);
             String2UpperCopySafe(key, label, sizeof(key));
             while ((found = StringFindDelimiter(key, "-")) != 0)
                 *found = '_';
@@ -935,13 +927,7 @@ unsigned char IndirectIsUnicode(void **handle, char *nameOut)
     name = _IndirectGetUnicodeEncoding(handle, 0, 0);
     if (nameOut != 0)
         StringCopySafe(nameOut, name != 0 ? name : "", 256);
-#ifdef MAC1010 /* 1.0.10 spelling */
-    return name != 0;
-#else
-    if (name != 0)
-        return 1;
-    return 0;
-#endif
+    return name != 0 ? true : false;
 }
 
 /* IndirectIsNormalizedUnicode (does the handle start with a little-endian UTF-16 mark). STATE: MATCH 100%,
@@ -1353,11 +1339,10 @@ unsigned short *UnicodeCopySafe(unsigned short *dst, const unsigned short *src,
     ULong bytes;
     ULong n;
     ULong i;
-    ULong temp;
     ULong c;
     ULong o;
 
-    i = temp = 0;
+    i = 0;
     dstBytes -= dstBytes & 1;
     bytes = UnicodeGetByteCount(src);
     n = UnicodeGetCharCount(src);
@@ -1370,24 +1355,15 @@ unsigned short *UnicodeCopySafe(unsigned short *dst, const unsigned short *src,
         i = o = 0;
         while (dstBytes != 0 && maxChars != 0) {
             c = src[i++];
-            temp = c & kSurrogateMask;
-            if (temp == kSurrogateHigh)
+            if ((c & kSurrogateMask) == kSurrogateHigh)
                 c = (c << 10) + src[i++] + kSurrogateBias;
-            temp = (c <= kBmpMax ? 1 : 2) * sizeof(unsigned short);
-            if (temp > dstBytes)
+            if ((c <= kBmpMax ? 1 : 2) * sizeof(unsigned short) > dstBytes)
                 break;
             if (c <= kBmpMax) {
                 dst[o++] = c;
             } else {
-#ifdef MAC1010 /* 1.0.10 spelling */
                 dst[o++] = (c >> 10) + kHighUnitBias;
                 dst[o++] = (c & kLowUnitMask) | kSurrogateLow;
-#else
-                dst[o] = (c >> 10) + kHighUnitBias;
-                temp = o + 1;
-                dst[temp] = (c & kLowUnitMask) | kSurrogateLow;
-                o += 2;
-#endif
             }
             dstBytes -= (c <= kBmpMax ? 1 : 2) * sizeof(unsigned short);
             maxChars--;
@@ -1493,13 +1469,7 @@ unsigned char UnicodeAdvancePtr(const unsigned short **cursor, ULong *code)
     *cursor += n;
     if (code != 0)
         *code = c;
-#ifdef MAC1010 /* 1.0.10 spelling */
-    return c != 0;
-#else
-    if (c != 0)
-        return 1;
-    return 0;
-#endif
+    return c != 0 ? true : false;
 }
 
 /* UnicodeAdvanceCount (the unit after a count of characters, stopping at the NUL). STATE: MATCH

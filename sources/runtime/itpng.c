@@ -122,7 +122,6 @@ int32_t PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
     int32_t best;
     int count;
     int32_t step;
-    int32_t levels;
     int32_t bump;
     ULong x;
     int32_t y;
@@ -269,8 +268,7 @@ int32_t PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
             png_set_strip_16(png_ptr);
             bit_depth = 8;
         }
-        levels = 1 << bit_depth;
-        count = levels;
+        count = 1 << bit_depth;
         step = 0xff / (count - 1);
         bump = step % 2 != 0 ? 0L : 1L;
         for (j = 0; j < count / 2; j++) {
@@ -285,11 +283,7 @@ int32_t PNG_Decode(ITStream *stream, ITImage **imageOut, ITImage **maskOut,
                 grey_palette[j].red = grey_palette[j].green = grey_palette[j].blue =
                 j * step + bump;
         }
-#ifdef MAC1010 /* 1.0.10 spelling */
         for (; j < 1 << bit_depth; j++) {
-#else
-        for (; j < levels; j++) {
-#endif
             palette.entry[j].alpha = 0xff;
             palette.entry[j].red = palette.entry[j].green = palette.entry[j].blue =
                 grey_palette[j].red = grey_palette[j].green = grey_palette[j].blue = 0;

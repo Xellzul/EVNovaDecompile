@@ -248,9 +248,7 @@ void HandlePlayer(ShipObj *player)
     Boolean routeDone;
     Boolean flag;
     Boolean destructing;
-#ifdef MACBUILD
     short sys;
-#endif
     short waiting;
     short rank;
     double span;
@@ -1392,15 +1390,19 @@ void HandlePlayer(ShipObj *player)
             else
                 Accel(player->heading, ShipMaxSpeed(player),
                       &player->vel);
-#ifdef MACBUILD
             sys = systemData[player->curSystem].links[player->targetStellar];
             player->prevSystem = player->curSystem;
             routeDone = 0;
             if (hyperRoute[1] != -1
                     && FindActiveCoLocatedSystem(sys)
                        == FindActiveCoLocatedSystem(hyperRoute[1])
+#ifdef MACBUILD
                     && (k = ShipJumpsPerJump(player)) > 1) {
                 for (i = 1; i < k; i++) {
+#else
+                    && (count = k = ShipJumpsPerJump(player)) > 1) {
+                for (i = 1; i < count; i++) {
+#endif
                     sys = FindActiveCoLocatedSystem(hyperRoute[1]);
                     if (sys == -1)
                         break;
@@ -1413,28 +1415,6 @@ void HandlePlayer(ShipObj *player)
                 routeDone = 1;
             }
             player->curSystem = sys;
-#else
-            n = systemData[player->curSystem].links[player->targetStellar];
-            player->prevSystem = player->curSystem;
-            routeDone = 0;
-            if (hyperRoute[1] != -1
-                    && FindActiveCoLocatedSystem(n)
-                       == FindActiveCoLocatedSystem(hyperRoute[1])
-                    && (count = k = ShipJumpsPerJump(player)) > 1) {
-                for (i = 1; i < count; i++) {
-                    n = FindActiveCoLocatedSystem(hyperRoute[1]);
-                    if (n == -1)
-                        break;
-                    player->curSystem = n;
-                    ExploreNebulaeFromSystem(n);
-                    SpoolNextHyperRouteDest();
-                    if (hyperRoute[1] == -1)
-                        break;
-                }
-                routeDone = 1;
-            }
-            player->curSystem = n;
-#endif
             ExploreNebulaeFromSystem(player->curSystem);
             player->navTargetKind = -1;
             player->targetStellar = -1;
@@ -1801,14 +1781,8 @@ void HandlePlayer(ShipObj *player)
             }
             if (step > 0.0) {
                 if (settings.noHyperGamma == 0)
-#if V111
-                    hyperGamma = (step - 55.0f) * 5.0f;
-#elif defined(MAC1010)
-#if TARGET_API_MAC_CARBON
+#if V111 || TARGET_API_MAC_CARBON
                     hyperGamma = 5.0f * (step - 55.0f);
-#else
-                    hyperGamma = step * 0.3 - 15.0;
-#endif
 #else
                     hyperGamma = step * 0.3 - 15.0;
 #endif
@@ -3997,33 +3971,24 @@ short PlayerEnterWormhole(void)
 // MAC: _HandlePlayerDockRequest i386 0x00066691 ppc 0x0006e890
 void HandlePlayerDockRequest(void)
 {
+#ifdef MACBUILD
+    short spawnStellar;
+    short distY;
+    unsigned char msg[256];
+    Boolean granted;
+    short i;
+    int iVal2;
+    short qtStellar;
+    short commResult;
 #ifdef MAC1010
-    short spawnStellar;
-    short distY;
-    unsigned char msg[256];
-    Boolean granted;
-    short i;
-    int iVal2;
-    short qtStellar;
-    short commResult;
     unsigned char t1;
-    ShipObj *ship = shipData;
-    unsigned char pbuf[256];
-    short sVal;
-#elif defined(MACBUILD)
-    short distY;
-    unsigned char msg[256];
-    Boolean granted;
-    short i;
-    int iVal2;
-    short spawnStellar;
-    short qtStellar;
+#else
     short sVal2;
-    short commResult;
-    ShipObj *ship = shipData;
-    unsigned char pbuf[256];
     short distX;
     short badLicense;
+#endif
+    ShipObj *ship = shipData;
+    unsigned char pbuf[256];
     short sVal;
 #else
     ShipObj *ship = shipData;

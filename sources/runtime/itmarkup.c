@@ -402,13 +402,7 @@ int32_t PT_ParseTreeLoad(void **text, const char *rawTags, const char *emptyTags
         err = kUnknownEncoding;
         goto done;
     }
-#ifdef MAC1010 /* 1.0.10 spelling */
-    wide = IndirectIsUnicode(text, 0);
-    parser.wide = wide;
-#else
-    parser.wide = IndirectIsUnicode(text, 0);
-    wide = parser.wide;
-#endif
+    wide = parser.wide = IndirectIsUnicode(text, 0);
     if (wide) {
         converted = 1;
         text = IndirectDuplicate(text);
@@ -745,19 +739,9 @@ void PT_ParseTreeDispose(ITElement *e)
     link = &e;
     while (*link != 0) {
         cur = *link;
-#ifdef MAC1010 /* 1.0.10 spelling */
-        {
-            ITElement *kid = cur->child;
-
-            *link = cur->next;
-            if (kid != 0)
-                PT_ParseTreeDispose(kid);
-        }
-#else
         *link = cur->next;
         if (cur->child != 0)
             PT_ParseTreeDispose(cur->child);
-#endif
         if (cur->name != 0)
             MemoryDeallocate(cur->name);
         switch (cur->tag) {
@@ -869,18 +853,11 @@ AT_STATIC int32_t _PT_ParseTreeLoadTag(ITParser *parser, void **errors, const ch
                 goto done;
         }
     } else {
-#ifdef MAC1010 /* 1.0.10 spelling */
-        const char *s;
-
-        s = start + 1;
-        start = s;
+        start++;
         if (start >= end)
             goto done;
         if (opener != 0) {
-            const char *t;
-
-            t = s + 1;
-            start = t;
+            start++;
             if (start >= end)
                 goto done;
             if (end[-1] == closer)
@@ -888,18 +865,6 @@ AT_STATIC int32_t _PT_ParseTreeLoadTag(ITParser *parser, void **errors, const ch
             if (start >= end)
                 goto done;
         }
-#else
-        if (++start >= end)
-            goto done;
-        if (opener != 0) {
-            if (++start >= end)
-                goto done;
-            if (end[-1] == closer)
-                end--;
-            if (start >= end)
-                goto done;
-        }
-#endif
     }
     here = p = start;
     state = 0;

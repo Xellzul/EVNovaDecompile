@@ -18,19 +18,6 @@ static unsigned char gStringUpperReady;               /* 0x00866338 table built 
 /* The engine already binds 0x004eb76d as `StringGetLength'; defined under that name. */
 /* StringGetLength. STATE: MATCH 100%, exe 12 / obj 12, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb76d
-#ifdef MAC1010
-uint32_t StringGetLength(const unsigned char *s)
-{
-    ULong n;
-
-    n = -1;
-    s--;
-    do {
-        n++;
-    } while (*++s != 0);
-    return n;
-}
-#else
 uint32_t StringGetLength(const unsigned char *s)
 {
     ULong n;
@@ -38,42 +25,46 @@ uint32_t StringGetLength(const unsigned char *s)
 
     err = 0;
     n = -1;
+#ifdef MAC1010
+    s--;
+    do {
+        n++;
+    } while (*++s != 0);
+#else
     do {
         n++;
     } while (*s++ != 0);
+#endif
     return n;
 }
-#endif
 
 /* StringDuplicate (strdup). STATE: MATCH 100%, exe 31 / obj 31, byte-identical yes.
    OPEN: none */
 // FUNCTION: EVNOVA 0x004eb784
-#ifdef MAC1010
 char *StringDuplicate(const char *s)
 {
     char *copy;
+#ifdef MAC1010
     unsigned char *p;
     const unsigned char *q;
+#else
+    char *start;
+#endif
+    int32_t err;
 
+    err = 0;
+#ifndef MAC1010
+    copy = 0;
+#endif
     copy = MemoryAllocate(StringGetLength((const unsigned char *)s) + 1);
+#ifdef MAC1010
     if (copy != 0) {
         p = (unsigned char *)copy - 1;
         q = (const unsigned char *)s - 1;
         while ((*++p = *++q) != 0)
             ;
     }
-    return copy;
-}
 #else
-char *StringDuplicate(const char *s)
-{
-    char *copy;
-    char *start;
-    int32_t err;
-
-    err = 0;
-    copy = 0;
-    copy = MemoryAllocate(StringGetLength((const unsigned char *)s) + 1);
     if (copy == 0) {
         err = kOutOfMemory;
     } else {
@@ -82,15 +73,15 @@ char *StringDuplicate(const char *s)
             ;
         copy = start;
     }
+#endif
     return copy;
 }
-#endif
 
 /* StringCopy. STATE: MATCH 100%, exe 19 / obj 19, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb7c2
-#ifdef MAC1010
 char *StringCopy(char *dst, const char *src)
 {
+#ifdef MAC1010
     unsigned char *p;
     const unsigned char *q;
 
@@ -98,11 +89,7 @@ char *StringCopy(char *dst, const char *src)
     q = (const unsigned char *)src - 1;
     while ((*++p = *++q) != 0)
         ;
-    return dst;
-}
 #else
-char *StringCopy(char *dst, const char *src)
-{
     char *start;
     int32_t err;
 
@@ -111,15 +98,15 @@ char *StringCopy(char *dst, const char *src)
     while ((*dst++ = *src++) != 0)
         ;
     dst = start;
+#endif
     return dst;
 }
-#endif
 
 /* StringCopySafe. STATE: MATCH 100%, exe 29 / obj 29, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb7e6
-#ifdef MAC1010
 char *StringCopySafe(char *dst, const char *src, ULong size)
 {
+#ifdef MAC1010
     unsigned char *p;
     const unsigned char *q;
 
@@ -129,11 +116,7 @@ char *StringCopySafe(char *dst, const char *src, ULong size)
         ;
     if (size == 0)
         p[1] = 0;
-    return dst;
-}
 #else
-char *StringCopySafe(char *dst, const char *src, ULong size)
-{
     char *start;
     int32_t err;
 
@@ -144,39 +127,33 @@ char *StringCopySafe(char *dst, const char *src, ULong size)
     if (size == 0)
         *dst = 0;
     dst = start;
+#endif
     return dst;
 }
-#endif
 
 /* Appends src to the string in dst, dst holding n bytes in all. The engine
  * binds 0x004eb81d as `StringAppendSafe'. */
 /* StringAppendSafe. STATE: MATCH 100%, exe 39 / obj 39, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb81d
-#ifdef MAC1010
-unsigned char *StringAppendSafe(unsigned char *dst, const unsigned char *src, ULong n)
-{
-    unsigned char *p;
-
-    p = dst - 1;
-    src--;
-    while (*++p != 0 && --n != 0)
-        ;
-    if (n != 0) {
-        p--;
-        while (--n != 0 && (*++p = *++src) != 0)
-            ;
-        if (n == 0)
-            p[1] = 0;
-    }
-    return dst;
-}
-#else
 unsigned char *StringAppendSafe(unsigned char *dst, const unsigned char *src, uint32_t n)
 {
     unsigned char *start;
     int32_t err;
 
     err = 0;
+#ifdef MAC1010
+    start = dst - 1;
+    src--;
+    while (*++start != 0 && --n != 0)
+        ;
+    if (n != 0) {
+        start--;
+        while (--n != 0 && (*++start = *++src) != 0)
+            ;
+        if (n == 0)
+            start[1] = 0;
+    }
+#else
     start = dst;
     while (*dst++ != 0 && --n != 0)
         ;
@@ -188,29 +165,12 @@ unsigned char *StringAppendSafe(unsigned char *dst, const unsigned char *src, ui
             *dst = 0;
     }
     dst = start;
+#endif
     return dst;
 }
-#endif
 
 /* StringCompare. STATE: MATCH 100%, exe 26 / obj 26, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb866
-#ifdef MAC1010
-int32_t StringCompare(const char *a, const char *b)
-{
-    ULong ca;
-    ULong cb;
-    const unsigned char *s1;
-    const unsigned char *s2;
-
-    s1 = (const unsigned char *)a - 1;
-    s2 = (const unsigned char *)b - 1;
-    while ((ca = *++s1) == (cb = *++s2)) {
-        if (ca == 0)
-            return 0;
-    }
-    return ca < cb ? (signed char)-1 : (signed char)1;
-}
-#else
 int32_t StringCompare(const char *a, const char *b)
 {
     ULong ca;
@@ -220,50 +180,42 @@ int32_t StringCompare(const char *a, const char *b)
     int32_t err;
 
     err = 0;
+#ifdef MAC1010
+    s1 = (const unsigned char *)a - 1;
+    s2 = (const unsigned char *)b - 1;
+    while ((ca = *++s1) == (cb = *++s2)) {
+#else
     s1 = (const unsigned char *)a;
     s2 = (const unsigned char *)b;
     while ((ca = *s1++) == (cb = *s2++)) {
+#endif
         if (ca == 0)
             return 0;
     }
     return ca < cb ? (signed char)-1 : (signed char)1;
 }
-#endif
 
 /* StringCompareSafe (a strncmp answering -1, 0 or 1). STATE: MATCH 100%, exe 33 / obj 33,
    byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb89c
-#ifdef MAC1010
 int32_t StringCompareSafe(const char *a, const char *b, ULong n)
 {
+    int32_t err;
     ULong ca;
     ULong cb;
     const unsigned char *s1;
     const unsigned char *s2;
 
+    err = 0;
+#ifdef MAC1010
     s1 = (const unsigned char *)a - 1;
     s2 = (const unsigned char *)b - 1;
     while (n-- && (ca = *++s1) == (cb = *++s2)) {
-        if (ca == 0)
-            return 0;
-    }
-    if (n == -1)
-        return 0;
-    return ca < cb ? (signed char)-1 : (signed char)1;
-}
 #else
-int32_t StringCompareSafe(const char *a, const char *b, ULong n)
-{
-    const unsigned char *s1;
-    const unsigned char *s2;
-    ULong ca;
-    ULong cb;
-    int32_t err;
-
-    err = 0;
     s1 = (const unsigned char *)a;
     s2 = (const unsigned char *)b;
     while (n-- && (ca = *s1++) == (cb = *s2++)) {
+#endif
         if (ca == 0)
             return 0;
     }
@@ -271,7 +223,6 @@ int32_t StringCompareSafe(const char *a, const char *b, ULong n)
         return 0;
     return ca < cb ? (signed char)-1 : (signed char)1;
 }
-#endif
 
 #ifdef MAC1010
 static
@@ -281,19 +232,34 @@ char *gStringBlank = "";                         /* 0x005771bc the exhausted-tok
 /* StringTokenize (a strtok on one delimiter, its state in *next). STATE: MATCH 100%, exe 36 /
    obj 36, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb8e2
-#ifdef MAC1010
 char *StringTokenize(char *s, int delim, char **next)
 {
+#ifdef MAC1010
     unsigned char c;
     unsigned char d;
     unsigned char *p;
+#else
+    char c;
+    char d;
+    char *p;
+#endif
+    int32_t err;
 
+    err = 0;
+#ifdef MAC1010
     d = (char)delim;
     if (*next != 0)
         s = *next;
+#else
+    d = delim;
+    p = *next;
+    if (p != 0)
+        s = p;
+#endif
     *next = gStringBlank;
     if (*s == 0)
         return 0;
+#ifdef MAC1010
     p = (unsigned char *)s - 1;
     while ((c = *++p) != 0 && c != d)
         ;
@@ -301,24 +267,7 @@ char *StringTokenize(char *s, int delim, char **next)
         *p = 0;
         *next = (char *)p + 1;
     }
-    return s;
-}
 #else
-char *StringTokenize(char *s, int delim, char **next)
-{
-    char c;
-    char d;
-    char *p;
-    int32_t err;
-
-    err = 0;
-    d = delim;
-    p = *next;
-    if (p != 0)
-        s = p;
-    *next = gStringBlank;
-    if (*s == 0)
-        return 0;
     p = s;
     while ((c = *p++) != 0 && c != d)
         ;
@@ -326,16 +275,16 @@ char *StringTokenize(char *s, int delim, char **next)
         p[-1] = 0;
         *next = p;
     }
+#endif
     return s;
 }
-#endif
 
 /* StringFindString (a strstr; an empty `sub' never matches). STATE: MATCH 100%, exe 33 /
    obj 33, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb92e
-#ifdef MAC1010
 char *StringFindString(const char *s, const char *sub)
 {
+#ifdef MAC1010
     ULong first;
     const unsigned char *p;
     const unsigned char *q;
@@ -352,11 +301,7 @@ char *StringFindString(const char *s, const char *sub)
                 return (char *)s;
         }
     }
-    return 0;
-}
 #else
-char *StringFindString(const char *s, const char *sub)
-{
     int32_t err;
     char first;
     ULong i;
@@ -375,15 +320,15 @@ char *StringFindString(const char *s, const char *sub)
         }
         s++;
     }
+#endif
     return 0;
 }
-#endif
 
 /* StringFindDelimiter. STATE: MATCH 100%, exe 20 / obj 20, byte-identical yes. OPEN: none */
 // FUNCTION: EVNOVA 0x004eb96d
-#ifdef MAC1010
 char *StringFindDelimiter(const char *s, const char *set)
 {
+#ifdef MAC1010
     const unsigned char *b;
     const unsigned char *p;
 
@@ -396,11 +341,7 @@ char *StringFindDelimiter(const char *s, const char *set)
                 return (char *)s;
         }
     }
-    return 0;
-}
 #else
-char *StringFindDelimiter(const char *s, const char *set)
-{
     int32_t err;
     const char *p;
 
@@ -412,9 +353,9 @@ char *StringFindDelimiter(const char *s, const char *set)
         }
         s = s + 1;
     }
+#endif
     return 0;
 }
-#endif
 
 #define kTopDecimal 1000000000UL
 
@@ -612,7 +553,6 @@ char *String2UpperCopySafe(char *dst, const char *src, ULong n)
         ;
     if (n == 0)
         *++start = 0;
-    return dst;
 #else
     start = dst;
     while (--n != 0 && (*dst++ = gStringUpperFold[(unsigned char)*src++]) != 0)
@@ -620,8 +560,8 @@ char *String2UpperCopySafe(char *dst, const char *src, ULong n)
     if (n == 0)
         *dst = 0;
     dst = start;
-    return dst;
 #endif
+    return dst;
 }
 
 /* String2LowerCopySafe (the lower-casing strncpy, String2UpperCopySafe's twin). STATE: MATCH 100%, exe 52
@@ -656,7 +596,6 @@ char *String2LowerCopySafe(char *dst, const char *src, ULong n)
         ;
     if (n == 0)
         *++start = 0;
-    return dst;
 #else
     start = dst;
     while (--n != 0 && (*dst++ = gStringLowerFold[(unsigned char)*src++]) != 0)
@@ -664,8 +603,8 @@ char *String2LowerCopySafe(char *dst, const char *src, ULong n)
     if (n == 0)
         *dst = 0;
     dst = start;
-    return dst;
 #endif
+    return dst;
 }
 
 /* String2Upper (upper-case a C string in place). STATE: MATCH 100%, byte-identical yes.

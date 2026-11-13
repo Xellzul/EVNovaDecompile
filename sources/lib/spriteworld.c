@@ -1046,14 +1046,10 @@ void SWUpdateSpriteWorld(SpriteWorldRec *spriteWorldP, Boolean updateWindow)
         return;
 
     saveScreenDrawProc = spriteWorldP->screenDrawProc;
-#ifdef MAC1010
-    SWSetSpriteWorldScreenDrawProc(spriteWorldP, BlitPixieRectDrawProc);
-#else
     if (useLegacyRenderingPipeline)
         SWSetSpriteWorldScreenDrawProc(spriteWorldP, BlitPixieRectDrawProc);
     else
         SWSetSpriteWorldScreenDrawProc(spriteWorldP, SWCopyBitsDrawProc);
-#endif
 
     GetGWorld(&holdGWorld, &holdGDH);
 
@@ -1162,14 +1158,10 @@ void SWUpdateSpriteWorld(SpriteWorldRec *spriteWorldP, Boolean updateWindow)
 
     gSWCurrentSpriteWorld = NULL;
 
-#ifdef MAC1010
-    SetGWorld(holdGWorld, holdGDH);
-#else
     if (useLegacyRenderingPipeline)
         SetGWorld(holdGWorld, holdGDH);
     else
         SetGWorld(holdGWorld, NULL);
-#endif
 }
 #else
 void SWUpdateSpriteWorld(SpriteWorldRec *spriteWorldP, Boolean updateWindow)

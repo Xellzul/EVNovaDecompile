@@ -178,7 +178,7 @@ void BlitPixieRLEDitherClipped(unsigned char *rleTokens, unsigned char *dstPixel
                 x += count;
                 dstPixel += count;
                 rleTokens += count;
-                (char *)rleTokens += ALIGN_PTR(rleTokens);
+                PtrAddBytes(rleTokens, ALIGN_PTR(rleTokens));
 
                 break;
 

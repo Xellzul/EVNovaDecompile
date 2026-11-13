@@ -23,7 +23,6 @@ typedef uint32_t TokenDataType;
 // FUNCTION: EVNOVA 0x00472d70
 // MAC: _BlitPixieRLETranslucentClipped i386 0x000c18c0 ppc 0x000cd93c
 #ifdef MACBUILD
-#ifdef MACBUILD
 void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dstPixel,
         int32_t dstRowBytes, Rect *srcBlitRect)
 {
@@ -112,7 +111,7 @@ void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dst
                 x += count;
                 dstPixel += count;
                 rleTokens += count;
-                (char *)rleTokens += ALIGN_PTR(rleTokens);
+                PtrAddBytes(rleTokens, ALIGN_PTR(rleTokens));
 
                 break;
 
@@ -174,157 +173,6 @@ void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dst
         }
     } while (op != kEndShapeToken);
 }
-#else
-void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dstPixel,
-        int32_t dstRowBytes, Rect *srcBlitRect)
-{
-    uint32_t token,op;
-    unsigned char *rowStart;
-    int32_t count,extra,spanend;
-    short x,y;
-    uint32_t redScale, greenScale, blueScale;
-
-    alpha = gSWCurrentSpriteBeingDrawn->translucency;
-    scaleR = gSWCurrentSpriteBeingDrawn->tintRed;
-    scaleG = gSWCurrentSpriteBeingDrawn->tintGreen;
-    scaleB = gSWCurrentSpriteBeingDrawn->tintBlue;
-
-    biasColor = gSWCurrentSpriteBeingDrawn->tintColor;
-    biasColor = (biasColor & 0xffff) | (biasColor << 16);
-
-    overBias = 32 - gSWCurrentSpriteBeingDrawn->tintMode;
-
-    overR = overG = overB = 0;
-
-    redScale = (scaleR + 32 - alpha)
-            ? (scaleR + 32 - alpha) : 0;
-    alphaR = redScale;
-    greenScale = (scaleG + 32 - alpha)
-            ? (scaleG + 32 - alpha) : 0;
-    alphaG = greenScale;
-    blueScale = (scaleB + 32 - alpha)
-            ? (scaleB + 32 - alpha) : 0;
-    alphaB = blueScale;
-
-    if (redScale > 32) {
-        overR = ((redScale - 32) * 0x1f001f << 5) & 0x7c007c00;
-        alphaR = 32;
-    }
-    if (greenScale > 32) {
-        overG = ((greenScale - 32) * 0x1f001f) & 0x3e003e0;
-        alphaG = 32;
-    }
-    if (blueScale > 32) {
-        overB = (((blueScale - 32) * 0x1f001f) >> 5) & 0x1f001f;
-        alphaB = 32;
-    }
-
-    y = 0;
-    rowStart = dstPixel;
-
-    do {
-        token = *( rleTokens);
-        rleTokens += sizeof(TokenDataType);
-
-        op = token >> kTokenShift;
-        count = token & kCountMask;
-
-        switch (op) {
-            case kDrawPixelsToken:
-
-                spanend = x + count - 1;
-
-                if (x < srcBlitRect->right && spanend > srcBlitRect->left) {
-                    if (x < srcBlitRect->left) {
-                        extra = srcBlitRect->left - x;
-
-                        count -= extra;
-
-                        x += extra;
-                        dstPixel += extra;
-                        rleTokens += extra;
-                    }
-
-                    extra = 0;
-                    if (spanend > srcBlitRect->right) {
-                        extra = spanend - srcBlitRect->right;
-
-                        count -= extra;
-                    }
-
-                    BlitPixieTranslucentCopy(dstPixel, rleTokens, count);
-
-                    x += extra;
-                    dstPixel += extra;
-                    rleTokens += extra;
-                }
-
-                x += count;
-                dstPixel += count;
-                rleTokens += count;
-                rleTokens += ALIGN_PTR(rleTokens);
-
-                break;
-
-            case kSkipPixelsToken:
-                x += count;
-                dstPixel += count;
-                break;
-
-            case kSingleColorToken:
-
-                spanend = x + count -1;
-
-                if (x < srcBlitRect->right && spanend > srcBlitRect->left) {
-                    if (x < srcBlitRect->left) {
-                        extra = srcBlitRect->left - x;
-
-                        count -= extra;
-
-                        x += extra;
-                        dstPixel += extra;
-                    }
-
-                    extra = 0;
-                    if (spanend > srcBlitRect->right) {
-                        extra = spanend - srcBlitRect->right;
-
-                        count -= extra;
-                    }
-
-                    BlitPixieMemSet(dstPixel, *( rleTokens), count);
-
-                    x += extra;
-                    dstPixel += extra;
-                }
-
-                x += count;
-                dstPixel += count;
-
-                rleTokens += sizeof(int32_t);
-                break;
-            case kLineStartToken:
-                if (y < srcBlitRect->top) {
-                    rleTokens += count;
-                } else if (y >= srcBlitRect->bottom) {
-                    op = kEndShapeToken;
-                    break;
-                }
-
-                x = 0;
-                y++;
-                dstPixel = rowStart;
-                rowStart += dstRowBytes;
-                break;
-            case kEndShapeToken:
-                break;
-            default:
-                DebugStr("\punknown token");
-                return;
-        }
-    } while (op != kEndShapeToken);
-}
-#endif
 #else
 void BlitPixieRLETranslucentClipped(unsigned char *rleTokens, unsigned char *dstPixel,
         int32_t dstRowBytes, Rect *srcBlitRect)
@@ -536,7 +384,7 @@ void BlitPixieRLEAddOverClipped(unsigned char *rleTokens, unsigned char *dstPixe
                 x += count;
                 dstPixel += count;
                 rleTokens += count;
-                (char *)rleTokens += ALIGN_PTR(rleTokens);
+                PtrAddBytes(rleTokens, ALIGN_PTR(rleTokens));
 
                 break;
 
@@ -788,7 +636,7 @@ void BlitPixieRLETranslucentClipped8(unsigned char *rleTokens, unsigned char *ds
                 x += count;
                 dstPixel += count;
                 rleTokens += count;
-                (char *)rleTokens += ALIGN_PTR(rleTokens);
+                PtrAddBytes(rleTokens, ALIGN_PTR(rleTokens));
 
                 break;
 
@@ -1039,7 +887,7 @@ void BlitPixieRLEAddOverClipped8(unsigned char *rleTokens, unsigned char *dstPix
                 x += count;
                 dstPixel += count;
                 rleTokens += count;
-                (char *)rleTokens += ALIGN_PTR(rleTokens);
+                PtrAddBytes(rleTokens, ALIGN_PTR(rleTokens));
 
                 break;
 

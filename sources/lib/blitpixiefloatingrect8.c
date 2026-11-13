@@ -11,11 +11,7 @@
 // FUNCTION: EVNOVA 0x00471dc0
 // MAC: _BlitPixieFloatingRect8 i386 0x000be5a8 ppc 0x000c9f6c
 void BlitPixieFloatingRect8(unsigned char *srcPixels, unsigned char *dstPixels,
-#ifdef MACBUILD
         uint32_t srcRowBytes, uint32_t dstRowBytes, unsigned short byteWidth,
-#else
-        int32_t srcRowBytes, int32_t dstRowBytes, unsigned short byteWidth,
-#endif
         unsigned short numRows, unsigned short backgroundValue)
 {
     int32_t unused;

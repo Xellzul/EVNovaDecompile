@@ -134,13 +134,12 @@ int32_t DT_Open(void)
     gDT_AlphaPalette.count = kPaletteEntries;
     for (i = 0; i < kPaletteEntries; i = i + 1) {
         gDT_AlphaPalette.entry[i].alpha = kOpaque;
-#ifdef MAC1010
+#ifdef MAC1010 /* 1.0.10 real: the ramp is inverted, 0x100c8238 stores ~i */
         gDT_AlphaPalette.entry[i].red = gDT_AlphaPalette.entry[i].green =
             gDT_AlphaPalette.entry[i].blue = ~i;
 #else
-        gDT_AlphaPalette.entry[i].blue = i;
-        gDT_AlphaPalette.entry[i].green = gDT_AlphaPalette.entry[i].blue;
-        gDT_AlphaPalette.entry[i].red = gDT_AlphaPalette.entry[i].green;
+        gDT_AlphaPalette.entry[i].red = gDT_AlphaPalette.entry[i].green =
+            gDT_AlphaPalette.entry[i].blue = i;
 #endif
     }
 
@@ -1058,15 +1057,14 @@ skip:
     int32_t err;                                                                   \
     ULong alpha, da, x, y, i, keyMask, alphaBits, v, dv;                        \
     ULong a, r, g, b, dr, dg, db, wv;
-#ifdef MAC1010 /* 1.0.10 spelling */
+#ifdef MAC1010 /* 1.0.10 spelling: the PPC needs s, m, d; b335 needs m after d and s */
 #define SPAN_LOCALS_R15     SPAN_LOCALS_R
 #else
 #define SPAN_LOCALS_R15                                                         \
-    ULong alpha, b, g, da, r;                                                   \
     unsigned char *d, *s, *m;                                                   \
     int32_t err;                                                                   \
-    ULong x, y, keyMask, alphaBits, v, dv, i;                                   \
-    ULong a, dr, dg, db, wv;
+    ULong alpha, da, x, y, i, keyMask, alphaBits, v, dv;                        \
+    ULong a, r, g, b, dr, dg, db, wv;
 #endif
 #define SPAN_LOCALS_S                                                           \
     unsigned char *s, *m, *d;                                                   \

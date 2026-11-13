@@ -5,31 +5,21 @@
 #include "game.h"
 #include "burger.h"
 
-EXTERN_C_BEGIN
-
 #define kProfileSlots 64
 
-#if V111 || defined(MACBUILD) /* V111 spelling */
 #ifdef MACBUILD
 UnsignedWide lastMicroseconds[kProfileSlots];
 #else
 static unsigned long long lastMicroseconds[kProfileSlots];
 #endif
 uint32_t iterations[kProfileSlots];
-uint32_t totalMilliseconds[kProfileSlots];
+uint32_t totalMilliseconds[kProfileSlots];    /* milliseconds */
 char name[kProfileSlots][32];
-short dependency[kProfileSlots];
+short dependency[kProfileSlots];          /* -1 = none */
 short lastEntered;
-Boolean done[kProfileSlots];
-#else
-static unsigned long long lastMicroseconds[kProfileSlots];
-static uint32_t iterations[kProfileSlots];
-static uint32_t totalMilliseconds[kProfileSlots];    /* milliseconds */
-static char name[kProfileSlots][32];
-static short dependency[kProfileSlots];          /* -1 = none */
-static short lastEntered;
-static Boolean done[kProfileSlots];          /* dump bookkeeping */
-#endif
+Boolean done[kProfileSlots];          /* dump bookkeeping */
+
+EXTERN_C_BEGIN
 
 /* print_dependents (mac _print_dependents). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x0046fa30

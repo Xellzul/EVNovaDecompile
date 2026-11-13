@@ -3857,8 +3857,9 @@ void MakeAlias(const FSSpec *target)
 // FUNCTION: EVNOVA 0x004c9e90
 // MAC: _OpenPilotFile i386 0x00076644 ppc 0x0007f498
 Boolean OpenPilotFile(char *missingResource)
-#ifdef MAC1010
+#ifdef MACBUILD
 {
+#ifdef MAC1010
 #if TARGET_API_MAC_CARBON
     unsigned char text[256];
     Str255 name;
@@ -3898,38 +3899,7 @@ Boolean OpenPilotFile(char *missingResource)
             good = 0;
     }
 #endif
-    if (good) {
-        crashlog("open file setup 1");
-        DeleteAllComputerShips(1, 1);
-        ResetPlayer(1);
-        ResetPlayerRecord(1);
-        DeleteAllComputerShips(1, 1);
-        crashlog("loading pilot data");
-        result = LoadPilotData(&spec);
-        InitCursor();
-        ShowTheCursor();
-        crashlog("open file setup 2");
-        if (result == 0) {
-            shipData[0].deathTimer = -1.0f;
-            shipData[0].escapePods = -1;
-            return 1;
-        }
-        if (result == -0x2a) {
-            GetIndString(text, kAlertStrList, 0x22);
-            EVNoteAlert(text);
-        } else if (result == -0x2e) {
-            *missingResource = 1;
-            return 1;
-        }
-        return 0;
-    } else {
-        InitCursor();
-        ShowTheCursor();
-        return 0;
-    }
-}
-#elif defined(MACBUILD)
-{
+#else
     FSSpec spec;
     FSRef ref;
     unsigned char text[256];
@@ -3944,6 +3914,7 @@ Boolean OpenPilotFile(char *missingResource)
         good = false;
     else
         good = true;
+#endif
     if (good) {
         crashlog("open file setup 1");
         DeleteAllComputerShips(1, 1);
@@ -4471,12 +4442,9 @@ short LoadPilotData(char *path)
             crashlog("load pilot data 4");
         }
     } else {
-#ifdef MAC1010
+#ifdef MACBUILD
         CloseResFile(pilotResNum);
         return kPilotUnreadable;
-#elif defined(MACBUILD)
-        CloseResFile(pilotResNum);
-        goto badFile;
 #else
         fclose(f);
         return kPilotUnreadable;

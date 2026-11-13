@@ -38,7 +38,7 @@ void BlitPixieRLEClipped(
 
     do {
         token = *((TokenDataType *) srcTokens);
-        (char *)srcTokens += sizeof(TokenDataType);
+        PtrAddBytes(srcTokens, sizeof(TokenDataType));
 
         op = token >> kTokenShift;
         count = token & kCountMask;
@@ -56,7 +56,7 @@ void BlitPixieRLEClipped(
 
                         x += extra;
                         dstPixel += extra;
-                        (char *)srcTokens += extra;
+                        PtrAddBytes(srcTokens, extra);
                     }
 
                     extra = 0;
@@ -70,13 +70,13 @@ void BlitPixieRLEClipped(
 
                     x += extra;
                     dstPixel += extra;
-                    (char *)srcTokens += extra;
+                    PtrAddBytes(srcTokens, extra);
                 }
 
                 x += count;
                 dstPixel += count;
-                (char *)srcTokens += count;
-                (char *)srcTokens += ALIGN_PTR(srcTokens);
+                PtrAddBytes(srcTokens, count);
+                PtrAddBytes(srcTokens, ALIGN_PTR(srcTokens));
 
                 break;
 
@@ -119,7 +119,7 @@ void BlitPixieRLEClipped(
                 break;
             case kLineStartToken:
                 if (y < dstClipRect->top) {
-                    (char *)srcTokens += count;
+                    PtrAddBytes(srcTokens, count);
                 } else if (y >= dstClipRect->bottom) {
                     op = kEndShapeToken;
                     break;

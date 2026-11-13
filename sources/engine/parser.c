@@ -848,48 +848,45 @@ void ParseTextDescription(void)
     out[outLen] = 0;
     strcpy(parseBuffer, out);
     if (strlen(parseBuffer) > 5) {
-#ifdef MAC1010
         for (i = 0; i < strlen(parseBuffer) - 5; i++) {
-            if (parseBuffer[i] == '<'
-                && (parseBuffer[i + 1] == 'P' || parseBuffer[i + 1] == 'S')
-                && parseBuffer[i + 2] == 'R' && parseBuffer[i + 3] == 'K'
-                && parseBuffer[i + 4] != '>') {
-                num = 0;
-                for (outLen = i + 4; outLen < strlen(parseBuffer); outLen++) {
-                    if (parseBuffer[outLen] < '0' || parseBuffer[outLen] > '9')
-                        break;
-                    num = num * 10 + parseBuffer[outLen] - '0';
+            if (parseBuffer[i] == '<') {
+#ifdef MAC1010
+                if ((parseBuffer[i + 1] == 'P' || parseBuffer[i + 1] == 'S')
+                    && parseBuffer[i + 2] == 'R' && parseBuffer[i + 3] == 'K'
+                    && parseBuffer[i + 4] != '>') {
+                    num = 0;
+                    for (outLen = i + 4; outLen < strlen(parseBuffer); outLen++) {
+                        if (parseBuffer[outLen] < '0' || parseBuffer[outLen] > '9')
+                            break;
+                        num = num * 10 + parseBuffer[outLen] - '0';
+                    }
+                    if (num >= kFirstResourceID && num < kFirstResourceID + kMaxGovts) {
+                        if (parseBuffer[i + 1] == 'P')
+                            descRankGovt[0] = num - kFirstResourceID;
+                        else
+                            descRankGovt[1] = num - kFirstResourceID;
+                    } else {
+                        if (parseBuffer[i + 1] == 'P')
+                            descRankGovt[0] = -1;
+                        else
+                            descRankGovt[1] = -1;
+                    }
+                    i += 4;
                 }
-                if (num >= kFirstResourceID && num < kFirstResourceID + kMaxGovts) {
-                    if (parseBuffer[i + 1] == 'P')
-                        descRankGovt[0] = num - kFirstResourceID;
-                    else
-                        descRankGovt[1] = num - kFirstResourceID;
-                } else {
-                    if (parseBuffer[i + 1] == 'P')
-                        descRankGovt[0] = -1;
-                    else
-                        descRankGovt[1] = -1;
-                }
-                i += 4;
-            }
-        }
 #else
-        for (outLen = 0; outLen < strlen(parseBuffer) - 5; outLen++) {
-            if (parseBuffer[outLen] == '<') {
-                j = outLen + 1;
+                j = i + 1;
                 if (parseBuffer[j] == 'P' || parseBuffer[j] == 'S') {
-                    k = outLen + 2;
+                    k = i + 2;
                     if (parseBuffer[k] == 'R') {
-                        k = outLen + 3;
+                        k = i + 3;
                         if (parseBuffer[k] == 'K') {
-                            k = outLen + 4;
+                            k = i + 4;
                             if (parseBuffer[k] != '>') {
                                 rank = 0;
-                                for (i = outLen + 4; i < strlen(parseBuffer); i++) {
-                                    if (parseBuffer[i] < '0' || parseBuffer[i] > '9')
+                                for (outLen = i + 4; outLen < strlen(parseBuffer); outLen++) {
+                                    if (parseBuffer[outLen] < '0' || parseBuffer[outLen] > '9')
                                         break;
-                                    rank = rank * 10 + parseBuffer[i] - '0';
+                                    rank = rank * 10 + parseBuffer[outLen] - '0';
                                 }
                                 if (rank >= kFirstResourceID && rank < kFirstResourceID + kMaxGovts) {
                                     if (parseBuffer[j] == 'P')
@@ -902,14 +899,14 @@ void ParseTextDescription(void)
                                     else
                                         descRankGovt[1] = -1;
                                 }
-                                outLen += 4;
+                                i += 4;
                             }
                         }
                     }
                 }
+#endif
             }
         }
-#endif
     }
 }
 

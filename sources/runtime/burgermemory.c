@@ -387,7 +387,7 @@ static inline void GrabMemRange(void *MemPtr, Word32 Length, MyHandle *Parent, M
    byte-identical yes (1018 bytes). OPEN: none; the body sits under `if (MemSize != 0)' with a
    trailing `return 0' (the exe's last epilogue) */
 // FUNCTION: EVNOVA 0x004d82d0
-void *AllocAHandle2(Word32 MemSize, Word Flag)
+void **AllocAHandle2(Word32 MemSize, Word Flag)
 {
     MyHandle *NewHand;
     MyHandle *Scan;
@@ -425,7 +425,7 @@ void *AllocAHandle2(Word32 MemSize, Word Flag)
                             NewHand->MemPtr = (Word8 *)Scan->MemPtr + (Scan->Length - MemSize);
                             GrabMemRange(NewHand->MemPtr, MemSize, Parent, Scan);
                             AllocatedMemSize += NewHand->Length;
-                            return NewHand;
+                            return (void **)NewHand;
                         }
                         Scan = Scan->PrevHandle;
                     }
@@ -451,7 +451,7 @@ void *AllocAHandle2(Word32 MemSize, Word Flag)
                             NewHand->MemPtr = Scan->MemPtr;
                             GrabMemRange(Scan->MemPtr, MemSize, NewHand, Scan);
                             AllocatedMemSize += NewHand->Length;
-                            return NewHand;
+                            return (void **)NewHand;
                         }
                         Scan = Scan->NextHandle;
                     }
@@ -479,7 +479,7 @@ void *AllocAHandle2(Word32 MemSize, Word Flag)
                 NewHand->NextPurge = 0;
                 NewHand->PrevPurge = 0;
                 NewHand->MemPtr = NewHand + 1;
-                return NewHand;
+                return (void **)NewHand;
             }
         }
         NonFatal("Out of memory, I need %ld bytes\n", MemSize);
@@ -498,7 +498,7 @@ void *AllocAPointer(Word32 size)
     void **block;
 
     if (size != 0) {
-        handle = (void **)AllocAHandle2(size + kPointerHeader, kHandleFixed);
+        handle = AllocAHandle2(size + kPointerHeader, kHandleFixed);
         if (handle != 0) {
             block = (void **)*handle;
             *block = handle;

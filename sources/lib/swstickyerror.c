@@ -25,21 +25,11 @@ OSErr SWStickyError(void)
 /* SWSetStickyIfError (mac _SWSetStickyIfError). STATE: MATCH, byte-identical. OPEN: none */
 // FUNCTION: EVNOVA 0x004794b0
 // MAC: _SWSetStickyIfError i386 0x000a6f77 ppc 0x000b1ba4
-#ifdef MACBUILD
 void SWSetStickyIfError(short errNum)
 {
-    if (errNum != noErr)
+    if ((int)errNum != noErr)
         gSWStickyError = errNum;
 }
-#else
-void SWSetStickyIfError(short errNum)
-{
-    int err = errNum;
-
-    if (err != 0)
-        gSWStickyError = errNum;
-}
-#endif
 
 #ifdef MACBUILD
 /* SWHasSystem7 (mac _SWHasSystem7, mac-only). STATE: see the mac gate. */
