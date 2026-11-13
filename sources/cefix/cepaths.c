@@ -28,7 +28,7 @@ int32_t CE_DecryptIfNecessary(void *buf, uint32_t len, uint32_t key)
 
 /* No Nova Files in the current directory: the one beside the exe, instead of creating
    an empty folder here. */
-short CE_OpenNovaFilesFallback(const char *path, const char *ext, struct _FILE *log)
+short CE_OpenNovaFilesFallback(const char *path, const char *ext, evn_FILE *log)
 {
     ceNovaFilesFallback = 1;
     return OpenEVPlugins(kExeFolder kNovaFilesFolder, ext, log);
@@ -36,7 +36,7 @@ short CE_OpenNovaFilesFallback(const char *path, const char *ext, struct _FILE *
 
 /* No Nova Plug-Ins in the current directory: try the Mac name before the game creates
    an empty folder. */
-short CE_OpenPlugInsFallback(const char *path, const char *ext, struct _FILE *log)
+short CE_OpenPlugInsFallback(const char *path, const char *ext, evn_FILE *log)
 {
     short err;
 

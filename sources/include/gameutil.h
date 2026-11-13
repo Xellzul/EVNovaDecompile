@@ -44,7 +44,7 @@ extern short GetCharResourceShipType(const unsigned char *name);
 extern void GetPlayerContributeBits(uint32_t *lo, uint32_t *hi);
 extern void GetDefaultCharResourceName(unsigned char *name);
 #ifndef MAC1010
-extern Handle GetNamedResource(unsigned long type, const unsigned char *name);
+extern Handle GetNamedResource(uint32_t type, const unsigned char *name);
 #endif
 extern void GetRandomIndString(unsigned char *str, short strListID);
 extern void HideCursorSprite(void);

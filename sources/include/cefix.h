@@ -7,6 +7,7 @@
 
 #ifdef CEFIX
 #include "int32.h"
+#include "burgertypes.h"
 
 #ifdef __cplusplus
 #include <stdio.h>
@@ -67,8 +68,8 @@ struct _FILE;
 #endif
 
 int32_t CE_DecryptIfNecessary(void *buf, uint32_t len, uint32_t key);
-short CE_OpenNovaFilesFallback(const char *path, const char *ext, struct _FILE *log);
-short CE_OpenPlugInsFallback(const char *path, const char *ext, struct _FILE *log);
+short CE_OpenNovaFilesFallback(const char *path, const char *ext, evn_FILE *log);
+short CE_OpenPlugInsFallback(const char *path, const char *ext, evn_FILE *log);
 void CE_ExpandFilesPath(char *dst, const char *path);
 void CE_ExpandPlugInsPath(char *dst, const char *path);
 
